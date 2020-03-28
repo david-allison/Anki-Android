@@ -111,7 +111,7 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         try {
             mListener = (StudyOptionsListener) context;
