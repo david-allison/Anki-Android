@@ -488,7 +488,7 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
             try {
                 mProgressDialog.dismiss();
             } catch (Exception e) {
-                Timber.e("onPostExecute - Dialog dismiss Exception = " + e.getMessage());
+                Timber.e("onPostExecute - Dialog dismiss Exception = %s", e.getMessage());
             }
         }
     }
