@@ -193,7 +193,7 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
         mStudyOptionsView = studyOptionsView;
         mFragmented = getActivity().getClass() != StudyOptionsActivity.class;
         initAllContentViews(studyOptionsView);
-        mToolbar = (Toolbar) studyOptionsView.findViewById(R.id.studyOptionsToolbar);
+        mToolbar = studyOptionsView.findViewById(R.id.studyOptionsToolbar);
         mToolbar.inflateMenu(R.menu.study_options_fragment);
         if (mToolbar != null) {
             configureToolbar();
@@ -260,19 +260,19 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
             studyOptionsView.findViewById(R.id.studyoptions_gradient).setVisibility(View.VISIBLE);
         }
         mDeckInfoLayout = studyOptionsView.findViewById(R.id.studyoptions_deckinformation);
-        mTextDeckName = (TextView) studyOptionsView.findViewById(R.id.studyoptions_deck_name);
-        mTextDeckDescription = (TextView) studyOptionsView.findViewById(R.id.studyoptions_deck_description);
+        mTextDeckName = studyOptionsView.findViewById(R.id.studyoptions_deck_name);
+        mTextDeckDescription = studyOptionsView.findViewById(R.id.studyoptions_deck_description);
         // make links clickable
         mTextDeckDescription.setMovementMethod(LinkMovementMethod.getInstance());
-        mButtonStart = (Button) studyOptionsView.findViewById(R.id.studyoptions_start);
-        mTextCongratsMessage = (TextView) studyOptionsView.findViewById(R.id.studyoptions_congrats_message);
+        mButtonStart = studyOptionsView.findViewById(R.id.studyoptions_start);
+        mTextCongratsMessage = studyOptionsView.findViewById(R.id.studyoptions_congrats_message);
         // Code common to both fragmented and non-fragmented view
-        mTextTodayNew = (TextView) studyOptionsView.findViewById(R.id.studyoptions_new);
-        mTextTodayLrn = (TextView) studyOptionsView.findViewById(R.id.studyoptions_lrn);
-        mTextTodayRev = (TextView) studyOptionsView.findViewById(R.id.studyoptions_rev);
-        mTextNewTotal = (TextView) studyOptionsView.findViewById(R.id.studyoptions_total_new);
-        mTextTotal = (TextView) studyOptionsView.findViewById(R.id.studyoptions_total);
-        mTextETA = (TextView) studyOptionsView.findViewById(R.id.studyoptions_eta);
+        mTextTodayNew = studyOptionsView.findViewById(R.id.studyoptions_new);
+        mTextTodayLrn = studyOptionsView.findViewById(R.id.studyoptions_lrn);
+        mTextTodayRev = studyOptionsView.findViewById(R.id.studyoptions_rev);
+        mTextNewTotal = studyOptionsView.findViewById(R.id.studyoptions_total_new);
+        mTextTotal = studyOptionsView.findViewById(R.id.studyoptions_total);
+        mTextETA = studyOptionsView.findViewById(R.id.studyoptions_eta);
         mButtonStart.setOnClickListener(mButtonClickListener);
     }
 
