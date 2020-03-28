@@ -31,6 +31,8 @@ import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.anki.exception.ImportExportException;
+import com.ichi2.anki.stats.SchedulerStatistics;
+import com.ichi2.anki.stats.StatisticsCalculator;
 import com.ichi2.libanki.AnkiPackageExporter;
 import com.ichi2.libanki.Card;
 import com.ichi2.libanki.Collection;
@@ -945,14 +947,19 @@ public class DeckTask extends BaseAsyncTask<DeckTask.TaskData, DeckTask.TaskData
             Sched sched = col.getSched();
             Object[] obj = params[0].getObjArray();
             boolean reset = (Boolean) obj[0];
+            StatisticsCalculator calculator = StatisticsCalculator.fromCollection(col);
             if (reset) {
-                sched.reset();
+                calculator.obtainCurrentStatistics();
             }
-            int[] counts = sched.counts();
+            Long[] selectedDecks = col.getDecks().active().toArray(new Long[0]);
+            SchedulerStatistics reviewStats = calculator.calculateReviewStatistics(selectedDecks);
             int totalNewCount = sched.totalNewForCurrentDeck();
             int totalCount = sched.cardCount();
-            return new TaskData(new Object[]{counts[0], counts[1], counts[2], totalNewCount,
-                    totalCount, sched.eta(counts)});
+            return new TaskData(new Object[]{
+                        reviewStats.getNewCount(),
+                        reviewStats.getLearningCardCount(),
+                        reviewStats.getReviewCardCount(), totalNewCount,
+                    totalCount, calculator.getDeckCompletionEtaInMinutes(reviewStats)});
         } catch (RuntimeException e) {
             Timber.e(e, "doInBackgroundUpdateValuesFromDeck - an error occurred");
             return null;
