@@ -294,6 +294,32 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
     }
 
 
+    private void setDeckName(JSONObject deck) {
+        String fullName;
+        try {
+            // Main deck name
+            fullName = deck.getString("name");
+            String[] name = fullName.split("::");
+            StringBuilder nameBuilder = new StringBuilder();
+            if (name.length > 0) {
+                nameBuilder.append(name[0]);
+            }
+            if (name.length > 1) {
+                nameBuilder.append("\n").append(name[1]);
+            }
+            if (name.length > 3) {
+                nameBuilder.append("...");
+            }
+            if (name.length > 2) {
+                nameBuilder.append("\n").append(name[name.length - 1]);
+            }
+            mTextDeckName.setText(nameBuilder.toString());
+
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public boolean onMenuItemClick(MenuItem item) {
         switch (item.getItemId()) {
@@ -562,30 +588,8 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
                     // Reinitialize controls incase changed to filtered deck
                     initAllContentViews(mStudyOptionsView);
                     // Set the deck name
-                    String fullName;
                     JSONObject deck = getCol().getDecks().current();
-                    try {
-                        // Main deck name
-                        fullName = deck.getString("name");
-                        String[] name = fullName.split("::");
-                        StringBuilder nameBuilder = new StringBuilder();
-                        if (name.length > 0) {
-                            nameBuilder.append(name[0]);
-                        }
-                        if (name.length > 1) {
-                            nameBuilder.append("\n").append(name[1]);
-                        }
-                        if (name.length > 3) {
-                            nameBuilder.append("...");
-                        }
-                        if (name.length > 2) {
-                            nameBuilder.append("\n").append(name[name.length - 1]);
-                        }
-                        mTextDeckName.setText(nameBuilder.toString());
-
-                    } catch (JSONException e) {
-                        throw new RuntimeException(e);
-                    }
+                    setDeckName(deck);
 
                     if (tryOpenCramDeckOptions()) {
                         return;
