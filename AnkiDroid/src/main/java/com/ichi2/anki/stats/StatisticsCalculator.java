@@ -20,6 +20,14 @@ public class StatisticsCalculator {
         return SchedulerStatistics.fromSchedulerCounts(mScheduler.counts());
     }
 
+    @SuppressWarnings("unused") //selected decks are currently implicit in the scheduler.
+    public DeckProgressStatistics calculateDeckProgressStatistics(Long[] selectedDecks) {
+        int totalNewCount = mScheduler.totalNewForCurrentDeck();
+        int totalCount = mScheduler.cardCount();
+
+        return new DeckProgressStatistics(totalCount, totalNewCount);
+    }
+
     public int getDeckCompletionEtaInMinutes(SchedulerStatistics statistics) {
         return mScheduler.eta(statistics.toSchedulerCounts());
     }

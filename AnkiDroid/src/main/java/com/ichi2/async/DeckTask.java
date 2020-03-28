@@ -31,6 +31,7 @@ import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.anki.exception.ImportExportException;
+import com.ichi2.anki.stats.DeckProgressStatistics;
 import com.ichi2.anki.stats.SchedulerStatistics;
 import com.ichi2.anki.stats.StatisticsCalculator;
 import com.ichi2.libanki.AnkiPackageExporter;
@@ -944,7 +945,6 @@ public class DeckTask extends BaseAsyncTask<DeckTask.TaskData, DeckTask.TaskData
         Timber.d("doInBackgroundUpdateValuesFromDeck");
         try {
             Collection col = CollectionHelper.getInstance().getCol(mContext);
-            Sched sched = col.getSched();
             Object[] obj = params[0].getObjArray();
             boolean reset = (Boolean) obj[0];
             StatisticsCalculator calculator = StatisticsCalculator.fromCollection(col);
@@ -953,13 +953,14 @@ public class DeckTask extends BaseAsyncTask<DeckTask.TaskData, DeckTask.TaskData
             }
             Long[] selectedDecks = col.getDecks().active().toArray(new Long[0]);
             SchedulerStatistics reviewStats = calculator.calculateReviewStatistics(selectedDecks);
-            int totalNewCount = sched.totalNewForCurrentDeck();
-            int totalCount = sched.cardCount();
+            DeckProgressStatistics progressStatistics = calculator.calculateDeckProgressStatistics(selectedDecks);
             return new TaskData(new Object[]{
                         reviewStats.getNewCount(),
                         reviewStats.getLearningCardCount(),
-                        reviewStats.getReviewCardCount(), totalNewCount,
-                    totalCount, calculator.getDeckCompletionEtaInMinutes(reviewStats)});
+                        reviewStats.getReviewCardCount(),
+                        progressStatistics.getUnseenCardCount(),
+                        progressStatistics.getTotalCardCount(),
+                        calculator.getDeckCompletionEtaInMinutes(reviewStats)});
         } catch (RuntimeException e) {
             Timber.e(e, "doInBackgroundUpdateValuesFromDeck - an error occurred");
             return null;
