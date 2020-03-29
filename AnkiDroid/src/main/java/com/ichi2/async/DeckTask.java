@@ -32,6 +32,7 @@ import com.ichi2.anki.R;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.anki.exception.ImportExportException;
 import com.ichi2.anki.stats.DeckProgressStatistics;
+import com.ichi2.anki.stats.ReviewCardsStatistics;
 import com.ichi2.anki.stats.SchedulerStatistics;
 import com.ichi2.anki.stats.StatisticsCalculator;
 import com.ichi2.libanki.AnkiPackageExporter;
@@ -954,13 +955,19 @@ public class DeckTask extends BaseAsyncTask<DeckTask.TaskData, DeckTask.TaskData
             Long[] selectedDecks = col.getDecks().active().toArray(new Long[0]);
             SchedulerStatistics reviewStats = calculator.calculateReviewStatistics(selectedDecks);
             DeckProgressStatistics progressStatistics = calculator.calculateDeckProgressStatistics(selectedDecks);
+            ReviewCardsStatistics reviewCardsStatistics = calculator.calculateReviewCardsStatistics(selectedDecks);
             return new TaskData(new Object[]{
                         reviewStats.getNewCount(),
                         reviewStats.getLearningCardCount(),
                         reviewStats.getReviewCardCount(),
                         progressStatistics.getUnseenCardCount(),
                         progressStatistics.getTotalCardCount(),
-                        calculator.getDeckCompletionEtaInMinutes(reviewStats)});
+                        calculator.getDeckCompletionEtaInMinutes(reviewStats),
+                        reviewCardsStatistics.getYoungCardCount(),
+                        reviewCardsStatistics.getMatureCardCount(),
+                        progressStatistics.getSeenCardCount(),
+                        progressStatistics.getOnHoldCardCount()
+            });
         } catch (RuntimeException e) {
             Timber.e(e, "doInBackgroundUpdateValuesFromDeck - an error occurred");
             return null;

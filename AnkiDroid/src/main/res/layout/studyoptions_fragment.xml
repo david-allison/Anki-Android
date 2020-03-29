@@ -89,58 +89,230 @@
                                 android:orientation="vertical">
 
                                 <TableRow>
-
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:paddingLeft="0dip"
                                         android:paddingRight="5dip"
-                                        android:text="@string/studyoptions_due_today"/>
+                                        android:text="New Today:"/>
 
-                                    <LinearLayout
+                                    <TextView
+                                        android:id="@+id/studyoptions_new"
                                         android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content">
+                                        android:layout_height="wrap_content"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/newCountColor"
+                                        android:gravity="end" />
 
-                                        <TextView
-                                            android:id="@+id/studyoptions_new"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:textColor="?attr/newCountColor" />
-
-                                        <TextView
-                                            android:id="@+id/studyoptions_lrn"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginLeft="5dip"
-                                            android:layout_marginStart="5dip"
-                                            android:textColor="?attr/learnCountColor" />
-
-                                        <TextView
-                                            android:id="@+id/studyoptions_rev"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginLeft="5dip"
-                                            android:layout_marginStart="5dip"
-                                            android:textColor="?attr/reviewCountColor" />
-                                    </LinearLayout>
+                                    <TextView
+                                        android:id="@+id/studyoptions_new_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        />
                                 </TableRow>
 
                                 <TableRow>
-
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:paddingLeft="0dip"
                                         android:paddingRight="5dip"
-                                        android:text="@string/studyoptions_new_total" />
+                                        android:text="Learn Today:"/>
 
                                     <TextView
-                                        android:id="@+id/studyoptions_total_new"
+                                        android:id="@+id/studyoptions_lrn"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginLeft="5dip"
+                                        android:layout_marginStart="5dip"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/learnCountColor"
+                                        android:gravity="end" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_lrn_percent"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:gravity="end" />
                                 </TableRow>
 
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="Review Today:"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginLeft="5dip"
+                                        android:layout_marginStart="5dip"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/reviewCountColor"
+                                        android:gravity="end" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"/>
+                                </TableRow>
+
+
+                                <TableRow>
+                                    <View
+                                        android:layout_span="3"
+                                        android:layout_width="fill_parent"
+                                        android:layout_marginVertical="6dip"
+                                        android:layout_height="2dp"
+                                        android:layout_gravity="center"
+                                        android:background="#c0c0c0"/>
+                                </TableRow>
+
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="Mature:"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev_mature"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/stats_mature" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev_mature_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        />
+                                </TableRow>
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="Young:"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev_young"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/stats_young"
+                                        android:gravity="end"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_rev_young_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        android:minWidth="40dp" />
+
+                                </TableRow>
+                                <TableRow>
+                                    <View
+                                        android:layout_span="3"
+                                        android:layout_width="fill_parent"
+                                        android:layout_marginVertical="6dip"
+                                        android:layout_height="2dp"
+                                        android:layout_gravity="center"
+                                        android:background="#c0c0c0"/>
+                                </TableRow>
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="Seen:"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_seen_total"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/reviewCountColor"
+                                        android:gravity="end" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_seen_total_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        />
+                                </TableRow>
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="Unseen:"/>
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_total_new"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textStyle="bold"
+                                        android:textColor="?attr/learnCountColor"
+                                        android:gravity="end" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_total_new_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        />
+
+                                </TableRow>
+                                <TableRow>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingLeft="0dip"
+                                        android:paddingRight="5dip"
+                                        android:text="On Hold:"/>
+
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_onHold"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        android:textColor="#C19329"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_onHold_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="end"
+                                        />
+
+
+                                </TableRow>
+
+                                <TableRow>
+                                    <View
+                                        android:layout_span="3"
+                                        android:layout_width="fill_parent"
+                                        android:layout_marginVertical="6dip"
+                                        android:layout_height="2dp"
+                                        android:layout_gravity="center"
+                                        android:background="#c0c0c0"/>
+                                </TableRow>
+                                
                                 <TableRow>
 
                                     <TextView
@@ -152,9 +324,28 @@
 
                                     <TextView
                                         android:id="@+id/studyoptions_total"
+                                        android:textStyle="bold"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:gravity="end" />
+
+                                    <TextView
+                                        android:id="@+id/studyoptions_total_percent"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginLeft="15dip"
+                                        android:gravity="end"
+                                        />
+                                </TableRow>
+
+                                <TableRow>
+                                    <View
+                                        android:layout_span="3"
+                                        android:layout_width="fill_parent"
+                                        android:layout_marginVertical="6dip"
+                                        android:layout_height="2dp"
+                                        android:layout_gravity="center"
+                                        android:background="#c0c0c0"/>
                                 </TableRow>
 
                                 <TableRow>
@@ -168,6 +359,7 @@
 
                                     <TextView
                                         android:id="@+id/studyoptions_eta"
+                                        android:textStyle="bold"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:gravity="end" />

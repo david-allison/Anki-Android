@@ -23,6 +23,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.os.ConfigurationCompat;
 import androidx.fragment.app.Fragment;
 import androidx.appcompat.widget.Toolbar;
 
@@ -40,14 +41,22 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.ichi2.anim.ActivityTransitionAnimation;
 import com.ichi2.anki.dialogs.CustomStudyDialog;
 import com.ichi2.async.DeckTask;
+import com.ichi2.compat.Compat;
 import com.ichi2.compat.CompatHelper;
 import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.Utils;
 import com.ichi2.themes.StyledProgressDialog;
+import com.ichi2.utils.FunctionalInterfaces;
+import com.ichi2.utils.FunctionalInterfaces.Function;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+import java.util.concurrent.Callable;
+
+import androidx.fragment.app.FragmentActivity;
 import timber.log.Timber;
 
 public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
@@ -90,7 +99,30 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
     private TextView mTextTodayNew;
     private TextView mTextTodayLrn;
     private TextView mTextTodayRev;
+
+    private TextView mTextSeenTotal;
     private TextView mTextNewTotal;
+    private TextView mTextOnHoldTotal;
+
+    private TextView mTextYoungTotal;
+    private TextView mTextMatureTotal;
+
+    //percentages
+    private TextView mTextTodayNewPercent;
+    private TextView mTextTodayLrnPercent;
+    private TextView mTextTodayRevPercent;
+
+    private TextView mTextYoungPercentTotal;
+    private TextView mTextMaturePercentTotal;
+
+
+    private TextView mTextSeenTotalPercent;
+    private TextView mTextNewTotalPercent;
+    private TextView mTextOnHoldTotalPercent;
+
+    private TextView mTextTotalPercent;
+
+
     private TextView mTextTotal;
     private TextView mTextETA;
     private TextView mTextCongratsMessage;
@@ -270,8 +302,28 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
         mTextTodayNew = studyOptionsView.findViewById(R.id.studyoptions_new);
         mTextTodayLrn = studyOptionsView.findViewById(R.id.studyoptions_lrn);
         mTextTodayRev = studyOptionsView.findViewById(R.id.studyoptions_rev);
+        //
         mTextNewTotal = studyOptionsView.findViewById(R.id.studyoptions_total_new);
         mTextTotal = studyOptionsView.findViewById(R.id.studyoptions_total);
+        mTextSeenTotal = studyOptionsView.findViewById(R.id.studyoptions_seen_total);
+        mTextOnHoldTotal = studyOptionsView.findViewById(R.id.studyoptions_onHold);
+        //
+        mTextYoungTotal = studyOptionsView.findViewById(R.id.studyoptions_rev_young);
+        mTextMatureTotal = studyOptionsView.findViewById(R.id.studyoptions_rev_mature);
+        mTextYoungPercentTotal = studyOptionsView.findViewById(R.id.studyoptions_rev_young_percent);
+        mTextMaturePercentTotal = studyOptionsView.findViewById(R.id.studyoptions_rev_mature_percent);
+
+
+        mTextTodayLrnPercent = studyOptionsView.findViewById(R.id.studyoptions_lrn_percent);
+        mTextTodayNewPercent = studyOptionsView.findViewById(R.id.studyoptions_new_percent);
+        mTextTodayRevPercent = studyOptionsView.findViewById(R.id.studyoptions_rev_percent);
+
+        mTextSeenTotalPercent = studyOptionsView.findViewById(R.id.studyoptions_seen_total_percent);
+        mTextNewTotalPercent = studyOptionsView.findViewById(R.id.studyoptions_total_new_percent);
+        mTextOnHoldTotalPercent = studyOptionsView.findViewById(R.id.studyoptions_onHold_percent);
+
+        mTextTotalPercent = studyOptionsView.findViewById(R.id.studyoptions_total_percent);
+
         mTextETA = studyOptionsView.findViewById(R.id.studyoptions_eta);
         mButtonStart.setOnClickListener(mButtonClickListener);
     }
@@ -572,9 +624,14 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
                     int totalNew = (Integer) obj[3];
                     int totalCards = (Integer) obj[4];
                     int eta = (Integer) obj[5];
+                    int youngCards = (Integer) obj[6];
+                    int matureCards = (Integer) obj[7];
+                    int seenCards = (Integer) obj[8];
+                    int onHoldCards = (Integer) obj[9];
 
                     // Don't do anything if the fragment is no longer attached to it's Activity or col has been closed
-                    if (getActivity() == null) {
+                    FragmentActivity currentActivity = getActivity();
+                    if (currentActivity == null) {
                         Timber.e("StudyOptionsFragment.mRefreshFragmentListener :: can't refresh");
                         return;
                     }
@@ -613,7 +670,7 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
                             mButtonStart.setVisibility(View.GONE);
                         }
                         mTextCongratsMessage.setVisibility(View.VISIBLE);
-                        mTextCongratsMessage.setText(getCol().getSched().finishedMsg(getActivity()));
+                        mTextCongratsMessage.setText(getCol().getSched().finishedMsg(currentActivity));
                     } else {
                         mCurrentContentView = CONTENT_STUDY_OPTIONS;
                         mDeckInfoLayout.setVisibility(View.VISIBLE);
@@ -640,6 +697,33 @@ public class StudyOptionsFragment extends Fragment implements Toolbar.OnMenuItem
                     mTextTodayNew.setText(String.valueOf(newCards));
                     mTextTodayLrn.setText(String.valueOf(lrnCards));
                     mTextTodayRev.setText(String.valueOf(revCards));
+
+                    mTextYoungTotal.setText(String.valueOf(youngCards));
+                    mTextMatureTotal.setText(String.valueOf(matureCards));
+
+                    mTextSeenTotal.setText(String.valueOf(seenCards));
+                    mTextOnHoldTotal.setText(String.valueOf(onHoldCards));
+
+                    //set percentages
+                    Locale currentLocale = ConfigurationCompat.getLocales(getResources().getConfiguration()).get(0);
+                    NumberFormat percentFormatter = NumberFormat.getPercentInstance(currentLocale);
+                    Function<Integer, String> formatPercent = d -> totalCards == 0 ?
+                            "" :
+                            percentFormatter.format(((double)d)/((double)totalCards));
+
+                    mTextMaturePercentTotal.setText(formatPercent.apply(matureCards));
+                    mTextYoungPercentTotal.setText(formatPercent.apply(youngCards));
+
+                    mTextTodayNewPercent.setText(formatPercent.apply(newCards));
+                    mTextTodayRevPercent.setText(formatPercent.apply(revCards));
+                    mTextTodayLrnPercent.setText(formatPercent.apply(lrnCards));
+
+                    mTextSeenTotalPercent.setText(formatPercent.apply(seenCards));
+                    mTextNewTotalPercent.setText(formatPercent.apply(totalNew));
+                    mTextOnHoldTotalPercent.setText(formatPercent.apply(onHoldCards));
+
+                    mTextTotalPercent.setText(formatPercent.apply(totalCards));
+
 
                     // Set the total number of new cards in deck
                     if (totalNew < NEW_CARD_COUNT_TRUNCATE_THRESHOLD) {
