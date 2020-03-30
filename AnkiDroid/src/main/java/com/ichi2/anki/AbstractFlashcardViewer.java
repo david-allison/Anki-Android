@@ -873,6 +873,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
     // Finish initializing the activity after the collection has been correctly loaded
     @Override
     protected void onCollectionLoaded(Collection col) {
+        Timber.d("Collection onCollectionLoaded");
         super.onCollectionLoaded(col);
         mSched = col.getSched();
         mBaseUrl = Utils.getBaseUrl(col.getMedia().dir());
@@ -906,6 +907,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
 
         updateScreenCounts();
         supportInvalidateOptionsMenu();
+        Timber.d("Collection onCollectionLoaded completed");
     }
 
     // Saves deck each time Reviewer activity loses focus
@@ -1459,6 +1461,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
 
     @SuppressLint("SetJavaScriptEnabled") // they request we review carefully because of XSS security, we have
     private WebView createWebView() {
+        Timber.d("WebView creation started");
         WebView webView = new MyWebView(this);
         webView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         webView.getSettings().setDisplayZoomControls(false);
@@ -1643,6 +1646,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
 
                     Timber.e("WebView Renderer process terminated. Crashed: %b",  detail.didCrash());
 
+                    //Keep some weak references for debugging. We still get a crash even with a GC.
+                    WeakReference<FrameLayout> previousFrame = new WeakReference<>(mCardFrame);
+                    Timber.d("CardHasParent %b", mCard.getParent() != null);
+                    Timber.d("FrameIsParent %b", mCard.getParent() == mCardFrame);
+
                     //Destroy the current WebView (to ensure WebView is GCed).
                     //Otherwise, we get the following error:
                     //"crash wasn't handled by all associated webviews, triggering application crash"
@@ -1655,7 +1663,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
                     mCardFrame = inflateNewView(R.id.flashcard);
                     //Even with the above, I occasionally saw the above error. Manually trigger the GC.
                     //I'll keep this line unless I see another crash, which would point to another underlying issue.
+                    //Still occasionally occurs triggering a crash immediately after app startup.
+                    Timber.d("Triggering GC");
                     System.gc();
+                    Timber.d("previousFrame Exists: %b", previousFrame.get() != null);
 
                     //We only want to show one message per branch.
 
@@ -1720,6 +1731,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
         });
         // Set transparent color to prevent flashing white when night mode enabled
         webView.setBackgroundColor(Color.argb(1, 0, 0, 0));
+        Timber.d("WebView creation completed");
         return webView;
     }
 
@@ -1733,7 +1745,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
     }
 
     private boolean webViewRendererLastCrashedOnCard(long cardId) {
-        return lastCrashingCardId != null && lastCrashingCardId == cardId;
+        return false && (lastCrashingCardId != null && lastCrashingCardId == cardId);
     }
 
 
@@ -2188,6 +2200,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity {
 
     protected void displayCardAnswer() {
         Timber.d("displayCardAnswer()");
+        crashWebViewRenderer();
 
         // prevent answering (by e.g. gestures) before card is loaded
         if (mCurrentCard == null) {
