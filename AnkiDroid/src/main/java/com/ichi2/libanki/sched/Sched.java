@@ -1193,8 +1193,10 @@ public class Sched extends SchedV2 {
         }
         // dynamic deck; override some attributes, use original deck for others
         JSONObject oconf = mCol.getDecks().confForDid(card.getODid());
-        JSONArray delays = conf.optJSONArray("delays");
-        if (delays == null) {
+        JSONArray delays;
+        if (conf.has("delays")) {
+            delays = conf.getJSONArray("delays");
+        } else {
             delays = oconf.getJSONObject("new").getJSONArray("delays");
         }
         JSONObject dict = new JSONObject();
@@ -1220,8 +1222,10 @@ public class Sched extends SchedV2 {
         }
         // dynamic deck; override some attributes, use original deck for others
         JSONObject oconf = mCol.getDecks().confForDid(card.getODid());
-        JSONArray delays = conf.optJSONArray("delays");
-        if (delays == null) {
+        JSONArray delays;
+        if (conf.has("delays")) {
+            delays = conf.getJSONArray("delays");
+        } else {
             delays = oconf.getJSONObject("lapse").getJSONArray("delays");
         }
         JSONObject dict = new JSONObject();
