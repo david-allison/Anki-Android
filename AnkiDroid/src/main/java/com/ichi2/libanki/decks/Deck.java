@@ -59,4 +59,8 @@ public class Deck extends ReadOnlyJSONObject{
     public JSONArray getToday(String key) {
         return getJSONArray(key + "Today");
     }
+
+    public void removeEmpty() {
+        remove("empty");
+    }
 }
