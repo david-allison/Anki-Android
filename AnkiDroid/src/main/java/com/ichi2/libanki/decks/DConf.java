@@ -38,6 +38,14 @@ public class DConf extends ReadOnlyJSONObject{
         return getJSON().getJSONArray("delays");
     }
 
+    public JSONObject getReminder(){
+        return getJSON().getJSONObject("reminder");
+    }
+
+    public void setReminder(Object o) {
+        put("reminder", o);
+    }
+
     @Nullable
     public Boolean parseTimer() {
         //Note: Card.py used != 0, DeckOptions used == 1
