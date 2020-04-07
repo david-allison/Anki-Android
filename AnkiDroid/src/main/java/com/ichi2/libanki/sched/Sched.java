@@ -1197,7 +1197,7 @@ public class Sched extends SchedV2 {
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
         JSONArray delays;
         if (conf.has("delays")) {
-            delays = conf.getJSONArray("delays");
+            delays = conf.getDelays();
         } else {
             delays = oconf.getNew().getJSONArray("delays");
         }
@@ -1226,7 +1226,7 @@ public class Sched extends SchedV2 {
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
         JSONArray delays;
         if (conf.has("delays")) {
-            delays = conf.getJSONArray("delays");
+            delays = conf.getDelays();
         } else {
             delays = oconf.getLapse().getJSONArray("delays");
         }

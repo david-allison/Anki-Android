@@ -1,5 +1,6 @@
 package com.ichi2.libanki.decks;
 
+import com.ichi2.utils.JSONArray;
 import com.ichi2.utils.JSONObject;
 
 import androidx.annotation.Nullable;
@@ -31,6 +32,10 @@ public class DConf extends ReadOnlyJSONObject{
 
     public JSONObject getLapse() {
         return getJSON().getJSONObject("lapse");
+    }
+
+    public JSONArray getDelays(){
+        return getJSON().getJSONArray("delays");
     }
 
     @Nullable
