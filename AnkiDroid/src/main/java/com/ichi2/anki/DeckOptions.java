@@ -279,7 +279,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
                                 mOptions.setAutoplay(value);
                                 break;
                             case "replayQuestion":
-                                mOptions.put("replayq", value);
+                                mOptions.setReplayq(value);
                                 break;
                             case "desc":
                                 mDeck.put("desc", value);
