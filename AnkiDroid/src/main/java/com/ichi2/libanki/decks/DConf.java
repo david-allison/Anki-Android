@@ -21,6 +21,9 @@ public class DConf extends ReadOnlyJSONObject{
         super(json);
     }
 
+    public JSONObject getRev() {
+        return getJSON().getJSONObject("rev");
+    }
 
     @Nullable
     public Boolean parseTimer() {

@@ -506,7 +506,7 @@ public class AdvancedStatistics {
             int initialFactor = Settings.getInitialFactor();
 
             if (conf.getInt("dyn") == 0) {
-                revPerDay = conf.getJSONObject("rev").getInt("perDay");
+                revPerDay = conf.getRev().getInt("perDay");
                 newPerDay = conf.getJSONObject("new").getInt("perDay");
                 initialFactor = conf.getJSONObject("new").getInt("initialFactor");
 

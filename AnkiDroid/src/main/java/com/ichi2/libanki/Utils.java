@@ -34,6 +34,7 @@ import com.ichi2.anki.AnkiFont;
 import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.compat.CompatHelper;
+import com.ichi2.libanki.decks.ReadOnlyJSONObject;
 import com.ichi2.utils.ImportUtils;
 
 import com.ichi2.utils.JSONArray;
@@ -1029,7 +1030,7 @@ public class Utils {
        @return whether there was a non-zero usn; in this case the list
        should be saved before the upload.
      */
-    public static boolean markAsUploaded(ArrayList<? extends JSONObject> ar) {
+    public static boolean markAsUploaded(ArrayList<JSONObject> ar) {
         boolean changed = false;
         for (JSONObject obj: ar) {
             if (obj.optInt("usn", 1) != 0) {
