@@ -72,4 +72,8 @@ public class DConf extends ReadOnlyJSONObject{
     public void setMaxTaken(Object o) {
         put("maxTaken", o);
     }
+
+    public void setTimer(int timer) {
+        put("timer", timer);
+    }
 }
