@@ -4,12 +4,13 @@ import com.ichi2.utils.JSONObject;
 
 import androidx.annotation.Nullable;
 
-public class DConf extends JSONObject{
+public class DConf extends ReadOnlyJSONObject{
     public DConf() {
         super();
     }
+
     public DConf(DConf dconf) {
-        super(dconf);
+        super(dconf.getJSON());
     }
 
     public DConf(JSONObject json) {

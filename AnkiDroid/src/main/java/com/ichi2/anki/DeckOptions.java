@@ -48,6 +48,7 @@ import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.Consts;
 import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
+import com.ichi2.libanki.decks.ROJSONComparator;
 import com.ichi2.preferences.StepsPreference;
 import com.ichi2.preferences.TimePreference;
 import com.ichi2.themes.StyledProgressDialog;
@@ -794,7 +795,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
     protected void buildLists() {
         ListPreference deckConfPref = (ListPreference) findPreference("deckConf");
         ArrayList<DConf> confs = mCol.getDecks().allConf();
-        Collections.sort(confs, NamedJSONComparator.instance);
+        Collections.sort(confs, ROJSONComparator.instance);
         String[] confValues = new String[confs.size()];
         String[] confLabels = new String[confs.size()];
         for (int i = 0; i < confs.size(); i++) {

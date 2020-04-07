@@ -183,7 +183,7 @@ public class Decks {
     /**
      * Can be called with either a deck or a deck configuration.
      */
-    public void save(JSONObject g) {
+    public void save(ReadOnlyJSONObject g) {
         if (g != null) {
             g.put("mod", Utils.intTime());
             g.put("usn", mCol.usn());
@@ -627,7 +627,7 @@ public class Decks {
             return conf;
         }
         // dynamic decks have embedded conf
-        return new DConf(deck);
+        return new DConf(deck.getJSON());
         //todo: deal more nicely than by taking json and creating a new object
     }
 
@@ -639,7 +639,11 @@ public class Decks {
 
     // JSONObject version kept for importing and exporting
     public void updateConf(JSONObject g) {
-        mDconf.put(g.getLong("id"), new DConf(g));
+        updateConf(new DConf(g));
+    }
+
+    public void updateConf(DConf g) {
+        mDconf.put(g.getLong("id"), g);
         save();
     }
 
@@ -992,8 +996,8 @@ public class Decks {
 
 
     public void beforeUpload() {
-        boolean changed_decks = Utils.markAsUploaded(all());
-        boolean changed_conf = Utils.markAsUploaded(allConf());
+        boolean changed_decks = ReadOnlyJSONObject.markAsUploaded(all());
+        boolean changed_conf = ReadOnlyJSONObject.markAsUploaded(allConf());
         if (changed_decks || changed_conf) {
             // shouldSave should always be called on both lists, for
             // its side effect. Thus the disjunction should not be
