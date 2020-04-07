@@ -47,6 +47,7 @@ import com.ichi2.async.CollectionTask;
 import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.Consts;
 import com.ichi2.libanki.DeckConfig;
+import com.ichi2.libanki.decks.DConf;
 import com.ichi2.preferences.StepsPreference;
 import com.ichi2.preferences.TimePreference;
 import com.ichi2.themes.StyledProgressDialog;
@@ -76,7 +77,7 @@ import timber.log.Timber;
  */
 public class DeckOptions extends AppCompatPreferenceActivity implements OnSharedPreferenceChangeListener {
 
-    private JSONObject mOptions;
+    private DConf mOptions;
     private JSONObject mDeck;
     private Collection mCol;
     private boolean mPreferenceChanged = false;
@@ -792,12 +793,12 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
     @SuppressWarnings("deprecation") // Tracked as #5019 on github
     protected void buildLists() {
         ListPreference deckConfPref = (ListPreference) findPreference("deckConf");
-        ArrayList<JSONObject> confs = mCol.getDecks().allConf();
+        ArrayList<DConf> confs = mCol.getDecks().allConf();
         Collections.sort(confs, NamedJSONComparator.instance);
         String[] confValues = new String[confs.size()];
         String[] confLabels = new String[confs.size()];
         for (int i = 0; i < confs.size(); i++) {
-            JSONObject o = confs.get(i);
+            DConf o = confs.get(i);
             confValues[i] = o.getString("id");
             confLabels[i] = o.getString("name");
         }
