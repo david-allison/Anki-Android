@@ -23,4 +23,8 @@ public class Deck extends ReadOnlyJSONObject{
     public void setDesc(String desc) {
         put("desc", desc);
     }
+
+    public void setConf(long conf) {
+        put("conf", conf);
+    }
 }
