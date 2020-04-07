@@ -1220,7 +1220,7 @@ public class Sched extends SchedV2 {
         DConf conf = _cardConf(card);
         // normal deck
         if (card.getODid() == 0) {
-            return conf.getJSONObject("lapse");
+            return conf.getLapse();
         }
         // dynamic deck; override some attributes, use original deck for others
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
@@ -1228,14 +1228,14 @@ public class Sched extends SchedV2 {
         if (conf.has("delays")) {
             delays = conf.getJSONArray("delays");
         } else {
-            delays = oconf.getJSONObject("lapse").getJSONArray("delays");
+            delays = oconf.getLapse().getJSONArray("delays");
         }
         JSONObject dict = new JSONObject();
         // original deck
-        dict.put("minInt", oconf.getJSONObject("lapse").getInt("minInt"));
-        dict.put("leechFails", oconf.getJSONObject("lapse").getInt("leechFails"));
-        dict.put("leechAction", oconf.getJSONObject("lapse").getInt("leechAction"));
-        dict.put("mult", oconf.getJSONObject("lapse").getDouble("mult"));
+        dict.put("minInt", oconf.getLapse().getInt("minInt"));
+        dict.put("leechFails", oconf.getLapse().getInt("leechFails"));
+        dict.put("leechAction", oconf.getLapse().getInt("leechAction"));
+        dict.put("mult", oconf.getLapse().getDouble("mult"));
         // overrides
         dict.put("delays", delays);
         dict.put("resched", conf.getBoolean("resched"));
@@ -1722,7 +1722,7 @@ public class Sched extends SchedV2 {
     @Override
     public boolean leechActionSuspend(Card card) {
         JSONObject conf;
-        conf = _cardConf(card).getJSONObject("lapse");
+        conf = _cardConf(card).getLapse();
         return conf.getInt("leechAction") == Consts.LEECH_SUSPEND;
     }
 

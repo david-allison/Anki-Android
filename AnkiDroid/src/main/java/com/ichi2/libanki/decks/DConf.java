@@ -29,6 +29,10 @@ public class DConf extends ReadOnlyJSONObject{
         return getJSON().getJSONObject("new");
     }
 
+    public JSONObject getLapse() {
+        return getJSON().getJSONObject("lapse");
+    }
+
     @Nullable
     public Boolean parseTimer() {
         //Note: Card.py used != 0, DeckOptions used == 1
