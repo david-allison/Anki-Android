@@ -95,7 +95,7 @@ public class FilteredDeckOptions extends AppCompatPreferenceActivity implements 
             mValues.put("search", ar.getString(0));
             mValues.put("limit", ar.getString(1));
             mValues.put("order", ar.getString(2));
-            JSONArray delays = mDeck.optJSONArray("delays");
+            JSONArray delays = mDeck.getDelays();
             if (delays != null) {
                 mValues.put("steps", StepsPreference.convertFromJSON(delays));
                 mValues.put("stepsOn", Boolean.toString(true));
@@ -141,13 +141,13 @@ public class FilteredDeckOptions extends AppCompatPreferenceActivity implements 
                         if (on) {
                             JSONArray steps =  StepsPreference.convertToJSON(mValues.get("steps"));
                             if (steps.length() > 0) {
-                                mDeck.put("delays", steps);
+                                mDeck.setDelays(steps);
                             }
                         } else {
-                            mDeck.put("delays", JSONObject.NULL);
+                            mDeck.setDelaysNull();
                         }
                     } else if ("steps".equals(entry.getKey())) {
-                        mDeck.put("delays", StepsPreference.convertToJSON((String) entry.getValue()));
+                        mDeck.setDelays(StepsPreference.convertToJSON((String) entry.getValue()));
                     } else if ("preset".equals(entry.getKey())) {
                         int i = Integer.parseInt((String) entry.getValue());
                         if (i > 0) {
