@@ -68,4 +68,8 @@ public class DConf extends ReadOnlyJSONObject{
         }
         return ret;
     }
+
+    public void setMaxTaken(Object o) {
+        put("maxTaken", o);
+    }
 }
