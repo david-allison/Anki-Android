@@ -183,4 +183,9 @@ public class ReadOnlyJSONObject implements Iterable<String> {
     public String toString() {
         return getJSON().toString();
     }
+
+    /** values both in decks and dconf */
+    public void setUsn(int usn) {
+        put("usn", usn);
+    }
 }
