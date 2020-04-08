@@ -6,11 +6,11 @@ import com.ichi2.utils.JSONArray;
 import com.ichi2.utils.JSONObject;
 
 public class Deck extends ReadOnlyJSONObject{
-    public Deck() {
+    protected Deck() {
         super();
     }
 
-    public Deck(Deck deck) {
+    protected Deck(Deck deck) {
         super(deck.getJSON());
     }
 
@@ -18,7 +18,7 @@ public class Deck extends ReadOnlyJSONObject{
         super(json);
     }
 
-    public Deck(String json) {
+    protected Deck(String json) {
         super(json);
     }
 
