@@ -27,4 +27,8 @@ public class ReviewingConf extends ReadOnlyJSONObject {
     public JSONArray getInts(){
         return getJSON().getJSONArray("ints");
     }
+
+    public void putLeechAction(Integer action) {
+        put("leechAction", action);
+    }
 }
