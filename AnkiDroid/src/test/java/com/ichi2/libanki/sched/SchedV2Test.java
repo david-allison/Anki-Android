@@ -119,8 +119,8 @@ public class SchedV2Test extends RobolectricTest {
     private void ensureLapseMatchesSppliedAnkiDesktopConfig(LapseConf lapse) {
         assertThat(lapse.getInt("minInt"), is(2));
         assertThat(lapse.getDouble("mult"), is(0.7d));
-        assertThat(lapse.getJSONArray("delays").length(), is(1));
-        assertThat(lapse.getJSONArray("delays").get(0), is(20));
+        assertThat(lapse.getDelays().length(), is(1));
+        assertThat(lapse.getDelays().get(0), is(20));
 
     }
 
