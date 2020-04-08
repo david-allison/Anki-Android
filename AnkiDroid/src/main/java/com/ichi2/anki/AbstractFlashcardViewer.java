@@ -104,6 +104,7 @@ import com.ichi2.libanki.Note;
 import com.ichi2.libanki.Sound;
 import com.ichi2.libanki.Utils;
 import com.ichi2.libanki.decks.DConf;
+import com.ichi2.libanki.decks.ReviewingConf;
 import com.ichi2.libanki.template.Template;
 import com.ichi2.themes.HtmlColors;
 import com.ichi2.themes.Themes;
@@ -1688,7 +1689,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
             // Dynamic don't have review options; attempt to get deck-specific auto-advance options
             // but be prepared to go with all default if it's a dynamic deck
-            JSONObject revOptions = new JSONObject();
+            ReviewingConf revOptions = new ReviewingConf();
             long selectedDid = getCol().getDecks().selected();
             if (!getCol().getDecks().isDyn(selectedDid)) {
                 revOptions = getCol().getDecks().confForDid(selectedDid).getRev();

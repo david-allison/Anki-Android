@@ -188,4 +188,8 @@ public class ReadOnlyJSONObject implements Iterable<String> {
     public void setUsn(int usn) {
         put("usn", usn);
     }
+
+    public ReviewingConf getReviewConf(String key) {
+        return new ReviewingConf(json.getJSONObject(key));
+    }
 }

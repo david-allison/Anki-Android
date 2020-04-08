@@ -23,6 +23,7 @@ import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
 import com.ichi2.libanki.decks.Decks;
+import com.ichi2.libanki.decks.ReviewingConf;
 
 import com.ichi2.utils.JSONArray;
 import com.ichi2.utils.JSONException;
@@ -30,7 +31,6 @@ import com.ichi2.utils.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import timber.log.Timber;
 
@@ -187,7 +187,7 @@ public class Storage {
                     d.version10to11(col);
                 }
                 for (DConf c : col.getDecks().allConf()) {
-                    JSONObject r = c.getRev();
+                    ReviewingConf r = c.getRev();
                     r.put("ivlFct", r.optDouble("ivlFct", 1));
                     if (r.has("ivlfct")) {
                         r.remove("ivlfct");

@@ -22,16 +22,16 @@ public class DConf extends ReadOnlyJSONObject{
         super(json);
     }
 
-    public JSONObject getRev() {
-        return getJSON().getJSONObject("rev");
+    public ReviewingConf getRev() {
+        return getReviewConf("rev");
     }
 
-    public JSONObject getNew() {
-        return getJSON().getJSONObject("new");
+    public ReviewingConf getNew() {
+        return getReviewConf("new");
     }
 
-    public JSONObject getLapse() {
-        return getJSON().getJSONObject("lapse");
+    public ReviewingConf getLapse() {
+        return getReviewConf("lapse");
     }
 
     public JSONArray getDelays(){
