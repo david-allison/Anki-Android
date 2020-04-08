@@ -23,4 +23,8 @@ public class ReviewingConf extends ReadOnlyJSONObject {
     public JSONArray getDelays(){
         return getJSON().getJSONArray("delays");
     }
+
+    public JSONArray getInts(){
+        return getJSON().getJSONArray("ints");
+    }
 }

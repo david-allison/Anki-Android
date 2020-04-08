@@ -630,7 +630,7 @@ public class Sched extends SchedV2 {
         }
         int ideal;
         JSONArray ja;
-        ja = conf.getJSONArray("ints");
+        ja = conf.getInts();
         if (!early) {
             // graduate
             ideal = ja.getInt(0);
@@ -1205,7 +1205,7 @@ public class Sched extends SchedV2 {
         }
         NewConf dict = new NewConf();
         // original deck
-        dict.put("ints", oconf.getNew().getJSONArray("ints"));
+        dict.put("ints", oconf.getNew().getInts());
         dict.put("initialFactor", oconf.getNew().getInt("initialFactor"));
         dict.put("bury", oconf.getNew().optBoolean("bury", true));
         // overrides
