@@ -167,6 +167,8 @@
     <string name="card_browser_deck_change_error">Could not change deck</string>
     <!-- AbstractFlashCardViewer -->
     <string name="card_viewer_url_decode_error">Error decoding data from card</string>
+    <!-- Visual Editor -->
     <string name="visual_editor_could_not_start_add_image">Unable to add image</string>
     <string name="visual_editor_could_not_start_add_audio">Unable to add audio</string>
+    <string name="visual_editor_no_rich_clipboard">Enhanced clipboard actions are not supported by your version of Android</string>
 </resources>
