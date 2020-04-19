@@ -197,6 +197,8 @@ public class NoteEditor extends AnkiActivity {
 
     private String[] mSourceText;
 
+    //TODO: This is only set on edit currently, not on add.
+    private Long mCurrentModelId = null;
 
     // A bundle that maps field ords to the text content of that field for use in
     // restoring the Activity.
@@ -1188,7 +1190,7 @@ public class NoteEditor extends AnkiActivity {
                 Intent i = new Intent(this, VisualEditorActivity.class);
                 i.putExtra(VisualEditorActivity.EXTRA_FIELD, field);
                 i.putExtra(VisualEditorActivity.EXTRA_ALL_FIELDS, mEditorNote.getFields());
-                i.putExtra(VisualEditorActivity.EXTRA_MODEL_ID, mEditorNote.model().getLong("id"));
+                i.putExtra(VisualEditorActivity.EXTRA_MODEL_ID, getModelId());
                 i.putExtra(VisualEditorActivity.EXTRA_FIELD_INDEX, index);
                 startActivityForResultWithoutAnimation(i, REQUEST_VISUAL_EDIT);
             } catch (Exception e) {
@@ -1653,6 +1655,7 @@ public class NoteEditor extends AnkiActivity {
                 if (position != -1) {
                     mNoteDeckSpinner.setSelection(position, false);
                 }
+                NoteEditor.this.mCurrentModelId = newModel.getLong("id");
             } else {
                 populateEditFields();
                 updateCards(mCurrentEditedCard.model());
@@ -1763,5 +1766,12 @@ public class NoteEditor extends AnkiActivity {
     @VisibleForTesting
     void setFieldValueFromUi(int i, String newText) {
         mEditFields.get(i).setText(newText);
+    }
+
+    public long getModelId() {
+        if (mCurrentModelId != null) {
+            return mCurrentModelId;
+        }
+        return mEditorNote.model().getLong("id");
     }
 }

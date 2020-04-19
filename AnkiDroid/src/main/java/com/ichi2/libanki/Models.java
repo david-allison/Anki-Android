@@ -1224,4 +1224,8 @@ public class Models {
 		}
 		return (count == 0);
 	}
+
+    public static boolean isCloze(JSONObject model) {
+        return model.getInt("type") == Consts.MODEL_CLOZE;
+    }
 }
