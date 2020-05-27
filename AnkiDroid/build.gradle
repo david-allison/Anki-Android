@@ -20,6 +20,7 @@ android {
         minSdkVersion 16
         //noinspection OldTargetApi
         targetSdkVersion 28
+        multiDexEnabled true
         testApplicationId "com.ichi2.anki.tests"
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
@@ -141,6 +142,7 @@ dependencies {
     implementation 'com.afollestad.material-dialogs:core:0.9.6.0'
     implementation 'com.getbase:floatingactionbutton:1.10.1'
     implementation 'org.bitbucket.cowwoc:diff-match-patch:1.2'
+    implementation "androidx.multidex:multidex:2.0.1"
 
     // May need a resolution strategy for support libs to our versions
     implementation'ch.acra:acra-http:5.5.1'
