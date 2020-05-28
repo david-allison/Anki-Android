@@ -274,6 +274,7 @@ public class Statistics extends NavigationDrawerActivity implements DeckDropDown
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
+    @SuppressWarnings("deprecation")
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         public SectionsPagerAdapter(FragmentManager fm) {

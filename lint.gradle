@@ -2,7 +2,7 @@ tasks.whenTaskAdded { task ->
     if (task.name.startsWith("lint")) {
         if (task.name.toLowerCase().endsWith("release")) {
             task.doFirst {
-                android.lintOptions.abortOnError = true
+                android.lintOptions.abortOnError = false
                 android.lintOptions.warningsAsErrors true
                 android.lintOptions.check 'NewApi', 'InlinedApi'
             }

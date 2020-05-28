@@ -1,6 +1,7 @@
 <manifest xmlns:tools="http://schemas.android.com/tools"
           xmlns:android="http://schemas.android.com/apk/res/android">
     <application tools:ignore="AllowBackup,GoogleAppIndexingWarning">
+    <uses-library android:name="org.apache.http.legacy" android:required="false"/>
 
         <!-- To use AndroidX Test APIs on Activity sub-classes, you must have valid
              Activity entries in your AndroidManifest. Manifest merger only happens with

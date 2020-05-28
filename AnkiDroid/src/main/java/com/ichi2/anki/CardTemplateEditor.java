@@ -298,6 +298,7 @@ public class CardTemplateEditor extends AnkiActivity {
      * A {@link androidx.fragment.app.FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the tabs.
      */
+    @SuppressWarnings("deprecation")
     public class TemplatePagerAdapter extends FragmentPagerAdapter {
         private JSONObject mModel;
         private long baseId = 0;
