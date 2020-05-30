@@ -191,4 +191,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.3.0-rc01'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2-beta02'
     androidTestImplementation 'androidx.test:rules:1.2.0'
+    androidTestImplementation 'org.smali:dexlib2:2.0.3'
 }

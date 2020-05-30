@@ -17,23 +17,27 @@
 package androidx.test.internal.runner;
 
 import android.app.Instrumentation;
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 
 import java.util.List;
 
-import androidx.test.internal.runner.TestRequestBuilder;
-import timber.log.Timber;
+public class MultiDexRequestBuilder extends TestRequestBuilder {
+    private Context mContext;
 
-public class BuilderAA extends TestRequestBuilder {
-    public BuilderAA(Instrumentation instr, Bundle arguments) {
+
+    public MultiDexRequestBuilder(Instrumentation instr, Bundle arguments, Context classPathLoader) {
         super(instr, arguments);
+        this.mContext = classPathLoader;
     }
 
 
     @Override
     ClassPathScanner createClassPathScanner(List<String> classPath) {
-        Log.e("BuilderAA", "scanner");
-        return new ScannerFix(classPath);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return new MultiDexClassPathScanner(classPath, mContext);
+        }
+        return super.createClassPathScanner(classPath);
     }
 }
