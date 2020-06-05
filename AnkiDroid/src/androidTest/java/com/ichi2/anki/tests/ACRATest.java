@@ -20,6 +20,7 @@ import org.acra.config.LimitingReportAdministrator;
 import org.acra.config.ToastConfiguration;
 import org.acra.data.CrashReportData;
 import org.acra.data.CrashReportDataFactory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,7 +74,6 @@ public class ACRATest extends InstrumentedTest {
 
     @Test
     public void testDebugConfiguration() throws Exception {
-
         // Debug mode overrides all saved state so no setup needed
         setAcraConfig("Debug");
         assertArrayEquals("Debug logcat arguments not set correctly",
