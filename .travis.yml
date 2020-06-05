@@ -4,6 +4,7 @@ language: bash
 dist: bionic
 
 stages:
+  - clear_apk_cache # custom stage defined in jobs::include section
   - install
   - unit_test # custom stage defined in jobs::include section
   - test
@@ -157,10 +158,10 @@ script:
   - if [ "$UNIT_TEST" = "TRUE" ]; then ./gradlew jacocoUnitTestReport; fi
   - if [ "$LINT" != "FALSE" ]; then ./gradlew lint$LINT; fi
   - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
-  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir ${APK_CACHE_LOCATION} fi # make the directory it it doesn't exist
-  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f ${APK_CACHE_FILE} fi # remove any cached files
+  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir $APK_CACHE_LOCATION fi # make the directory it it doesn't exist
+  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f $APK_CACHE_FILE fi # remove any cached files
   - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug fi # generate an APK to cache
-  - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/ankidroid/Anki-Android/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk ${APK_CACHE_FILE}
+  - if [ "$LINT" = "Release" ]; then cp $TRAVIS_BUILD_DIR/ankidroid/Anki-Android/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk ${APK_CACHE_FILE}
 
 after_success:
   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then travis_retry bash tools/upload-codacy-report.sh; fi
