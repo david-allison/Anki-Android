@@ -24,6 +24,7 @@ env:
     - TOOLS=${ANDROID_HOME}/tools
     - APK_CACHE_LOCATION=${HOME}/apk_cache
     - APK_CACHE_FILE=${APK_CACHE_LOCATION}/${TRAVIS_BUILD_NUMBER}.apk
+    - APK_TEST_CACHE_FILE=${APK_CACHE_LOCATION}/${TRAVIS_BUILD_NUMBER}-test.apk
     # PATH order is incredibly important. e.g. the 'emulator' script exists in more than one place!
     - PATH=${ANDROID_HOME}:${ANDROID_HOME}/emulator:${TOOLS}:${TOOLS}/bin:${ANDROID_HOME}/platform-tools:${PATH}
     - UNIT_TEST=FALSE # by default we don't run the unit tests, they are run only in specific builds
@@ -160,9 +161,11 @@ script:
   - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir -p $APK_CACHE_LOCATION; fi # make the directory it it doesn't exist
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f $APK_CACHE_FILE; fi # remove any cached files
-  - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug; fi # generate an APK to cache
-  - echo ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk
+  - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug assembleAndroidTest ; fi # generate APKs to cache
   - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk ${APK_CACHE_FILE}; fi
+  - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/androidTest/debug/AnkiDroid-debug-androidTest.apk ${APK_TEST_CACHE_FILE}; fi
+
+    androidTest\debug\AnkiDroid-debug-androidTest.apk
 
 after_success:
   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then travis_retry bash tools/upload-codacy-report.sh; fi
