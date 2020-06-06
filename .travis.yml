@@ -157,11 +157,11 @@ install:
   # Switch back to our target JDK version to build and run tests
   - JDK="${TARGET_JDK}"
   - source ~/.install-jdk-travis.sh
-  - adb push ${APK_CACHE_FILE} /data/local/com.ichi2.anki
-  - adb shell pm install -r -t "/data/local/com.ichi2.anki"
+  - adb push ${APK_CACHE_FILE} /storage/sdcard/com.ichi2.anki
+  - adb shell pm install -r -t "/storage/sdcard/com.ichi2.anki"
 
-  - adb push ${APK_TEST_CACHE_FILE} /data/local/com.ichi2.anki.tests
-  - adb shell pm install -r -t "/data/local/com.ichi2.anki.tests"
+  - adb push ${APK_TEST_CACHE_FILE} /storage/sdcard/com.ichi2.anki.tests
+  - adb shell pm install -r -t "/storage/sdcard/com.ichi2.anki.tests"
   # This was previously defined in build.gradle - FIXME: Parse that file. TODO: Use correct runner - couldn't get it working.
   - adb shell am instrument -w com.ichi2.anki.tests/androidx.test.runner.MultiDexJUnitRunner
 
