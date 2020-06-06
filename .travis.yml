@@ -108,9 +108,7 @@ before_install:
   - JDK="1.8"
   - source ~/.install-jdk-travis.sh
 
-  - echo [ "$API" != "NONE" ]
-  - echo [ ! -f ${APK_CACHE_FILE} ]
-  - echo [[ ! -f ${APK_CACHE_FILE} || ! -f ${APK_TEST_CACHE_FILE} ]]
+  - ls ${APK_CACHE_LOCATION}
   - if [ "$API" != "NONE" ] && [[ ! -f ${APK_CACHE_FILE} || ! -f ${APK_TEST_CACHE_FILE} ]]; then travis_terminate 12; fi
 
   # Set up Android SDK - this is needed everywhere but coverage finalization, so toggle on that
