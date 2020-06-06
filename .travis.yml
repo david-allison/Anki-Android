@@ -21,9 +21,8 @@ env:
     - GRAVIS="https://raw.githubusercontent.com/DanySK/Gravis-CI/master/"
     - JDK="1.8"
     - TOOLS=${ANDROID_HOME}/tools
-    - APK_CACHE_LOCATION=/apk_cache
-    - APK_CACHE_FILE=${APK_CACHE_LOCATION}/${TRAVIS_BUILD_NUMBER}.apk
-    - APK_TEST_CACHE_FILE=${APK_CACHE_LOCATION}/${TRAVIS_BUILD_NUMBER}-test.apk
+    - APK_CACHE_FILE=com.ichi2.anki.apk
+    - APK_TEST_CACHE_FILE=com.ichi2.anki.tests.apk
     # PATH order is incredibly important. e.g. the 'emulator' script exists in more than one place!
     - PATH=${ANDROID_HOME}:${ANDROID_HOME}/emulator:${TOOLS}:${TOOLS}/bin:${ANDROID_HOME}/platform-tools:${PATH}
     - UNIT_TEST=FALSE # by default we don't run the unit tests, they are run only in specific builds
@@ -32,7 +31,6 @@ env:
     - CLEAR_APK_CACHE=FALSE # by default we don't clear the APK cache, it is done in one specific build
     - TERM=dumb
     - ANKIDROID=AnkiDroid # the project name in gradle
-    - CACHE_NAME=${TRAVIS_OS_NAME}-${TRAVIS_BUILD_NUMBER}
   matrix:
    - API=16 ABI=x86 AUDIO=-no-audio LOCALE="ko_KR"
    - API=17 ABI=x86 LOCALE="it_IT"
@@ -78,7 +76,8 @@ jobs:
         create:
           name: apk_cache
           paths:
-            - /apk_cache/
+            - com.ichi2.anki.apk
+            - com.ichi2.anki.tests.apk
       install: skip
       os: linux
     - stage: unit_test
@@ -172,8 +171,6 @@ script:
   - if [ "$UNIT_TEST" = "TRUE" ]; then ./gradlew jacocoUnitTestReport; fi
   - if [ "$LINT" != "FALSE" ]; then ./gradlew lint$LINT; fi
 #  - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
-  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir -p $APK_CACHE_LOCATION; fi # make the directory it it doesn't exist
-  - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f $APK_CACHE_FILE; fi # remove any cached files
   - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug assembleAndroidTest; fi # generate APKs to cache
   - if [ "$LINT" = "Release" ]; then echo "copying APKs to cache"; fi
   - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk ${APK_CACHE_FILE}; fi
@@ -186,8 +183,6 @@ before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
   - curl "${GRAVIS}.clean_gradle_cache.sh" --output ~/.clean_gradle_cache.sh
   - bash ~/.clean_gradle_cache.sh > /dev/null
-  - if [ "$FINALIZE_COVERAGE" = "TRUE" ]; then rm -f ${APK_CACHE_FILE}; fi # we want to store the file between jobs, not for all builds.
-  - if [ "$FINALIZE_COVERAGE" = "TRUE" ]; then rm -f ${APK_TEST_CACHE_FILE}; fi # we want to store the file between jobs, not for all builds.
 
 cache:
   directories:
