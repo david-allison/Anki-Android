@@ -5,7 +5,7 @@ dist: bionic
 
 workspaces:
   use: apk_cache
-  
+
 stages:
   - install
   - unit_test # custom stage defined in jobs::include section
@@ -160,7 +160,7 @@ install:
   - adb push ${APK_CACHE_FILE} /data/local/com.ichi2.anki
   - adb shell pm install -r "/data/local/com.ichi2.anki"
 
-  - adb push ${APK_TEST_CACHE_FILE} /data/local/tmp/com.ichi2.anki.test
+  - adb push ${APK_TEST_CACHE_FILE} /data/local/com.ichi2.anki.test
   - adb shell pm install -r "/data/local/com.ichi2.anki.test"
   # This was previously defined in build.gradle - FIXME: Parse that file
   - adb shell am instrument -w com.ichi2.anki.test/androidx.test.runner.MultiDexJUnitRunner
