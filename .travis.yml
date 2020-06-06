@@ -33,6 +33,7 @@ env:
     - CLEAR_APK_CACHE=FALSE # by default we don't clear the APK cache, it is done in one specific build
     - TERM=dumb
     - ANKIDROID=AnkiDroid # the project name in gradle
+    - CACHE_NAME=${TRAVIS_OS_NAME}-${TRAVIS_BUILD_NUMBER}
   matrix:
    - API=16 ABI=x86 AUDIO=-no-audio LOCALE="ko_KR"
    - API=17 ABI=x86 LOCALE="it_IT"
