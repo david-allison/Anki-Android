@@ -160,10 +160,10 @@ install:
   - adb push ${APK_CACHE_FILE} /data/local/com.ichi2.anki
   - adb shell pm install -r -t "/data/local/com.ichi2.anki"
 
-  - adb push ${APK_TEST_CACHE_FILE} /data/local/com.ichi2.anki.test
-  - adb shell pm install -r -t "/data/local/com.ichi2.anki.test"
+  - adb push ${APK_TEST_CACHE_FILE} /data/local/com.ichi2.anki.tests
+  - adb shell pm install -r -t "/data/local/com.ichi2.anki.tests"
   # This was previously defined in build.gradle - FIXME: Parse that file. TODO: Use correct runner - couldn't get it working.
-  - adb shell am instrument -w com.ichi2.anki.test/androidx.test.runner.AndroidJUnitRunner
+  - adb shell am instrument -w com.ichi2.anki.tests/androidx.test.runner.MultiDexJUnitRunner
 
 script:
   - travis_retry ./gradlew :${ANKIDROID}:compileReleaseJavaWithJavac compileLint # warm gradle w/travis_retry to handle network blips
