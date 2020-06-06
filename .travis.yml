@@ -86,6 +86,7 @@ jobs:
       install: skip
       os: linux
     - state: test # additional definitions for the test stage
+      name: "Instrumentation Testing"
       workspaces:
         use:
           - apk_cache
