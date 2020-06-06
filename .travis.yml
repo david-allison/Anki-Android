@@ -108,7 +108,7 @@ before_install:
   - JDK="1.8"
   - source ~/.install-jdk-travis.sh
 
-  - if ["$API" != "NONE" ] && { [ ! -f ${APK_CACHE_FILE} ] || [ ! -f ${APK_TEST_CACHE_FILE} ] }; then exit -1; fi
+  - if {["$API" != "NONE" ] && { [ ! -f ${APK_CACHE_FILE} ] || [ ! -f ${APK_TEST_CACHE_FILE} ] }}; then exit -1; fi
 
   # Set up Android SDK - this is needed everywhere but coverage finalization, so toggle on that
   - if [ "$FINALIZE_COVERAGE" = "FALSE" ]; then travis_retry wget -q "${ANDROID_TOOLS_URL}" -O android-sdk-tools.zip; fi
