@@ -59,6 +59,7 @@ jobs:
       name: "Clear APK Cache"
       env: CLEAR_APK_CACHE=TRUE API=NONE
       install: skip
+      before-install: skip
       os: linux
     # The "test" stage is implicit and gets the main matrix. This adds extra stages/jobs
     - stage: unit_test
