@@ -108,6 +108,9 @@ before_install:
   - JDK="1.8"
   - source ~/.install-jdk-travis.sh
 
+  - echo ["$API" != "NONE" ]
+  - echo [ ! -f ${APK_CACHE_FILE} ]
+  - echo [[ ! -f ${APK_CACHE_FILE} || ! -f ${APK_TEST_CACHE_FILE} ]]
   - if ["$API" != "NONE" ] && [[ ! -f ${APK_CACHE_FILE} || ! -f ${APK_TEST_CACHE_FILE} ]]; then exit 1; fi
 
   # Set up Android SDK - this is needed everywhere but coverage finalization, so toggle on that
@@ -171,6 +174,7 @@ script:
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir -p $APK_CACHE_LOCATION; fi # make the directory it it doesn't exist
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f $APK_CACHE_FILE; fi # remove any cached files
   - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug assembleAndroidTest; fi # generate APKs to cache
+  - if [ "$LINT" = "Release" ]; then echo "copying APKs to cache"; fi
   - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk ${APK_CACHE_FILE}; fi
   - if [ "$LINT" = "Release" ]; then cp ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/androidTest/debug/AnkiDroid-debug-androidTest.apk ${APK_TEST_CACHE_FILE}; fi
 
