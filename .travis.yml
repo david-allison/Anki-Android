@@ -3,6 +3,9 @@ language: bash
 # ignored on non-linux platforms, but bionic is required for nested virtualization
 dist: bionic
 
+workspaces:
+  use: apk_cache
+  
 stages:
   - install
   - unit_test # custom stage defined in jobs::include section
@@ -85,11 +88,6 @@ jobs:
       env: LINT=Debug API=NONE
       install: skip
       os: linux
-    - state: test # additional definitions for the test stage
-      name: "Instrumentation Testing"
-      workspaces:
-        use:
-          - apk_cache
     - stage: finalize_coverage
       env: FINALIZE_COVERAGE=TRUE API=NONE
       name: "Finalize Codacy Coverage Uploads"
