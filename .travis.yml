@@ -153,12 +153,19 @@ install:
   # Switch back to our target JDK version to build and run tests
   - JDK="${TARGET_JDK}"
   - source ~/.install-jdk-travis.sh
+  - adb push ${APK_CACHE_FILE} /data/local/com.ichi2.anki
+  - adb shell pm install -r "/data/local/com.ichi2.anki"
+
+  - adb push ${APK_TEST_CACHE_FILE} /data/local/tmp/com.ichi2.anki.test
+  - adb shell pm install -r "/data/local/com.ichi2.anki.test"
+  # This was previously defined in build.gradle - FIXME: Parse that file
+  - adb shell am instrument -w com.ichi2.anki.test/androidx.test.runner.MultiDexJUnitRunner
 
 script:
   - if [ "$CLEAR_APK_CACHE" != "TRUE" ]; then travis_retry ./gradlew :${ANKIDROID}:compileReleaseJavaWithJavac compileLint; fi # warm gradle w/travis_retry to handle network blips
   - if [ "$UNIT_TEST" = "TRUE" ]; then ./gradlew jacocoUnitTestReport; fi
   - if [ "$LINT" != "FALSE" ]; then ./gradlew lint$LINT; fi
-  - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
+#  - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then mkdir -p $APK_CACHE_LOCATION; fi # make the directory it it doesn't exist
   - if [ "$CLEAR_APK_CACHE" = "TRUE" ]; then rm -f $APK_CACHE_FILE; fi # remove any cached files
   - if [ "$LINT" = "Release" ]; then ./gradlew assembleDebug assembleAndroidTest; fi # generate APKs to cache
@@ -172,7 +179,8 @@ before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
   - curl "${GRAVIS}.clean_gradle_cache.sh" --output ~/.clean_gradle_cache.sh
   - bash ~/.clean_gradle_cache.sh > /dev/null
-  - if [ "$FINALIZE_COVERAGE" = "TRUE" ]; then rm -f $APK_CACHE_LOCATION/$TRAVIS_BUILD_NUMBER.apk; fi # we want to store the file between jobs, not for all builds.
+  - if [ "$FINALIZE_COVERAGE" = "TRUE" ]; then rm -f ${APK_CACHE_FILE}; fi # we want to store the file between jobs, not for all builds.
+  - if [ "$FINALIZE_COVERAGE" = "TRUE" ]; then rm -f ${APK_TEST_CACHE_FILE}; fi # we want to store the file between jobs, not for all builds.
 
 cache:
   directories:
