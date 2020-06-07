@@ -20,6 +20,7 @@ import org.acra.config.LimitingReportAdministrator;
 import org.acra.config.ToastConfiguration;
 import org.acra.data.CrashReportData;
 import org.acra.data.CrashReportDataFactory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,6 +71,7 @@ public class ACRATest {
     @Test
     public void testDebugConfiguration() throws Exception {
 
+        Assert.fail();
         // Debug mode overrides all saved state so no setup needed
         setAcraConfig("Debug", AnkiDroidApp.getSharedPrefs(InstrumentationRegistry.getInstrumentation().getTargetContext()));
         assertArrayEquals("Debug logcat arguments not set correctly",
