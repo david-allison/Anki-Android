@@ -157,6 +157,8 @@ install:
   # Switch back to our target JDK version to build and run tests
   - JDK="${TARGET_JDK}"
   - source ~/.install-jdk-travis.sh
+
+  - adb shell mkdir -p /data/local/tmp/
   - adb push ${APK_CACHE_FILE} /data/local/tmp/com.ichi2.anki.apk
   - adb shell pm install -r "/data/local/tmp/com.ichi2.anki.apk"
 
