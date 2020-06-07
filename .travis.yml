@@ -158,10 +158,10 @@ install:
   - JDK="${TARGET_JDK}"
   - source ~/.install-jdk-travis.sh
   - adb push ${APK_CACHE_FILE} /data/local/tmp/com.ichi2.anki.apk
-  - adb shell pm install -r -t "/data/local/tmp/com.ichi2.anki.apk"
+  - adb shell pm install -r "/data/local/tmp/com.ichi2.anki.apk"
 
   - adb push ${APK_TEST_CACHE_FILE} /data/local/tmp/com.ichi2.anki.tests.apk
-  - adb shell pm install -r -t "/data/local/tmp/com.ichi2.anki.tests.apk"
+  - adb shell pm install -r "/data/local/tmp/com.ichi2.anki.tests.apk"
   # This was previously defined in build.gradle - FIXME: Parse that file. TODO: Use correct runner - couldn't get it working.
   - adb shell am instrument -w com.ichi2.anki.tests/androidx.test.runner.MultiDexJUnitRunner
 
