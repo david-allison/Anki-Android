@@ -40,6 +40,7 @@ import com.ichi2.libanki.Utils;
 import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
 import com.ichi2.libanki.decks.Decks;
+import com.ichi2.libanki.decks.LapseConf;
 import com.ichi2.libanki.decks.NewConf;
 import com.ichi2.libanki.decks.ReviewConf;
 import com.ichi2.libanki.decks.ReviewingConf;
@@ -1766,7 +1767,7 @@ public class SchedV2 extends AbstractSched {
     }
 
 
-    protected ReviewingConf _lapseConf(Card card) {
+    protected LapseConf _lapseConf(Card card) {
         DConf conf = _cardConf(card);
         // normal deck
         if (card.getODid() == 0) {
@@ -1774,7 +1775,7 @@ public class SchedV2 extends AbstractSched {
         }
         // dynamic deck; override some attributes, use original deck for others
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
-        ReviewingConf dict = new ReviewingConf();
+        LapseConf dict = new LapseConf();
         // original deck
         dict.put("minInt", oconf.getLapse().getInt("minInt"));
         dict.put("leechFails", oconf.getLapse().getInt("leechFails"));

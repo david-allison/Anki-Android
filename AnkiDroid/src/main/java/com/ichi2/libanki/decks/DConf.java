@@ -30,8 +30,8 @@ public class DConf extends ReadOnlyJSONObject{
         return new NewConf(getJSON().getJSONObject("new"));
     }
 
-    public ReviewingConf getLapse() {
-        return getReviewConf("lapse");
+    public LapseConf getLapse() {
+        return new LapseConf(getJSON().getJSONObject("lapse"));
     }
 
     public JSONArray getDelays(){
