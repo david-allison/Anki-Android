@@ -46,7 +46,6 @@ import com.ichi2.anki.services.ReminderService;
 import com.ichi2.async.CollectionTask;
 import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.Consts;
-import com.ichi2.libanki.DeckConfig;
 import com.ichi2.libanki.decks.DConf;
 import com.ichi2.preferences.StepsPreference;
 import com.ichi2.preferences.TimePreference;
@@ -163,8 +162,8 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
         }
 
 
-        private boolean parseTimerValue(JSONObject options) {
-            return DeckConfig.parseTimerOpt(options, true);
+        private boolean parseTimerValue(DConf options) {
+            return options.parseTimerOpt(true);
         }
 
 

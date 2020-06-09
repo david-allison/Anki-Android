@@ -584,8 +584,8 @@ public class Card implements Cloneable {
 
 
     public boolean showTimer() {
-        JSONObject options = mCol.getDecks().confForDid(mODid == 0 ? mDid : mODid);
-        return DeckConfig.parseTimerOpt(options, true);
+        DConf options = mCol.getDecks().confForDid(mODid == 0 ? mDid : mODid);
+        return options.parseTimerOpt(true);
     }
 
 
