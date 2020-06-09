@@ -47,4 +47,8 @@ public class ReviewingConf extends ReadOnlyJSONObject {
     public void putBury(Object o) {
         put("bury", o);
     }
+
+    public void putMaxIvl(Object o) {
+        put("maxIvl", o);
+    }
 }

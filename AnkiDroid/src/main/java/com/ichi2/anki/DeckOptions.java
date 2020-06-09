@@ -245,7 +245,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
                                 mOptions.getRev().putIvlFact((Integer) value / 100.0f);
                                 break;
                             case "revMaxIvl":
-                                mOptions.getRev().put("maxIvl", value);
+                                mOptions.getRev().putMaxIvl(value);
                                 break;
                             case "revBury":
                                 mOptions.getRev().putBury(value);
