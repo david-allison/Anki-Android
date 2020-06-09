@@ -214,7 +214,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
                                 break;
                             }
                             case "newPerDay":
-                                mOptions.getNew().put("perDay", value);
+                                mOptions.getNew().putPerDay(value);
                                 break;
                             case "newGradIvl": {
                                 JSONArray ja = new JSONArray(); // [graduating, easy]
@@ -236,7 +236,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
                                 mOptions.getNew().put("bury", value);
                                 break;
                             case "revPerDay":
-                                mOptions.getRev().put("perDay", value);
+                                mOptions.getRev().putPerDay(value);
                                 break;
                             case "easyBonus":
                                 mOptions.getRev().putEase4((Integer) value / 100.0f);
