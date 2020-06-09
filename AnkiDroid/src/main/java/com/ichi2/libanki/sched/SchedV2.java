@@ -41,6 +41,7 @@ import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
 import com.ichi2.libanki.decks.Decks;
 import com.ichi2.libanki.decks.NewConf;
+import com.ichi2.libanki.decks.ReviewConf;
 import com.ichi2.libanki.decks.ReviewingConf;
 
 import com.ichi2.libanki.utils.SystemTime;
@@ -1786,7 +1787,7 @@ public class SchedV2 extends AbstractSched {
     }
 
 
-    protected ReviewingConf _revConf(Card card) {
+    protected ReviewConf _revConf(Card card) {
         DConf conf = _cardConf(card);
         // normal deck
         if (card.getODid() == 0) {
@@ -2202,7 +2203,7 @@ public class SchedV2 extends AbstractSched {
         ArrayList<Long> toBury = new ArrayList<>();
         NewConf nconf = _newConf(card);
         boolean buryNew = nconf.optBoolean("bury", true);
-        ReviewingConf rconf = _revConf(card);
+        ReviewConf rconf = _revConf(card);
         boolean buryRev = rconf.optBoolean("bury", true);
         // loop through and remove from queues
         Cursor cur = null;

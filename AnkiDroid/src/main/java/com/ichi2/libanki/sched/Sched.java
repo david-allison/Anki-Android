@@ -39,6 +39,7 @@ import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
 import com.ichi2.libanki.decks.Decks;
 import com.ichi2.libanki.decks.NewConf;
+import com.ichi2.libanki.decks.ReviewConf;
 import com.ichi2.libanki.decks.ReviewingConf;
 
 import com.ichi2.utils.JSONArray;
