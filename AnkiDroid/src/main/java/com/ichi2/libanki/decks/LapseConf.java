@@ -28,4 +28,8 @@ public class LapseConf extends ReviewingConf {
         put("delays", delays);
         put("resched", conf.getBoolean("resched"));
     }
+
+    public void putLeechFails(Object o) {
+        put("leechFails", o);
+    }
 }
