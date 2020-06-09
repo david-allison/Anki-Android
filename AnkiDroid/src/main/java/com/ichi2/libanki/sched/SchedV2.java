@@ -40,6 +40,7 @@ import com.ichi2.libanki.Utils;
 import com.ichi2.libanki.decks.DConf;
 import com.ichi2.libanki.decks.Deck;
 import com.ichi2.libanki.decks.Decks;
+import com.ichi2.libanki.decks.NewConf;
 import com.ichi2.libanki.decks.ReviewingConf;
 
 import com.ichi2.libanki.utils.SystemTime;
@@ -1742,7 +1743,7 @@ public class SchedV2 extends AbstractSched {
     }
 
 
-    protected ReviewingConf _newConf(Card card) {
+    protected NewConf _newConf(Card card) {
         DConf conf = _cardConf(card);
         // normal deck
         if (card.getODid() == 0) {
@@ -1750,7 +1751,7 @@ public class SchedV2 extends AbstractSched {
         }
         // dynamic deck; override some attributes, use original deck for others
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
-        ReviewingConf dict = new ReviewingConf();
+        NewConf dict = new NewConf();
         // original deck
         dict.put("ints", oconf.getNew().getJSONArray("ints"));
         dict.put("initialFactor", oconf.getNew().getInt("initialFactor"));
@@ -2199,7 +2200,7 @@ public class SchedV2 extends AbstractSched {
 
     protected void _burySiblings(Card card) {
         ArrayList<Long> toBury = new ArrayList<>();
-        ReviewingConf nconf = _newConf(card);
+        NewConf nconf = _newConf(card);
         boolean buryNew = nconf.optBoolean("bury", true);
         ReviewingConf rconf = _revConf(card);
         boolean buryRev = rconf.optBoolean("bury", true);

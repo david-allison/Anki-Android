@@ -26,8 +26,8 @@ public class DConf extends ReadOnlyJSONObject{
         return getReviewConf("rev");
     }
 
-    public ReviewingConf getNew() {
-        return getReviewConf("new");
+    public NewConf getNew() {
+        return new NewConf(getJSON().getJSONObject("new"));
     }
 
     public ReviewingConf getLapse() {
