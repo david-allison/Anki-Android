@@ -1197,23 +1197,7 @@ public class Sched extends SchedV2 {
         }
         // dynamic deck; override some attributes, use original deck for others
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
-        NewConf dict = new NewConf();
-        JSONArray delays;
-        if (conf.has("delays")) {
-            delays = conf.getDelays();
-        } else {
-            delays = oconf.getNew().getDelays();
-        }
-        // original deck
-        dict.put("ints", oconf.getNew().getInts());
-        dict.put("initialFactor", oconf.getNew().getInt("initialFactor"));
-        dict.put("bury", oconf.getNew().optBoolean("bury", true));
-        // overrides
-        dict.put("delays", delays);
-        dict.put("separate", conf.getBoolean("separate"));
-        dict.put("order", Consts.NEW_CARDS_DUE);
-        dict.put("perDay", mReportLimit);
-        return dict;
+        return new NewConf(oconf, conf, mReportLimit, 1);
     }
 
 
