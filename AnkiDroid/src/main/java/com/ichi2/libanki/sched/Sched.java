@@ -1197,13 +1197,13 @@ public class Sched extends SchedV2 {
         }
         // dynamic deck; override some attributes, use original deck for others
         DConf oconf = mCol.getDecks().confForDid(card.getODid());
+        NewConf dict = new NewConf();
         JSONArray delays;
         if (conf.has("delays")) {
             delays = conf.getDelays();
         } else {
             delays = oconf.getNew().getDelays();
         }
-        NewConf dict = new NewConf();
         // original deck
         dict.put("ints", oconf.getNew().getInts());
         dict.put("initialFactor", oconf.getNew().getInt("initialFactor"));
