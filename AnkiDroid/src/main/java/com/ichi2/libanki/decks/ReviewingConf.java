@@ -43,4 +43,8 @@ public class ReviewingConf extends ReadOnlyJSONObject {
     public void putPerDay(Object o) {
         put("perDay", o);
     }
+
+    public void putBury(Object o) {
+        put("bury", o);
+    }
 }
