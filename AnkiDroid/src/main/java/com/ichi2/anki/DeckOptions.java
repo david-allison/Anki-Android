@@ -221,7 +221,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
 
                                 ja.put(value);
                                 ja.put(mOptions.getNew().getInts().get(1));
-                                mOptions.getNew().put("ints", ja);
+                                mOptions.getNew().putInts(ja);
                                 break;
                             }
                             case "newEasy": {
@@ -229,7 +229,7 @@ public class DeckOptions extends AppCompatPreferenceActivity implements OnShared
 
                                 ja.put(mOptions.getNew().getInts().get(0));
                                 ja.put(value);
-                                mOptions.getNew().put("ints", ja);
+                                mOptions.getNew().putInts(ja);
                                 break;
                             }
                             case "newBury":
