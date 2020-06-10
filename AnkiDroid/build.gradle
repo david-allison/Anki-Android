@@ -120,6 +120,12 @@ tasks.withType(JavaCompile) {
     options.incremental = true
 }
 
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}
+
 apply from: "./jacoco.gradle"
 apply from: "../lint.gradle"
 
