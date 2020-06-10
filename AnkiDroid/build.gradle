@@ -120,9 +120,9 @@ tasks.withType(JavaCompile) {
     options.incremental = true
 }
 
-test {
+tasks.withType(Test) {
     testLogging {
-        exceptionFormat = 'full'
+        exceptionFormat "full"
     }
 }
 
