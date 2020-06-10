@@ -141,7 +141,7 @@ script:
   - travis_retry ./gradlew :AnkiDroid:compileReleaseJavaWithJavac compileLint # warm gradle w/travis_retry to handle network blips
   - if [ "$UNIT_TEST" = "TRUE" ]; then ./gradlew jacocoUnitTestReport; fi
   - if [ "$LINT" != "FALSE" ]; then ./gradlew lint$LINT; fi
-  - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport; fi
+  - if [ "$API" != "NONE" ]; then ./gradlew jacocoAndroidTestReport --info; fi
 
 after_success:
   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then travis_retry bash tools/upload-codacy-report.sh; fi
