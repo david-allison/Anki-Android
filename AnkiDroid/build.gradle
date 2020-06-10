@@ -122,8 +122,8 @@ tasks.withType(JavaCompile) {
 
 tasks.withType(Test) {
     testLogging {
-        events TestLogEvent.FAILED
-        exceptionFormat TestExceptionFormat.FULL
+        events "failed"
+        exceptionFormat "full"
         showCauses true
         showExceptions true
         showStackTraces true
