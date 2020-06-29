@@ -9,12 +9,13 @@ import android.widget.Toast;
 import com.ichi2.anki.R;
 import com.ichi2.async.CollectionTask;
 import com.ichi2.libanki.Card;
+import com.ichi2.libanki.Consts;
 import com.ichi2.libanki.Decks;
 import com.ichi2.libanki.Collection;
+import com.ichi2.libanki.Utils;
 import com.ichi2.utils.JSONObject;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -55,8 +56,6 @@ public abstract class AbstractSched {
     /** load the due tree, but halt if deck task is cancelled*/
     public abstract List<DeckDueTreeNode> deckDueTree(CollectionTask collectionTask);
     public abstract List<DeckDueTreeNode> deckDueTree();
-    /** New count for a single deck. */
-    public abstract int _newForDeck(long did, int lim);
     /** Limit for deck without parent limits. */
     public abstract int _deckNewLimitSingle(JSONObject g);
     public abstract int totalNewForCurrentDeck();
@@ -352,6 +351,91 @@ public abstract class AbstractSched {
 
         } else {
             Timber.w("LeechHook :: could not show leech toast as activity was null");
+        }
+    }
+
+    /** Not in libAnki - to be removed when converted to rust */
+
+    protected interface DeckDueListRepository {
+        int countNew(long did, int lim);
+        int countDayLearn(long did, int lim) ;
+        int countSubDayLearn(long did, long timeLimit, int lim);
+        int countRev(List<Long> dids, int lim);
+    }
+
+    protected static abstract class DeckDueListUncachedRepository implements DeckDueListRepository {
+        protected final Collection mCol;
+        protected final Integer mToday;
+
+        public DeckDueListUncachedRepository(Collection collection, Integer today) {
+            mCol = collection;
+            mToday = today;
+        }
+
+
+        public int countNew(long did, int lim) {
+            return mCol.getDb().queryScalar("SELECT count() FROM (SELECT 1 FROM cards WHERE did = ? AND queue = " + Consts.QUEUE_TYPE_NEW + " LIMIT ?)",
+                    new Object[] {did, lim});
+        }
+
+        public int countDayLearn(long did, int lim) {
+
+            return mCol.getDb().queryScalar(
+                    "SELECT count() FROM (SELECT null FROM cards WHERE did = ?"
+                            + " AND queue = " + Consts.QUEUE_TYPE_DAY_LEARN_RELEARN + " AND due <= ?"
+                            + " LIMIT ?)",
+                    new Object[] {did, mToday, lim});
+        }
+
+        public abstract int countSubDayLearn(long did, long timeLimit, int lim);
+
+
+        public int countRev(List<Long> dids, int lim) {
+            return mCol.getDb().queryScalar("SELECT count() FROM (SELECT 1 FROM cards WHERE did in " + Utils.ids2str(dids) + " AND queue = " + Consts.QUEUE_TYPE_REV + " AND due <= ? LIMIT ?)",
+                    new Object[] {mToday, lim});
+        }
+
+
+        public static DeckDueListUncachedRepository getInstance(Collection collection, String schedVer, Integer today) {
+            switch (schedVer) {
+                case "std": return new DeckDueListUncachedRepositoryV1(collection, today);
+                case "std2": return new DeckDueListUncachedRepositoryV2(collection, today);
+                default: throw new IllegalArgumentException(String.format("Unexpected schedVer: %s", schedVer));
+            }
+        }
+    }
+
+    protected static class DeckDueListUncachedRepositoryV1 extends DeckDueListUncachedRepository {
+
+        public DeckDueListUncachedRepositoryV1(Collection collection, Integer today) {
+            super(collection, today);
+        }
+
+
+        @Override
+        public int countSubDayLearn(long did, long timeLimit, int lim) {
+            return mCol.getDb().queryScalar(
+                    "SELECT sum(left / 1000) FROM (SELECT left FROM cards WHERE did = ?"
+                            + " AND queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?"
+                            + " LIMIT ?)",
+                    new Object[] {did, timeLimit, lim});
+        }
+    }
+
+    protected static class DeckDueListUncachedRepositoryV2 extends DeckDueListUncachedRepository {
+
+        public DeckDueListUncachedRepositoryV2(Collection collection, Integer today) {
+            super(collection, today);
+        }
+
+
+        @Override
+        public int countSubDayLearn(long did, long timeLimit, int lim) {
+            return mCol.getDb().queryScalar(
+                    "SELECT count() FROM (SELECT null FROM cards WHERE did = ?"
+                            + " AND queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?"
+                            + " LIMIT ?)",
+                    new Object[] {did, timeLimit, lim});
         }
     }
 }

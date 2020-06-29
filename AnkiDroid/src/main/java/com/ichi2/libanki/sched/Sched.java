@@ -50,7 +50,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Random;
 
@@ -211,6 +210,7 @@ public class Sched extends SchedV2 {
      */
     @Override
     public List<DeckDueTreeNode> deckDueList(CollectionTask collectionTask) {
+        DeckDueListRepository repository = DeckDueListUncachedRepository.getInstance(mCol, mName, mToday);
         _checkDay();
         mCol.getDecks().checkIntegrity();
         ArrayList<JSONObject> decks = mCol.getDecks().allSorted();
@@ -226,15 +226,15 @@ public class Sched extends SchedV2 {
             if (!TextUtils.isEmpty(p)) {
                 nlim = Math.min(nlim, lims.get(p)[0]);
             }
-            int _new = _newForDeck(deck.getLong("id"), nlim);
+            int _new = _newForDeck(repository, deck.getLong("id"), nlim);
             // learning
-            int lrn = _lrnForDeck(deck.getLong("id"));
+            int lrn = _lrnForDeck(repository, deck.getLong("id"));
             // reviews
             int rlim = _deckRevLimitSingle(deck);
             if (!TextUtils.isEmpty(p)) {
                 rlim = Math.min(rlim, lims.get(p)[1]);
             }
-            int rev = _revForDeck(deck.getLong("id"), rlim);
+            int rev = _revForDeck(repository, deck.getLong("id"), rlim);
             // save to list
             data.add(new DeckDueTreeNode(deck.getString("name"), deck.getLong("id"), rev, lrn, _new));
             // add deck as a parent
@@ -626,18 +626,12 @@ public class Sched extends SchedV2 {
         forgetCards(Utils.arrayList2array(mCol.getDb().queryColumn(Long.class, "SELECT id FROM cards WHERE queue IN (" + Consts.QUEUE_TYPE_LRN + "," + Consts.QUEUE_TYPE_DAY_LEARN_RELEARN + ") " + extra, 0)));
     }
 
-    private int _lrnForDeck(long did) {
+    private int _lrnForDeck(@NonNull DeckDueListRepository repository, long did) {
         try {
-            int cnt = mCol.getDb().queryScalar(
-                    "SELECT sum(left / 1000) FROM (SELECT left FROM cards WHERE did = ?"
-                            + " AND queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?"
-                            + " LIMIT ?)",
-                    new Object[] {did, (Utils.intTime() + mCol.getConf().getInt("collapseTime")), mReportLimit});
-            return cnt + mCol.getDb().queryScalar(
-                    "SELECT count() FROM (SELECT 1 FROM cards WHERE did = ?"
-                            + " AND queue = " + Consts.QUEUE_TYPE_DAY_LEARN_RELEARN + " AND due <= ?"
-                            + " LIMIT ?)",
-                    new Object[] {did, mToday, mReportLimit});
+            long timeLimit = Utils.intTime() + mCol.getConf().getInt("collapseTime");
+            int subDayLearnCount = repository.countSubDayLearn(did, timeLimit, mReportLimit);
+            int dayLearnCount = repository.countDayLearn(did, mReportLimit);
+            return subDayLearnCount + dayLearnCount;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -664,10 +658,9 @@ public class Sched extends SchedV2 {
     }
 
 
-    private int _revForDeck(long did, int lim) {
+    private int _revForDeck(DeckDueListRepository repository, long did, int lim) {
     	lim = Math.min(lim, mReportLimit);
-    	return mCol.getDb().queryScalar("SELECT count() FROM (SELECT 1 FROM cards WHERE did = ? AND queue = " + Consts.QUEUE_TYPE_REV + " AND due <= ? LIMIT ?)",
-                                        new Object[] {did, mToday, lim});
+    	return repository.countRev(Collections.singletonList(did), lim);
     }
 
 

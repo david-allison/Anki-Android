@@ -385,6 +385,7 @@ public class SchedV2 extends AbstractSched {
     }
 
     public List<DeckDueTreeNode> deckDueList(CollectionTask collectionTask) {
+        DeckDueListRepository repository = DeckDueListUncachedRepository.getInstance(mCol, mName, mToday);
         _checkDay();
         mCol.getDecks().checkIntegrity();
         ArrayList<JSONObject> decks = mCol.getDecks().allSorted();
@@ -401,9 +402,9 @@ public class SchedV2 extends AbstractSched {
             if (!TextUtils.isEmpty(p)) {
                 nlim = Math.min(nlim, lims.get(p)[0]);
             }
-            int _new = _newForDeck(deck.getLong("id"), nlim);
+            int _new = _newForDeck(repository, deck.getLong("id"), nlim);
             // learning
-            int lrn = _lrnForDeck(deck.getLong("id"));
+            int lrn = _lrnForDeck(repository, deck.getLong("id"));
             // reviews
             Integer plim;
             if (!TextUtils.isEmpty(p)) {
@@ -412,7 +413,7 @@ public class SchedV2 extends AbstractSched {
                 plim = null;
             }
             int rlim = _deckRevLimitSingle(deck, plim);
-            int rev = _revForDeck(deck.getLong("id"), rlim, childMap);
+            int rev = _revForDeck(repository, deck.getLong("id"), rlim, childMap);
             // save to list
             data.add(new DeckDueTreeNode(deck.getString("name"), deck.getLong("id"), rev, lrn, _new));
             // add deck as a parent
@@ -680,13 +681,12 @@ public class SchedV2 extends AbstractSched {
 
 
     /** New count for a single deck. */
-    public int _newForDeck(long did, int lim) {
+    public int _newForDeck(@NonNull DeckDueListRepository repository, long did, int lim) {
         if (lim == 0) {
             return 0;
         }
         lim = Math.min(lim, mReportLimit);
-    	return mCol.getDb().queryScalar("SELECT count() FROM (SELECT 1 FROM cards WHERE did = ? AND queue = " + Consts.QUEUE_TYPE_NEW + " LIMIT ?)",
-                                        new Object[] {did, lim});
+        return repository.countNew(did, lim);
     }
 
 
@@ -1141,18 +1141,12 @@ public class SchedV2 extends AbstractSched {
     }
 
 
-    private int _lrnForDeck(long did) {
+    private int _lrnForDeck(@NonNull DeckDueListRepository repository, long did) {
         try {
-            int cnt = mCol.getDb().queryScalar(
-                    "SELECT count() FROM (SELECT null FROM cards WHERE did = ?"
-                            + " AND queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?"
-                            + " LIMIT ?)",
-                    new Object[] {did, (mTime.intTime() + mCol.getConf().getInt("collapseTime")), mReportLimit});
-            return cnt + mCol.getDb().queryScalar(
-                    "SELECT count() FROM (SELECT null FROM cards WHERE did = ?"
-                            + " AND queue = " + Consts.QUEUE_TYPE_DAY_LEARN_RELEARN + " AND due <= ?"
-                            + " LIMIT ?)",
-                    new Object[] {did, mToday, mReportLimit});
+            long timeLimit = mTime.intTime() + mCol.getConf().getInt("collapseTime");
+            int subDayLearnCount = repository.countSubDayLearn(did, timeLimit, mReportLimit);
+            int dayLearnCount = repository.countDayLearn(did, mReportLimit);
+            return subDayLearnCount + dayLearnCount;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -1200,12 +1194,11 @@ public class SchedV2 extends AbstractSched {
     }
 
 
-    protected int _revForDeck(long did, int lim, HashMap<Long, HashMap> childMap) {
+    protected int _revForDeck(@NonNull DeckDueListRepository repository, long did, int lim, HashMap<Long, HashMap> childMap) {
         List<Long> dids = mCol.getDecks().childDids(did, childMap);
         dids.add(0, did);
         lim = Math.min(lim, mReportLimit);
-        return mCol.getDb().queryScalar("SELECT count() FROM (SELECT 1 FROM cards WHERE did in " + Utils.ids2str(dids) + " AND queue = " + Consts.QUEUE_TYPE_REV + " AND due <= ? LIMIT ?)",
-                                        new Object[] {mToday, lim});
+        return repository.countRev(dids, lim);
     }
 
 
