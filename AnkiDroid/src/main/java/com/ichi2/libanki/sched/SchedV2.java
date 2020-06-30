@@ -389,8 +389,8 @@ public class SchedV2 extends AbstractSched {
         _checkDay();
         mCol.getDecks().checkIntegrity();
         ArrayList<JSONObject> decks = mCol.getDecks().allSorted();
-        HashMap<String, Integer[]> lims = new HashMap<>();
-        ArrayList<DeckDueTreeNode> data = new ArrayList<>();
+        HashMap<String, Integer[]> lims = new HashMap<>(decks.size());
+        ArrayList<DeckDueTreeNode> data = new ArrayList<>(decks.size());
         HashMap<Long, HashMap> childMap = mCol.getDecks().childMap();
         for (JSONObject deck : decks) {
             if (collectionTask != null && collectionTask.isCancelled()) {
