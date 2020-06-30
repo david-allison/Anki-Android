@@ -396,15 +396,18 @@ public class SchedV2 extends AbstractSched {
             if (collectionTask != null && collectionTask.isCancelled()) {
                 return null;
             }
-            String p = Decks.parent(deck.getString("name"));
+            long did = deck.getLong("id");
+            String deckName = deck.getString("name");
+
+            String p = Decks.parent(deckName);
             // new
             int nlim = _deckNewLimitSingle(deck);
             if (!TextUtils.isEmpty(p)) {
                 nlim = Math.min(nlim, lims.get(p)[0]);
             }
-            int _new = _newForDeck(repository, deck.getLong("id"), nlim);
+            int _new = _newForDeck(repository, did, nlim);
             // learning
-            int lrn = _lrnForDeck(repository, deck.getLong("id"));
+            int lrn = _lrnForDeck(repository, did);
             // reviews
             Integer plim;
             if (!TextUtils.isEmpty(p)) {
@@ -413,11 +416,11 @@ public class SchedV2 extends AbstractSched {
                 plim = null;
             }
             int rlim = _deckRevLimitSingle(deck, plim);
-            int rev = _revForDeck(repository, deck.getLong("id"), rlim, childMap);
+            int rev = _revForDeck(repository, did, rlim, childMap);
             // save to list
-            data.add(new DeckDueTreeNode(deck.getString("name"), deck.getLong("id"), rev, lrn, _new));
+            data.add(new DeckDueTreeNode(deckName, did, rev, lrn, _new));
             // add deck as a parent
-            lims.put(deck.getString("name"), new Integer[]{nlim, rlim});
+            lims.put(deckName, new Integer[]{nlim, rlim});
         }
         return data;
     }
