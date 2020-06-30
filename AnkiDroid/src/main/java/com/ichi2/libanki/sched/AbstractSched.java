@@ -3,6 +3,7 @@ package com.ichi2.libanki.sched;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.widget.Toast;
 
 
@@ -16,6 +17,7 @@ import com.ichi2.libanki.Utils;
 import com.ichi2.utils.JSONObject;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -436,6 +438,182 @@ public abstract class AbstractSched {
                             + " AND queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?"
                             + " LIMIT ?)",
                     new Object[] {did, timeLimit, lim});
+        }
+    }
+
+
+    protected static class DeckDueListCachingRepository implements DeckDueListRepository {
+
+        @NonNull private final CountMap mNewMap;
+        @NonNull private final CountMap mDayLearn;
+        @NonNull private final CountMap mRev;
+        @NonNull private final CountMap mSubDayLearn;
+
+
+        public DeckDueListCachingRepository(@NonNull CountMap newCountMap,
+                                            @NonNull CountMap subDayLearnCounts,
+                                            @NonNull CountMap dayLearnCounts,
+                                            @NonNull CountMap revCounts) {
+            mNewMap = newCountMap;
+            mSubDayLearn = subDayLearnCounts;
+            mDayLearn = dayLearnCounts;
+            mRev = revCounts;
+        }
+
+
+        public static DeckDueListRepository getInstance(Collection collection, String schedVer, Integer today) {
+            Timber.d("Obtaining deck due list repository for %s", schedVer);
+            long subDayTimeLimit = Utils.intTime() + collection.getConf().getInt("collapseTime");
+            switch (schedVer) {
+                case "std": return DeckDueListCachingRepositoryV1.createInstance(collection, today, subDayTimeLimit);
+                case "std2": return DeckDueListCachingRepositoryV2.createInstance(collection, today, subDayTimeLimit);
+                default: throw new IllegalArgumentException(String.format("Unexpected schedVer: %s", schedVer));
+            }
+        }
+
+
+        protected static CountMap getDayLearnCounts(Collection collection, int today) {
+            String query = "SELECT did, count() FROM"
+                    + " cards"
+                    + " WHERE queue = " + Consts.QUEUE_TYPE_DAY_LEARN_RELEARN + " AND due <= ?"
+                    + " group by did";
+            Object[] bindArgs = {today};
+            return toCounts(collection, query, bindArgs);
+        }
+
+
+        protected static CountMap getRevCounts(Collection collection, Integer today) {
+            String query = "SELECT did, count() FROM cards WHERE queue = " + Consts.QUEUE_TYPE_REV + " AND due <= ? group by did";
+            Object[] bindArgs = {today};
+            return toCounts(collection, query, bindArgs);
+        }
+
+
+        @NonNull
+        protected static CountMap toCounts(Collection collection, String query, Object[] bindArgs) {
+            CountMap counts = new CountMap();
+            try (Cursor c = collection.getDb().getDatabase().query(query, bindArgs)) {
+                while (c.moveToNext()) {
+                    counts.put(c.getLong(0), c.getInt(1));
+                }
+            }
+            return counts;
+        }
+
+
+        protected static CountMap getNewCounts(Collection collection) {
+            String query = "select did, count(*)" +
+                    " from cards" +
+                    " where queue = " + Consts.QUEUE_TYPE_NEW +
+                    " group by did";
+            return toCounts(collection, query, new Object[] {} );
+        }
+
+
+        @Override
+        public int countRev(List<Long> dids, int lim) {
+            long count = 0;
+            for (Long did: dids) {
+                count += mRev.getOrZero(did);
+            }
+            return (int) Math.min(count, lim);
+        }
+
+
+        @Override
+        public int countNew(long did, int lim) {
+            return mNewMap.getWithLimit(did, lim);
+        }
+
+
+        @Override
+        public int countDayLearn(long did, int lim) {
+            return mDayLearn.getWithLimit(did, lim);
+        }
+
+
+        @Override
+        public int countSubDayLearn(long did, long timeLimit, int lim) {
+            return mSubDayLearn.getWithLimit(did, lim);
+        }
+
+        protected static class CountMap extends HashMap<Long, Integer> {
+            public int getWithLimit(long did, int lim) {
+                Integer ret = get(did);
+                if (ret == null) {
+                    return 0;
+                }
+                return Math.min(ret, lim);
+            }
+
+
+            public long getOrZero(Long did) {
+                Integer countForDid = get(did);
+                return countForDid == null ? 0 : countForDid;
+            }
+        }
+    }
+
+
+    private static class DeckDueListCachingRepositoryV1 extends DeckDueListCachingRepository {
+
+        private DeckDueListCachingRepositoryV1(
+                @NonNull CountMap newCountMap,
+                @NonNull CountMap subDayLearnCounts,
+                @NonNull CountMap dayLearnCounts,
+                @NonNull CountMap revCounts) {
+            super(newCountMap, subDayLearnCounts, dayLearnCounts, revCounts);
+        }
+
+
+        public static DeckDueListRepository createInstance(Collection collection, Integer today, long subDayTimeLimit) {
+            CountMap newCounts = getNewCounts(collection);
+            CountMap dayLearnCounts = getDayLearnCounts(collection, today);
+            CountMap revCounts = getRevCounts(collection, today);
+            CountMap subDayLearnV1 = getSubDayLearnV1(collection, subDayTimeLimit);
+
+
+            return new DeckDueListCachingRepository(newCounts, subDayLearnV1, dayLearnCounts, revCounts);
+        }
+
+
+        protected static CountMap getSubDayLearnV1(Collection collection, long subDayTimeLimit) {
+            String query = "SELECT did, sum(left / 1000) FROM (SELECT left, did FROM cards WHERE"
+                    + " queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?)"
+                    + " group by did";
+            Object[] args = new Object[] { subDayTimeLimit };
+            return toCounts(collection, query, args);
+        }
+    }
+
+    private static class DeckDueListCachingRepositoryV2 extends DeckDueListCachingRepository {
+
+        private DeckDueListCachingRepositoryV2(
+                @NonNull CountMap newCountMap,
+                @NonNull CountMap subDayLearnCounts,
+                @NonNull CountMap dayLearnCounts,
+                @NonNull CountMap revCounts) {
+            super(newCountMap, subDayLearnCounts, dayLearnCounts, revCounts);
+        }
+
+
+        public static DeckDueListRepository createInstance(Collection collection, Integer today, long subDayTimeLimit) {
+            CountMap newCounts = getNewCounts(collection);
+            CountMap dayLearnCounts = getDayLearnCounts(collection, today);
+            CountMap revCounts = getRevCounts(collection, today);
+            CountMap subDayLearnV2 = getSubDayLearnV2(collection, subDayTimeLimit);
+
+
+            return new DeckDueListCachingRepository(newCounts, subDayLearnV2, dayLearnCounts, revCounts);
+        }
+
+
+        protected static CountMap getSubDayLearnV2(Collection collection, long subDayTimeLimit) {
+            String query = "SELECT did, count() FROM (SELECT left, did FROM cards WHERE"
+                    + " queue = " + Consts.QUEUE_TYPE_LRN + " AND due < ?)"
+                    + " group by did";
+            Object[] args = new Object[] { subDayTimeLimit };
+            return toCounts(collection, query, args);
         }
     }
 }

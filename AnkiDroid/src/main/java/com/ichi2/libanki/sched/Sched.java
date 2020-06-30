@@ -210,7 +210,7 @@ public class Sched extends SchedV2 {
      */
     @Override
     public List<DeckDueTreeNode> deckDueList(CollectionTask collectionTask) {
-        DeckDueListRepository repository = DeckDueListUncachedRepository.getInstance(mCol, mName, mToday);
+        DeckDueListRepository repository = DeckDueListCachingRepository.getInstance(mCol, mName, mToday);
         _checkDay();
         mCol.getDecks().checkIntegrity();
         ArrayList<JSONObject> decks = mCol.getDecks().allSorted();
