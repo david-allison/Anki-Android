@@ -9,6 +9,7 @@ import com.ichi2.libanki.importer.python.CsvDialect;
 import com.ichi2.libanki.importer.python.CsvReader;
 import com.ichi2.libanki.importer.python.CsvReaderIterator.Fields;
 import com.ichi2.libanki.importer.python.CsvSniffer;
+import com.ichi2.utils.StreamUtils;
 
 import org.jetbrains.annotations.Contract;
 
@@ -21,13 +22,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import timber.log.Timber;
 
@@ -63,49 +69,81 @@ public class TextImporter extends NoteImporter {
     @NonNull
     @Override
     protected List<ForeignNote> foreignNotes() {
-        open();
-        // process all lines
         List<String> log = new ArrayList<>();
-        List<ForeignNote> notes = new ArrayList<>();
         int lineNum = 0;
-        int ignored = 0;
-        // Note: This differs from libAnki as we don't have csv.reader
-        Iterator<FileLine> data = getDataLineStream().iterator();
-        CsvReader reader;
-        if (delimiter != '\0') {
-            reader = CsvReader.fromDelimiter(data, delimiter);
-        } else {
-            reader = CsvReader.fromDialect(data, dialect);
-        }
-        try {
-            for (Fields row : reader) {
-                if (row == null) {
-                    continue;
-                }
-                List<String> rowAsString = row.getFields();
-                if (rowAsString.size() != numFields) {
-                    if (rowAsString.size() > 0) {
-                        String formatted = getString(R.string.csv_importer_error_invalid_field_count,
-                                TextUtils.join(" ", rowAsString),
-                                rowAsString.size(),
-                                numFields);
-                        log.add(formatted);
-                        ignored += 1;
+        AtomicInteger ignored = new AtomicInteger();
 
-                    }
-                    continue;
-                }
-                ForeignNote note = noteFromFields(rowAsString);
-                notes.add(note);
+        OnInvalidFieldCount onInvalidFieldCount = (expectedFieldCount, f) -> {
+            if (f.numberOfFields() == 0) {
+                return;
             }
-        } catch (CsvException e) {
-            log.add(getString(R.string.csv_importer_error_exception, e));
-        }
+            List<String> rowAsString = f.getFields();
+            String formatted = getString(R.string.csv_importer_error_invalid_field_count,
+                    TextUtils.join(" ", rowAsString),
+                    rowAsString.size(),
+                    expectedFieldCount);
+            log.add(formatted);
+            ignored.addAndGet(1);
+        };
+
+        Consumer<CsvException> onException = ex -> log.add(getString(R.string.csv_importer_error_exception, ex));
+
+        Stream<Fields> validFields = getValidFields(onInvalidFieldCount, onException);
+
+        List<ForeignNote> notes = validFields
+                .map(x -> noteFromFields(x.getFields()))
+                .collect(Collectors.toList());
+
         mLog = log;
-        mIgnored = ignored;
+        mIgnored = ignored.get();
         fileobj.close();
         return notes;
     }
+
+
+    @NonNull
+    public Stream<Fields> getValidFields(@NonNull OnInvalidFieldCount onInvalidFieldCount, @Nullable Consumer<CsvException> onException) {
+        open();
+        // Note: This differs from libAnki as we don't have csv.reader
+        CsvReader reader = createCsvReader();
+        Function<Fields, Stream<Fields>> excludeFieldsWithInvalidCount =
+                f -> {
+                    boolean isOk = hasValidNumberOfFields(numFields, f);
+                    if (isOk) {
+                        return Stream.of(f);
+                    }
+                    onInvalidFieldCount.accept(numFields, f);
+                    return Stream.empty();
+                };
+        try {
+            return StreamUtils.fromIterator(reader.iterator())
+                    .filter(Objects::nonNull)
+                    .flatMap(excludeFieldsWithInvalidCount);
+        } catch (CsvException e) {
+            if (onException != null) {
+                onException.accept(e);
+            } else {
+                throw e;
+            }
+            return Stream.empty();
+        }
+    }
+
+
+    private CsvReader createCsvReader() {
+        Iterator<FileLine> data = getDataLineStream().iterator();
+        if (delimiter != '\0') {
+            return CsvReader.fromDelimiter(data, delimiter);
+        } else {
+            return CsvReader.fromDialect(data, dialect);
+        }
+    }
+
+
+    private static boolean hasValidNumberOfFields(int expectedFields, Fields fields) {
+        return fields.numberOfFields() == expectedFields;
+    }
+
 
     /** Number of fields. */
     @Override
@@ -320,5 +358,10 @@ public class TextImporter extends NoteImporter {
             AtomicLong i = new AtomicLong();
             return Files.lines(Paths.get(mFile.getAbsolutePath()), StandardCharsets.UTF_8).map(s -> new FileLine(s, i.incrementAndGet()));
         }
+    }
+
+    @FunctionalInterface
+    public interface OnInvalidFieldCount {
+        void accept(int expectedFieldCount, @NonNull Fields fields);
     }
 }
