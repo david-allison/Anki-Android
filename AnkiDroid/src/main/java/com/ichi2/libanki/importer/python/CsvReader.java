@@ -21,14 +21,15 @@
 
 package com.ichi2.libanki.importer.python;
 
+import com.ichi2.libanki.importer.python.CsvReaderIterator.Fields;
+
 import java.util.Iterator;
-import java.util.List;
 
 import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-public class CsvReader implements Iterable<List<String>> {
+public class CsvReader implements Iterable<Fields> {
 
     public final CsvDialect dialect;
     public Iterator<String> input_iter;
@@ -71,7 +72,7 @@ public class CsvReader implements Iterable<List<String>> {
 
     @NonNull
     @Override
-    public Iterator<List<String>> iterator() {
+    public Iterator<Fields> iterator() {
         if (this.iter == null) {
             this.iter = new CsvReaderIterator(this);
         }
@@ -80,7 +81,7 @@ public class CsvReader implements Iterable<List<String>> {
 
 
     @Nullable
-    public List<String> next() {
+    public Fields next() {
         return iterator().next();
     }
 }

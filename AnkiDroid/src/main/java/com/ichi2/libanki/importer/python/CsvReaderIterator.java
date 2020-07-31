@@ -34,7 +34,7 @@ import timber.log.Timber;
 import static com.ichi2.libanki.importer.python.CsvDialect.Quoting.*;
 import static com.ichi2.libanki.importer.python.CsvReaderIterator.State.*;
 
-public class CsvReaderIterator implements Iterator<List<String>> {
+public class CsvReaderIterator implements Iterator<CsvReaderIterator.Fields> {
     private final CsvReader reader;
 
     private int field_len;
@@ -293,7 +293,7 @@ public class CsvReaderIterator implements Iterator<List<String>> {
 
     @Override
     @Nullable
-    public List<String> next() {
+    public Fields next() {
         List<String> fields;
         parse_reset();
         do {
@@ -331,6 +331,25 @@ public class CsvReaderIterator implements Iterator<List<String>> {
         fields = this.fields;
         this.fields = null;
 
-        return fields;
+        return new Fields(fields);
+    }
+
+    public static class Fields {
+        private final List<String> mFields;
+
+        public Fields(@NonNull List<String> fields) {
+            this.mFields = fields;
+        }
+
+
+        public int size() {
+            return mFields.size();
+        }
+
+
+        @NonNull
+        public List<String> getFields() {
+            return new ArrayList<>(mFields);
+        }
     }
 }

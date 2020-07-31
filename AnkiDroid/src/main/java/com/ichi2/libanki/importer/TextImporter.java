@@ -7,6 +7,7 @@ import com.ichi2.anki.R;
 import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.importer.python.CsvDialect;
 import com.ichi2.libanki.importer.python.CsvReader;
+import com.ichi2.libanki.importer.python.CsvReaderIterator.Fields;
 import com.ichi2.libanki.importer.python.CsvSniffer;
 
 import org.jetbrains.annotations.Contract;
@@ -76,11 +77,11 @@ public class TextImporter extends NoteImporter {
             reader = CsvReader.fromDialect(data, dialect);
         }
         try {
-            for (List<String> row : reader) {
+            for (Fields row : reader) {
                 if (row == null) {
                     continue;
                 }
-                List<String> rowAsString = new ArrayList<>(row);
+                List<String> rowAsString = row.getFields();
                 if (rowAsString.size() != numFields) {
                     if (rowAsString.size() > 0) {
                         String formatted = getString(R.string.csv_importer_error_invalid_field_count,
@@ -204,7 +205,7 @@ public class TextImporter extends NoteImporter {
 
         try {
             while (true) {
-                List<String> row = reader.next();
+                Fields row = reader.next();
                 if (row.size() > 0) {
                     numFields = row.size();
                     break;
