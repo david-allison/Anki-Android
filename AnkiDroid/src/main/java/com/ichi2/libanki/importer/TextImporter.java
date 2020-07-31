@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -69,7 +70,7 @@ public class TextImporter extends NoteImporter {
         int lineNum = 0;
         int ignored = 0;
         // Note: This differs from libAnki as we don't have csv.reader
-        Iterator<String> data = getDataStream().iterator();
+        Iterator<FileLine> data = getDataLineStream().iterator();
         CsvReader reader;
         if (delimiter != '\0') {
             reader = CsvReader.fromDelimiter(data, delimiter);
@@ -177,7 +178,7 @@ public class TextImporter extends NoteImporter {
             }
         }
 
-        Iterator<String> data = getDataStream().iterator();
+        Iterator<FileLine> data = getDataLineStream().iterator();
 
         CsvReader reader = null;
         if (dialect != null) {
@@ -206,8 +207,8 @@ public class TextImporter extends NoteImporter {
         try {
             while (true) {
                 Fields row = reader.next();
-                if (row.size() > 0) {
-                    numFields = row.size();
+                if (row.numberOfFields() > 0) {
+                    numFields = row.numberOfFields();
                     break;
                 }
             }
@@ -229,24 +230,56 @@ public class TextImporter extends NoteImporter {
     */
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*$", Pattern.DOTALL);
 
-    private String sub(String s) {
+    private static String sub(String s) {
         return COMMENT_PATTERN.matcher(s).replaceAll("__comment");
     }
 
 
     private Stream<String> getDataStream() {
-        Stream<String> data;
-        try {
-            data = fileobj.readAsUtf8WithoutBOM();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return getDataLineStream().map(FileLine::getText);
+    }
 
-        Stream<String> withoutComments = data.filter(x -> !"__comment".equals(sub(x))).map(s -> s + "\n");
+
+    private Stream<FileLine> getDataLineStream() {
+        Stream<FileLine> lines = getStreamOfAllLines();
+
+        Stream<FileLine> withoutComments = lines
+                .filter(x -> TextImporter.filterComments(x.getText()).isPresent())
+                .map(TextImporter::enrichWithNewLine);
+
         if (this.mFirstLineWasTags) {
             withoutComments = withoutComments.skip(1);
         }
+
         return withoutComments;
+    }
+
+
+    private static FileLine enrichWithNewLine(FileLine line) {
+        return new FileLine(enrichWithNewLine(line.getText()), line.getLineNumber());
+    }
+
+
+    private static String enrichWithNewLine(String s) {
+        return s + "\n";
+    }
+
+
+    private Stream<FileLine> getStreamOfAllLines() {
+        try {
+            return fileobj.readAsUtf8WithoutBOM();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    private static Optional<String> filterComments(String line) {
+        if ("__comment".equals(sub(line))) {
+            return Optional.empty();
+        } else {
+            return Optional.of(line);
+        }
     }
 
 
@@ -283,8 +316,9 @@ public class TextImporter extends NoteImporter {
 
 
         @NonNull
-        public Stream<String> readAsUtf8WithoutBOM() throws IOException {
-            return Files.lines(Paths.get(mFile.getAbsolutePath()), StandardCharsets.UTF_8);
+        public Stream<FileLine> readAsUtf8WithoutBOM() throws IOException {
+            AtomicLong i = new AtomicLong();
+            return Files.lines(Paths.get(mFile.getAbsolutePath()), StandardCharsets.UTF_8).map(s -> new FileLine(s, i.incrementAndGet()));
         }
     }
 }

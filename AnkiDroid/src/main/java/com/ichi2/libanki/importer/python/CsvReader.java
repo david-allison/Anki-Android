@@ -21,6 +21,7 @@
 
 package com.ichi2.libanki.importer.python;
 
+import com.ichi2.libanki.importer.FileLine;
 import com.ichi2.libanki.importer.python.CsvReaderIterator.Fields;
 
 import java.util.Iterator;
@@ -32,11 +33,11 @@ import androidx.annotation.Nullable;
 public class CsvReader implements Iterable<Fields> {
 
     public final CsvDialect dialect;
-    public Iterator<String> input_iter;
+    public Iterator<FileLine> input_iter;
     public CsvReaderIterator iter;
 
 
-    public CsvReader(@NonNull Iterator<String> data, char delimiter, @Nullable CsvDialect dialect) {
+    public CsvReader(@NonNull Iterator<FileLine> data, char delimiter, @Nullable CsvDialect dialect) {
         if (delimiter == '\0' && dialect == null) {
             throw new IllegalStateException("either the dialect or the delimiter must be set");
         }
@@ -58,14 +59,14 @@ public class CsvReader implements Iterable<Fields> {
 
     @NonNull
     @CheckResult
-    public static CsvReader fromDelimiter(@NonNull Iterator<String> data, char delimiter) {
+    public static CsvReader fromDelimiter(@NonNull Iterator<FileLine> data, char delimiter) {
         return new CsvReader(data, delimiter, null);
     }
 
 
     @NonNull
     @CheckResult
-    public static CsvReader fromDialect(@NonNull Iterator<String> data, @NonNull CsvDialect dialect) {
+    public static CsvReader fromDialect(@NonNull Iterator<FileLine> data, @NonNull CsvDialect dialect) {
         return new CsvReader(data, '\0', dialect);
     }
 

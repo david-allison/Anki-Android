@@ -21,7 +21,10 @@
 
 package com.ichi2.libanki.importer.python;
 
+import android.util.Pair;
+
 import com.ichi2.libanki.importer.CsvException;
+import com.ichi2.libanki.importer.FileLine;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -296,6 +299,7 @@ public class CsvReaderIterator implements Iterator<CsvReaderIterator.Fields> {
     public Fields next() {
         List<String> fields;
         parse_reset();
+        int initialLineNumber = line_num + 1;
         do {
             if (!reader.input_iter.hasNext()) {
                 if (this.field_len != 0 || this.state == IN_QUOTED_FIELD) {
@@ -306,7 +310,8 @@ public class CsvReaderIterator implements Iterator<CsvReaderIterator.Fields> {
                     }
                 }
             }
-            String lineobj = this.reader.input_iter.next();
+            FileLine line = this.reader.input_iter.next();
+            String lineobj = line.getText();
 
             line_num++;
 
@@ -331,21 +336,29 @@ public class CsvReaderIterator implements Iterator<CsvReaderIterator.Fields> {
         fields = this.fields;
         this.fields = null;
 
-        return new Fields(fields);
+        return new Fields(fields, new Pair<>(initialLineNumber + 1, line_num));
     }
 
     public static class Fields {
+        @NonNull
         private final List<String> mFields;
+        @NonNull
+        private final Pair<Integer, Integer> mLineNumbers;
 
-        public Fields(@NonNull List<String> fields) {
+
+        public Fields(@NonNull List<String> fields, @NonNull Pair<Integer, Integer> lineNumbers) {
             this.mFields = fields;
+            this.mLineNumbers = lineNumbers;
         }
 
 
-        public int size() {
+        public int numberOfFields() {
             return mFields.size();
         }
 
+        public Pair<Integer, Integer> getLineNumbers() {
+            return mLineNumbers;
+        }
 
         @NonNull
         public List<String> getFields() {
