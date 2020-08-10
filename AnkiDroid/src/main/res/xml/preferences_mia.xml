@@ -32,7 +32,7 @@
         android:title="Low Key AnkiDroid (Pass/Fail)"
         android:summary="Replaces ease buttons with Pass/Fail" />
     <CheckBoxPreference
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:key="miaNoBoostingOrPenalties"
         android:title="No Boosting/Penalties"
         android:summary="Resets the ease of displayed cards to 250%" />
