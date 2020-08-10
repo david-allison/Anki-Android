@@ -2499,9 +2499,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                 // flipOrAnswerCard(EASE_2);
                 return true;
             case COMMAND_FLIP_OR_ANSWER_EASE3:
+                flipOrAnswerCard(getRecommendedEase(false));
                 // flipOrAnswerCard(EASE_3);
                 return true;
             case COMMAND_FLIP_OR_ANSWER_EASE4:
+                flipOrAnswerCard(getRecommendedEase(false));
                 // flipOrAnswerCard(EASE_4);
                 return true;
             case COMMAND_FLIP_OR_ANSWER_RECOMMENDED:
@@ -2567,11 +2569,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             case COMMAND_ANSWER_FIRST_BUTTON:
                 return answerCardIfVisible(EASE_1);
             case COMMAND_ANSWER_SECOND_BUTTON:
-                return answerCardIfVisible(EASE_2);
+                return answerCardIfVisible(getRecommendedEase(false));
             case COMMAND_ANSWER_THIRD_BUTTON:
-                return answerCardIfVisible(EASE_3);
+                return answerCardIfVisible(getRecommendedEase(false));
             case COMMAND_ANSWER_FOURTH_BUTTON:
-                return answerCardIfVisible(EASE_4);
+                return answerCardIfVisible(getRecommendedEase(false));
             case COMMAND_ANSWER_RECOMMENDED:
                 return answerCardIfVisible(getRecommendedEase(false));
             case COMMAND_PAGE_UP:
