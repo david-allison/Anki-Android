@@ -1043,39 +1043,39 @@ public class DeckPicker extends NavigationDrawerActivity implements
             }
             preferences.edit().putLong(UPGRADE_VERSION_KEY, current).apply();
 
-            // Delete the media database made by any version before 2.3 beta due to upgrade errors.
-            // It is rebuilt on the next sync or media check
-            if (previous < 20300200) {
-                Timber.i("Deleting media database");
-                File mediaDb = new File(CollectionHelper.getCurrentAnkiDroidDirectory(this), "collection.media.ad.db2");
-                if (mediaDb.exists()) {
-                    mediaDb.delete();
-                }
-            }
-            // Recommend the user to do a full-sync if they're upgrading from before 2.3.1beta8
-            if (previous < 20301208) {
-                Timber.i("Recommend the user to do a full-sync");
-                mRecommendFullSync = true;
-            }
-
-            // Fix "font-family" definition in templates created by AnkiDroid before 2.6alhpa23
-            if (previous < 20600123) {
-                Timber.i("Fixing font-family definition in templates");
-                try {
-                    Models models = getCol().getModels();
-                    for (JSONObject m : models.all()) {
-                        String css = m.getString("css");
-                        if (css.contains("font-familiy")) {
-                            m.put("css", css.replace("font-familiy", "font-family"));
-                            models.save(m);
-                        }
-                    }
-                    models.flush();
-                } catch (JSONException e) {
-                    Timber.e(e, "Failed to upgrade css definitions.");
-                }
-            }
-
+//            // Delete the media database made by any version before 2.3 beta due to upgrade errors.
+//            // It is rebuilt on the next sync or media check
+//            if (previous < 20300200) {
+//                Timber.i("Deleting media database");
+//                File mediaDb = new File(CollectionHelper.getCurrentAnkiDroidDirectory(this), "collection.media.ad.db2");
+//                if (mediaDb.exists()) {
+//                    mediaDb.delete();
+//                }
+//            }
+//            // Recommend the user to do a full-sync if they're upgrading from before 2.3.1beta8
+//            if (previous < 20301208) {
+//                Timber.i("Recommend the user to do a full-sync");
+//                mRecommendFullSync = true;
+//            }
+//
+//            // Fix "font-family" definition in templates created by AnkiDroid before 2.6alhpa23
+//            if (previous < 20600123) {
+//                Timber.i("Fixing font-family definition in templates");
+//                try {
+//                    Models models = getCol().getModels();
+//                    for (JSONObject m : models.all()) {
+//                        String css = m.getString("css");
+//                        if (css.contains("font-familiy")) {
+//                            m.put("css", css.replace("font-familiy", "font-family"));
+//                            models.save(m);
+//                        }
+//                    }
+//                    models.flush();
+//                } catch (JSONException e) {
+//                    Timber.e(e, "Failed to upgrade css definitions.");
+//                }
+//            }
+//
             // Check if preference upgrade or database check required, otherwise go to new feature screen
             int upgradePrefsVersion = AnkiDroidApp.CHECK_PREFERENCES_AT_VERSION;
             int upgradeDbVersion = AnkiDroidApp.CHECK_DB_AT_VERSION;
