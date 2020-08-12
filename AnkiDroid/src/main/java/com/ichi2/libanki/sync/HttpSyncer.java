@@ -24,6 +24,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 
 import com.ichi2.anki.AnkiDroidApp;
+import com.ichi2.anki.BuildConfig;
 import com.ichi2.anki.exception.UnknownHttpResponseException;
 import com.ichi2.anki.web.CustomSyncServer;
 import com.ichi2.async.Connection;
@@ -108,7 +109,7 @@ public class HttpSyncer {
                 .addNetworkInterceptor(chain -> chain.proceed(
                         chain.request()
                                 .newBuilder()
-                                .header("User-Agent", "AnkiDroid-" + VersionUtils.getPkgVersionName())
+                                .header("User-Agent", "AnkiDroid-" + BuildConfig.SYNC_VERSION)
                                 .build()
                 ));
         Tls12SocketFactory.enableTls12OnPreLollipop(clientBuilder)

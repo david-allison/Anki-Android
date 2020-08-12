@@ -17,6 +17,7 @@
 
 package com.ichi2.libanki.sync;
 
+import com.ichi2.anki.BuildConfig;
 import com.ichi2.anki.exception.UnknownHttpResponseException;
 import com.ichi2.async.Connection;
 import com.ichi2.libanki.Consts;
@@ -63,7 +64,7 @@ public class RemoteServer extends HttpSyncer {
         JSONObject jo = new JSONObject();
         jo.put("v", Consts.SYNC_VER);
         jo.put("cv",
-                String.format(Locale.US, "ankidroid,%s,%s", VersionUtils.getPkgVersionName(), Utils.platDesc()));
+                String.format(Locale.US, "ankidroid,%s,%s", BuildConfig.SYNC_VERSION, Utils.platDesc()));
         return super.req("meta", HttpSyncer.getInputStream(Utils.jsonToString(jo)));
     }
 

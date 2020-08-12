@@ -178,7 +178,7 @@ public class Info extends AnkiActivity {
      */
     public String copyDebugInfo() {
         String debugInfo = "AnkiDroid-MIA Version = " + VersionUtils.getPkgVersionName() + "\n\n" +
-                "AnkiDroid Version: 2.12.1" + "\n\n" +
+                "AnkiDroid Version: " + BuildConfig.ANKI_VERSION + "\n\n" +
                 "Android Version = " + Build.VERSION.RELEASE;
 
         android.content.ClipboardManager clipboardManager = (android.content.ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);

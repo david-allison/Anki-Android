@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.ichi2.anki.AnkiDroidApp;
+import com.ichi2.anki.BuildConfig;
 import com.ichi2.anki.exception.MediaSyncException;
 import com.ichi2.anki.exception.UnknownHttpResponseException;
 import com.ichi2.anki.web.CustomSyncServer;
@@ -78,7 +79,7 @@ public class RemoteMediaServer extends HttpSyncer {
             mPostVars = new HashMap<>();
             mPostVars.put("k", mHKey);
             mPostVars.put("v",
-                    String.format(Locale.US, "ankidroid,%s,%s", VersionUtils.getPkgVersionName(), Utils.platDesc()));
+                    String.format(Locale.US, "ankidroid,%s,%s", BuildConfig.SYNC_VERSION, Utils.platDesc()));
 
             Response resp = super.req("begin", HttpSyncer.getInputStream(Utils.jsonToString(new JSONObject())));
             JSONObject jresp = new JSONObject(resp.body().string());
