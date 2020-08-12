@@ -19,6 +19,7 @@ package com.ichi2.libanki.sync;
 import android.database.sqlite.SQLiteDatabaseCorruptException;
 
 import com.ichi2.anki.AnkiDroidApp;
+import com.ichi2.anki.BuildConfig;
 import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.anki.exception.UnknownHttpResponseException;
@@ -52,7 +53,7 @@ public class FullSyncer extends HttpSyncer {
         mPostVars = new HashMap<>();
         mPostVars.put("k", hkey);
         mPostVars.put("v",
-                String.format(Locale.US, "ankidroid,%s,%s", VersionUtils.getPkgVersionName(), Utils.platDesc()));
+                String.format(Locale.US, "ankidroid,%s,%s", BuildConfig.SYNC_VERSION, Utils.platDesc()));
         mCol = col;
         mCon = con;
     }
