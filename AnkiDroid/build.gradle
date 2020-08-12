@@ -35,8 +35,8 @@ android {
         //
         // This ensures the correct ordering between the various types of releases (dev < alpha < beta < release) which is
         // needed for upgrades to be offered correctly.
-        versionCode=10100300
-        versionName="1.1.0-MIA"
+        versionCode=20000300
+        versionName="2.0.0-MIA"
         buildConfigField "String", "SYNC_VERSION", '"2.12.1-MIA"'
         buildConfigField "String", "ANKI_VERSION", '"2.12.1"'
 
