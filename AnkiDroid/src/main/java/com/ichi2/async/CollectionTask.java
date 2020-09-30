@@ -30,6 +30,7 @@ import com.ichi2.anki.CardUtils;
 import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.anki.TemporaryModel;
+import com.ichi2.anki.analytics.UsageAnalytics;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.anki.exception.ImportExportException;
 import com.ichi2.libanki.Media;
@@ -81,6 +82,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import timber.log.Timber;
 
+import static com.ichi2.anki.analytics.UsageAnalytics.*;
 import static com.ichi2.libanki.Collection.DismissType.BURY_CARD;
 import static com.ichi2.libanki.Collection.DismissType.BURY_NOTE;
 import static com.ichi2.libanki.Collection.DismissType.SUSPEND_NOTE;
@@ -346,128 +348,132 @@ public class CollectionTask extends BaseAsyncTask<TaskData, TaskData, TaskData> 
             return null;
         }
         // Actually execute the task now that we are at the front of the queue.
-        switch (mType) {
-            case LOAD_DECK_QUICK:
-                return doInBackgroundLoadDeck();
 
-            case LOAD_DECK_COUNTS:
-                return doInBackgroundLoadDeckCounts();
+        try (TimingAnalytic unused = new TimingAnalytic(Category.TASK, mType.toString())) {
+            switch (mType) {
+                case LOAD_DECK_QUICK:
+                    return doInBackgroundLoadDeck();
 
-            case SAVE_COLLECTION:
-                doInBackgroundSaveCollection(param);
-                break;
+                case LOAD_DECK_COUNTS:
+                    return doInBackgroundLoadDeckCounts();
 
-            case ANSWER_CARD:
-                return doInBackgroundAnswerCard(param);
+                case SAVE_COLLECTION:
+                    doInBackgroundSaveCollection(param);
+                    break;
 
-            case ADD_NOTE:
-                return doInBackgroundAddNote(param);
+                case ANSWER_CARD:
+                    return doInBackgroundAnswerCard(param);
 
-            case UPDATE_NOTE:
-                return doInBackgroundUpdateNote(param);
+                case ADD_NOTE:
+                    return doInBackgroundAddNote(param);
 
-            case UNDO:
-                return doInBackgroundUndo();
+                case UPDATE_NOTE:
+                    return doInBackgroundUpdateNote(param);
 
-            case SEARCH_CARDS:
-                return doInBackgroundSearchCards(param);
+                case UNDO:
+                    return doInBackgroundUndo();
 
-            case DISMISS:
-                return doInBackgroundDismissNote(param);
+                case SEARCH_CARDS:
+                    return doInBackgroundSearchCards(param);
 
-            case DISMISS_MULTI:
-                return doInBackgroundDismissNotes(param);
+                case DISMISS:
+                    return doInBackgroundDismissNote(param);
 
-            case CHECK_DATABASE:
-                return doInBackgroundCheckDatabase();
+                case DISMISS_MULTI:
+                    return doInBackgroundDismissNotes(param);
 
-            case REPAIR_COLLECTION:
-                return doInBackgroundRepairCollection();
+                case CHECK_DATABASE:
+                    return doInBackgroundCheckDatabase();
 
-            case UPDATE_VALUES_FROM_DECK:
-                return doInBackgroundUpdateValuesFromDeck(param);
+                case REPAIR_COLLECTION:
+                    return doInBackgroundRepairCollection();
 
-            case DELETE_DECK:
-                doInBackgroundDeleteDeck(param);
-                break;
+                case UPDATE_VALUES_FROM_DECK:
+                    return doInBackgroundUpdateValuesFromDeck(param);
 
-            case DELETE_MEDIA:
-                return doInBackgroundDeleteMedia(param);
+                case DELETE_DECK:
+                    doInBackgroundDeleteDeck(param);
+                    break;
 
-            case REBUILD_CRAM:
-                return doInBackgroundRebuildCram();
+                case DELETE_MEDIA:
+                    return doInBackgroundDeleteMedia(param);
 
-            case EMPTY_CRAM:
-                return doInBackgroundEmptyCram();
+                case REBUILD_CRAM:
+                    return doInBackgroundRebuildCram();
 
-            case IMPORT:
-                return doInBackgroundImportAdd(param);
+                case EMPTY_CRAM:
+                    return doInBackgroundEmptyCram();
 
-            case IMPORT_REPLACE:
-                return doInBackgroundImportReplace(param);
+                case IMPORT:
+                    return doInBackgroundImportAdd(param);
 
-            case EXPORT_APKG:
-                return doInBackgroundExportApkg(param);
+                case IMPORT_REPLACE:
+                    return doInBackgroundImportReplace(param);
 
-            case REORDER:
-                return doInBackgroundReorder(param);
+                case EXPORT_APKG:
+                    return doInBackgroundExportApkg(param);
 
-            case CONF_CHANGE:
-                return doInBackgroundConfChange(param);
+                case REORDER:
+                    return doInBackgroundReorder(param);
 
-            case CONF_RESET:
-                return doInBackgroundConfReset(param);
+                case CONF_CHANGE:
+                    return doInBackgroundConfChange(param);
 
-            case CONF_REMOVE:
-                return doInBackgroundConfRemove(param);
+                case CONF_RESET:
+                    return doInBackgroundConfReset(param);
 
-            case CONF_SET_SUBDECKS:
-                return doInBackgroundConfSetSubdecks(param);
+                case CONF_REMOVE:
+                    return doInBackgroundConfRemove(param);
 
-            case RENDER_BROWSER_QA:
-                return doInBackgroundRenderBrowserQA(param);
+                case CONF_SET_SUBDECKS:
+                    return doInBackgroundConfSetSubdecks(param);
 
-            case CHECK_MEDIA:
-                return doInBackgroundCheckMedia();
+                case RENDER_BROWSER_QA:
+                    return doInBackgroundRenderBrowserQA(param);
 
-            case COUNT_MODELS:
-                return doInBackgroundCountModels();
+                case CHECK_MEDIA:
+                    return doInBackgroundCheckMedia();
 
-            case DELETE_MODEL:
-                return doInBackGroundDeleteModel(param);
+                case COUNT_MODELS:
+                    return doInBackgroundCountModels();
 
-            case DELETE_FIELD:
-                return doInBackGroundDeleteField(param);
+                case DELETE_MODEL:
+                    return doInBackGroundDeleteModel(param);
 
-            case REPOSITION_FIELD:
-                return doInBackGroundRepositionField(param);
+                case DELETE_FIELD:
+                    return doInBackGroundDeleteField(param);
 
-            case ADD_FIELD:
-                return doInBackGroundAddField(param);
+                case REPOSITION_FIELD:
+                    return doInBackGroundRepositionField(param);
 
-            case CHANGE_SORT_FIELD:
-                return doInBackgroundChangeSortField(param);
+                case ADD_FIELD:
+                    return doInBackGroundAddField(param);
 
-            case SAVE_MODEL:
-                return doInBackgroundSaveModel(param);
+                case CHANGE_SORT_FIELD:
+                    return doInBackgroundChangeSortField(param);
 
-            case FIND_EMPTY_CARDS:
-                return doInBackGroundFindEmptyCards(param);
+                case SAVE_MODEL:
+                    return doInBackgroundSaveModel(param);
 
-            case CHECK_CARD_SELECTION:
-                return doInBackgroundCheckCardSelection(param);
+                case FIND_EMPTY_CARDS:
+                    return doInBackGroundFindEmptyCards(param);
 
-            case LOAD_COLLECTION_COMPLETE:
-                doInBackgroundLoadCollectionComplete();
-                break;
+                case CHECK_CARD_SELECTION:
+                    return doInBackgroundCheckCardSelection(param);
 
-            case PRELOAD_NEXT_CARD:
-                doInBackgroundPreloadNextCard();
-                break;
+                case LOAD_COLLECTION_COMPLETE:
+                    doInBackgroundLoadCollectionComplete();
+                    break;
 
-            default:
-                Timber.e("unknown task type: %s", mType);
+                case PRELOAD_NEXT_CARD:
+                    doInBackgroundPreloadNextCard();
+                    break;
+
+                default:
+                    Timber.e("unknown task type: %s", mType);
+            }
         }
+
         return null;
     }
 
