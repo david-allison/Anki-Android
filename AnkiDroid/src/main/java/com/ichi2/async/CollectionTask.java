@@ -30,6 +30,7 @@ import com.ichi2.anki.CardUtils;
 import com.ichi2.anki.CollectionHelper;
 import com.ichi2.anki.R;
 import com.ichi2.anki.TemporaryModel;
+import com.ichi2.anki.analytics.UsageAnalytics;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
 import com.ichi2.anki.exception.ImportExportException;
 import com.ichi2.libanki.WrongId;
@@ -255,122 +256,124 @@ public class CollectionTask extends BaseAsyncTask<CollectionTask.TaskData, Colle
             Timber.e("CollectionTask CollectionTask %d as Collection could not be opened", mType);
             return null;
         }
-        // Actually execute the task now that we are at the front of the queue.
-        switch (mType) {
-            case TASK_TYPE_LOAD_DECK_COUNTS:
-                return doInBackgroundLoadDeckCounts();
+        try (UsageAnalytics.TimingAnalytic unused = new UsageAnalytics.TimingAnalytic(UsageAnalytics.Category.TASK, Integer.toString(mType))) {
+            // Actually execute the task now that we are at the front of the queue.
+            switch (mType) {
+                case TASK_TYPE_LOAD_DECK_COUNTS:
+                    return doInBackgroundLoadDeckCounts();
 
-            case TASK_TYPE_SAVE_COLLECTION:
-                doInBackgroundSaveCollection();
-                break;
+                case TASK_TYPE_SAVE_COLLECTION:
+                    doInBackgroundSaveCollection();
+                    break;
 
-            case TASK_TYPE_ANSWER_CARD:
-                return doInBackgroundAnswerCard(params);
+                case TASK_TYPE_ANSWER_CARD:
+                    return doInBackgroundAnswerCard(params);
 
-            case TASK_TYPE_ADD_NOTE:
-                return doInBackgroundAddNote(params);
+                case TASK_TYPE_ADD_NOTE:
+                    return doInBackgroundAddNote(params);
 
-            case TASK_TYPE_UPDATE_NOTE:
-                return doInBackgroundUpdateNote(params);
+                case TASK_TYPE_UPDATE_NOTE:
+                    return doInBackgroundUpdateNote(params);
 
-            case TASK_TYPE_UPDATE_NOTES_MULTI:
-                return doInBackgroundUpdateNotes(params);
+                case TASK_TYPE_UPDATE_NOTES_MULTI:
+                    return doInBackgroundUpdateNotes(params);
 
-            case TASK_TYPE_UNDO:
-                return doInBackgroundUndo();
+                case TASK_TYPE_UNDO:
+                    return doInBackgroundUndo();
 
-            case TASK_TYPE_SEARCH_CARDS:
-                return doInBackgroundSearchCards(params);
+                case TASK_TYPE_SEARCH_CARDS:
+                    return doInBackgroundSearchCards(params);
 
-            case TASK_TYPE_DISMISS:
-                return doInBackgroundDismissNote(params);
+                case TASK_TYPE_DISMISS:
+                    return doInBackgroundDismissNote(params);
 
-            case TASK_TYPE_DISMISS_MULTI:
-                return doInBackgroundDismissNotes(params);
+                case TASK_TYPE_DISMISS_MULTI:
+                    return doInBackgroundDismissNotes(params);
 
-            case TASK_TYPE_CHECK_DATABASE:
-                return doInBackgroundCheckDatabase();
+                case TASK_TYPE_CHECK_DATABASE:
+                    return doInBackgroundCheckDatabase();
 
-            case TASK_TYPE_REPAIR_DECK:
-                return doInBackgroundRepairDeck();
+                case TASK_TYPE_REPAIR_DECK:
+                    return doInBackgroundRepairDeck();
 
-            case TASK_TYPE_UPDATE_VALUES_FROM_DECK:
-                return doInBackgroundUpdateValuesFromDeck(params);
+                case TASK_TYPE_UPDATE_VALUES_FROM_DECK:
+                    return doInBackgroundUpdateValuesFromDeck(params);
 
-            case TASK_TYPE_DELETE_DECK:
-                return doInBackgroundDeleteDeck(params);
+                case TASK_TYPE_DELETE_DECK:
+                    return doInBackgroundDeleteDeck(params);
 
-            case TASK_TYPE_REBUILD_CRAM:
-                return doInBackgroundRebuildCram();
+                case TASK_TYPE_REBUILD_CRAM:
+                    return doInBackgroundRebuildCram();
 
-            case TASK_TYPE_EMPTY_CRAM:
-                return doInBackgroundEmptyCram();
+                case TASK_TYPE_EMPTY_CRAM:
+                    return doInBackgroundEmptyCram();
 
-            case TASK_TYPE_IMPORT:
-                return doInBackgroundImportAdd(params);
+                case TASK_TYPE_IMPORT:
+                    return doInBackgroundImportAdd(params);
 
-            case TASK_TYPE_IMPORT_REPLACE:
-                return doInBackgroundImportReplace(params);
+                case TASK_TYPE_IMPORT_REPLACE:
+                    return doInBackgroundImportReplace(params);
 
-            case TASK_TYPE_EXPORT_APKG:
-                return doInBackgroundExportApkg(params);
+                case TASK_TYPE_EXPORT_APKG:
+                    return doInBackgroundExportApkg(params);
 
-            case TASK_TYPE_REORDER:
-                return doInBackgroundReorder(params);
+                case TASK_TYPE_REORDER:
+                    return doInBackgroundReorder(params);
 
-            case TASK_TYPE_CONF_CHANGE:
-                return doInBackgroundConfChange(params);
+                case TASK_TYPE_CONF_CHANGE:
+                    return doInBackgroundConfChange(params);
 
-            case TASK_TYPE_CONF_RESET:
-                return doInBackgroundConfReset(params);
+                case TASK_TYPE_CONF_RESET:
+                    return doInBackgroundConfReset(params);
 
-            case TASK_TYPE_CONF_REMOVE:
-                return doInBackgroundConfRemove(params);
+                case TASK_TYPE_CONF_REMOVE:
+                    return doInBackgroundConfRemove(params);
 
-            case TASK_TYPE_CONF_SET_SUBDECKS:
-                return doInBackgroundConfSetSubdecks(params);
+                case TASK_TYPE_CONF_SET_SUBDECKS:
+                    return doInBackgroundConfSetSubdecks(params);
 
-            case TASK_TYPE_RENDER_BROWSER_QA:
-                return doInBackgroundRenderBrowserQA(params);
+                case TASK_TYPE_RENDER_BROWSER_QA:
+                    return doInBackgroundRenderBrowserQA(params);
 
-            case TASK_TYPE_CHECK_MEDIA:
-                return doInBackgroundCheckMedia();
+                case TASK_TYPE_CHECK_MEDIA:
+                    return doInBackgroundCheckMedia();
 
-            case TASK_TYPE_ADD_TEMPLATE:
-                return doInBackgroundAddTemplate(params);
+                case TASK_TYPE_ADD_TEMPLATE:
+                    return doInBackgroundAddTemplate(params);
 
-            case TASK_TYPE_REMOVE_TEMPLATE:
-                return doInBackgroundRemoveTemplate(params);
+                case TASK_TYPE_REMOVE_TEMPLATE:
+                    return doInBackgroundRemoveTemplate(params);
 
-            case TASK_TYPE_COUNT_MODELS:
-                return doInBackgroundCountModels();
+                case TASK_TYPE_COUNT_MODELS:
+                    return doInBackgroundCountModels();
 
-            case TASK_TYPE_DELETE_MODEL:
-                return  doInBackGroundDeleteModel(params);
+                case TASK_TYPE_DELETE_MODEL:
+                    return  doInBackGroundDeleteModel(params);
 
-            case TASK_TYPE_DELETE_FIELD:
-                return doInBackGroundDeleteField(params);
+                case TASK_TYPE_DELETE_FIELD:
+                    return doInBackGroundDeleteField(params);
 
-            case TASK_TYPE_REPOSITION_FIELD:
-                return doInBackGroundRepositionField(params);
+                case TASK_TYPE_REPOSITION_FIELD:
+                    return doInBackGroundRepositionField(params);
 
-            case TASK_TYPE_ADD_FIELD:
-                return doInBackGroundAddField(params);
+                case TASK_TYPE_ADD_FIELD:
+                    return doInBackGroundAddField(params);
 
-            case TASK_TYPE_CHANGE_SORT_FIELD:
-                return doInBackgroundChangeSortField(params);
+                case TASK_TYPE_CHANGE_SORT_FIELD:
+                    return doInBackgroundChangeSortField(params);
 
-            case TASK_TYPE_SAVE_MODEL:
-                return doInBackgroundSaveModel(params);
+                case TASK_TYPE_SAVE_MODEL:
+                    return doInBackgroundSaveModel(params);
 
-            case TASK_TYPE_FIND_EMPTY_CARDS:
-                return doInBackGroundFindEmptyCards(params);
+                case TASK_TYPE_FIND_EMPTY_CARDS:
+                    return doInBackGroundFindEmptyCards(params);
 
-            case TASK_TYPE_CHECK_CARD_SELECTION:
-                return doInBackgroundCheckCardSelection(params);
+                case TASK_TYPE_CHECK_CARD_SELECTION:
+                    return doInBackgroundCheckCardSelection(params);
 
-            default:
-                Timber.e("unknown task type: %d", mType);
+                default:
+                    Timber.e("unknown task type: %d", mType);
+            }
         }
         return null;
     }

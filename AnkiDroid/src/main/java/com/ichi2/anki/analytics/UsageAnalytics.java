@@ -16,6 +16,7 @@
 
 package com.ichi2.anki.analytics;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Point;
@@ -30,6 +31,7 @@ import com.brsanthu.googleanalytics.GoogleAnalyticsConfig;
 import com.brsanthu.googleanalytics.httpclient.OkHttpClientImpl;
 import com.brsanthu.googleanalytics.request.DefaultRequest;
 import com.brsanthu.googleanalytics.request.EventHit;
+import com.brsanthu.googleanalytics.request.TimingHit;
 import com.ichi2.anki.AnkiDroidApp;
 import com.ichi2.anki.BuildConfig;
 import com.ichi2.anki.R;
@@ -38,7 +40,11 @@ import com.ichi2.utils.WebViewDebugging;
 import org.acra.ACRA;
 import org.acra.util.Installation;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import timber.log.Timber;
 
 public class UsageAnalytics {
@@ -251,6 +257,22 @@ public class UsageAnalytics {
     }
 
 
+    public static void sendTimingEvent(@NonNull String category, @NonNull String variableName, int timeTakenMilliseconds, @Nullable String label) {
+        Timber.d("sendTimingEvent() category/variableName/timeTaken/label: %s/%s/%dms/%s", category, variableName, timeTakenMilliseconds, label);
+        if (!getOptIn()) {
+            return;
+        }
+        TimingHit timingHit = sAnalytics.timing()
+                .userTimingCategory(category)
+                .userTimingVariableName(variableName)
+                .userTimingTime(timeTakenMilliseconds);
+        if (label != null) {
+            timingHit.userTimingLabel(label);
+        }
+        timingHit.sendAsync();
+    }
+
+
     /**
      * Send an exception event out for aggregation/analysis, parsed from the exception information
      *
@@ -347,5 +369,40 @@ public class UsageAnalytics {
 
             return this;
         }
+    }
+
+    public static boolean isEnabled() {
+        SharedPreferences userPrefs = AnkiDroidApp.getSharedPrefs(AnkiDroidApp.getInstance());
+        return userPrefs.getBoolean(ANALYTICS_OPTIN_KEY, false);
+    }
+
+
+    /**
+     * Closable class which allows timing.
+     * We use this over accepting a function as we're able to return inside a try..block
+     */
+    @SuppressLint("DirectSystemCurrentTimeMillisUsage")
+    public static class TimingAnalytic implements Closeable {
+        private final long mTimeStarted;
+        private final String mCategory;
+        private final String mVariableName;
+
+
+        public TimingAnalytic(String category, String variableName) {
+            mTimeStarted = System.currentTimeMillis();
+            mCategory = category;
+            mVariableName = variableName;
+        }
+
+        @Override
+        public void close() {
+            int mTimeTaken = (int) (System.currentTimeMillis() - mTimeStarted);
+            UsageAnalytics.sendTimingEvent(mCategory, mVariableName, mTimeTaken, null);
+        }
+    }
+    public static class Category {
+        public static final String SYNC = "Sync";
+        public static final String REVIEWER = "Reviewer";
+        public static final String TASK = "Task";
     }
 }
