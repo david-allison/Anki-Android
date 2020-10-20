@@ -10,7 +10,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        app:layout_constraintBottom_toTopOf="@+id/id_note_editText"
+        app:layout_constraintBottom_toTopOf="@id/note_edit_field_scrollview"
         app:layout_constraintEnd_toStartOf="@id/id_media_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -33,15 +33,21 @@
         app:barrierDirection="bottom"
         app:constraint_referenced_ids="id_label, id_media_button" />
 
-    <com.ichi2.anki.FieldEditText
-        android:id="@+id/id_note_editText"
+    <HorizontalScrollView
+        android:id="@+id/note_edit_field_scrollview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:nextFocusForward="@id/id_media_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/multimedia_barrier"
-        tools:text="This is a lot of target content to test how multiline values are displayed" />
-
+        android:fillViewport="true" >
+        <com.ichi2.anki.FieldEditText
+            android:id="@+id/id_note_editText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:scrollHorizontally="true"
+            android:nextFocusForward="@id/id_media_button"
+            tools:text="This is a lot of target content to test how multiline values are displayed"  />
+    </HorizontalScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

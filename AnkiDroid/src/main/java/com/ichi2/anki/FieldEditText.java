@@ -92,7 +92,6 @@ public class FieldEditText extends FixedEditText {
 
 
     public void init() {
-        setMinimumWidth(400);
         mOrigBackground = getBackground();
         // Fixes bug where new instances of this object have wrong colors, probably
         // from some reuse mechanic in Android.

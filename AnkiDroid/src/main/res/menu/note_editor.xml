@@ -20,4 +20,9 @@
         android:id="@+id/action_copy_note"
         android:enabled="false"
         android:title="@string/note_editor_copy_note"/>
+    <item
+        android:id="@+id/action_word_wrap"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/word_wrap" />
 </menu>
