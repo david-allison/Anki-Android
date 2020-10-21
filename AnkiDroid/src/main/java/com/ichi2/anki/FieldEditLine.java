@@ -178,6 +178,9 @@ public class FieldEditLine extends FrameLayout {
         }
 
         SavedState ss = (SavedState) state;
+
+
+
         super.onRestoreInstanceState(ss.getSuperState());
         for (int i = 0; i < getChildCount(); i++) {
             getChildAt(i).restoreHierarchyState(ss.mChildrenStates);
@@ -187,6 +190,8 @@ public class FieldEditLine extends FrameLayout {
 
     static class SavedState extends BaseSavedState {
         private SparseArray<Parcelable> mChildrenStates;
+        private int mEditTextId;
+        private int mMediaButtonId;
 
         SavedState(Parcelable superState) {
             super(superState);
