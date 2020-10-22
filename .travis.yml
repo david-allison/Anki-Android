@@ -158,6 +158,8 @@ install:
   - JDK="${TARGET_JDK}"
   - source ~/.install-jdk-travis.sh
 
+  - mkdir -p ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/
+  - mkdir -p ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/androidTest/debug/
   - cp ${APK_CACHE_FILE} ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/debug/AnkiDroid-debug.apk
   - cp ${APK_TEST_CACHE_FILE} ${TRAVIS_BUILD_DIR}/AnkiDroid/build/outputs/apk/androidTest/debug/AnkiDroid-debug-androidTest.apk
 
