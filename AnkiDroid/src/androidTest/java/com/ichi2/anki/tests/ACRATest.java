@@ -70,8 +70,6 @@ public class ACRATest {
 
     @Test
     public void testDebugConfiguration() throws Exception {
-
-        Assert.fail();
         // Debug mode overrides all saved state so no setup needed
         setAcraConfig("Debug", AnkiDroidApp.getSharedPrefs(InstrumentationRegistry.getInstrumentation().getTargetContext()));
         assertArrayEquals("Debug logcat arguments not set correctly",
