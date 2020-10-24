@@ -162,6 +162,9 @@ public class FieldEditLine extends FrameLayout {
 
         SavedState savedState = new SavedState(state);
         savedState.mChildrenStates = new SparseArray<>();
+        savedState.mEditTextId = getEditText().getId();
+        savedState.mMediaButtonId = getMediaButton().getId();
+
         for (int i = 0; i < getChildCount(); i++) {
             getChildAt(i).saveHierarchyState(savedState.mChildrenStates);
         }
@@ -179,12 +182,20 @@ public class FieldEditLine extends FrameLayout {
 
         SavedState ss = (SavedState) state;
 
+        int editTextId = mEditText.getId();
+        int mediaButtonId = mMediaButton.getId();
+
+        mEditText.setId(ss.mEditTextId);
+        mMediaButton.setId(ss.mMediaButtonId);
 
 
         super.onRestoreInstanceState(ss.getSuperState());
         for (int i = 0; i < getChildCount(); i++) {
             getChildAt(i).restoreHierarchyState(ss.mChildrenStates);
         }
+
+        mEditText.setId(editTextId);
+        mMediaButton.setId(mediaButtonId);
     }
 
 
@@ -201,6 +212,8 @@ public class FieldEditLine extends FrameLayout {
         public void writeToParcel(Parcel out, int flags) {
             super.writeToParcel(out, flags);
             out.writeSparseArray(mChildrenStates);
+            out.writeInt(mEditTextId);
+            out.writeInt(mMediaButtonId);
         }
 
         //required field that makes Parcelables from a Parcel
@@ -226,6 +239,8 @@ public class FieldEditLine extends FrameLayout {
         private SavedState(Parcel in, ClassLoader loader) {
             super(in);
             this.mChildrenStates = in.readSparseArray(loader);
+            this.mEditTextId = in.readInt();
+            this.mMediaButtonId = in.readInt();
         }
     }
 }
