@@ -24,6 +24,7 @@ import android.os.Build;
 import android.view.KeyEvent;
 import android.view.inputmethod.BaseInputConnection;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +45,25 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assume.assumeThat;
 
 @RunWith(androidx.test.ext.junit.runners.AndroidJUnit4.class)
-public class NoteEditorTest {
+public class NoteEditorTabOrderTest {
+
+    @BeforeClass
+    public static void beforeClass() {
+        // required here as @before runs after a rule
+
+        // TODO: Look into these assumptions and see if they can be diagnosed - both work on my emulators.
+        // If we fix them, we might be able to use instrumentation.sendKeyDownUpSync
+        /*
+        java.lang.AssertionError: Activity never becomes requested state "[DESTROYED]" (last lifecycle transition = "PAUSED")
+        at androidx.test.core.app.ActivityScenario.waitForActivityToBecomeAnyOf(ActivityScenario.java:301)
+         */
+        assumeThat("Test fails on Travis API 25", Build.VERSION.SDK_INT, not(is(25)));
+        /*
+        java.lang.AssertionError:
+        Expected: is "a"
+         */
+        assumeThat("Test fails on Travis API 30", Build.VERSION.SDK_INT, not(is(30)));
+    }
 
     @Rule public ActivityScenarioRule<NoteEditor> activityRule = new ActivityScenarioRule<>(getStartActivityIntent());
     @Rule public GrantPermissionRule mRuntimePermissionRule = GrantPermissionRule.grant(WRITE_EXTERNAL_STORAGE);
@@ -59,19 +78,6 @@ public class NoteEditorTest {
 
     @Test
     public void testTabOrder() throws Throwable {
-        // TODO: Look into these assumptions and see if they can be diagnosed - both work on my emulators.
-        // If we fix them, we might be able to use instrumentation.sendKeyDownUpSync
-        /*
-        java.lang.AssertionError: Activity never becomes requested state "[DESTROYED]" (last lifecycle transition = "PAUSED")
-        at androidx.test.core.app.ActivityScenario.waitForActivityToBecomeAnyOf(ActivityScenario.java:301)
-         */
-        assumeThat("Test fails on Travis API 25", Build.VERSION.SDK_INT, not(is(25)));
-        /*
-        java.lang.AssertionError:
-        Expected: is "a"
-         */
-        assumeThat("Test fails on Travis API 30", Build.VERSION.SDK_INT, not(is(30)));
-
         ensureCollectionLoaded();
         ActivityScenario<NoteEditor> scenario = activityRule.getScenario();
         scenario.moveToState(Lifecycle.State.RESUMED);
