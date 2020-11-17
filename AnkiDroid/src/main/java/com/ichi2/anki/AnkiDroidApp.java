@@ -252,16 +252,7 @@ public class AnkiDroidApp extends MultiDexApplication {
 
         // Setup logging and crash reporting
         acraCoreConfigBuilder = new CoreConfigurationBuilder(this);
-        if (BuildConfig.DEBUG) {
-            // Enable verbose error logging and do method tracing to put the Class name as log tag
-            Timber.plant(new DebugTree());
-
-            setDebugACRAConfig(preferences);
-        } else {
-            Timber.plant(new ProductionCrashReportingTree());
-            setProductionACRAConfig(preferences);
-        }
-        Timber.tag(TAG);
+        setupTimber(preferences);
 
         Timber.d("Startup - Application Start");
 
@@ -341,6 +332,42 @@ public class AnkiDroidApp extends MultiDexApplication {
         NotificationService ns = new NotificationService();
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(ns, new IntentFilter(NotificationService.INTENT_ACTION));
+    }
+
+
+    @SuppressLint("LogNotTimber")
+    protected void setupTimber(SharedPreferences preferences) {
+        if (isRunningUnderContinuousIntegration(false)) {
+            // We don't currently get the debug logs from Travis - so lets speed up the tests and not produce them
+            Log.i("AnkiDroid", "Running under Travis - Timber has been disabled");
+            return;
+        }
+
+        if (BuildConfig.DEBUG) {
+            // Enable verbose error logging and do method tracing to put the Class name as log tag
+            Timber.plant(new DebugTree());
+
+            setDebugACRAConfig(preferences);
+        } else {
+            Timber.plant(new ProductionCrashReportingTree());
+            setProductionACRAConfig(preferences);
+        }
+        Timber.tag(TAG);
+    }
+
+
+    private static boolean isRunningUnderContinuousIntegration(@SuppressWarnings("SameParameterValue") boolean defaultValue) {
+        try {
+            // https://docs.travis-ci.com/user/environment-variables/#default-environment-variables
+            // "CI=true"
+            String ci = System.getenv("CI");
+            if (ci == null) {
+                return false;
+            }
+            return "true".equals(ci.toLowerCase(Locale.US));
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
 
 
