@@ -276,13 +276,9 @@ public class Collection {
      */
 
     public void load() {
-        Cursor cursor = null;
         String deckConf = "";
-        try {
-            // Read in deck table columns
-            cursor = mDb.query(
-                    "SELECT crt, mod, scm, dty, usn, ls, " +
-                    "conf, dconf, tags FROM col");
+        // Read in deck table columns
+        try (Cursor cursor = mDb.query("SELECT crt, mod, scm, dty, usn, ls, conf, dconf, tags FROM col")) {
             if (!cursor.moveToFirst()) {
                 return;
             }
@@ -295,10 +291,6 @@ public class Collection {
             mConf = new JSONObject(cursor.getString(6));
             deckConf = cursor.getString(7);
             mTags.load(cursor.getString(8));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
         // getModels().load(loadColumn("models")); This code has been
         // moved to `CollectionHelper::loadLazyCollection` for
