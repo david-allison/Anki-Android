@@ -26,7 +26,6 @@ import android.util.Pair;
 
 import com.ichi2.async.CancelListener;
 
-import com.ichi2.async.CollectionTask;
 import com.ichi2.async.ProgressSender;
 import com.ichi2.utils.JSONArray;
 import com.ichi2.utils.JSONObject;
@@ -44,6 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import androidx.annotation.CheckResult;
+import androidx.annotation.Nullable;
 import timber.log.Timber;
 
 import static com.ichi2.async.CancelListener.isCancelled;
@@ -79,12 +79,12 @@ public class Finder {
 
     @CheckResult
     public List<Long> findCards(String query, boolean _order) {
-        return findCards(query, _order, null);
+        return _findCards(query, _order);
     }
 
     @CheckResult
-    public List<Long> findCards(String query, boolean _order, CollectionTask.PartialSearch task) {
-        return _findCards(query, _order, task, task == null ? null : task.getProgressSender());
+    public List<Long> findCards(String query, boolean _order, @Nullable CancelListener cancellation, @Nullable ProgressSender<Long> progress) {
+        return _findCards(query, _order, cancellation, progress);
     }
 
 

@@ -16,24 +16,31 @@
 
 package com.ichi2.libanki.backend;
 
+import com.ichi2.async.CancelListener;
+import com.ichi2.async.ProgressSender;
 import com.ichi2.libanki.DB;
 import com.ichi2.libanki.backend.model.SchedTimingToday;
 import com.ichi2.libanki.backend.model.SchedTimingTodayProto;
 
 import net.ankiweb.rsdroid.BackendFactory;
 
+import java.util.List;
+
 import BackendProto.AdBackend;
 
 /** The Backend in Rust */
 public class RustDroidBackend implements DroidBackend {
+
+    private final JavaDroidBackend mFallback = new JavaDroidBackend();
+
     public static final int UNUSED_VALUE = 0;
 
     // I think we can change this to BackendV1 once new DB() accepts it.
-    private final BackendFactory mBackend;
+    protected final BackendFactory mBackend;
 
 
-    public RustDroidBackend(BackendFactory mBackend) {
-        this.mBackend = mBackend;
+    public RustDroidBackend(BackendFactory backend) {
+        this.mBackend = backend;
     }
 
 
@@ -80,5 +87,11 @@ public class RustDroidBackend implements DroidBackend {
     @Override
     public int local_minutes_west(long timestampSeconds) {
         return mBackend.getBackend().localMinutesWest(timestampSeconds).getVal();
+    }
+
+
+    @Override
+    public List<Long> findCards(String query, boolean order, CancelListener cancelListener, ProgressSender<Long> progressSender) {
+        return mFallback.findCards(query, order, cancelListener, progressSender);
     }
 }

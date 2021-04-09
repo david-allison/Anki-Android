@@ -16,9 +16,13 @@
 
 package com.ichi2.libanki.backend;
 
+import com.ichi2.async.CancelListener;
+import com.ichi2.async.ProgressSender;
 import com.ichi2.libanki.DB;
 import com.ichi2.libanki.backend.exception.BackendNotSupportedException;
 import com.ichi2.libanki.backend.model.SchedTimingToday;
+
+import java.util.List;
 
 import androidx.annotation.VisibleForTesting;
 
@@ -59,4 +63,6 @@ public interface DroidBackend {
      * @return minutes west of UTC in the local timezone
      */
     int local_minutes_west(long timestampSeconds) throws BackendNotSupportedException;
+
+    List<Long> findCards(String query, boolean order, CancelListener cancelListener, ProgressSender<Long> progressSender);
 }

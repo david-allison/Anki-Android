@@ -1523,6 +1523,8 @@ public class CardBrowser extends NavigationDrawerActivity implements
                     mSearchCardsHandler
             );
         }
+
+        this code explicitly breaks the build
     }
 
 

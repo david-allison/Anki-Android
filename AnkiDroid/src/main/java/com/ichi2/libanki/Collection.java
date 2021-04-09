@@ -1214,11 +1214,11 @@ public class Collection implements CollectionGetter {
     }
 
     public List<Long> findCards(String search, boolean order) {
-        return findCards(search, order, null);
+        return findCards(search, order, null, null);
     }
 
-    public List<Long> findCards(String search, boolean order, CollectionTask.PartialSearch task) {
-        return new Finder(this).findCards(search, order, task);
+    public List<Long> findCards(String search, boolean order, CancelListener cancelListener, ProgressSender<Long> progressSender) {
+        return new Finder(this).findCards(search, order, cancelListener, progressSender);
     }
 
 

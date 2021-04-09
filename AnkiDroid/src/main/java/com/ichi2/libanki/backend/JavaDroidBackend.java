@@ -16,11 +16,18 @@
 
 package com.ichi2.libanki.backend;
 
+import com.ichi2.anki.AnkiDroidApp;
+import com.ichi2.anki.CollectionHelper;
+import com.ichi2.async.CancelListener;
+import com.ichi2.async.ProgressSender;
+import com.ichi2.libanki.Collection;
 import com.ichi2.libanki.DB;
 import com.ichi2.libanki.backend.exception.BackendNotSupportedException;
 import com.ichi2.libanki.backend.model.SchedTimingToday;
 
 import net.ankiweb.rsdroid.RustCleanup;
+
+import java.util.List;
 
 /**
  * A class which implements the Rust backend functionality in Java - this is to allow moving our current Java code to
@@ -69,5 +76,16 @@ public class JavaDroidBackend implements DroidBackend {
     @Override
     public int local_minutes_west(long timestampSeconds) throws BackendNotSupportedException {
         throw new BackendNotSupportedException();
+    }
+
+
+    @Override
+    public List<Long> findCards(String query, boolean order, CancelListener cancelListener, ProgressSender<Long> progressSender) {
+        return getCol().findCards(query, order, cancelListener, progressSender);
+    }
+
+
+    protected Collection getCol() {
+        return CollectionHelper.getInstance().getCol(AnkiDroidApp.getInstance());
     }
 }

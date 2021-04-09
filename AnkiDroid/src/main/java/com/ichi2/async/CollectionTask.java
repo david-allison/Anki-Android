@@ -1139,7 +1139,8 @@ public class CollectionTask<ProgressListener, ProgressBackground extends Progres
                 return null;
             }
             List<CardBrowser.CardCache> searchResult = new ArrayList<>();
-            List<Long> searchResult_ = col.findCards(mQuery, mOrder, new PartialSearch(searchResult, mColumn1Index, mColumn2Index, mNumCardsToRender, collectionTask, col));
+            PartialSearch searchNotifier = new PartialSearch(searchResult, mColumn1Index, mColumn2Index, mNumCardsToRender, collectionTask, col);
+            List<Long> searchResult_ = col.getBackend().findCards(mQuery, mOrder, searchNotifier, searchNotifier.getProgressSender());
             Timber.d("The search found %d cards", searchResult_.size());
             int position = 0;
             for (Long cid : searchResult_) {
