@@ -1077,6 +1077,8 @@ public class CollectionTask<ProgressListener, ProgressBackground extends Progres
 
         @Override
         public void doProgress(@NonNull List<Long> value) {
+            // PERF: This is currently called on the background thread and blocks further execution of the search
+            // PERF: This performs an individual query to load each note
             add(value);
             for (CardBrowser.CardCache card : mCards) {
                 if (isCancelled()) {
@@ -1090,6 +1092,25 @@ public class CollectionTask<ProgressListener, ProgressBackground extends Progres
 
         public int getNumCardsToRender() {
             return mNumCardsToRender;
+        }
+
+
+        public ProgressSender<Long> getProgressSender() {
+            return new ProgressSender<Long>() {
+                private final List<Long> res = new ArrayList<>();
+                private boolean sendProgress = true;
+                @Override
+                public void doProgress(@Nullable Long value) {
+                    if (!sendProgress) {
+                        return;
+                    }
+                    res.add(value);
+                    if (res.size() > getNumCardsToRender()) {
+                        PartialSearch.this.doProgress(res);
+                        sendProgress = false;
+                    }
+                }
+            };
         }
     }
 
