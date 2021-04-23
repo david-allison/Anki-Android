@@ -33,7 +33,6 @@ import com.ichi2.testutils.AnkiAssert;
 import com.ichi2.utils.JSONArray;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.ParameterizedRobolectricTestRunner;
@@ -428,11 +427,11 @@ mw.col.sched.extendLimits(1, 0)
         Card gotten = sched.getCard();
         advanceRobolectricLooperWithSleep();
         assertThat(gotten, is(cards[0]));
-        sched.answerCard(gotten, Consts.BUTTON_ONE);
+        sched.answerCard(gotten, Consts.BUTTON_one);
 
         gotten = sched.getCard();
         assertThat(gotten, is(cards[1]));
-        sched.answerCard(gotten, Consts.BUTTON_ONE);
+        sched.answerCard(gotten, Consts.BUTTON_one);
         gotten = sched.getCard();
         assertThat(gotten, is(cards[0]));
     }

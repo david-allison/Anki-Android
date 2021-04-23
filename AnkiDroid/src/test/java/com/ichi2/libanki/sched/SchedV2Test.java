@@ -155,7 +155,7 @@ public class SchedV2Test extends RobolectricTest {
 
         Card schedCard = v2.getCard();
         assertThat(schedCard, Matchers.notNullValue());
-        v2.answerCard(schedCard, Consts.BUTTON_ONE);
+        v2.answerCard(schedCard, Consts.BUTTON_one);
         assertThat("The lapsed card should now be counted as lrn", v2.mLrnCount, is(1));
         Card after = v2.getCard();
         assertThat("A card should be returned ", after, Matchers.notNullValue());
@@ -174,7 +174,7 @@ public class SchedV2Test extends RobolectricTest {
 
         assertThat(v2.answerButtons(after), is(4));
 
-        long one = v2.nextIvl(after, Consts.BUTTON_ONE);
+        long one = v2.nextIvl(after, Consts.BUTTON_one);
         long two = v2.nextIvl(after, Consts.BUTTON_TWO);
         long three = v2.nextIvl(after, Consts.BUTTON_THREE);
         long four = v2.nextIvl(after, Consts.BUTTON_FOUR);
@@ -1749,14 +1749,14 @@ public class SchedV2Test extends RobolectricTest {
             advanceRobolectricLooperWithSleep();
             card = sched.getCard();
             assertNotNull(card);
-            sched.answerCard(card, Consts.BUTTON_ONE);
+            sched.answerCard(card, Consts.BUTTON_one);
         }
         advanceRobolectricLooperWithSleep();
         assertEquals(1, sched.lrnCount());
         card = sched.getCard();
         assertEquals(1, sched.counts(card).getLrn());
         advanceRobolectricLooperWithSleep();
-        sched.answerCard(card, Consts.BUTTON_ONE);
+        sched.answerCard(card, Consts.BUTTON_one);
         assertDoesNotThrow(col::undo);
     }
 }

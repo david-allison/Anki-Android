@@ -208,11 +208,11 @@ public class ReviewerTest extends RobolectricTest {
 
 
         equalFirstField(cards[0], reviewer.mCurrentCard);
-        reviewer.answerCard(Consts.BUTTON_ONE);
+        reviewer.answerCard(Consts.BUTTON_one);
         waitForAsyncTasksToComplete();
 
         equalFirstField(cards[1], reviewer.mCurrentCard);
-        reviewer.answerCard(Consts.BUTTON_ONE);
+        reviewer.answerCard(Consts.BUTTON_one);
         waitForAsyncTasksToComplete();
 
         undo(reviewer);

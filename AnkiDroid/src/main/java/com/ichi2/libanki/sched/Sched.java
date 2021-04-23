@@ -54,7 +54,6 @@ import timber.log.Timber;
 
 
 import static com.ichi2.async.CancelListener.isCancelled;
-import static com.ichi2.libanki.Consts.DECK_DYN;
 import static com.ichi2.libanki.Consts.DECK_STD;
 import static com.ichi2.libanki.sched.Counts.Queue.*;
 import static com.ichi2.libanki.sched.Counts.Queue;
@@ -748,7 +747,7 @@ public class Sched extends SchedV2 {
     @Override
     protected void _answerRevCard(@NonNull Card card, @Consts.BUTTON_TYPE int ease) {
         int delay = 0;
-        if (ease == Consts.BUTTON_ONE) {
+        if (ease == Consts.BUTTON_one) {
             delay = _rescheduleLapse(card);
         } else {
             _rescheduleRev(card, ease);
@@ -1148,7 +1147,7 @@ public class Sched extends SchedV2 {
     protected long nextIvl(@NonNull Card card, @Consts.BUTTON_TYPE int ease) {
         if (card.getQueue() == Consts.QUEUE_TYPE_NEW || card.getQueue() == Consts.QUEUE_TYPE_LRN || card.getQueue() == Consts.QUEUE_TYPE_DAY_LEARN_RELEARN) {
             return _nextLrnIvl(card, ease);
-        } else if (ease == Consts.BUTTON_ONE) {
+        } else if (ease == Consts.BUTTON_one) {
             // lapsed
             JSONObject conf = _lapseConf(card);
             if (conf.getJSONArray("delays").length() > 0) {
@@ -1169,7 +1168,7 @@ public class Sched extends SchedV2 {
             card.setLeft(_startingLeft(card));
         }
         JSONObject conf = _lrnConf(card);
-        if (ease == Consts.BUTTON_ONE) {
+        if (ease == Consts.BUTTON_one) {
             // fail
             return _delayForGrade(conf, conf.getJSONArray("delays").length());
         } else if (ease == Consts.BUTTON_THREE) {

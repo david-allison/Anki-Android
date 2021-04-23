@@ -72,8 +72,6 @@ import androidx.annotation.VisibleForTesting;
 import timber.log.Timber;
 
 import static com.ichi2.libanki.Consts.CARD_TYPE_RELEARNING;
-import static com.ichi2.libanki.Consts.DECK_DYN;
-import static com.ichi2.libanki.Consts.DECK_STD;
 import static com.ichi2.libanki.Consts.QUEUE_TYPE_DAY_LEARN_RELEARN;
 import static com.ichi2.async.CancelListener.isCancelled;
 import static com.ichi2.libanki.sched.AbstractSched.UnburyType.*;
@@ -336,7 +334,7 @@ public class SchedV2 extends AbstractSched {
     // note: when adding revlog entries in the future, make sure undo
     // code deletes the entries
     public void _answerCardPreview(@NonNull Card card, @Consts.BUTTON_TYPE int ease) {
-        if (ease == Consts.BUTTON_ONE) {
+        if (ease == Consts.BUTTON_one) {
             // Repeat after delay
             card.setQueue(Consts.QUEUE_TYPE_PREVIEW);
             card.setDue(getTime().intTime() + _previewDelay(card));
@@ -1664,7 +1662,7 @@ public class SchedV2 extends AbstractSched {
         int delay = 0;
         boolean early = card.isInDynamicDeck() && (card.getODue() > mToday);
         int type = early ? 3 : 1;
-        if (ease == Consts.BUTTON_ONE) {
+        if (ease == Consts.BUTTON_one) {
             delay = _rescheduleLapse(card);
         } else {
             _rescheduleRev(card, ease, early);
@@ -2448,7 +2446,7 @@ public class SchedV2 extends AbstractSched {
     protected long nextIvl(@NonNull Card card, @Consts.BUTTON_TYPE int ease) {
         // preview mode?
         if (_previewingCard(card)) {
-            if (ease == Consts.BUTTON_ONE) {
+            if (ease == Consts.BUTTON_one) {
                 return _previewDelay(card);
             }
             return 0;
@@ -2456,7 +2454,7 @@ public class SchedV2 extends AbstractSched {
         // (re)learning?
         if (card.getQueue() == Consts.QUEUE_TYPE_NEW || card.getQueue() == Consts.QUEUE_TYPE_LRN || card.getQueue() == Consts.QUEUE_TYPE_DAY_LEARN_RELEARN) {
             return _nextLrnIvl(card, ease);
-        } else if (ease == Consts.BUTTON_ONE) {
+        } else if (ease == Consts.BUTTON_one) {
             // lapse
             JSONObject conf = _lapseConf(card);
             if (conf.getJSONArray("delays").length() > 0) {
@@ -2482,7 +2480,7 @@ public class SchedV2 extends AbstractSched {
             card.setLeft(_startingLeft(card));
         }
         JSONObject conf = _lrnConf(card);
-        if (ease == Consts.BUTTON_ONE) {
+        if (ease == Consts.BUTTON_one) {
             // fail
             return _delayForGrade(conf, conf.getJSONArray("delays").length());
         } else if (ease == Consts.BUTTON_TWO) {

@@ -458,7 +458,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                 int id = view.getId();
                 if (id == R.id.flashcard_layout_ease1) {
                     Timber.i("AbstractFlashcardViewer:: EASE_1 pressed");
-                    answerCard(Consts.BUTTON_ONE);
+                    answerCard(Consts.BUTTON_one);
                 } else if (id == R.id.flashcard_layout_ease2) {
                     Timber.i("AbstractFlashcardViewer:: EASE_2 pressed");
                     answerCard(Consts.BUTTON_TWO);
@@ -2688,7 +2688,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                 onFlag(mCurrentCard, FLAG_NONE);
                 return true;
             case COMMAND_ANSWER_FIRST_BUTTON:
-                return answerCardIfVisible(Consts.BUTTON_ONE);
+                return answerCardIfVisible(Consts.BUTTON_one);
             case COMMAND_ANSWER_SECOND_BUTTON:
                 return answerCardIfVisible(Consts.BUTTON_TWO);
             case COMMAND_ANSWER_THIRD_BUTTON:
