@@ -37,6 +37,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -56,7 +57,10 @@ import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.TextView;
 
-import com.canhub.cropper.CropImage;
+import com.canhub.cropper.CropImageContract;
+import com.canhub.cropper.CropImageContractOptions;
+import com.canhub.cropper.CropImageOptions;
+import com.canhub.cropper.CropImageView;
 import com.ichi2.anki.AnkiDroidApp;
 import com.ichi2.anki.R;
 import com.ichi2.anki.UIUtils;
@@ -73,7 +77,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Objects;
 
 import androidx.core.util.Pair;
 import timber.log.Timber;
@@ -83,7 +86,6 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
     @VisibleForTesting
     static final int ACTIVITY_SELECT_IMAGE = 1;
     private static final int ACTIVITY_TAKE_PICTURE = 2;
-    private static final int ACTIVITY_CROP_PICTURE = 3;
     private static final int IMAGE_SAVE_MAX_WIDTH = 1920;
 
     private ImageView mImagePreview;
@@ -98,6 +100,8 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
     private DisplayMetrics mMetrics = null;
 
     private Button mCropButton = null;
+
+    private ActivityResultLauncher<CropImageContractOptions> mCropImageLauncher;
 
     private int getMaxImageSize() {
         DisplayMetrics metrics = getDisplayMetrics();
@@ -184,6 +188,8 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
         layout.addView(mBtnGallery, ViewGroup.LayoutParams.MATCH_PARENT);
         layout.addView(mBtnCamera, ViewGroup.LayoutParams.MATCH_PARENT);
         layout.addView(mCropButton, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        mCropImageLauncher = mActivity.registerForActivityResult(new CropImageContract(), this::handleCropImageResult);
     }
 
 
@@ -338,31 +344,13 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
         if (resultCode != Activity.RESULT_OK) {
             Timber.d("Activity was not successful");
             // Restore the old version of the image if the user cancelled
-            switch (requestCode) {
-                case ACTIVITY_TAKE_PICTURE:
-                case ACTIVITY_CROP_PICTURE:
-                case CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE:
-                    if (!TextUtils.isEmpty(mPreviousImagePath)) {
-                        revertToPreviousImage();
-                    }
-                    break;
-                default:
-                    break;
+            if (requestCode == ACTIVITY_TAKE_PICTURE) {
+                attemptRevertToPreviousImage();
             }
 
             // Some apps send this back with app-specific data, direct the user to another app
             if (resultCode >= Activity.RESULT_FIRST_USER) {
                 UIUtils.showThemedToast(mActivity, mActivity.getString(R.string.activity_result_unexpected), true);
-            }
-
-            // cropImage can give us more information. Not sure it is actionable so for now just log it.
-            if ((requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) && (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE)) {
-                CropImage.ActivityResult result = CropImage.getActivityResult(data);
-                if (result != null) {
-                    String error = String.valueOf(result.getError());
-                    Timber.w(error, "cropImage threw an error");
-                    AnkiDroidApp.sendExceptionReport(error, "cropImage threw an error");;
-                }
             }
             return;
         }
@@ -380,11 +368,6 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
             }
         } else if (requestCode == ACTIVITY_TAKE_PICTURE) {
             handleTakePictureResult();
-        } else if ((requestCode == ACTIVITY_CROP_PICTURE) || (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE)) {
-            CropImage.ActivityResult result = CropImage.getActivityResult(data);
-            if (result != null) {
-                handleCropResult(result);
-            }
         } else {
             Timber.w("Unhandled request code: %d", requestCode);
             return;
@@ -394,6 +377,7 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
 
 
     private void revertToPreviousImage() {
+        Timber.i("reverting to previous image");
         mViewModel.deleteImagePath();
         mViewModel = new ImageViewModel(mPreviousImagePath, mPreviousImageUri);
         mField.setImagePath(mPreviousImagePath);
@@ -611,8 +595,39 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
         setTemporaryMedia(imagePath);
         Timber.d("requestCrop()  destination image has path/uri %s/%s", ret.mImagePath, ret.mImageUri);
 
-        CropImage.activity(viewModel.mImageUri).start(mActivity);
+        mCropImageLauncher.launch(getCropContractOptions(viewModel.mImageUri));
         return ret;
+    }
+
+    private static CropImageContractOptions getCropContractOptions(Uri uri) {
+        // KOTLIN: use .options { } when converted
+        return new CropImageContractOptions(uri, new CropImageOptions());
+    }
+
+    private void handleCropImageResult(CropImageView.CropResult result) {
+        if (result.isSuccessful()) {
+            mViewModel.deleteImagePath();
+            mViewModel = new ImageViewModel(result.getUriFilePath(mActivity, true), result.getUriContent());
+            if (!rotateAndCompress()) {
+                Timber.i("cropImage() appears to have an invalid file, reverting");
+                return;
+            }
+            Timber.d("cropImage() = image path now %s", mField.getImagePath());
+        } else {
+            attemptRevertToPreviousImage();
+            // an error occurred
+            // cropImage can give us more information. Not sure it is actionable so for now just log it.
+            String error = String.valueOf(result.getError());
+            Timber.w(error, "cropImage threw an error");
+            AnkiDroidApp.sendExceptionReport(error, "cropImage threw an error");
+        }
+    }
+
+
+    private void attemptRevertToPreviousImage() {
+        if (!TextUtils.isEmpty(mPreviousImagePath)) {
+            revertToPreviousImage();
+        }
     }
 
 
@@ -639,18 +654,6 @@ public class BasicImageFieldController extends FieldControllerBase implements IF
         }
 
         builder.build().show();
-    }
-
-
-    private void handleCropResult(CropImage.ActivityResult result) {
-        Timber.d("handleCropResult");
-        mViewModel.deleteImagePath();
-        mViewModel = new ImageViewModel(result.getUriFilePath(mActivity, true), result.getUriContent());
-        if (!rotateAndCompress()) {
-            Timber.i("handleCropResult() appears to have an invalid file, reverting");
-            return;
-        }
-        Timber.d("handleCropResult() = image path now %s", mField.getImagePath());
     }
 
 
