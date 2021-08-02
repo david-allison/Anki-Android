@@ -40,6 +40,7 @@ package com.ichi2.utils
 import android.content.res.Resources
 import android.graphics.*
 import com.ichi2.anki.DimmedPromptBackgroundInterface
+import com.ichi2.anki.DimmedPromptBackgroundInterfaceAdapter.Companion.toInterface
 import uk.co.samuelwall.materialtaptargetprompt.extras.PromptBackground
 import uk.co.samuelwall.materialtaptargetprompt.extras.PromptOptions
 
@@ -47,7 +48,9 @@ import uk.co.samuelwall.materialtaptargetprompt.extras.PromptOptions
  * Dims the background of the screen so that the highlighted view remains in focus.
  * Works with both CirclePromptBackground and RectanglePromptBackground.
  */
-class DimmedPromptBackground(val mPromptBackground: PromptBackground) : DimmedPromptBackgroundInterface {
+class DimmedPromptBackground(val mPromptBackground: DimmedPromptBackgroundInterface) : DimmedPromptBackgroundInterface {
+    constructor(promptBackground: PromptBackground) : this(promptBackground.toInterface())
+
     private val mDimBounds = RectF()
     private val mDimPaint: Paint = Paint()
 

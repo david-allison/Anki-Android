@@ -20,6 +20,7 @@ package com.ichi2.anki
 import android.graphics.Canvas
 import android.graphics.Rect
 import androidx.annotation.ColorInt
+import uk.co.samuelwall.materialtaptargetprompt.extras.PromptBackground
 import uk.co.samuelwall.materialtaptargetprompt.extras.PromptOptions
 
 interface DimmedPromptBackgroundInterface {
@@ -28,4 +29,24 @@ interface DimmedPromptBackgroundInterface {
     fun draw(canvas: Canvas)
     fun contains(x: Float, y: Float): Boolean
     fun setColour(@ColorInt colour: Int)
+}
+
+class DimmedPromptBackgroundInterfaceAdapter(private val mPromptBackground: PromptBackground) : DimmedPromptBackgroundInterface {
+    companion object {
+        fun PromptBackground.toInterface(): DimmedPromptBackgroundInterface {
+            return DimmedPromptBackgroundInterfaceAdapter(this)
+        }
+    }
+
+    override fun prepare(options: PromptOptions<*>, clipToBounds: Boolean, clipBounds: Rect) =
+        mPromptBackground.prepare(options, clipToBounds, clipBounds)
+
+    override fun update(options: PromptOptions<*>, revealModifier: Float, alphaModifier: Float) =
+        mPromptBackground.update(options, revealModifier, alphaModifier)
+
+    override fun draw(canvas: Canvas) = mPromptBackground.draw(canvas)
+
+    override fun contains(x: Float, y: Float): Boolean = mPromptBackground.contains(x, y)
+
+    override fun setColour(colour: Int) = mPromptBackground.setColour(colour)
 }
