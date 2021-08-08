@@ -995,7 +995,7 @@ open class DeckPicker :
     }
 
     fun addNote() {
-        val intent = Intent(this@DeckPicker, NoteEditor::class.java)
+        val intent = Intent(this@DeckPicker, IntroductionActivity::class.java)
         intent.putExtra(NoteEditor.EXTRA_CALLER, NoteEditor.CALLER_DECKPICKER)
         startActivityForResultWithAnimation(intent, ADD_NOTE, START)
     }

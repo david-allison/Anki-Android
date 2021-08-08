@@ -143,6 +143,8 @@ class IntentHandler : Activity() {
     }
 
     companion object {
+        const val INTRODUCTION_SLIDES_SHOWN = "IntroductionSlidesShown"
+
         private fun isValidViewIntent(intent: Intent): Boolean {
             // Negating a negative because we want to call specific attention to the fact that it's invalid
             // #6312 - Smart Launcher provided an empty ACTION_VIEW, no point in importing here.
