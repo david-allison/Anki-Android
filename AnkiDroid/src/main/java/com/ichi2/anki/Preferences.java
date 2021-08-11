@@ -497,11 +497,16 @@ public class Preferences extends AppCompatPreferenceActivity {
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            String subscreen = getArguments().getString("subscreen");
-            UsageAnalytics.sendAnalyticsScreenView(subscreen.replaceFirst("^com.ichi2.anki.", ""));
+            String screenName = getAnalyticsScreenNameConstant();
+            UsageAnalytics.sendAnalyticsScreenView(screenName);
             initSubscreen();
             ((Preferences) getActivity()).initAllPreferences(getPreferenceScreen());
         }
+
+
+        @NonNull
+        protected abstract String getAnalyticsScreenNameConstant();
+
 
         /**
          * Loads preferences (via addPreferencesFromResource) and sets up appropriate listeners for the preferences
@@ -725,12 +730,9 @@ public class Preferences extends AppCompatPreferenceActivity {
         }
 
         @NonNull
-        protected static Intent getSubscreenIntent(Context context, String subscreen, String className) {
+        protected static Intent getSubscreenIntent(Context context, String className) {
             Intent i = new Intent(context, Preferences.class);
             i.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT, "com.ichi2.anki.Preferences$" + className);
-            Bundle extras = new Bundle();
-            extras.putString("subscreen", subscreen);
-            i.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, extras);
             i.putExtra(android.preference.PreferenceActivity.EXTRA_NO_HEADERS, true);
             return i;
         }
@@ -771,6 +773,14 @@ public class Preferences extends AppCompatPreferenceActivity {
         public int getPreferenceResource() {
             return R.xml.preferences_general;
         }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.general";
+        }
+
 
         @Override
         protected void initSubscreen() {
@@ -818,6 +828,14 @@ public class Preferences extends AppCompatPreferenceActivity {
             return R.xml.preferences_reviewing;
         }
 
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.reviewing";
+        }
+
+
         @Override
         protected void initSubscreen() {
             addPreferencesFromResource(R.xml.preferences_reviewing);
@@ -854,6 +872,13 @@ public class Preferences extends AppCompatPreferenceActivity {
         @Override
         public int getPreferenceResource() {
             return R.xml.preferences_appearance;
+        }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.appearance";
         }
 
 
@@ -975,6 +1000,13 @@ public class Preferences extends AppCompatPreferenceActivity {
         }
 
 
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.gestures";
+        }
+
+
         @Override
         protected void initSubscreen() {
             addPreferencesFromResource(R.xml.preferences_gestures);
@@ -1011,8 +1043,16 @@ public class Preferences extends AppCompatPreferenceActivity {
 
         @NonNull
         public static Intent getSubscreenIntent(Context context) {
-            return getSubscreenIntent(context, "com.ichi2.anki.prefs.advanced", AdvancedSettingsFragment.class.getSimpleName());
+            return getSubscreenIntent(context, AdvancedSettingsFragment.class.getSimpleName());
         }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.advanced";
+        }
+
 
         @Override
         protected void initSubscreen() {
@@ -1237,13 +1277,20 @@ public class Preferences extends AppCompatPreferenceActivity {
 
         @NonNull
         public static Intent getSubscreenIntent(Context context) {
-            return getSubscreenIntent(context,  "com.ichi2.anki.prefs.custom_buttons", CustomButtonsSettingsFragment.class.getSimpleName());
+            return getSubscreenIntent(context, CustomButtonsSettingsFragment.class.getSimpleName());
         }
 
 
         @Override
         public int getPreferenceResource() {
             return R.xml.preferences_custom_buttons;
+        }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.custom_buttons";
         }
 
 
@@ -1293,8 +1340,16 @@ public class Preferences extends AppCompatPreferenceActivity {
 
         @NonNull
         public static Intent getSubscreenIntent(Context context) {
-            return getSubscreenIntent(context, "com.ichi2.anki.prefs.advanced_statistics", AdvancedStatisticsSettingsFragment.class.getSimpleName());
+            return getSubscreenIntent(context, AdvancedStatisticsSettingsFragment.class.getSimpleName());
         }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.advanced_statistics";
+        }
+
 
         @Override
         protected void initSubscreen() {
@@ -1312,8 +1367,16 @@ public class Preferences extends AppCompatPreferenceActivity {
 
         @NonNull
         public static Intent getSubscreenIntent(Context context) {
-            return getSubscreenIntent(context, "com.ichi2.anki.prefs.custom_sync_server", CustomSyncServerSettingsFragment.class.getSimpleName());
+            return getSubscreenIntent(context, CustomSyncServerSettingsFragment.class.getSimpleName());
         }
+
+
+        @NonNull
+        @Override
+        protected String getAnalyticsScreenNameConstant() {
+            return "prefs.custom_sync_server";
+        }
+
 
         @Override
         protected void initSubscreen() {
