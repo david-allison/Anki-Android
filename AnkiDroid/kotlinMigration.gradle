@@ -1,0 +1,62 @@
+def className = "/com/ichi2/anki/TestExcludeKotlinClass.kt"
+
+static def isKotlinCompile(Object t) {
+    def clazz = t.class
+    while (clazz.superclass != null) {
+        // importing caused a different class to be used
+        if (clazz.name == "org.jetbrains.kotlin.gradle.tasks.KotlinCompile") {
+            return true
+        }
+        clazz = clazz.superclass
+
+    }
+    return false
+}
+
+allprojects {
+    afterEvaluate {
+        tasks.all {
+            if (isKotlinCompile(it)) {
+                it.exclude('**' + className)
+            }
+        }
+    }
+}
+
+
+
+android {
+    ktlint {
+        filter {
+            exclude('**' + className)
+        }
+    }
+}
+
+task copySingleFileInGradle {
+    doFirst {
+        def path = projectDir.absolutePath + "/src/main/java" + className
+        def newPath = path.replace(".kt", ".java")
+
+        def src = new File(path)
+        def dst = new File(newPath)
+        dst.write(src.text)
+    }
+}
+
+task deleteSingleFileInGradle {
+    doFirst {
+        def path = projectDir.absolutePath + "/src/main/java" + className
+        def newPath = path.replace(".kt", ".java")
+        def dst = new File(newPath)
+        if (dst.directory) {
+            throw IllegalStateException("should be a file")
+        }
+        dst.delete()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.dependsOn copySingleFileInGradle
+    it.finalizedBy deleteSingleFileInGradle
+}

@@ -201,9 +201,6 @@ android {
 
     ktlint {
         disabledRules = ["no-wildcard-imports"]
-        filter {
-            exclude('**/TestExcludeKotlinClass.kt')
-        }
     }
 }
 
@@ -335,38 +332,4 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test:rules:1.4.0'
 }
-
-
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile.class).configureEach {
-    it.exclude('**/TestExcludeKotlinClass.kt')
-}
-
-
-
-task copySingleFileInGradle {
-    doFirst {
-        def path = projectDir.absolutePath + "/src/main/java" + "/com/ichi2/anki/TestExcludeKotlinClass.kt"
-        def newPath = path.replace(".kt", ".java")
-
-        def src = new File(path)
-        def dst = new File(newPath)
-        dst.write(src.text)
-    }
-}
-
-task deleteSingleFileInGradle {
-    doFirst {
-        def path = projectDir.absolutePath + "/src/main/java" + "/com/ichi2/anki/TestExcludeKotlinClass.kt"
-        def newPath = path.replace(".kt", ".java")
-        def dst = new File(newPath)
-        if (dst.directory) {
-            throw IllegalStateException("should be a file")
-        }
-        dst.delete()
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    it.dependsOn copySingleFileInGradle
-    it.finalizedBy deleteSingleFileInGradle
-}
+apply from: "./kotlinMigration.gradle"
