@@ -38,7 +38,6 @@ import androidx.core.content.pm.PackageInfoCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
-import android.view.ViewConfiguration;
 import android.webkit.CookieManager;
 
 import com.ichi2.anki.analytics.AnkiDroidCrashReportDialog;
@@ -289,6 +288,7 @@ public class AnkiDroidApp extends Application {
         Timber.tag(TAG);
 
         Timber.d("Startup - Application Start");
+        TestExcludeKotlinClass.testLog();
 
         // The ACRA process needs a WebView for optimal UsageAnalytics values but it can't have the same data directory.
         // Analytics falls back to a sensible default if this is not set.
