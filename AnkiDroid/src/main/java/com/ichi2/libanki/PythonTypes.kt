@@ -26,6 +26,7 @@ import java.util.*
 internal typealias Dict<K, V> = HashMap<K, V>
 internal typealias ImmutableList<T> = List<T>
 internal typealias str = String
+internal typealias cid = Long
 internal typealias did = Long
 internal typealias dcid = Long
 internal typealias ntid = Long
