@@ -1993,19 +1993,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
     class ReadTextListener implements ReadText.ReadTextListener {
         public void onDone() {
-            if (!mAutomaticAnswerSettings.useTimer()) {
-                return;
-            }
             if (ReadText.getmQuestionAnswer() == SoundSide.QUESTION) {
-                long delay = mAutomaticAnswerSettings.getAnswerDelayMilliseconds();
-                if (delay > 0) {
-                    mAutomaticAnswerSettings.delayedShowAnswer(delay);
-                }
+                mAutomaticAnswerSettings.scheduleDisplayAnswer();
             } else if (ReadText.getmQuestionAnswer() == SoundSide.ANSWER) {
-                long delay = mAutomaticAnswerSettings.getQuestionDelayMilliseconds();
-                if (delay > 0) {
-                    mAutomaticAnswerSettings.delayedShowQuestion(delay);
-                }
+                mAutomaticAnswerSettings.scheduleDisplayQuestion();
             }
         }
     }
@@ -2084,7 +2075,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         hideEaseButtons();
 
         // If the user wants to show the answer automatically
-        mAutomaticAnswerSettings.onDisplayQuestion(!mSpeakText, mUseTimerDynamicMS);
+        mAutomaticAnswerSettings.onDisplayQuestion();
+        if (!mSpeakText) {
+            mAutomaticAnswerSettings.scheduleDisplayAnswer(mUseTimerDynamicMS);
+        }
+
 
         Timber.i("AbstractFlashcardViewer:: Question successfully shown for card id %d", mCurrentCard.getId());
     }
@@ -2159,7 +2154,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         updateCard(CardAppearance.enrichWithQADiv(answer, true));
         displayAnswerBottomBar();
         // If the user wants to show the next question automatically
-        mAutomaticAnswerSettings.onDisplayAnswer(!mSpeakText, mUseTimerDynamicMS);
+        mAutomaticAnswerSettings.onDisplayAnswer();
+        if (!mSpeakText) {
+            mAutomaticAnswerSettings.scheduleDisplayQuestion(mUseTimerDynamicMS);
+        }
     }
 
 
