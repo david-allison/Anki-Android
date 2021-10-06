@@ -172,7 +172,7 @@ import com.github.zafarkhaja.semver.Version;
 import static com.ichi2.anim.ActivityTransitionAnimation.Direction.*;
 
 @SuppressWarnings({"PMD.AvoidThrowingRawExceptionTypes","PMD.FieldDeclarationsShouldBeAtStartOfClass"})
-public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity implements ReviewerUi, CommandProcessor, TagsDialogListener, WhiteboardMultiTouchMethods {
+public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity implements ReviewerUi, CommandProcessor, TagsDialogListener, WhiteboardMultiTouchMethods, AutomaticAnswerSettings.AutomaticallyAnswered {
 
     /**
      * Result codes that are returned when this activity finishes.
@@ -248,7 +248,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
     protected boolean mSpeakText;
     protected boolean mDisableClipboard = false;
 
-    @NonNull protected AutomaticAnswerSettings mAutomaticAnswerSettings = new AutomaticAnswerSettings();
+    @NonNull protected AutomaticAnswerSettings mAutomaticAnswerSettings = AutomaticAnswerSettings.defaultInstance(this);
 
     protected boolean mUseInputTag;
     private boolean mDoNotUseCodeFormatting;
@@ -418,7 +418,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                 return;
             }
             mLastClickTime = getElapsedRealTime();
-            mTimeoutHandler.removeCallbacks(mShowAnswerTask);
+            mAutomaticAnswerSettings.stopShowingAnswer();
             displayCardAnswer();
         }
     };
@@ -471,7 +471,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                         view.setPressed(true);
                     }
                     mLastClickTime = getElapsedRealTime();
-                    mTimeoutHandler.removeCallbacks(mShowQuestionTask);
+                    mAutomaticAnswerSettings.stopShowingQuestion();
                     int id = view.getId();
                     if (id == R.id.flashcard_layout_ease1) {
                         Timber.i("AbstractFlashcardViewer:: EASE_1 pressed");
@@ -1034,8 +1034,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         super.onPause();
         Timber.d("onPause()");
 
-        mTimeoutHandler.removeCallbacks(mShowAnswerTask);
-        mTimeoutHandler.removeCallbacks(mShowQuestionTask);
+        mAutomaticAnswerSettings.stopAll();
         mLongClickHandler.removeCallbacks(mLongClickTestRunnable);
         mLongClickHandler.removeCallbacks(mStartLongClickAction);
 
@@ -1917,7 +1916,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         try {
             mShowNextReviewTime = col.get_config_boolean("estTimes");
             SharedPreferences preferences = AnkiDroidApp.getSharedPrefs(getBaseContext());
-            mAutomaticAnswerSettings = AutomaticAnswerSettings.createInstance(preferences, col);
+            mAutomaticAnswerSettings = AutomaticAnswerSettings.createInstance(this, preferences, col);
         } catch (Exception ex) {
             Timber.w(ex);
             onCollectionLoadError();
@@ -1977,31 +1976,20 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         }
     }
 
-    /*
-     * Handler for the delay in auto showing question and/or answer One toggle for both question and answer, could set
-     * longer delay for auto next question
-     */
-    @SuppressWarnings("deprecation") //  #7111: new Handler()
-    protected final Handler mTimeoutHandler = new Handler();
-
-    protected final Runnable mShowQuestionTask = new Runnable() {
-        @Override
-        public void run() {
-            // Assume hitting the "Again" button when auto next question
-            if (mEase1Layout.isEnabled() && mEase1Layout.getVisibility() == View.VISIBLE) {
-                mEase1Layout.performClick();
-            }
+    @Override
+    public void automaticShowQuestion() {
+        // Assume hitting the "Again" button when auto next question
+        if (mEase1Layout.isEnabled() && mEase1Layout.getVisibility() == View.VISIBLE) {
+            mEase1Layout.performClick();
         }
-    };
+    }
 
-    protected final Runnable mShowAnswerTask = new Runnable() {
-        @Override
-        public void run() {
-            if (mFlipCardLayout.isEnabled() && mFlipCardLayout.getVisibility() == View.VISIBLE) {
-                mFlipCardLayout.performClick();
-            }
+    @Override
+    public void automaticShowAnswer() {
+        if (mFlipCardLayout.isEnabled() && mFlipCardLayout.getVisibility() == View.VISIBLE) {
+            mFlipCardLayout.performClick();
         }
-    };
+    }
 
     class ReadTextListener implements ReadText.ReadTextListener {
         public void onDone() {
@@ -2011,12 +1999,12 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             if (ReadText.getmQuestionAnswer() == SoundSide.QUESTION) {
                 long delay = mAutomaticAnswerSettings.getAnswerDelayMilliseconds();
                 if (delay > 0) {
-                    mTimeoutHandler.postDelayed(mShowAnswerTask, delay);
+                    mAutomaticAnswerSettings.delayedShowAnswer(delay);
                 }
             } else if (ReadText.getmQuestionAnswer() == SoundSide.ANSWER) {
                 long delay = mAutomaticAnswerSettings.getQuestionDelayMilliseconds();
                 if (delay > 0) {
-                    mTimeoutHandler.postDelayed(mShowQuestionTask, delay);
+                    mAutomaticAnswerSettings.delayedShowQuestion(delay);
                 }
             }
         }
@@ -2098,10 +2086,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         // If the user wants to show the answer automatically
         if (mAutomaticAnswerSettings.useTimer()) {
             if (mAutomaticAnswerSettings.autoAdvanceAnswer()) {
-                mTimeoutHandler.removeCallbacks(mShowAnswerTask);
+                mAutomaticAnswerSettings.stopShowingAnswer();
                 if (!mSpeakText) {
                     long delay = mAutomaticAnswerSettings.getAnswerDelayMilliseconds() + mUseTimerDynamicMS;
-                    mTimeoutHandler.postDelayed(mShowAnswerTask, delay);
+                    mAutomaticAnswerSettings.delayedShowAnswer(delay);
                 }
             }
         }
@@ -2181,10 +2169,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         // If the user wants to show the next question automatically
         if (mAutomaticAnswerSettings.useTimer()) {
             if (mAutomaticAnswerSettings.autoAdvanceQuestion()) {
-                mTimeoutHandler.removeCallbacks(mShowQuestionTask);
+                mAutomaticAnswerSettings.stopShowingQuestion();
                 if (!mSpeakText) {
                     long delay = mAutomaticAnswerSettings.getQuestionDelayMilliseconds() + mUseTimerDynamicMS;
-                    mTimeoutHandler.postDelayed(mShowQuestionTask, delay);
+                    mAutomaticAnswerSettings.delayedShowQuestion(delay);
                 }
             }
         }
@@ -2904,8 +2892,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             }
         }
 
-        mTimeoutHandler.removeCallbacks(mShowAnswerTask);
-        mTimeoutHandler.removeCallbacks(mShowQuestionTask);
+        mAutomaticAnswerSettings.stopAll();
         mTimerHandler.removeCallbacks(mRemoveChosenAnswerText);
         mLongClickHandler.removeCallbacks(mLongClickTestRunnable);
         mLongClickHandler.removeCallbacks(mStartLongClickAction);
