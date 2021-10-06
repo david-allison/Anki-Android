@@ -1010,7 +1010,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
         registerExternalStorageListener();
 
-        restoreCollectionPreferences();
+        restoreCollectionPreferences(col);
 
         initLayout();
 
@@ -1926,11 +1926,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
     }
 
 
-    protected void restoreCollectionPreferences() {
+    protected void restoreCollectionPreferences(Collection col) {
 
         // These are preferences we pull out of the collection instead of SharedPreferences
         try {
-            mShowNextReviewTime = getCol().get_config_boolean("estTimes");
+            mShowNextReviewTime = col.get_config_boolean("estTimes");
 
             // Dynamic don't have review options; attempt to get deck-specific auto-advance options
             // but be prepared to go with all default if it's a dynamic deck
