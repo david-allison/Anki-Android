@@ -251,12 +251,8 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
     protected boolean mOptUseGeneralTimerSettings;
 
     protected AutomaticAnswerSettings mAutomaticAnswerSettings = new AutomaticAnswerSettings();
-
-    protected boolean mPrefUseTimer;
-
-    protected boolean mOptUseTimer;
-    protected int mOptWaitAnswerSecond;
-    protected int mOptWaitQuestionSecond;
+    protected AutomaticAnswerSettings mPrefAutomaticAnswerSettings = new AutomaticAnswerSettings();
+    protected AutomaticAnswerSettings mOptAutomaticAnswerSettings = new AutomaticAnswerSettings();
 
     protected boolean mUseInputTag;
     private boolean mDoNotUseCodeFormatting;
@@ -916,9 +912,6 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             mChosenAnswer.setText("");
         }
     };
-
-    protected int mPrefWaitAnswerSecond;
-    protected int mPrefWaitQuestionSecond;
 
 
     protected int getAnswerButtonCount() {
@@ -1900,9 +1893,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         mPrefFullscreenReview = FullScreenMode.fromPreference(preferences);
         mRelativeButtonSize = preferences.getInt("answerButtonSize", 100);
         mSpeakText = preferences.getBoolean("tts", false);
-        mPrefUseTimer = preferences.getBoolean("timeoutAnswer", false);
-        mPrefWaitAnswerSecond = preferences.getInt("timeoutAnswerSeconds", 20);
-        mPrefWaitQuestionSecond = preferences.getInt("timeoutQuestionSeconds", 60);
+        boolean prefUseTimer = preferences.getBoolean("timeoutAnswer", false);
+        int prefWaitAnswerSecond = preferences.getInt("timeoutAnswerSeconds", 20);
+        int prefWaitQuestionSecond = preferences.getInt("timeoutQuestionSeconds", 60);
+        mPrefAutomaticAnswerSettings = new AutomaticAnswerSettings(prefUseTimer, prefWaitQuestionSecond, prefWaitAnswerSecond);
         mScrollingButtons = preferences.getBoolean("scrolling_buttons", false);
         mDoubleScrolling = preferences.getBoolean("double_scrolling", false);
         mPrefShowTopbar = preferences.getBoolean("showTopbar", true);
@@ -1940,9 +1934,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             }
 
             mOptUseGeneralTimerSettings = revOptions.optBoolean("useGeneralTimeoutSettings", true);
-            mOptUseTimer = revOptions.optBoolean("timeoutAnswer", false);
-            mOptWaitAnswerSecond = revOptions.optInt("timeoutAnswerSeconds", 20);
-            mOptWaitQuestionSecond = revOptions.optInt("timeoutQuestionSeconds", 60);
+            boolean useTimer = revOptions.optBoolean("timeoutAnswer", false);
+            int waitAnswerSecond = revOptions.optInt("timeoutAnswerSeconds", 20);
+            int waitQuestionSecond = revOptions.optInt("timeoutQuestionSeconds", 60);
+            mOptAutomaticAnswerSettings = new AutomaticAnswerSettings(useTimer, waitQuestionSecond, waitAnswerSecond);
         } catch (Exception ex) {
             Timber.w(ex);
             onCollectionLoadError();
@@ -2122,9 +2117,9 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
         // Check if it should use the general 'Timeout settings' or the ones specific to this deck
         if (mOptUseGeneralTimerSettings) {
-            mAutomaticAnswerSettings = new AutomaticAnswerSettings(mPrefUseTimer, mPrefWaitQuestionSecond, mPrefWaitAnswerSecond);
+            mAutomaticAnswerSettings = mPrefAutomaticAnswerSettings;
         } else {
-            mAutomaticAnswerSettings = new AutomaticAnswerSettings(mOptUseTimer, mOptWaitQuestionSecond, mOptWaitAnswerSecond);
+            mAutomaticAnswerSettings = mOptAutomaticAnswerSettings;
         }
 
         // If the user wants to show the answer automatically
