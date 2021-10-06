@@ -100,6 +100,7 @@ import com.ichi2.anki.dialogs.tags.TagsDialogListener;
 import com.ichi2.anki.multimediacard.AudioView;
 import com.ichi2.anki.cardviewer.CardAppearance;
 import com.ichi2.anki.receiver.SdCardReceiver;
+import com.ichi2.anki.reviewer.AutomaticAnswerSettings;
 import com.ichi2.anki.reviewer.CardMarker;
 import com.ichi2.anki.cardviewer.CardTemplate;
 import com.ichi2.anki.reviewer.FullScreenMode;
@@ -249,9 +250,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
     protected boolean mOptUseGeneralTimerSettings;
 
-    protected boolean mUseTimer;
-    protected int mWaitAnswerSecond;
-    protected int mWaitQuestionSecond;
+    protected AutomaticAnswerSettings mAutomaticAnswerSettings = new AutomaticAnswerSettings();
 
     protected boolean mPrefUseTimer;
 
@@ -2031,16 +2030,16 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
     class ReadTextListener implements ReadText.ReadTextListener {
         public void onDone() {
-            if(!mUseTimer) {
+            if (!mAutomaticAnswerSettings.useTimer()) {
                 return;
             }
             if (ReadText.getmQuestionAnswer() == SoundSide.QUESTION) {
-                long delay = mWaitAnswerSecond * 1000;
+                long delay = mAutomaticAnswerSettings.getAnswerDelayMilliseconds();
                 if (delay > 0) {
                     mTimeoutHandler.postDelayed(mShowAnswerTask, delay);
                 }
             } else if (ReadText.getmQuestionAnswer() == SoundSide.ANSWER) {
-                long delay = mWaitQuestionSecond * 1000;
+                long delay = mAutomaticAnswerSettings.getQuestionDelayMilliseconds();
                 if (delay > 0) {
                     mTimeoutHandler.postDelayed(mShowQuestionTask, delay);
                 }
@@ -2123,21 +2122,17 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
         // Check if it should use the general 'Timeout settings' or the ones specific to this deck
         if (mOptUseGeneralTimerSettings) {
-            mUseTimer = mPrefUseTimer;
-            mWaitAnswerSecond = mPrefWaitAnswerSecond;
-            mWaitQuestionSecond = mPrefWaitQuestionSecond;
+            mAutomaticAnswerSettings = new AutomaticAnswerSettings(mPrefUseTimer, mPrefWaitQuestionSecond, mPrefWaitAnswerSecond);
         } else {
-            mUseTimer = mOptUseTimer;
-            mWaitAnswerSecond = mOptWaitAnswerSecond;
-            mWaitQuestionSecond = mOptWaitQuestionSecond;
+            mAutomaticAnswerSettings = new AutomaticAnswerSettings(mOptUseTimer, mOptWaitQuestionSecond, mOptWaitAnswerSecond);
         }
 
         // If the user wants to show the answer automatically
-        if (mUseTimer) {
-            long delay = mWaitAnswerSecond * 1000 + mUseTimerDynamicMS;
-            if (mWaitAnswerSecond > 0) {  // a wait of zero means auto-advance is disabled
+        if (mAutomaticAnswerSettings.useTimer()) {
+            if (mAutomaticAnswerSettings.autoAdvanceAnswer()) {
                 mTimeoutHandler.removeCallbacks(mShowAnswerTask);
                 if (!mSpeakText) {
+                    long delay = mAutomaticAnswerSettings.getAnswerDelayMilliseconds() + mUseTimerDynamicMS;
                     mTimeoutHandler.postDelayed(mShowAnswerTask, delay);
                 }
             }
@@ -2216,11 +2211,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         updateCard(CardAppearance.enrichWithQADiv(answer, true));
         displayAnswerBottomBar();
         // If the user wants to show the next question automatically
-        if (mUseTimer) {
-            long delay = mWaitQuestionSecond * 1000 + mUseTimerDynamicMS;
-            if (mWaitQuestionSecond > 0) {
+        if (mAutomaticAnswerSettings.useTimer()) {
+            if (mAutomaticAnswerSettings.autoAdvanceQuestion()) {
                 mTimeoutHandler.removeCallbacks(mShowQuestionTask);
                 if (!mSpeakText) {
+                    long delay = mAutomaticAnswerSettings.getQuestionDelayMilliseconds() + mUseTimerDynamicMS;
                     mTimeoutHandler.postDelayed(mShowQuestionTask, delay);
                 }
             }
@@ -2302,7 +2297,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
             mSoundPlayer.resetSounds();
             mAnswerSoundsAdded = false;
             mSoundPlayer.addSounds(mBaseUrl, newContent, SoundSide.QUESTION);
-            if (mUseTimer && !mAnswerSoundsAdded && getConfigForCurrentCard().optBoolean("autoplay", false)) {
+            if (mAutomaticAnswerSettings.useTimer() && !mAnswerSoundsAdded && getConfigForCurrentCard().optBoolean("autoplay", false)) {
                 addAnswerSounds(mCurrentCard.a());
             }
         }
@@ -2370,13 +2365,13 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
                     playSounds(SoundSide.QUESTION_AND_ANSWER);
                 } else if (sDisplayAnswer) {
                     playSounds(SoundSide.ANSWER);
-                    if (mUseTimer) {
+                    if (mAutomaticAnswerSettings.useTimer()) {
                         mUseTimerDynamicMS = mSoundPlayer.getSoundsLength(SoundSide.ANSWER);
                     }
                 } else { // question is displayed
                     playSounds(SoundSide.QUESTION);
                     // If the user wants to show the answer automatically
-                    if (mUseTimer) {
+                    if (mAutomaticAnswerSettings.useTimer()) {
                         mUseTimerDynamicMS = mSoundPlayer.getSoundsLength(SoundSide.QUESTION_AND_ANSWER);
                     }
                 }
