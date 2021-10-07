@@ -351,7 +351,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
     private final Sound mSoundPlayer = new Sound();
 
-    /** Time taken o play all medias in mSoundPlayer */
+    /**
+     * Time taken to play all medias in mSoundPlayer
+     * This is 0 if we have "Read card" enabled, as we can't calculate the duration.
+     */
     private long mUseTimerDynamicMS;
 
     /** File of the temporary mic record **/
@@ -1994,9 +1997,9 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
     class ReadTextListener implements ReadText.ReadTextListener {
         public void onDone() {
             if (ReadText.getmQuestionAnswer() == SoundSide.QUESTION) {
-                mAutomaticAnswer.scheduleDisplayAnswer();
+                mAutomaticAnswer.scheduleAutomaticDisplayAnswer();
             } else if (ReadText.getmQuestionAnswer() == SoundSide.ANSWER) {
-                mAutomaticAnswer.scheduleDisplayQuestion();
+                mAutomaticAnswer.scheduleAutomaticDisplayQuestion();
             }
         }
     }
@@ -2074,10 +2077,10 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         updateCard(displayString);
         hideEaseButtons();
 
-        // If the user wants to show the answer automatically
         mAutomaticAnswer.onDisplayQuestion();
+        // If Card-based TTS is enabled, we "automatic display" after the TTS has finished as we don't know the duration
         if (!mSpeakText) {
-            mAutomaticAnswer.scheduleDisplayAnswer(mUseTimerDynamicMS);
+            mAutomaticAnswer.scheduleAutomaticDisplayAnswer(mUseTimerDynamicMS);
         }
 
 
@@ -2153,10 +2156,11 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
         mIsSelecting = false;
         updateCard(CardAppearance.enrichWithQADiv(answer, true));
         displayAnswerBottomBar();
-        // If the user wants to show the next question automatically
+
         mAutomaticAnswer.onDisplayAnswer();
+        // If Card-based TTS is enabled, we "automatic display" after the TTS has finished as we don't know the duration
         if (!mSpeakText) {
-            mAutomaticAnswer.scheduleDisplayQuestion(mUseTimerDynamicMS);
+            mAutomaticAnswer.scheduleAutomaticDisplayQuestion(mUseTimerDynamicMS);
         }
     }
 
