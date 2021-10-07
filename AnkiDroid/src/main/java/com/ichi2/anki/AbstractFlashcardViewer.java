@@ -101,6 +101,7 @@ import com.ichi2.anki.multimediacard.AudioView;
 import com.ichi2.anki.cardviewer.CardAppearance;
 import com.ichi2.anki.receiver.SdCardReceiver;
 import com.ichi2.anki.reviewer.AutomaticAnswer;
+import com.ichi2.anki.reviewer.AutomaticAnswerAction;
 import com.ichi2.anki.reviewer.CardMarker;
 import com.ichi2.anki.cardviewer.CardTemplate;
 import com.ichi2.anki.reviewer.FullScreenMode;
@@ -1980,11 +1981,8 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
     }
 
     @Override
-    public void automaticShowQuestion() {
-        // Assume hitting the "Again" button when auto next question
-        if (mEase1Layout.isEnabled() && mEase1Layout.getVisibility() == View.VISIBLE) {
-            mEase1Layout.performClick();
-        }
+    public void automaticShowQuestion(@NonNull AutomaticAnswerAction action) {
+
     }
 
     @Override
@@ -1996,6 +1994,7 @@ public abstract class AbstractFlashcardViewer extends NavigationDrawerActivity i
 
     class ReadTextListener implements ReadText.ReadTextListener {
         public void onDone() {
+            Timber.d("done reading text");
             if (ReadText.getmQuestionAnswer() == SoundSide.QUESTION) {
                 mAutomaticAnswer.scheduleAutomaticDisplayAnswer();
             } else if (ReadText.getmQuestionAnswer() == SoundSide.ANSWER) {
