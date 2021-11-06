@@ -1,99 +1,85 @@
 /****************************************************************************************
- * Copyright (c) 2011 Norbert Nagold <norbert.nagold@gmail.com>                         *
- *                                                                                      *
+ * Copyright (c) 2011 Norbert Nagold <norbert.nagold></norbert.nagold>@gmail.com>                         *
+ * *
  * based on custom Dialog windows by antoine vianey                                     *
- *                                                                                      *
+ * *
  * This program is free software; you can redistribute it and/or modify it under        *
  * the terms of the GNU General Public License as published by the Free Software        *
  * Foundation; either version 3 of the License, or (at your option) any later           *
  * version.                                                                             *
- *                                                                                      *
+ * *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY      *
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A      *
  * PARTICULAR PURPOSE. See the GNU General Public License for more details.             *
- *                                                                                      *
+ * *
  * You should have received a copy of the GNU General Public License along with         *
- * this program.  If not, see <http://www.gnu.org/licenses/>.                           *
- ****************************************************************************************/
+ * this program.  If not, see <http:></http:>//www.gnu.org/licenses/>.                           *
+ */
+package com.ichi2.themes
 
-package com.ichi2.themes;
+import android.app.Dialog
+import android.content.Context
+import android.content.DialogInterface
+import android.view.WindowManager.BadTokenException
+import com.afollestad.materialdialogs.MaterialDialog
+import com.ichi2.anki.AnkiActivity
+import com.ichi2.utils.cancelListenerNullable
+import com.ichi2.utils.contentNullable
+import com.ichi2.utils.titleNullable
+import timber.log.Timber
 
-import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.view.WindowManager.BadTokenException;
-
-import com.afollestad.materialdialogs.MaterialDialog;
-import com.ichi2.anki.AnkiActivity;
-
-import timber.log.Timber;
-
-public class StyledProgressDialog extends Dialog {
-
-
-    public StyledProgressDialog(Context context) {
-        super(context);
-    }
-
-
-    @Override
-    public void show() {
+class StyledProgressDialog(context: Context?) : Dialog(context!!) {
+    override fun show() {
         try {
-            setCanceledOnTouchOutside(false);
-            super.show();
-        } catch (BadTokenException e) {
-            Timber.e(e, "Could not show dialog");
+            setCanceledOnTouchOutside(false)
+            super.show()
+        } catch (e: BadTokenException) {
+            Timber.e(e, "Could not show dialog")
         }
     }
 
-
-    public static MaterialDialog show(Context context, CharSequence title, CharSequence message) {
-        return show(context, title, message, false, null);
+    fun setMax(@Suppress("unused_parameter") max: Int) {
+        // TODO
     }
 
-
-    public static MaterialDialog show(Context context, CharSequence title, CharSequence message,
-            boolean cancelable) {
-        return show(context, title, message, cancelable, null);
+    fun setProgress(@Suppress("unused_parameter") progress: Int) {
+        // TODO
     }
 
+    fun setProgressStyle(@Suppress("unused_parameter") style: Int) {
+        // TODO
+    }
 
-    public static MaterialDialog show(Context context, CharSequence title, CharSequence message,
-            boolean cancelable, DialogInterface.OnCancelListener cancelListener) {
-        if ("".equals(title)) {
-            title = null;
-            Timber.d("Invalid title was provided. Using null");
-        }
-        return new MaterialDialog.Builder(context)
-                .title(title)
-                .content(message)
+    companion object {
+        @JvmOverloads
+        @JvmStatic
+        fun show(
+            context: Context,
+            title: CharSequence?,
+            message: CharSequence?,
+            cancelable: Boolean = false,
+            cancelListener: DialogInterface.OnCancelListener? = null
+        ): MaterialDialog {
+            var dialogTitle = title
+            if ("" == dialogTitle) {
+                dialogTitle = null
+                Timber.d("Invalid title was provided. Using null")
+            }
+            return MaterialDialog.Builder(context)
+                .titleNullable(dialogTitle)
+                .contentNullable(message)
                 .progress(true, 0)
                 .cancelable(cancelable)
-                .cancelListener(cancelListener)
-                .show();
-    }
+                .cancelListenerNullable(cancelListener)
+                .show()
+        }
 
-
-    private static boolean animationEnabled(Context context) {
-        if (context instanceof AnkiActivity) {
-            return ((AnkiActivity) context).animationEnabled();
-        } else {
-            return true;
+        private fun animationEnabled(context: Context): Boolean {
+            return if (context is AnkiActivity) {
+                context.animationEnabled()
+            } else {
+                true
+            }
         }
     }
-
-    public void setMax(int max) {
-        // TODO
-    }
-
-
-    public void setProgress(int progress) {
-        // TODO
-    }
-
-
-    public void setProgressStyle(int style) {
-        // TODO
-    }
-
 }
