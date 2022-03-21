@@ -26,7 +26,7 @@ import com.ichi2.utils.AndroidUiUtils
  * A Dialog containing an EditText which displays a keyboard when opened
  */
 open class MaterialEditTextDialog protected constructor(builder: Builder?) : MaterialDialog(builder) {
-    class Builder(context: Context, editText: EditText?) : MaterialDialog.Builder(context) {
+    class Builder(context: Context, editText: EditText?) : MaterialDialog(context) {
         override fun build(): MaterialDialog {
             return MaterialEditTextDialog(this)
         }

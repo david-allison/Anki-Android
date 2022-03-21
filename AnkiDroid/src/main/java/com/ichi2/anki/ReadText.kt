@@ -20,10 +20,10 @@ import android.net.Uri
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.view.View
 import android.view.WindowManager.BadTokenException
 import androidx.annotation.VisibleForTesting
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.list.listItems
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.UIUtils.showSnackbar
 import com.ichi2.anki.UIUtils.showThemedToast
@@ -95,16 +95,16 @@ object ReadText {
         mDid = did
         mOrd = ord
         val res = mReviewer!!.get()!!.resources
-        val builder = MaterialDialog.Builder(mReviewer!!.get()!!)
+        val builder = MaterialDialog(mReviewer!!.get()!!)
         // Build the language list if it's empty
         if (availableTtsLocales.isEmpty()) {
             buildAvailableLanguages()
         }
         if (availableTtsLocales.isEmpty()) {
             Timber.w("ReadText.textToSpeech() no TTS languages available")
-            builder.content(res.getString(R.string.no_tts_available_message))
-                .iconAttr(R.attr.dialogErrorIcon)
-                .positiveText(R.string.dialog_ok)
+            builder.message(R.string.no_tts_available_message)
+                .icon(R.attr.dialogErrorIcon)
+                .positiveButton(R.string.dialog_ok)
         } else {
             val dialogItems = ArrayList<CharSequence>(availableTtsLocales.size)
             val dialogIds = ArrayList<String>(availableTtsLocales.size)
@@ -117,9 +117,8 @@ object ReadText {
             }
             val items = arrayOfNulls<String>(dialogItems.size)
             dialogItems.toArray(items)
-            builder.title(res.getString(R.string.select_locale_title))
-                .items(*items)
-                .itemsCallback { _: MaterialDialog?, _: View?, which: Int, _: CharSequence? ->
+            builder.title(R.string.select_locale_title)
+                .listItems(items = items.map { it as CharSequence }.toList()) { _: MaterialDialog, which: Int, _: CharSequence ->
                     val locale = dialogIds[which]
                     Timber.d("ReadText.selectTts() user chose locale '%s'", locale)
                     MetaDB.storeLanguage(mReviewer!!.get(), mDid, mOrd, mQuestionAnswer, locale)
@@ -134,10 +133,10 @@ object ReadText {
         showDialogAfterDelay(builder, 500)
     }
 
-    internal fun showDialogAfterDelay(builder: MaterialDialog.Builder, delayMillis: Int) {
+    internal fun showDialogAfterDelay(builder: MaterialDialog, delayMillis: Int) {
         postDelayedOnNewHandler({
             try {
-                builder.build().show()
+                builder.show()
             } catch (e: BadTokenException) {
                 Timber.w(e, "Activity invalidated before TTS language dialog could display")
             }

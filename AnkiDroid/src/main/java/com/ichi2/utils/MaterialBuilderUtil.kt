@@ -23,13 +23,13 @@ import com.afollestad.materialdialogs.MaterialDialog
 // Previously the methods accepted null into a @NonNull parameter,
 // and fixing this would break the fluent interface
 
-fun MaterialDialog.Builder.titleNullable(title: CharSequence?): MaterialDialog.Builder {
-    title?.let { this.title(it) }
+fun MaterialDialog.titleNullable(title: CharSequence?): MaterialDialog {
+    this.title(text = title?.toString())
     return this
 }
 
-fun MaterialDialog.Builder.contentNullable(content: CharSequence?): MaterialDialog.Builder {
-    content?.let { this.content(it) }
+fun MaterialDialog.contentNullable(content: CharSequence?): MaterialDialog {
+    this.message(text = content?.toString())
     return this
 }
 

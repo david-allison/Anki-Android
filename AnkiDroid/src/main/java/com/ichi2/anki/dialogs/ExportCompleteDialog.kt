@@ -17,7 +17,6 @@
 package com.ichi2.anki.dialogs
 
 import android.os.Bundle
-import com.afollestad.materialdialogs.DialogAction
 import com.afollestad.materialdialogs.MaterialDialog
 import com.ichi2.anki.R
 import java.io.File
@@ -42,23 +41,20 @@ class ExportCompleteDialog(private val listener: ExportCompleteDialogListener) :
     override fun onCreateDialog(savedInstanceState: Bundle?): MaterialDialog {
         super.onCreate(savedInstanceState)
         val exportPath = requireArguments().getString("exportPath")
-        val dialogBuilder = MaterialDialog.Builder(requireActivity())
-            .title(getNotificationTitle())
-            .content(getNotificationMessage())
-            .iconAttr(R.attr.dialogSendIcon)
-            .positiveText(R.string.export_send_button)
-            .negativeText(R.string.export_save_button)
-            .onPositive { _: MaterialDialog?, _: DialogAction? ->
+        return MaterialDialog(requireActivity()).show {
+            title(text = getNotificationTitle())
+            message(text = getNotificationMessage())
+            icon(R.attr.dialogSendIcon)
+            positiveButton(R.string.export_send_button) {
                 listener.dismissAllDialogFragments()
                 listener.emailFile(exportPath)
             }
-            .onNegative { _: MaterialDialog?, _: DialogAction? ->
+            negativeButton(R.string.export_save_button) {
                 listener.dismissAllDialogFragments()
                 listener.saveExportFile(exportPath)
             }
-            .neutralText(R.string.dialog_cancel)
-            .onNeutral { _: MaterialDialog?, _: DialogAction? -> listener.dismissAllDialogFragments() }
-        return dialogBuilder.show()
+                .neutralButton(R.string.dialog_cancel) { listener.dismissAllDialogFragments() }
+        }
     }
 
     override fun getNotificationTitle(): String {
