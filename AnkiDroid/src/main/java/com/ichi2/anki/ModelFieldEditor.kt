@@ -548,7 +548,7 @@ class ModelFieldEditor : AnkiActivity(), LocaleSelectionDialogHandler {
 
     /*
      * Sets the Locale Hint of the field to the provided value.
-     * This allows some keyboard (GBoard) to change language
+     * This allows some keyboard (Gboard) to change language
      */
     @RequiresApi(api = Build.VERSION_CODES.N)
     private fun addFieldLocaleHint(selectedLocale: Locale) {

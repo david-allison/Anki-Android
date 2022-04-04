@@ -31,7 +31,7 @@ import java.util.*
  *
  * Used so a user doesn't need to change keyboard languages when adding a note, or typing answers
  *
- * [2021] GBoard is the only known keyboard which supports this API
+ * [2021] Gboard is the only known keyboard which supports this API
  */
 typealias LanguageHint = Locale
 
