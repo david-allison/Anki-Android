@@ -19,11 +19,19 @@ package com.ichi2.anki.servicelayer
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.VisibleForTesting
 import com.ichi2.anki.AnkiDroidApp
+import com.ichi2.anki.CollectionHelper
+import com.ichi2.anki.exception.RetryableException
 import com.ichi2.anki.model.Directory
 import com.ichi2.anki.model.DiskFile
 import com.ichi2.anki.model.RelativeFilePath
+import com.ichi2.anki.servicelayer.ScopedStorageService.isLegacyStorage
+import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFilesAlgorithm
 import com.ichi2.anki.servicelayer.scopedstorage.MigrateUserData
+import com.ichi2.compat.CompatHelper
+import com.ichi2.libanki.Utils
+import timber.log.Timber
 import java.io.File
 
 /** A path to the AnkiDroid directory, named "AnkiDroid" by default */
@@ -39,6 +47,40 @@ fun AnkiDroidDirectory.getRelativeFilePath(file: DiskFile): RelativeFilePath? =
         file = file
     )
 
+/** A path to collection.anki2 */
+typealias CollectionFilePath = String
+
+/** Returns the collection.anki2 from a collection folder path TODO: NO */
+fun AnkiDroidDirectory.getCollectionAnki2Path(): CollectionFilePath =
+    File(this.directory, CollectionHelper.COLLECTION_FILENAME).canonicalPath
+
+/**
+ * An [AnkiDroidDirectory] for an AnkiDroid collection which is not legacy
+ * This storage directory is accessible without permissions after scoped storage changes,
+ * and is much faster to access
+ *
+ * When uninstalling: A user will be asked if they want to delete this folder
+ * A folder here may be modifiable via USB. In AnkiDroid's case, all collection folders should
+ * be modifiable
+ *
+ * See: [isLegacyStorage]
+ */
+class NonLegacyAnkiDroidFolder private constructor(val path: AnkiDroidDirectory) {
+    companion object {
+        fun createInstance(directoryPath: Directory, context: Context): NonLegacyAnkiDroidFolder? {
+            return if (isLegacyStorage(directoryPath.directory.canonicalPath, context)) {
+                null
+            } else {
+                NonLegacyAnkiDroidFolder(directoryPath)
+            }
+        }
+    }
+}
+
+/**
+ * Utilities relating to moving AnkiDroid from an arbitrary folder on the filesystem to
+ * a folder under Android's scoped storage.
+ */
 object ScopedStorageService {
     /**
      * Preference listing the [AnkiDroidDirectory] where a scoped storage migration is occurring from
@@ -85,6 +127,80 @@ object ScopedStorageService {
      */
     fun userMigrationIsInProgress(preferences: SharedPreferences) =
         UserDataMigrationPreferences.createInstance(preferences).migrationInProgress
+
+    @JvmStatic
+    fun isLegacyStorage(context: Context): Boolean {
+        return isLegacyStorage(CollectionHelper.getCurrentAnkiDroidDirectory(context), context)
+    }
+
+    fun isLegacyStorage(currentDirPath: String, context: Context): Boolean {
+        val externalScopedDirPath = CollectionHelper.getAppSpecificExternalAnkiDroidDirectory(context)
+        val internalScopedDirPath = CollectionHelper.getAppSpecificInternalAnkiDroidDirectory(context)
+        val currentDir = File(currentDirPath)
+        val externalScopedDirs = context.getExternalFilesDirs(null).map {
+            it.canonicalFile
+        }
+        val internalScopedDir = File(internalScopedDirPath).canonicalFile
+        Timber.i(
+            "isLegacyStorage(): current dir: %s\nscoped external dir: %s\nscoped internal dir: %s",
+            currentDirPath, externalScopedDirPath, internalScopedDirPath
+        )
+
+        // Loop to check if the current AnkiDroid directory or any of its parents are the same as the root directories
+        // for app-specific external or internal storage - the only directories which will be accessible without
+        // permissions under scoped storage
+        var currentDirParent: File? = currentDir.canonicalFile
+        while (currentDirParent != null) {
+            if (currentDirParent.compareTo(internalScopedDir) == 0) {
+                return false
+            }
+            for (externalScopedDir in externalScopedDirs) {
+                if (currentDirParent.compareTo(externalScopedDir) == 0) {
+                    return false
+                }
+            }
+            currentDirParent = currentDirParent.parentFile
+        }
+
+        // If the current AnkiDroid directory isn't a sub directory of the app-specific external or internal storage
+        // directories, then it must be in a legacy storage directory
+        return true
+    }
+
+    @VisibleForTesting
+    internal fun migrateEssentialFiles(
+        context: Context,
+        destinationDirectory: Directory,
+        mockAlgo: ((MigrateEssentialFilesAlgorithm) -> MigrateEssentialFilesAlgorithm)? = null
+    ) {
+        val collectionPath: CollectionFilePath = CollectionHelper.getInstance().getCol(context).path
+        val sourceDirectory = Directory.createInstance(File(collectionPath).parentFile!!)!!
+
+        if (!isLegacyStorage(sourceDirectory.directory.canonicalPath, context)) {
+            throw IllegalStateException("Directory is already under scoped storage")
+        }
+
+        MigrateEssentialFilesAlgorithm.UserActionRequiredException.OutOfSpaceException.throwIfInsufficient(
+            available = Utils.determineBytesAvailable(destinationDirectory.directory.canonicalPath),
+            required = MigrateEssentialFilesAlgorithm.listEssentialFiles().sumOf { it.spaceRequired(sourceDirectory.directory.canonicalPath) } + 10_000_000
+        )
+
+        if (!destinationDirectory.directory.mkdirs() && destinationDirectory.directory.exists() && CompatHelper.compat.hasFiles(destinationDirectory.directory)) {
+            throw IllegalStateException("Target directory was not empty: '$destinationDirectory'")
+        }
+
+        val destination = NonLegacyAnkiDroidFolder.createInstance(destinationDirectory, context) ?: throw IllegalStateException("Destination folder was not under scoped storage '$destinationDirectory'")
+
+        var algo = MigrateEssentialFilesAlgorithm(
+            context,
+            sourceDirectory,
+            destination
+        )
+
+        algo = mockAlgo?.invoke(algo) ?: algo
+
+        RetryableException.retryOnce { algo.execute() }
+    }
 
     /**
      * Preferences relating to whether a user data scoped storage migration is taking place

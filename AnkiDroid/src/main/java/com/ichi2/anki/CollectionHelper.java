@@ -142,11 +142,44 @@ public class CollectionHelper {
                 return null;
             }
             // Open the database
-            Timber.i("Begin openCollection: %s", path);
-            mCollection = Storage.Collection(context, path, false, true, time);
-            Timber.i("End openCollection: %s", path);
+            mCollection = openCollection(context, time, path);
         }
         return mCollection;
+    }
+
+
+    /**
+     * Opens the collection without checking to see if the directory exists.
+     *
+     * path should be tested with File.exists() and File.canWrite() before this is called
+     */
+    private Collection openCollection(Context context, @NonNull Time time, String path) {
+        Timber.i("Begin openCollection: %s", path);
+        Collection collection = Storage.Collection(context, path, false, true, time);
+        Timber.i("End openCollection: %s", path);
+        return collection;
+    }
+
+
+    /**
+     * @hide
+     * @param path The path to collection.anki2
+     * @param context
+     * @return
+     * @throws StorageAccessException
+     */
+    public Collection getColFromPath(String path, Context context) throws StorageAccessException {
+        File f = new File(path);
+
+        if (!f.exists()) {
+            throw new StorageAccessException(path + " does not exist");
+        }
+
+        if (!f.canWrite()) {
+            throw new StorageAccessException(path + " is not writable");
+        }
+
+        return openCollection(context, new SystemTime(), path);
     }
 
     /** Collection time if possible, otherwise real time.*/
