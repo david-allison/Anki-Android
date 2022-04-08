@@ -19,9 +19,15 @@ package com.ichi2.anki.servicelayer.scopedstorage
 import android.content.SharedPreferences
 import com.ichi2.anki.model.Directory
 import com.ichi2.anki.model.DiskFile
+import com.ichi2.anki.model.RelativeFilePath
 import com.ichi2.anki.servicelayer.ScopedStorageService.UserDataMigrationPreferences
 import com.ichi2.anki.servicelayer.scopedstorage.MigrateUserData.Operation
 import com.ichi2.anki.servicelayer.scopedstorage.MigrateUserData.SingleRetryDecorator
+import com.ichi2.async.ProgressSenderAndCancelListener
+import com.ichi2.async.TaskDelegate
+import com.ichi2.compat.CompatHelper
+import com.ichi2.exceptions.AggregateException
+import com.ichi2.libanki.Collection
 import timber.log.Timber
 import java.io.File
 
@@ -37,7 +43,7 @@ typealias NumberOfBytes = Long
  * This also handles preemption, allowing media files to skip the queue
  * (if they're required for review)
  */
-class MigrateUserData private constructor(val source: Directory, val destination: Directory) {
+class MigrateUserData private constructor(val source: Directory, val destination: Directory) : TaskDelegate<NumberOfBytes, Boolean>() {
     companion object {
         /**
          * Creates an instance of [MigrateUserData] if valid, returns null if a migration is not in progress, or throws if data is invalid
@@ -257,6 +263,194 @@ class MigrateUserData private constructor(val source: Directory, val destination
     ) : Operation() {
         override fun execute(context: MigrationContext) = standardOperation.execute(context)
         override val retryOperations get() = listOf(retryOperation)
+    }
+
+    /**
+     * * Execution of recursive tasks (folder copying),
+     * * Progress reporting
+     * * Preemption of tasks (copy an image)
+     */
+    class Executor(private val operations: ArrayDeque<Operation>) {
+        private var terminated: Boolean = false
+        val preempted: ArrayDeque<Operation> = ArrayDeque()
+
+        fun execute(context: MigrationContext) {
+            while (operations.any() || preempted.any()) {
+                // clear preempted
+                while (preempted.any()) {
+                    if (terminated) {
+                        return
+                    }
+                    context.execSafe(preempted.removeFirst()) {
+                        Timber.d("executing preempted operation: %s", it)
+                        val replacements = it.execute(context)
+                        preempted.addAll(1, replacements)
+                    }
+                }
+
+                if (terminated) {
+                    return
+                }
+
+                context.execSafe(operations.removeFirst()) {
+                    val replacements = it.execute(context)
+                    operations.addAll(0, replacements)
+                }
+            }
+        }
+
+        fun preempt(operation: Operation) = preempted.addFirst(operation)
+        fun prepend(operation: Operation) = operations.addFirst(operation)
+        fun append(operation: Operation) = operations.add(operation)
+        fun appendAll(operations: List<Operation>) {
+            for (op in operations) {
+                append(op)
+            }
+        }
+
+        fun terminate() {
+            this.terminated = true
+        }
+    }
+
+    /**
+     * Migrates all files and folders to [destination], aside
+     *
+     * @throws MissingDirectoryException
+     * @throws EquivalentFileException
+     * @throws AggregateException If multiple exceptions were thrown when executing
+     * @throws RuntimeException Various other failings if only a single exception was thrown
+     */
+    override fun task(col: Collection, collectionTask: ProgressSenderAndCancelListener<NumberOfBytes>): Boolean {
+        val executor = Executor(ArrayDeque())
+
+        val context = object : MigrationContext() {
+            val successfullyCompleted: Boolean get() = loggedExceptions.isEmpty()
+
+            /**
+             * The reason that the execution was terminated early
+             *
+             * @see failOperationWith
+             */
+            var terminatedWith: Exception? = null
+                private set
+
+            val retriedDirectories = hashSetOf<File>()
+
+            val loggedExceptions = mutableListOf<Exception>()
+            var consecutiveExceptionsWithoutProgress = 0
+            override fun reportError(throwingOperation: Operation, ex: Exception) {
+                when (ex) {
+                    is FileConflictException -> { handleFileConflict(ex.source) }
+                    is FileDirectoryConflictException -> { handleFileConflict(ex.source) }
+                    is DirectoryNotEmptyException -> {
+                        if (throwingOperation.retryOperations.any() && retriedDirectories.add(ex.directory.directory)) {
+                            executor.appendAll(throwingOperation.retryOperations)
+                        }
+                    }
+                    is MissingDirectoryException -> failOperationWith(ex)
+                    is EquivalentFileException -> failOperationWith(ex)
+                    is FileConflictResolutionFailedException -> logExceptionAndContinue(ex)
+                    else -> logExceptionAndContinue(ex)
+                }
+            }
+
+            private fun logExceptionAndContinue(ex: Exception) {
+                if (loggedExceptions.size > 10) {
+                    loggedExceptions.removeFirst()
+                }
+                loggedExceptions.add(ex)
+                consecutiveExceptionsWithoutProgress++
+                if (consecutiveExceptionsWithoutProgress >= 10) {
+                    val exception = AggregateException.raise("10 consecutive exceptions without progress", loggedExceptions)
+                    failOperationWith(exception)
+                }
+            }
+
+            private fun handleFileConflict(conflictedFile: DiskFile) {
+                val relativePath = RelativeFilePath.fromPaths(source, conflictedFile)!!
+                val operation: MoveConflictedFile = MoveConflictedFile.createInstance(conflictedFile, source, relativePath)
+                executor.prepend(operation)
+            }
+
+            override fun reportProgress(transferred: NumberOfBytes) {
+                consecutiveExceptionsWithoutProgress = 0
+                collectionTask.doProgress(transferred)
+            }
+
+            /** A fatal exception has occurred which should stop all file processing */
+            private fun failOperationWith(ex: Exception) {
+                executor.terminate()
+                terminatedWith = ex
+            }
+
+            fun reset() = loggedExceptions.clear()
+        }
+
+        fun moveRemainingFiles() {
+            executor.appendAll(getMigrateUserDataOperations())
+            executor.execute(context)
+        }
+
+        moveRemainingFiles()
+
+        // try 2 times, then stop temporarily
+        var retries = 0
+        while (!context.successfullyCompleted && retries < 2) {
+            context.reset()
+            moveRemainingFiles()
+            retries++
+        }
+
+        if (!context.successfullyCompleted) {
+            throw AggregateException.raise("", context.loggedExceptions) // TODO
+        }
+
+        // TODO: if successful, fix "conflict" - check for prefixes of partially copied files
+
+        return true
+    }
+
+    private fun getMigrateUserDataOperations(): List<Operation> = getUserDataFiles().map { fileName ->
+        MoveFileOrDirectory(
+            sourceFile = File(source.directory, fileName),
+            destination = File(destination.directory, fileName)
+        )
+    }.sortedWith(
+        compareBy {
+            when (it.sourceFile.name) {
+                "card.html" -> 3
+                "fonts" -> 2
+                "backups" -> 1
+                else -> 0
+            }
+        }
+    )
+        .toList()
+
+    private fun getUserDataFiles() = sequence {
+        CompatHelper.compat.contentOfDirectory(source.directory).use {
+            while (it.hasNext()) {
+                val file = it.next()
+                if (isUserData(file)) {
+                    yield(file.name)
+                }
+            }
+        }
+    }
+
+    /** Returns whether a file is "user data" and should be moved */
+    private fun isUserData(file: File): Boolean {
+        if (MoveEssentialFiles.essentialFileNames.contains(file.name)) {
+            return false
+        }
+
+        // don't move the "conflict" directory
+        if (file.name == MoveConflictedFile.CONFLICT_DIRECTORY) {
+            return false
+        }
+
+        return true
     }
 }
 

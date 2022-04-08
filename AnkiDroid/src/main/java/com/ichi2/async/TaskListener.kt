@@ -16,6 +16,8 @@
 
 package com.ichi2.async
 
+import java.lang.Exception
+
 /**
  * Listener for the status and result of a {@link CollectionTask}.
  * <p>
@@ -45,5 +47,13 @@ abstract class TaskListener<Progress, Result> {
 
     open fun onCancelled() {
         // most implementations do nothing with this, provide them a default implementation
+    }
+
+    /**
+     * Invoked on failure with some implementations.
+     * @return Whether a failure was handled
+     */
+    open fun onFailure(e: Exception): Boolean {
+        return false
     }
 }

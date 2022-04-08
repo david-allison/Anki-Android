@@ -44,4 +44,8 @@ abstract class TaskDelegate<Progress, Result> {
     protected open fun requiresOpenCollection(): Boolean {
         return true
     }
+
+    /** Executes [task]. Accessor to be used by Kotlin */
+    internal fun executeTask(col: Collection, collectionTask: ProgressSenderAndCancelListener<Progress>): Result =
+        task(col, collectionTask)
 }
