@@ -106,7 +106,9 @@ import com.ichi2.anki.export.ActivityExportingDelegate;
 import com.ichi2.anki.receiver.SdCardReceiver;
 import com.ichi2.anki.servicelayer.DeckService;
 import com.ichi2.anki.servicelayer.SchedulerService;
+import com.ichi2.anki.servicelayer.ScopedStorageService;
 import com.ichi2.anki.servicelayer.UndoService;
+import com.ichi2.anki.services.MigrationService;
 import com.ichi2.anki.stats.AnkiStatsTaskHandler;
 import com.ichi2.anki.web.HostNumFactory;
 import com.ichi2.anki.widgets.DeckAdapter;
@@ -142,6 +144,7 @@ import com.ichi2.widget.WidgetStatus;
 import com.ichi2.utils.JSONException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import kotlin.Unit;
@@ -506,22 +509,82 @@ public class DeckPicker extends NavigationDrawerActivity implements
     /**
      * The first call in showing dialogs for startup - error or success.
      * Attempts startup if storage permission has been acquired, else, it requests the permission
+     *
+     * When Scoped Storage functionality is enabled using {@link AnkiDroidApp#TESTING_SCOPED_STORAGE}, when the app is
+     * opened for the first time and legacy storage is being used, the migrationSourcePath preference is created and set
+     * to deckPath so that we can keep track of the legacy storage directory. The user's collection is migrated first.
+     * Once this migration is complete, deckPath is set to scoped and the user can start using the collection at the new
+     * location.
+     * <p><br>
+     * If migrationSourcePath exists, the app will proceed to migrate the media and backups from the directory denoted
+     * by migrationSourcePath to the new scoped storage directory. Upon success, the migrationSourcePath preference is
+     * removed. This signifies that user data migration from the legacy directory to the scoped storage directory is
+     * complete and the app can start up without needing to migrate data.
      * */
     public void handleStartup() {
-        if (Permissions.hasStorageAccessPermission(this)) {
-            StartupFailure failure = InitialActivity.getStartupFailureType(this);
-            if (failure == null) {
-                // Show any necessary dialogs (e.g. changelog, special messages, etc)
-                SharedPreferences sharedPrefs = AnkiDroidApp.getSharedPrefs(this);
-                showStartupScreensAndDialogs(sharedPrefs, 0);
-                mStartupError = false;
-            } else {
-                // Show error dialogs
-                handleStartupFailure(failure);
-                mStartupError = true;
-            }
-        } else {
+        SharedPreferences preferences = AnkiDroidApp.getSharedPrefs(this);
+
+        // Resume migration if migrationSourcePath exists
+        if (preferences.contains("migrationSourcePath")) {
+            startOrResumeMigration();
+            return;
+        }
+
+        // App is already using Scoped Storage Directory for user data, no need to migrate & can proceed with startup
+        if (!ScopedStorageService.isLegacyStorage(this)) {
+            handleStartupScenarios();
+            return;
+        }
+
+        // If legacy storage is being used, ensure storage permission is obtained in order to access Legacy Directories
+        if (!Permissions.hasStorageAccessPermission(this)) {
             requestStoragePermission();
+            return;
+        }
+
+        // Migrate user data to Scoped Storage directory if Scoped Storage is being tested
+        // and if we can keep track of the legacy path using a prreference
+        if (AnkiDroidApp.TESTING_SCOPED_STORAGE && preferences.edit().putString("migrationSourcePath",
+                preferences.getString("deckPath",
+                        CollectionHelper.getDefaultAnkiDroidDirectory(this))).commit()) {
+            startOrResumeMigration();
+            return;
+        }
+
+        // If scoped storage isn't being tested and storage permission has been obtained, proceed with startup
+        handleStartupScenarios();
+    }
+
+    public void startOrResumeMigration() {
+        if (ScopedStorageService.isLegacyStorage(this)) {
+            TaskManager.cancelAllTasks(CollectionTask.LoadDeckCounts.class);
+            CollectionHelper.getInstance().closeCollection(false, "migration to scoped storage");
+
+            try {
+                ScopedStorageService.INSTANCE.migrateEssentialFiles(this);
+            } catch (Exception e) {
+                Timber.e(e, "Error trying to copy collection");
+                return;
+            }
+        }
+        handleStartupScenarios();
+        startService(new Intent(this, MigrationService.class));
+    }
+
+    /**
+     * Shows startup screens if everything the app needs to function is in order. If not, handles errors.
+     */
+    private void handleStartupScenarios() {
+        StartupFailure failure = InitialActivity.getStartupFailureType(this);
+        if (failure == null) {
+            // Show any necessary dialogs (e.g. changelog, special messages, etc)
+            SharedPreferences sharedPrefs = AnkiDroidApp.getSharedPrefs(this);
+            showStartupScreensAndDialogs(sharedPrefs, 0);
+            mStartupError = false;
+        } else {
+            // Show error dialogs
+            handleStartupFailure(failure);
+            mStartupError = true;
         }
     }
 
@@ -1576,6 +1639,14 @@ public class DeckPicker extends NavigationDrawerActivity implements
     @Override
     public void sync(Connection.ConflictResolution syncConflictResolution) {
         SharedPreferences preferences = AnkiDroidApp.getSharedPrefs(getBaseContext());
+
+        // Block sync if 'legacyPath' preference exists, i.e, user data is currently being migrated
+        if (preferences.contains("migrationSourcePath")) {
+            // TODO: Hardcoded string
+            UIUtils.showThemedToast(this, "sync blocked during migration", false);
+            return;
+        }
+
         String hkey = preferences.getString("hkey", "");
         if (hkey.length() == 0) {
             Timber.w("User not logged in");
