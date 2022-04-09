@@ -125,9 +125,9 @@ open class MigrateEssentialFiles(
 
         prefs.edit {
             // specify that a migration is in progress
-            putString(PREF_MIGRATION_SOURCE, sourcePath.directory.canonicalPath)
-            putString(PREF_MIGRATION_DESTINATION, destinationPath.directory.canonicalPath)
-            putString("deckPath", destinationPath.directory.canonicalPath)
+            putString(PREF_MIGRATION_SOURCE, sourcePath.directory.absolutePath)
+            putString(PREF_MIGRATION_DESTINATION, destinationPath.directory.absolutePath)
+            putString("deckPath", destinationPath.directory.absolutePath)
         }
 
         // open the collection in the new location - data is now migrated
