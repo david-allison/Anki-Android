@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 David Allison <davidallisongithub@gmail.com>
+ *  Copyright (c) 2021 David Allison <davidallisongithub@gmail.com>
  *  Copyright (c) 2022 Arthur Milchior <arthur@milchior.fr>
  *
  *  This program is free software; you can redistribute it and/or modify it under
@@ -19,38 +19,21 @@ package com.ichi2.anki.servicelayer
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.annotation.VisibleForTesting
 import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionHelper
-import com.ichi2.anki.exception.RetryableException
 import com.ichi2.anki.model.Directory
-import com.ichi2.anki.model.DiskFile
-import com.ichi2.anki.model.RelativeFilePath
 import com.ichi2.anki.servicelayer.ScopedStorageService.isLegacyStorage
-import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFilesAlgorithm
+import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFiles
 import com.ichi2.anki.servicelayer.scopedstorage.MigrateUserData
-import com.ichi2.compat.CompatHelper
-import com.ichi2.libanki.Utils
 import timber.log.Timber
 import java.io.File
 
-/** A path to the AnkiDroid directory, named "AnkiDroid" by default */
-typealias AnkiDroidDirectory = Directory
-
-/**
- * Returns the relative file path from a given [AnkiDroidDirectory]
- * @return null if the file was not inside the directory, or referred to the root directory
- */
-fun AnkiDroidDirectory.getRelativeFilePath(file: DiskFile): RelativeFilePath? =
-    RelativeFilePath.fromPaths(
-        baseDir = this,
-        file = file
-    )
-
 /** A path to collection.anki2 */
 typealias CollectionFilePath = String
+/** A path to the AnkiDroid folder, named "AnkiDroid" by default */
+typealias AnkiDroidDirectory = Directory
 
-/** Returns the collection.anki2 from a collection folder path TODO: NO */
+/** Returns the collection.anki2 from a collection folder path */
 fun AnkiDroidDirectory.getCollectionAnki2Path(): CollectionFilePath =
     File(this.directory, CollectionHelper.COLLECTION_FILENAME).canonicalPath
 
@@ -67,12 +50,12 @@ fun AnkiDroidDirectory.getCollectionAnki2Path(): CollectionFilePath =
  */
 class NonLegacyAnkiDroidFolder private constructor(val path: AnkiDroidDirectory) {
     companion object {
-        fun createInstance(directoryPath: Directory, context: Context): NonLegacyAnkiDroidFolder? {
-            return if (isLegacyStorage(directoryPath.directory.canonicalPath, context)) {
+        fun createInstance(directoryPath: String, context: Context): NonLegacyAnkiDroidFolder? {
+            // TODO: !!
+            return if (isLegacyStorage(directoryPath, context))
                 null
-            } else {
-                NonLegacyAnkiDroidFolder(directoryPath)
-            }
+            else
+                NonLegacyAnkiDroidFolder(Directory.createInstance(directoryPath)!!)
         }
     }
 }
@@ -108,6 +91,36 @@ object ScopedStorageService {
     const val PREF_MIGRATION_DESTINATION = "migrationDestinationPath"
 
     /**
+     * Migrates from the current directory to a directory under scoped storage
+     *
+     * @throws IllegalStateException An internal error occurred. Examples:
+     * * If current directory is already under scoped storage
+     * * If destination is not under scoped storage
+     *
+     * @throws MigrateEssentialFiles.UserActionRequiredException Subclasses define user action required
+     */
+    fun migrateEssentialFiles(context: Context, destinationDirectory: String) {
+        MigrateEssentialFiles.migrateEssentialFiles(context, destinationDirectory)
+    }
+
+    /**
+     * @throws NoSuchElementException if no directory was valid
+     */
+    fun migrateEssentialFiles(context: Context) {
+        // first, get the scoped storage directory to migrate to
+        val deckPath = AnkiDroidApp.getSharedPrefs(context).getString("deckPath", null)!!
+
+        val bestDestination = getBestDefaultRootDirectory(context, File(deckPath))
+
+        // the best destination in scoped storage does not have a 'folder' name, let's provide one.
+        val bestProfileDirectory = (1..MAX_PROFILES)
+            .map { File(bestDestination, "AnkiDroid$it") }
+            .firstNotNullOf { if (!it.exists()) it else null } // skip directories which exist
+
+        migrateEssentialFiles(context, bestProfileDirectory.canonicalPath)
+    }
+
+    /**
      * Whether a user data scoped storage migration is taking place
      * This refers to the [MigrateUserData] operation of copying media which can take a long time.
      *
@@ -115,51 +128,73 @@ object ScopedStorageService {
      * It is a logic bug if only one is set
      */
     fun userMigrationIsInProgress(context: Context): Boolean =
-        userMigrationIsInProgress(AnkiDroidApp.getSharedPrefs(context))
+        UserDataMigrationPreferences.createInstance(AnkiDroidApp.getSharedPrefs(context)).migrationInProgress
 
     /**
-     * Whether a user data scoped storage migration is taking place
-     * This refers to the [MigrateUserData] operation of copying media which can take a long time.
+     * The maximum allowed number of 'AnkiDroid' folders
      *
-     * @see userMigrationIsInProgress[Context]
-     * @throws IllegalStateException If either [PREF_MIGRATION_SOURCE] or [PREF_MIGRATION_DESTINATION] is set (but not both)
-     * It is a logic bug if only one is set
+     * Exists as un unreachable bound through normal activity.
      */
-    fun userMigrationIsInProgress(preferences: SharedPreferences) =
-        UserDataMigrationPreferences.createInstance(preferences).migrationInProgress
+    val MAX_PROFILES = 100
 
+    /**
+     * Given a path template, finds the external directory which best represents the template
+     *
+     * If the file is in a non-scoped directory on the SD card, we do not want to move it to main storage
+     * and vice-versa.
+     */
+    private fun getBestDefaultRootDirectory(context: Context, templatePath: File): File {
+        // given a template, find the best match
+        val paths = CollectionHelper.getAppSpecificExternalDirectories(context)
+            .map { it.canonicalFile }
+
+        var currentPath: File? = templatePath
+        while (currentPath != null) {
+            for (path in paths) {
+                if (currentPath.compareTo(path) == 0) {
+                    return path
+                }
+            }
+
+            currentPath = currentPath.parentFile?.canonicalFile
+        }
+
+        // if we couldn't find a parent (unlikely) - select the first
+        return paths.first()
+    }
+
+    /**
+     * Checks if current directory being used by AnkiDroid to store user data is a Legacy Storage Directory.
+     * This directory is stored under [CollectionHelper.PREF_DECK_PATH] in SharedPreferences
+     * @return `true` if AnkiDroid is storing user data in a Legacy Storage Directory.
+     */
     @JvmStatic
     fun isLegacyStorage(context: Context): Boolean {
         return isLegacyStorage(CollectionHelper.getCurrentAnkiDroidDirectory(context), context)
     }
 
     fun isLegacyStorage(currentDirPath: String, context: Context): Boolean {
-        val externalScopedDirPath = CollectionHelper.getAppSpecificExternalAnkiDroidDirectory(context)
         val internalScopedDirPath = CollectionHelper.getAppSpecificInternalAnkiDroidDirectory(context)
-        val currentDir = File(currentDirPath)
-        val externalScopedDirs = context.getExternalFilesDirs(null).map {
-            it.canonicalFile
-        }
+        val currentDir = File(currentDirPath).canonicalFile
+        val externalScopedDirs = CollectionHelper.getAppSpecificExternalDirectories(context).map { it.canonicalFile }
         val internalScopedDir = File(internalScopedDirPath).canonicalFile
         Timber.i(
-            "isLegacyStorage(): current dir: %s\nscoped external dir: %s\nscoped internal dir: %s",
-            currentDirPath, externalScopedDirPath, internalScopedDirPath
+            "isLegacyStorage(): current dir: %s\nscoped external dirs: %s\nscoped internal dir: %s",
+            currentDirPath, externalScopedDirs.joinToString(", "), internalScopedDirPath
         )
 
         // Loop to check if the current AnkiDroid directory or any of its parents are the same as the root directories
         // for app-specific external or internal storage - the only directories which will be accessible without
         // permissions under scoped storage
-        var currentDirParent: File? = currentDir.canonicalFile
+        val scopedDirectories = externalScopedDirs + internalScopedDir
+        var currentDirParent: File? = currentDir
         while (currentDirParent != null) {
-            if (currentDirParent.compareTo(internalScopedDir) == 0) {
-                return false
-            }
-            for (externalScopedDir in externalScopedDirs) {
-                if (currentDirParent.compareTo(externalScopedDir) == 0) {
+            for (scopedDir in scopedDirectories) {
+                if (currentDirParent.compareTo(scopedDir) == 0) {
                     return false
                 }
             }
-            currentDirParent = currentDirParent.parentFile
+            currentDirParent = currentDirParent.parentFile?.canonicalFile
         }
 
         // If the current AnkiDroid directory isn't a sub directory of the app-specific external or internal storage
@@ -167,39 +202,12 @@ object ScopedStorageService {
         return true
     }
 
-    @VisibleForTesting
-    internal fun migrateEssentialFiles(
-        context: Context,
-        destinationDirectory: Directory,
-        mockAlgo: ((MigrateEssentialFilesAlgorithm) -> MigrateEssentialFilesAlgorithm)? = null
-    ) {
-        val collectionPath: CollectionFilePath = CollectionHelper.getInstance().getCol(context).path
-        val sourceDirectory = Directory.createInstance(File(collectionPath).parentFile!!)!!
-
-        if (!isLegacyStorage(sourceDirectory.directory.canonicalPath, context)) {
-            throw IllegalStateException("Directory is already under scoped storage")
-        }
-
-        MigrateEssentialFilesAlgorithm.UserActionRequiredException.OutOfSpaceException.throwIfInsufficient(
-            available = Utils.determineBytesAvailable(destinationDirectory.directory.canonicalPath),
-            required = MigrateEssentialFilesAlgorithm.listEssentialFiles().sumOf { it.spaceRequired(sourceDirectory.directory.canonicalPath) } + 10_000_000
-        )
-
-        if (!destinationDirectory.directory.mkdirs() && destinationDirectory.directory.exists() && CompatHelper.compat.hasFiles(destinationDirectory.directory)) {
-            throw IllegalStateException("Target directory was not empty: '$destinationDirectory'")
-        }
-
-        val destination = NonLegacyAnkiDroidFolder.createInstance(destinationDirectory, context) ?: throw IllegalStateException("Destination folder was not under scoped storage '$destinationDirectory'")
-
-        var algo = MigrateEssentialFilesAlgorithm(
-            context,
-            sourceDirectory,
-            destination
-        )
-
-        algo = mockAlgo?.invoke(algo) ?: algo
-
-        RetryableException.retryOnce { algo.execute() }
+    /**
+     * Whether a scoped storage migration is taking place
+     * This refers to the background operation of copying media which can take a long time.
+     */
+    fun migrationIsInProgress(context: Context): Boolean {
+        return AnkiDroidApp.getSharedPrefs(context).getString(PREF_MIGRATION_SOURCE, "")!!.isNotEmpty()
     }
 
     /**

@@ -14,26 +14,17 @@
  *  this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.ichi2.anki.exception
+package com.ichi2.anki.servicelayer
 
-import timber.log.Timber
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.RobolectricTest
+import org.junit.runner.RunWith
 
-class RetryableException(private val inner: Throwable) : java.lang.RuntimeException(inner) {
-    companion object {
-        /**
-         * Retries the provided action if a [RetryableException] is thrown
-         */
-        fun retryOnce(action: (() -> Unit)) {
-            return try {
-                action.invoke()
-            } catch (e: RetryableException) {
-                Timber.w(e, "Found retryable exception, retrying")
-                try {
-                    action.invoke()
-                } catch (e: RetryableException) {
-                    throw e.inner
-                }
-            }
-        }
-    }
-}
+// TODO: If the source directory is missing
+// TODO: If the destination directory is missing
+// TODO: If both directories are missing
+// TODO: Initial migration without enough battery
+// TODO: Failed to move a file
+// TODO: Conflict handling
+@RunWith(AndroidJUnit4::class)
+class ScopedStorageServiceErrorHandlingTest : RobolectricTest()

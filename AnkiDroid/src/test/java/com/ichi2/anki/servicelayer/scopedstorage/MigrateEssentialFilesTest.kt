@@ -16,19 +16,19 @@
 
 package com.ichi2.anki.servicelayer.scopedstorage
 
-import android.content.Context
 import android.database.sqlite.SQLiteDatabaseCorruptException
 import androidx.annotation.CheckResult
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionHelper
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.exception.RetryableException
 import com.ichi2.anki.model.Directory
-import com.ichi2.anki.servicelayer.AnkiDroidDirectory
 import com.ichi2.anki.servicelayer.NonLegacyAnkiDroidFolder
 import com.ichi2.anki.servicelayer.ScopedStorageService
 import com.ichi2.anki.servicelayer.ScopedStorageUtils
+import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFiles.LockedCollection
+import com.ichi2.libanki.Storage
 import com.ichi2.testutils.DatabaseCorruption
 import com.ichi2.testutils.TestException
 import com.ichi2.testutils.assertThrows
@@ -40,19 +40,17 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
-import org.mockito.kotlin.KStubbing
-import org.mockito.kotlin.spy
+import org.mockito.kotlin.*
 import java.io.File
-import java.nio.file.Path
 
 /**
- * Test for [MigrateEssentialFilesAlgorithm]
+ * Test for [MigrateEssentialFiles]
  */
 @RunWith(AndroidJUnit4::class)
-class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
+class MigrateEssentialFilesTest : RobolectricTest() {
 
     override fun useInMemoryDatabase(): Boolean = false
-    private lateinit var defaultCollectionSourcePath: AnkiDroidDirectory
+    private lateinit var defaultCollectionSourcePath: String
 
     /** Whether to check the collection to ensure it's still openable */
     var checkCollectionAfter = true
@@ -74,29 +72,8 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
     }
 
     @Test
-    fun fails_if_path_is_incorrect() {
-        // the source path should be the same as the collection path
-        val destinationPath = Directory.createInstance(getMigrationDestinationPath())!!
-        val algo = getAlgorithm(Directory.createInstanceUnsafe(createTransientDirectory()), destinationPath)
-        val exception = assertThrows<IllegalStateException> { algo.execute() }
-        assertThat(exception.message, containsString("paths did not match"))
-    }
-
-    @Test
-    fun what_if_collection_is_currupt() { // TODO: Test name
-        checkCollectionAfter = false
-        val collectionAnki2Path = DatabaseCorruption.closeAndCorrupt(targetContext)
-
-        val collectionSourcePath = Directory.createInstance(File(collectionAnki2Path).parentFile!!)!!
-
-        assertThrows<SQLiteDatabaseCorruptException> { executeAlgorithmSuccessfully(collectionSourcePath) }
-
-        assertMigrationNotInProgress()
-    }
-
-    @Test
-    fun fails_if_migration_is_already_in_progress() {
-        getPreferences().edit { putString(ScopedStorageService.PREF_MIGRATION_SOURCE, defaultCollectionSourcePath.directory.canonicalPath) }
+    fun exception_thrown_if_migration_in_process() {
+        getPreferences().edit { putString(ScopedStorageService.PREF_MIGRATION_SOURCE, defaultCollectionSourcePath) }
         assertMigrationInProgress()
 
         val ex = assertThrows<IllegalStateException> { executeAlgorithmSuccessfully(defaultCollectionSourcePath) }
@@ -105,88 +82,64 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
     }
 
     @Test
-    fun if_first_file_is_not_locked() {
-        executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
-            Mockito.doReturn(object : MigrateEssentialFilesAlgorithm.EssentialFiles() {
-                override fun addAndLock(filePath: Path): Unit = throw TestException("testing: something went wrong")
-            }).`when`(it).createEssentialFilesInstance()
+    fun exception_thrown_if_destination_is_not_empty() {
+        // TODO: needs further test - how is this handled
+        getMigrationDestinationPath().also {
+            File(it, "tmp.txt").createNewFile()
         }
-        TODO("What should happen here?")
+
+        val exception = assertThrows<IllegalStateException> { executeAlgorithmSuccessfully(getMigrationSourcePath()) }
+        assertThat(exception.message, startsWith("destination path was non-empty"))
     }
 
     @Test
-    fun if_last_file_is_not_locked() {
-        val value = object : MigrateEssentialFilesAlgorithm.EssentialFiles() {
-            var timesCalled = 0
-            override fun addAndLock(filePath: Path) {
-                timesCalled++
-                if (timesCalled == 3) {
-                    throw TestException("testing: something went wrong")
-                }
-            }
-        }
-
-        executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
-            Mockito.doReturn(value).`when`(it).createEssentialFilesInstance()
-        }
-
-        assertThat("mock should have 3 calls", value.timesCalled, equalTo(3))
-
-        TODO("what should happen here?")
+    fun fails_if_path_is_incorrect() {
+        val invalidSourcePath = createTransientDirectory().absolutePath
+        assertThat("source path should be invalid", invalidSourcePath, not(equalTo(col.path)))
+        assertThat(Directory.createInstance(invalidSourcePath), notNullValue())
+        val algo = getAlgorithm(invalidSourcePath, getMigrationDestinationPath().path)
+        val exception = assertThrows<IllegalStateException> { algo.execute() }
+        assertThat(exception.message, containsString("paths did not match"))
     }
 
     @Test
-    fun if_last_file_is_not_copied() {
-        val value = object : MigrateEssentialFilesAlgorithm.EssentialFiles() {
-            var timesCalled = 0
-            override fun copy(file: EssentialFile, destinationPath: String) {
-                timesCalled++
-                if (timesCalled == 3) {
-                    throw TestException("testing: something went wrong")
-                }
-                super.copy(file, destinationPath)
-            }
-        }
+    fun exception_thrown_if_database_corrupt() {
+        checkCollectionAfter = false
+        val collectionAnki2Path = DatabaseCorruption.closeAndCorrupt(targetContext)
 
-        executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
-            Mockito.doReturn(value).`when`(it).createEssentialFilesInstance()
-        }
+        val collectionSourcePath = File(collectionAnki2Path).parent!!
 
-        assertThat("mock should have 3 calls", value.timesCalled, equalTo(3))
+        assertThrows<SQLiteDatabaseCorruptException> { executeAlgorithmSuccessfully(collectionSourcePath) }
 
-        TODO("What should happen here")
+        assertMigrationNotInProgress()
     }
 
     @Test
-    fun if_first_file_is_not_copied() {
-        val value = object : MigrateEssentialFilesAlgorithm.EssentialFiles() {
-            var timesCalled = 0
-            override fun copy(file: EssentialFile, destinationPath: String) {
-                timesCalled++
-                throw TestException("something went wrong")
+    fun collection_is_not_locked_if_copy_fails() {
+        var called = false
+
+        assertThrows<TestException> {
+            executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
+                Mockito
+                    .doAnswer {
+                        called = true
+                        assertThat("collection should be locked", Storage.isLocked(), equalTo(true))
+                        throw TestException("")
+                    }
+                    .whenever(it)
+                    .copyTopLevelFile(any(), any())
             }
         }
 
-        executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
-            Mockito.doReturn(value).`when`(it).createEssentialFilesInstance()
-        }
-
-        assertThat("mock should have been called", value.timesCalled, not(equalTo(0)))
-
-        TODO("What should happen here")
+        assertThat("mock was unused", called, equalTo(true))
+        assertThat("the collection is no longer locked", Storage.isLocked(), equalTo(false))
     }
 
     @Test
     fun fails_if_collection_can_still_be_opened() {
-        val nonLockingFiles = object : MigrateEssentialFilesAlgorithm.EssentialFiles() {
-            override fun addAndLock(filePath: Path) {
-                // don't lock the file - so collection can still be opened
-            }
-        }
-
-        val ex = assertThrows<IllegalStateException> {
+        val ex = assertThrows<RetryableException> {
             executeAlgorithmSuccessfully(defaultCollectionSourcePath) {
-                Mockito.doReturn(nonLockingFiles).`when`(it).createEssentialFilesInstance()
+                Mockito.doReturn(Mockito.mock(LockedCollection::class.java)).whenever(it).createLockedCollection()
             }
         }
 
@@ -206,7 +159,7 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
 
         assertThrows<TestException> {
             executeAlgorithmSuccessfully(collectionSourcePath) {
-                Mockito.doThrow(TestException("simulating final collection open failure")).`when`(it).checkMigratedCollection()
+                Mockito.doThrow(TestException("simulating final collection open failure")).whenever(it).checkMigratedCollection()
             }
         }
 
@@ -218,7 +171,7 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
     }
 
     @Test
-    fun successful_migration_with_no_media() {
+    fun successful_migration_with_NoMedia() {
         assertMigrationNotInProgress()
 
         this.addNoteUsingBasicModel("Hello", "World")
@@ -247,24 +200,17 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
         assertThat("card still exists", col.cardCount(), equalTo(1))
     }
 
-    @Test
-    fun fails_with_exception_on_no_media() {
-        // TODO: What does this mean?
-        throw NotImplementedError()
-    }
-
     /**
      * Executes the collection migration algorithm, moving from the local test directory /AnkiDroid, to /migration
      * This is only the initial stage which does not delete data
      */
     private fun executeAlgorithmSuccessfully(
-        ankiDroidFolder: AnkiDroidDirectory,
-        stubbing: (KStubbing<MigrateEssentialFilesAlgorithm>.(MigrateEssentialFilesAlgorithm) -> Unit)? = null
+        ankiDroidFolder: String,
+        stubbing: (KStubbing<MigrateEssentialFiles>.(MigrateEssentialFiles) -> Unit)? = null
     ): File {
         val destinationPath = getMigrationDestinationPath()
-        destinationPath.mkdirs()
 
-        var algo = getAlgorithm(ankiDroidFolder, Directory.createInstance(destinationPath)!!)
+        var algo = getAlgorithm(ankiDroidFolder, destinationPath.canonicalPath)
 
         if (stubbing != null) {
             algo = spy(algo, stubbing)
@@ -275,33 +221,26 @@ class MigrateEssentialFilesAlgorithmTest : RobolectricTest() {
     }
 
     private fun getMigrationDestinationPath(): File {
-        return ScopedStorageUtils.getMigrationDestinationPath(targetContext)
+        return ScopedStorageUtils.getMigrationDestinationPath(targetContext).also {
+            it.mkdirs()
+        }
     }
 
-    private fun getMigrationSourcePath(): AnkiDroidDirectory =
-        Directory.createInstance(ScopedStorageUtils.getMigrationSourcePath(col))!!
+    private fun getMigrationSourcePath() = ScopedStorageUtils.getMigrationSourcePath(col)
 
     @CheckResult
-    private fun getAlgorithm(sourcePath: AnkiDroidDirectory, destinationPath: Directory): MigrateEssentialFilesAlgorithm {
+    private fun getAlgorithm(sourcePath: String, destinationPath: String): MigrateEssentialFiles {
         val destinationDirectory = NonLegacyAnkiDroidFolder.createInstance(destinationPath, targetContext) ?: throw IllegalStateException("'$destinationPath' was not under scoped storage")
-        return MigrateEssentialFilesAlgorithm(targetContext, sourcePath, destinationDirectory)
+        return MigrateEssentialFiles(targetContext, Directory.createInstance(sourcePath)!!, destinationDirectory)
     }
 
     companion object {
-
-        private fun RobolectricTest.migrationIsInProgress() =
-            getMigrationPreferences(this.targetContext).migrationInProgress
-
-        private fun getMigrationPreferences(ctx: Context): ScopedStorageService.UserDataMigrationPreferences {
-            return ScopedStorageService.UserDataMigrationPreferences.createInstance(AnkiDroidApp.getSharedPrefs(ctx))
-        }
-
         fun RobolectricTest.assertMigrationInProgress() {
-            assertThat("the migration should be in progress", migrationIsInProgress(), equalTo(true))
+            assertThat("the migration should be in progress", ScopedStorageService.migrationIsInProgress(this.targetContext), equalTo(true))
         }
 
         fun RobolectricTest.assertMigrationNotInProgress() {
-            assertThat("the migration should not be in progress", migrationIsInProgress(), equalTo(false))
+            assertThat("the migration should not be in progress", ScopedStorageService.migrationIsInProgress(this.targetContext), equalTo(false))
         }
     }
 }

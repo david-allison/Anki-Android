@@ -18,6 +18,7 @@ package com.ichi2.libanki;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabaseLockedException;
 
 import com.ichi2.anki.UIUtils;
 import com.ichi2.anki.exception.ConfirmModSchemaException;
@@ -30,6 +31,8 @@ import com.ichi2.libanki.utils.Time;
 import com.ichi2.utils.JSONArray;
 import com.ichi2.utils.JSONException;
 import com.ichi2.utils.JSONObject;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -49,6 +52,7 @@ public class Storage {
 
     private static boolean sUseBackend = true;
     private static boolean sUseInMemory = false;
+    private static boolean sIsLocked = false;
 
 
     /* Open a new or existing collection. Path must be unicode */
@@ -77,6 +81,10 @@ public class Storage {
     }
     public static Collection Collection(Context context, @NonNull String path, boolean server, boolean log, @NonNull Time time) {
         assert (path.endsWith(".anki2") || path.endsWith(".anki21"));
+        if (sIsLocked) {
+            throw new SQLiteDatabaseLockedException("AnkiDroid has locked the database");
+        }
+
         File dbFile = new File(path);
         boolean create = !dbFile.exists();
         DroidBackend backend = DroidBackendFactory.getInstance(useBackend());
@@ -417,5 +425,20 @@ public class Storage {
 
     public static boolean isInMemory() {
         return sUseInMemory;
+    }
+
+
+    public static void unlockCollection() {
+        sIsLocked = false;
+    }
+
+
+    public static void lockCollection() {
+        sIsLocked = true;
+    }
+
+
+    public static Boolean isLocked() {
+        return sIsLocked;
     }
 }

@@ -22,23 +22,17 @@ import androidx.core.content.edit
 import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionHelper
 import com.ichi2.anki.exception.RetryableException
-import com.ichi2.anki.model.Directory
 import com.ichi2.anki.servicelayer.*
 import com.ichi2.anki.servicelayer.ScopedStorageService.PREF_MIGRATION_DESTINATION
 import com.ichi2.anki.servicelayer.ScopedStorageService.PREF_MIGRATION_SOURCE
-import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFilesAlgorithm.UserActionRequiredException
+import com.ichi2.anki.servicelayer.scopedstorage.MigrateEssentialFiles.UserActionRequiredException
+import com.ichi2.compat.CompatHelper
 import com.ichi2.libanki.Collection
+import com.ichi2.libanki.Storage
+import com.ichi2.libanki.Utils
 import timber.log.Timber
 import java.io.Closeable
 import java.io.File
-import java.io.FileOutputStream
-import java.io.RandomAccessFile
-import java.nio.channels.FileChannel
-import java.nio.channels.FileLock
-import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.exists
 
 /**
  * Algorithm class which represents copying the collection and media SQL files to a
@@ -60,7 +54,7 @@ import kotlin.io.path.exists
  * * User has space [UserActionRequiredException.OutOfSpaceException]
  * * A migration is not currently taking place
  */
-open class MigrateEssentialFilesAlgorithm(
+open class MigrateEssentialFiles(
     private val context: Context,
     private val sourcePath: AnkiDroidDirectory,
     private val destinationDirectory: NonLegacyAnkiDroidFolder
@@ -73,7 +67,7 @@ open class MigrateEssentialFilesAlgorithm(
      * "deckPath" now points to the new location of the collection in private storage
      */
     fun execute() {
-        if (ScopedStorageService.userMigrationIsInProgress(context)) {
+        if (ScopedStorageService.migrationIsInProgress(context)) {
             throw IllegalStateException("Migration is already in progress")
         }
 
@@ -95,24 +89,27 @@ open class MigrateEssentialFilesAlgorithm(
         ensureCollectionNotCorrupted(sourcePath.getCollectionAnki2Path())
 
         // Lock the collection & journal, to ensure that nobody can open/corrupt it
-        lockEssentialFiles(sourcePath).use { essentialFiles ->
-
+        lockCollection().use {
             // Copy essential files to new location. Guaranteed to be empty
-            essentialFiles.copyTo(destinationPath.directory.canonicalPath)
-
-            val destinationCollectionAnki2Path = destinationPath.getCollectionAnki2Path()
-
-            // Open the collection in the new location, checking for corruption
-            ensureCollectionNotCorrupted(destinationCollectionAnki2Path)
-
-            // set the preferences to the new deck path + checks CollectionHelper
-            // sets migration variables (migrationIsInProgress will be true)
-            updatePreferences(destinationPath)
+            for (file in listEssentialFiles().flatMap { it.getFiles(sourcePath.directory.canonicalPath) }) {
+                copyTopLevelFile(file, destinationPath)
+            }
         }
+
+        val destinationCollectionAnki2Path = destinationPath.getCollectionAnki2Path()
+
+        // Open the collection in the new location, checking for corruption
+        ensureCollectionNotCorrupted(destinationCollectionAnki2Path)
+
+        // set the preferences to the new deck path + checks CollectionHelper
+        // sets migration variables (migrationIsInProgress will be true)
+        updatePreferences(destinationPath)
     }
 
-    @VisibleForTesting
-    open fun createEssentialFilesInstance() = EssentialFiles()
+    /** Copies a file from the top level directory  TODO */
+    fun copyTopLevelFile(file: File, destinationPath: AnkiDroidDirectory) {
+        CompatHelper.compat.copyFile(file.path, File(destinationPath.directory, file.name).path)
+    }
 
     /**
      * Updates preferences after a successful "essential files" migration.
@@ -177,48 +174,51 @@ open class MigrateEssentialFilesAlgorithm(
 
     private fun getCurrentCollectionPath(): AnkiDroidDirectory {
         val collectionAnki2Path = File(CollectionHelper.getCollectionPath(context))
-        return Directory.createInstance(collectionAnki2Path.parentFile!!)!!
+        // TODO: !!
+        return AnkiDroidDirectory.createInstance(File(collectionAnki2Path.canonicalPath).parent!!)!!
+    }
+
+    class LockedCollection private constructor() : Closeable {
+        companion object {
+            fun createLockedInstance(): LockedCollection {
+                Storage.lockCollection()
+                return LockedCollection()
+            }
+        }
+
+        override fun close() {
+            Storage.unlockCollection()
+        }
     }
 
     /**
      * Locks
      *
-     * @return an [EssentialFiles] instance containing all the locked essential files
-     *
      * @throws IllegalStateException Collection is openable after lock acquired
      */
-    private fun lockEssentialFiles(sourcePath: AnkiDroidDirectory): EssentialFiles {
-
-        val essentialFiles = createEssentialFilesInstance()
-        try {
-            listEssentialFiles()
-                .flatMap { it.getFiles(sourcePath.directory.path) }
-                .forEach { file -> essentialFiles.addAndLock(Path(file.path)) }
-        } catch (e: Exception) {
-            essentialFiles.close()
-            throw e
+    fun lockCollection(): Closeable {
+        // In Java, file locking is per JVM and not per thread. This means that on macOS,
+        // a collection can be opened even if the underlying .anki2 is locked. So we need to lock it
+        // with a static
+        return createLockedCollection().also {
+            // Since we locked the files, we want to ensure that the collection can no longer be opened
+            try {
+                ensureCollectionNotOpenable()
+            } catch (e: Exception) {
+                it.close()
+                throw e
+            }
         }
-
-        // Since we locked the files, we want to ensure that the collection can no longer be opened
-        ensureCollectionNotOpenable()
-
-        return essentialFiles
     }
 
+    @VisibleForTesting
+    fun createLockedCollection() = LockedCollection.createLockedInstance()
+
     private fun ensureCollectionNotOpenable() {
-        val unopenableCol: Collection?
+        val lockedCollection: Collection?
         try {
-            unopenableCol = CollectionHelper.getInstance().getCol(context)
+            lockedCollection = CollectionHelper.getInstance().getCol(context)
         } catch (e: Exception) {
-            // We expect this to fail
-            // NOTE: different exceptions from Rust/Java backend
-            /**
-             * Rust: SQLiteExcetption
-             * error while compiling: "openAnkiDroidCollection": DBError {
-             *      info: "SqliteFailure(Error { code: SystemIOFailure, extended_code: 10 },
-             *      Some(\"disk I/O error\"))", kind: Other
-             *  }
-             */
             Timber.i("Expected exception thrown: ", e)
             return
         }
@@ -227,11 +227,11 @@ open class MigrateEssentialFilesAlgorithm(
         // Note: it shouldn't be null - a null value infers a new collection can't be created
         // or if the storage media is removed
         try {
-            unopenableCol?.close()
+            lockedCollection?.close()
         } catch (e: Exception) {
         }
 
-        throw IllegalStateException("Collection not locked correctly: ${unopenableCol.path}")
+        throw RetryableException(IllegalStateException("Collection not locked correctly"))
     }
 
     /**
@@ -267,72 +267,6 @@ open class MigrateEssentialFilesAlgorithm(
 
         // If close() threw in the finally {}, we want to abort, so call it again
         result!!.close()
-    }
-
-    /**
-     * A locked collection of
-     */
-    open class EssentialFiles : Closeable {
-
-        private val files = mutableListOf<EssentialFile>()
-
-        open fun addAndLock(filePath: Path) {
-            if (!filePath.exists()) {
-                throw IllegalStateException("Essential file not found: $filePath")
-            }
-            val randomAccessFile = RandomAccessFile(filePath.absolutePathString(), "rw")
-            val channel = randomAccessFile.channel
-            // failing to obtain a lock is retryable - this can be caused by a race condition reopening the collection
-            val lock = channel.tryLock() ?: throw RetryableException(IllegalStateException("failed to obtain lock"))
-            val fileName = File(filePath.absolutePathString()).name
-
-            this.files.add(EssentialFile(channel, lock, fileName))
-            Timber.d("locked ${filePath.absolutePathString()}")
-        }
-
-        /**
-         * Closes all files and releases locks.
-         * Logs exceptions and continues.
-         * Guaranteed not to throw
-         */
-        override fun close() {
-            for (channel in files) {
-                channel.close()
-            }
-        }
-
-        fun copyTo(destinationPath: String) {
-            for (channel in files) {
-                copy(channel, destinationPath)
-            }
-        }
-
-        open fun copy(file: EssentialFile, destinationPath: String) {
-            FileOutputStream(File(destinationPath, file.name)).use { fos ->
-                file.channel.transferTo(0, file.channel.size(), fos.channel)
-            }
-        }
-
-        class EssentialFile(val channel: FileChannel, val lock: FileLock, val name: String) {
-            /**
-             * Closes all files and releases locks.
-             * Logs exceptions and continues.
-             * Guaranteed not to throw
-             */
-            fun close() {
-                Timber.d("$name: releasing locks")
-                try {
-                    lock.release()
-                } catch (e: Exception) {
-                    Timber.w(e)
-                }
-                try {
-                    channel.close()
-                } catch (e: Exception) {
-                    Timber.w(e)
-                }
-            }
-        }
     }
 
     abstract class EssentialFile {
@@ -387,6 +321,46 @@ open class MigrateEssentialFilesAlgorithm(
                 SqliteDb("collection.media.ad.db2"),
                 SingleFile(".nomedia")
             )
+        }
+
+        /**
+         *
+         * @param transformAlgo for tests TODO
+         */
+        @VisibleForTesting
+        internal fun migrateEssentialFiles(
+            context: Context,
+            destinationDirectory: String,
+            transformAlgo: ((MigrateEssentialFiles) -> MigrateEssentialFiles)? = null
+        ) {
+            val collectionPath: CollectionFilePath = CollectionHelper.getInstance().getCol(context).path
+            val sourceDirectory = File(collectionPath).parent!!
+
+            if (!ScopedStorageService.isLegacyStorage(sourceDirectory, context)) {
+                throw IllegalStateException("Directory is already under scoped storage")
+            }
+
+            UserActionRequiredException.OutOfSpaceException.throwIfInsufficient(
+                available = Utils.determineBytesAvailable(destinationDirectory),
+                required = listEssentialFiles().sumOf { it.spaceRequired(sourceDirectory) } + 10_000_000
+            )
+
+            val dir = File(destinationDirectory)
+            if (!dir.mkdirs() && dir.exists() && CompatHelper.compat.hasFiles(dir)) {
+                throw IllegalStateException("Target directory was not empty: '$destinationDirectory'")
+            }
+
+            val destination = NonLegacyAnkiDroidFolder.createInstance(destinationDirectory, context) ?: throw IllegalStateException("Destination folder was not under scoped storage '$destinationDirectory'")
+
+            var algo = MigrateEssentialFiles(
+                context,
+                AnkiDroidDirectory.createInstance(sourceDirectory)!!, // TODO: !!
+                destination
+            )
+
+            algo = transformAlgo?.invoke(algo) ?: algo
+
+            RetryableException.retryOnce { algo.execute() }
         }
     }
 }
