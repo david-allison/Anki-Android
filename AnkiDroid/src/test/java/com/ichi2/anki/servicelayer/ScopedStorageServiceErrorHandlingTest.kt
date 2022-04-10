@@ -20,11 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import org.junit.runner.RunWith
 
-// TODO: If the source directory is missing
-// TODO: If the destination directory is missing
 // TODO: If both directories are missing
 // TODO: Initial migration without enough battery
-// TODO: Failed to move a file
-// TODO: Conflict handling
 @RunWith(AndroidJUnit4::class)
 class ScopedStorageServiceErrorHandlingTest : RobolectricTest()
