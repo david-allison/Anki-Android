@@ -22,6 +22,7 @@ object MoveEssentialFiles {
         "collection.anki2-journal",
         "collection.media.ad.db2",
         "collection.media.ad.db2-journal",
-        ".nomedia"
+        ".nomedia",
+        "collection.log"
     )
 }
