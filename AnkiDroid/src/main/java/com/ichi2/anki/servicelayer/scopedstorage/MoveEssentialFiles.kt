@@ -17,6 +17,7 @@
 package com.ichi2.anki.servicelayer.scopedstorage
 
 object MoveEssentialFiles {
+    // TODO: This is not MigrateEssentailFiles
     val essentialFileNames = hashSetOf(
         "collection.anki2",
         "collection.anki2-journal",
