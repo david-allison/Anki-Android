@@ -27,11 +27,11 @@ import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionHelper
 import com.ichi2.anki.NotificationChannels
 import com.ichi2.anki.R
+import com.ichi2.anki.servicelayer.ScopedStorageService
 import com.ichi2.anki.servicelayer.scopedstorage.MigrateUserData
 import com.ichi2.anki.servicelayer.scopedstorage.NumberOfBytes
 import com.ichi2.async.CoroutineTask
 import com.ichi2.async.TaskListenerWithContext
-import com.ichi2.utils.FileUtil
 import timber.log.Timber
 
 class MigrationService : Service() {
@@ -49,10 +49,10 @@ class MigrationService : Service() {
 
     private inner class MigrateUserDataListener(sourceSize: NumberOfBytes?) :
         TaskListenerWithContext<Context, NumberOfBytes?, Boolean>(this) {
-        private var mSourceSize: NumberOfBytes = 0L
-        private var mCurrentProgress: NumberOfBytes
+        private var mSourceSize: NumberOfBytes = sourceSize ?: 0
+        private var mCurrentProgress: NumberOfBytes = 0
         private val mUpdateInterval = 2000
-        private var mIncreaseSinceLastUpdate: NumberOfBytes
+        private var mIncreaseSinceLastUpdate: NumberOfBytes = 0
         private var mMostRecentUpdateTime = 0L
 
         override fun actualOnPreExecute(context: Context) {
@@ -70,7 +70,7 @@ class MigrationService : Service() {
             )
                 .setSmallIcon(R.drawable.ic_stat_notify)
                 .setContentTitle(context.resources.getString(R.string.migrating_data_message))
-                .setContentText(context.resources.getString(R.string.migration_transferred_size, 0f, mSourceSize / 1024f))
+                .setContentText(context.resources.getString(R.string.migration_transferred_size, 0f, mSourceSize.toMB()))
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOngoing(true)
                 .setSilent(true)
@@ -95,7 +95,7 @@ class MigrationService : Service() {
                 mMostRecentUpdateTime = currentTime
                 mCurrentProgress += mIncreaseSinceLastUpdate
                 mIncreaseSinceLastUpdate = 0
-                notificationBuilder.setProgress(mSourceSize.toKB(), mCurrentProgress.toKB(), false)
+                notificationBuilder.setProgress(mSourceSize.toKB().toInt(), mCurrentProgress.toKB().toInt(), false)
                 notificationBuilder.setContentText(
                     context.resources.getString(
                         R.string.migration_transferred_size,
@@ -109,6 +109,7 @@ class MigrationService : Service() {
         override fun actualOnPostExecute(context: Context, result: Boolean) {
             if (result) {
                 notificationBuilder.setContentTitle(context.resources.getString(R.string.migration_successful_message))
+                ScopedStorageService.completeMigration(this@MigrationService)
             } else {
                 notificationBuilder.setContentTitle(context.resources.getString(R.string.migration_failed_message))
             }
@@ -122,12 +123,6 @@ class MigrationService : Service() {
         override fun onCancelled() {
             cancelled = true
             stopSelf()
-        }
-
-        init {
-            mSourceSize = sourceSize ?: 0
-            mCurrentProgress = 0
-            mIncreaseSinceLastUpdate = 0
         }
     }
 
@@ -153,27 +148,16 @@ class MigrationService : Service() {
 
         this.task = task
 
-        val sourceSize = safeGetDirectorySize(task, default = 0)
+        val sourceSize = task.getMigrationSize(default = 0)
 
         CoroutineTask(
             task,
             MigrateUserDataListener(sourceSize),
             exceptionListener = null
         ).execute()
+        Timber.i("Launched MigrationService")
 
         return getRestartBehavior()
-    }
-
-    private fun safeGetDirectorySize(
-        task: MigrateUserData,
-        @Suppress("SameParameterValue") default: NumberOfBytes
-    ): NumberOfBytes {
-        return try {
-            FileUtil.getDirectorySize(task.source.directory)
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to get directory size")
-            default
-        }
     }
 
     /**
@@ -194,10 +178,10 @@ class MigrationService : Service() {
     }
 }
 
-private fun NumberOfBytes.toKB(): Int {
-    return ((this / 1024).toInt())
+private fun NumberOfBytes.toKB(): Double {
+    return ((this / 1024.toDouble()))
 }
 
-private fun NumberOfBytes.toMB(): Int {
-    return this.toKB() / 1024
+private fun NumberOfBytes.toMB(): Double {
+    return this.toKB() / 1024.toDouble()
 }

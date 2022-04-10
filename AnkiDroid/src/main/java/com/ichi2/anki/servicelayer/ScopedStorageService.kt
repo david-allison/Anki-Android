@@ -19,6 +19,7 @@ package com.ichi2.anki.servicelayer
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionHelper
 import com.ichi2.anki.model.Directory
@@ -98,12 +99,6 @@ object ScopedStorageService {
      * * If destination is not under scoped storage
      *
      * @throws MigrateEssentialFiles.UserActionRequiredException Subclasses define user action required
-     */
-    fun migrateEssentialFiles(context: Context, destinationDirectory: String) {
-        MigrateEssentialFiles.migrateEssentialFiles(context, destinationDirectory)
-    }
-
-    /**
      * @throws NoSuchElementException if no directory was valid
      */
     fun migrateEssentialFiles(context: Context) {
@@ -117,7 +112,9 @@ object ScopedStorageService {
             .map { File(bestDestination, "AnkiDroid$it") }
             .firstNotNullOf { if (!it.exists()) it else null } // skip directories which exist
 
-        migrateEssentialFiles(context, bestProfileDirectory.canonicalPath)
+        Timber.d("scoped storage migration to folder '%s'", bestProfileDirectory.canonicalPath)
+
+        MigrateEssentialFiles.migrateEssentialFiles(context, bestProfileDirectory.canonicalPath)
     }
 
     /**
@@ -208,6 +205,13 @@ object ScopedStorageService {
      */
     fun migrationIsInProgress(context: Context): Boolean {
         return AnkiDroidApp.getSharedPrefs(context).getString(PREF_MIGRATION_SOURCE, "")!!.isNotEmpty()
+    }
+
+    fun completeMigration(context: Context) {
+        AnkiDroidApp.getSharedPrefs(context).edit {
+            remove(PREF_MIGRATION_DESTINATION)
+            remove(PREF_MIGRATION_SOURCE)
+        }
     }
 
     /**

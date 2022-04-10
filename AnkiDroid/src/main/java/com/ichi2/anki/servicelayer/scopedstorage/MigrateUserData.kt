@@ -28,6 +28,7 @@ import com.ichi2.async.TaskDelegate
 import com.ichi2.compat.CompatHelper
 import com.ichi2.exceptions.AggregateException
 import com.ichi2.libanki.Collection
+import com.ichi2.utils.FileUtil
 import timber.log.Timber
 import java.io.File
 
@@ -439,6 +440,18 @@ class MigrateUserData private constructor(val source: Directory, val destination
         }
     }
 
+    // TODO: abstract this with above
+    private fun getEssentialFiles() = sequence {
+        CompatHelper.compat.contentOfDirectory(source.directory).use {
+            while (it.hasNext()) {
+                val file = it.next()
+                if (!isUserData(file)) {
+                    yield(file)
+                }
+            }
+        }
+    }
+
     /** Returns whether a file is "user data" and should be moved */
     private fun isUserData(file: File): Boolean {
         if (MoveEssentialFiles.essentialFileNames.contains(file.name)) {
@@ -451,6 +464,31 @@ class MigrateUserData private constructor(val source: Directory, val destination
         }
 
         return true
+    }
+
+    fun getMigrationSize(
+        @Suppress("SameParameterValue") default: NumberOfBytes
+    ): NumberOfBytes {
+        return try {
+            return getUserDataSize()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to get directory size")
+            default
+        }
+    }
+
+    /**
+     * Returns the total size of data which is required to be copied
+     */
+    private fun getUserDataSize(): NumberOfBytes {
+        val totalSize = FileUtil.getDirectorySize(source.directory)
+        val excludedSize = getEssentialFileSize()
+
+        return totalSize - excludedSize
+    }
+
+    private fun getEssentialFileSize(): NumberOfBytes {
+        return getEssentialFiles().sumOf { FileUtil.getSize(it) }
     }
 }
 

@@ -100,13 +100,15 @@ object FileUtil {
         var directorySize: Long = 0
         val files = listFiles(directory)
         for (file in files) {
-            directorySize += if (file.isDirectory) {
-                getDirectorySize(file)
-            } else {
-                file.length()
-            }
+            directorySize += getSize(file)
         }
         return directorySize
+    }
+
+    fun getSize(file: File) = if (file.isDirectory) {
+        getDirectorySize(file)
+    } else {
+        file.length()
     }
 
     /**

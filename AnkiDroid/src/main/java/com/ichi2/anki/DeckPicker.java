@@ -89,6 +89,8 @@ import com.ichi2.anki.dialogs.CreateDeckDialog;
 import com.ichi2.anki.dialogs.DeckPickerNoSpaceToDowngradeDialog;
 import com.ichi2.anki.dialogs.DeckPickerNoSpaceToDowngradeDialog.FileSizeFormatter;
 import com.ichi2.anki.dialogs.ImportFileSelectionFragment;
+import com.ichi2.anki.dialogs.ScopedStorageMigrationDialog;
+import com.ichi2.anki.dialogs.ScopedStorageMigrationDialogKt;
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog;
 import com.ichi2.anki.dialogs.DatabaseErrorDialog;
 import com.ichi2.anki.dialogs.DeckPickerAnalyticsOptInDialog;
@@ -133,6 +135,7 @@ import com.ichi2.libanki.sync.Syncer;
 import com.ichi2.themes.StyledProgressDialog;
 import com.ichi2.ui.BadgeDrawableBuilder;
 import com.ichi2.utils.AdaptionUtil;
+import com.ichi2.utils.HandlerUtils;
 import com.ichi2.utils.ImportUtils;
 import com.ichi2.utils.Computation;
 import com.ichi2.utils.Permissions;
@@ -144,7 +147,6 @@ import com.ichi2.widget.WidgetStatus;
 import com.ichi2.utils.JSONException;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 import kotlin.Unit;
@@ -544,9 +546,7 @@ public class DeckPicker extends NavigationDrawerActivity implements
 
         // Migrate user data to Scoped Storage directory if Scoped Storage is being tested
         // and if we can keep track of the legacy path using a prreference
-        if (AnkiDroidApp.TESTING_SCOPED_STORAGE && preferences.edit().putString("migrationSourcePath",
-                preferences.getString("deckPath",
-                        CollectionHelper.getDefaultAnkiDroidDirectory(this))).commit()) {
+        if (AnkiDroidApp.TESTING_SCOPED_STORAGE) {
             startOrResumeMigration();
             return;
         }
@@ -556,20 +556,39 @@ public class DeckPicker extends NavigationDrawerActivity implements
     }
 
     public void startOrResumeMigration() {
-        if (ScopedStorageService.isLegacyStorage(this)) {
-            TaskManager.cancelAllTasks(CollectionTask.LoadDeckCounts.class);
-            CollectionHelper.getInstance().closeCollection(false, "migration to scoped storage");
-
-            try {
-                ScopedStorageService.INSTANCE.migrateEssentialFiles(this);
-            } catch (Exception e) {
-                Timber.e(e, "Error trying to copy collection");
-                return;
-            }
+        if (!ScopedStorageService.isLegacyStorage(this) || !AnkiDroidApp.TESTING_SCOPED_STORAGE) {
+            handleStartupScenarios();
+            startService(new Intent(this, MigrationService.class));
+            return;
         }
-        handleStartupScenarios();
-        startService(new Intent(this, MigrationService.class));
+
+        Runnable startMigration = () -> {
+            showProgressBar();
+            HandlerUtils.postOnNewHandler(() -> {
+                try {
+                    initiateScopedStorage();
+                    hideProgressBar();
+                    updateDeckList();
+                    handleStartupScenarios();
+                    startService(new Intent(this, MigrationService.class));
+                } catch (Exception e) {
+                    Timber.e(e, "Error trying to copy collection");
+                } finally {
+                    hideProgressBar();
+                }
+            });
+        };
+
+        ScopedStorageMigrationDialog.showDialog(this, ScopedStorageMigrationDialogKt.openUrl(this), startMigration);
     }
+
+
+    private void initiateScopedStorage() {
+        TaskManager.cancelAllTasks(CollectionTask.LoadDeckCounts.class);
+        CollectionHelper.getInstance().closeCollection(false, "migration to scoped storage");
+        ScopedStorageService.INSTANCE.migrateEssentialFiles(this);
+    }
+
 
     /**
      * Shows startup screens if everything the app needs to function is in order. If not, handles errors.

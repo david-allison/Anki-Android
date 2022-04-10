@@ -272,7 +272,7 @@ open class MigrateEssentialFiles(
     abstract class EssentialFile {
         abstract fun getFiles(sourceDirectory: String): List<File>
 
-        fun spaceRequired(sourceDirectory: String): Long {
+        fun spaceRequired(sourceDirectory: String): NumberOfBytes {
             return getFiles(sourceDirectory).sumOf { it.length() }
         }
     }
@@ -309,6 +309,7 @@ open class MigrateEssentialFiles(
                     if (required > available) {
                         throw OutOfSpaceException(available, required)
                     }
+                    Timber.d("Appropriate space for operation. Needed %d bytes. Had %d", required, available)
                 }
             }
         }
@@ -340,15 +341,16 @@ open class MigrateEssentialFiles(
                 throw IllegalStateException("Directory is already under scoped storage")
             }
 
-            UserActionRequiredException.OutOfSpaceException.throwIfInsufficient(
-                available = Utils.determineBytesAvailable(destinationDirectory),
-                required = listEssentialFiles().sumOf { it.spaceRequired(sourceDirectory) } + 10_000_000
-            )
-
             val dir = File(destinationDirectory)
             if (!dir.mkdirs() && dir.exists() && CompatHelper.compat.hasFiles(dir)) {
                 throw IllegalStateException("Target directory was not empty: '$destinationDirectory'")
             }
+
+            // The file in: determineBytesAvailable needs to exist
+            UserActionRequiredException.OutOfSpaceException.throwIfInsufficient(
+                available = Utils.determineBytesAvailable(destinationDirectory),
+                required = listEssentialFiles().sumOf { it.spaceRequired(sourceDirectory) } + 10_000_000
+            )
 
             val destination = NonLegacyAnkiDroidFolder.createInstance(destinationDirectory, context) ?: throw IllegalStateException("Destination folder was not under scoped storage '$destinationDirectory'")
 
