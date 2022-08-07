@@ -25,10 +25,29 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.setFragmentResult
 import com.ichi2.anki.R
+import com.ichi2.anki.introduction.SetupCollectionFragment.CollectionSetupOption.*
 
-class IntroductionFragment : Fragment() {
+/**
+ * Allows a user multiple choices for setting up the collection:
+ *
+ * * Starting normally
+ * * Syncing from AnkiWeb
+ *
+ * This exists for two reasons:
+ * 1) Ensuring that a user does not create two profiles: one for Anki Desktop and one for AnkiDroid
+ * 2) Adds a screen that allows for 'advanced' setup.
+ * for example: selecting a 'safe' folder using scoped storage, which would not have been deleted
+ * if the app is uninstalled.
+ */
+class SetupCollectionFragment : Fragment() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.introduction_layout, container, false)
     }
@@ -41,8 +60,33 @@ class IntroductionFragment : Fragment() {
         }
 
         view.findViewById<Button>(R.id.get_started).apply {
-            this.setOnClickListener {
-                setFragmentResult("requestKey", bundleOf("bundleKey" to "result"))
+            setOnClickListener { setResult(DeckPickerWithNewCollection) }
+        }
+        view.findViewById<Button>(R.id.sync_profile).apply {
+            setOnClickListener { setResult(SyncFromExistingAccount) }
+        }
+    }
+
+    private fun setResult(option: CollectionSetupOption) {
+        setFragmentResult(FRAGMENT_KEY, bundleOf(RESULT_KEY to option))
+    }
+
+    enum class CollectionSetupOption {
+        /** Continues to the DeckPicker with a new collection */
+        DeckPickerWithNewCollection,
+        /** Syncs an existing profile from AnkiWeb */
+        SyncFromExistingAccount
+    }
+
+    companion object {
+        const val FRAGMENT_KEY = "collectionSetup"
+        const val RESULT_KEY = "result"
+
+        /** Handles a result from a [SetupCollectionFragment] */
+        fun FragmentActivity.handleCollectionSetupOption(handleResult: (CollectionSetupOption) -> Unit) {
+            supportFragmentManager.setFragmentResultListener(FRAGMENT_KEY, this) { _, b ->
+                val item = b[RESULT_KEY] as CollectionSetupOption
+                handleResult(item)
             }
         }
     }

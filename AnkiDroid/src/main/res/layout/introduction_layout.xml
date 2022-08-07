@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/white">
+    android:background="?android:attr/colorBackground">
 
     <ImageView
         android:id="@+id/top_gradient"
@@ -91,7 +92,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:paddingHorizontal="30dp"
-            android:text="AnkiDroid's scheduler saves time: strengthening your weakest memories and preserving your strongest"
+            android:text="AnkiDroid's scheduler saves time by strengthening your weakest memories and preserving your strongest"
             android:textAlignment="viewStart"
             android:textColor="@color/black"
             android:textSize="18sp"
@@ -110,6 +111,8 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintWidth_max="1000dp">
+
+        <!-- TODO: buttons do not have animation -->
 
         <Button
             android:id="@+id/get_started"

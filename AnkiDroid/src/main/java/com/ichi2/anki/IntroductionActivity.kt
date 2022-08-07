@@ -20,18 +20,33 @@ package com.ichi2.anki
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
 import com.github.appintro.AppIntro
 import com.github.appintro.AppIntroPageTransformerType
 import com.ichi2.anki.InitialActivity.StartupFailure
-import com.ichi2.anki.introduction.IntroductionFragment
+import com.ichi2.anki.introduction.SetupCollectionFragment
+import com.ichi2.anki.introduction.SetupCollectionFragment.*
+import com.ichi2.anki.introduction.SetupCollectionFragment.Companion.handleCollectionSetupOption
+import com.ichi2.themes.Themes
 import timber.log.Timber
 
 /**
  * App introduction for new users.
  */
 class IntroductionActivity : AppIntro() {
+
+    private val onLoginResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+        if (result.resultCode == RESULT_OK) {
+            finish()
+        } else {
+            Timber.i("login was not successful")
+        }
+        invalidateOptionsMenu() // maybe the availability of undo changed
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
@@ -44,12 +59,24 @@ class IntroductionActivity : AppIntro() {
         startupFailure?.let {
             handleStartupFailure(it)
         }
+        Themes.setTheme(this)
 
         setTransformer(AppIntroPageTransformerType.Zoom)
 
-        addSlide(IntroductionFragment())
+        addSlide(SetupCollectionFragment())
+
+        handleCollectionSetupOption { option ->
+            when (option) {
+                CollectionSetupOption.DeckPickerWithNewCollection -> startDeckPicker()
+                CollectionSetupOption.SyncFromExistingAccount -> openLoginDialog()
+            }
+        }
 
         this.setColorDoneText(R.color.black)
+    }
+
+    private fun openLoginDialog() {
+        onLoginResult.launch(Intent(this, LoginActivity::class.java))
     }
 
     override fun onSkipPressed(currentFragment: Fragment?) {
@@ -77,13 +104,12 @@ class IntroductionActivity : AppIntro() {
      */
     private fun handleStartupFailure(startupFailure: StartupFailure) {
         if (startupFailure == StartupFailure.WEBVIEW_FAILED) {
-            MaterialDialog.Builder(this)
-                .title(R.string.ankidroid_init_failed_webview_title)
-                .content(getString(R.string.ankidroid_init_failed_webview, AnkiDroidApp.getWebViewErrorMessage()))
-                .positiveText(R.string.close)
-                .onPositive { _, _ -> finish() }
-                .cancelable(false)
-                .show()
+            MaterialDialog(this).show {
+                title(R.string.ankidroid_init_failed_webview_title)
+                message(R.string.ankidroid_init_failed_webview, AnkiDroidApp.getWebViewErrorMessage())
+                positiveButton(R.string.close) { finish() }
+                cancelable(false)
+            }
         }
     }
 

@@ -249,6 +249,12 @@
             android:configChanges="keyboardHidden|orientation|locale|screenSize|uiMode"
             />
         <activity
+            android:name="com.ichi2.anki.LoginActivity"
+            android:label="@string/menu_my_account"
+            android:exported="false"
+            android:configChanges="keyboardHidden|orientation|locale|screenSize|uiMode"
+            />
+        <activity
             android:name="com.ichi2.anki.Preferences"
             android:label="@string/settings"
             android:exported="false"
