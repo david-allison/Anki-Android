@@ -21,7 +21,10 @@ import android.app.Activity.RESULT_OK
 import android.os.Bundle
 import android.view.View
 import android.view.View.GONE
+import androidx.lifecycle.Lifecycle
+import com.ichi2.anki.UIUtils.showThemedToast
 import com.ichi2.annotations.NeedsTest
+import timber.log.Timber
 
 /**
  * An activity which **only** involves logging in to an account:
@@ -36,16 +39,18 @@ import com.ichi2.annotations.NeedsTest
  * Activity Results:
  * * [RESULT_OK] - login was successful OR login had already occurred
  * * [RESULT_CANCELED] - login did not occur
+ *
+ * TODO: Move this to a fragment
  */
 @NeedsTest("check result codes based on login result")
-@NeedsTest("activity is closed if logged in")
+@NeedsTest("activity is closed if started when logged in")
 class LoginActivity : MyAccount() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        findViewById<View>(R.id.sign_up_button).visibility = GONE
-        findViewById<View>(R.id.no_account_text).visibility = GONE
+        findViewById<View>(R.id.sign_up_button)?.visibility = GONE
+        findViewById<View>(R.id.no_account_text)?.visibility = GONE
     }
 
     /**
@@ -53,6 +58,11 @@ class LoginActivity : MyAccount() {
      */
     override fun switchToState(newState: Int) {
         if (newState == STATE_LOGGED_IN) {
+            // This was intended to be shown from the 'app intro' where a user should not be logged in
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                showThemedToast(this, R.string.already_logged_in, true)
+                Timber.w("LoginActivity shown when user was logged in")
+            }
             setResult(RESULT_OK)
             finish()
             return

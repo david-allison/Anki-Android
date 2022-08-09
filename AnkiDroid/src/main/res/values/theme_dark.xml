@@ -133,6 +133,10 @@
         <item name="filterItemTextColorSelected">@color/theme_dark_accent</item>
         <item name="filterHeaderDivider">@color/white</item>
 
+
+        <!-- Introduction -->
+        <item name="introductionLogoTransparent">#883d3d3d</item>
+
     </style>
 
     <!-- Preferences screens -->

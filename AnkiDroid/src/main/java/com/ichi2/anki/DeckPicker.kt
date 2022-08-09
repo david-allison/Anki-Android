@@ -47,6 +47,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -139,6 +140,9 @@ import kotlin.math.roundToLong
  * * A custom image as a background can be added: [applyDeckPickerBackground]
  */
 @KotlinCleanup("lots to do")
+@NeedsTest("On a new startup, the App Intro is displayed")
+@NeedsTest("If the collection has been created, the app intro is not displayed")
+@NeedsTest("If the user selects 'Sync Profile' in the app intro, a sync starts immediately")
 open class DeckPicker :
     NavigationDrawerActivity(),
     StudyOptionsListener,
@@ -364,6 +368,19 @@ open class DeckPicker :
 
         // Then set theme and content view
         super.onCreate(savedInstanceState)
+
+        // handle the first load: display the app introduction
+        if (!hasShowedAppIntro()) {
+            val appIntro = Intent(this, IntroductionActivity::class.java)
+            appIntro.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivityWithoutAnimation(appIntro)
+            finish() // calls onDestroy() immediately
+            return
+        }
+        if (intent.hasExtra("syncFromLogin")) {
+            mSyncOnResume = true
+        }
+
         handleStartup()
         setContentView(R.layout.homescreen)
         val mainView = findViewById<View>(android.R.id.content)
@@ -443,6 +460,23 @@ open class DeckPicker :
         mShortAnimDuration = resources.getInteger(android.R.integer.config_shortAnimTime)
 
         Onboarding.DeckPicker(this, mRecyclerViewLayoutManager).onCreate()
+    }
+
+    private fun hasShowedAppIntro(): Boolean {
+        val prefs = AnkiDroidApp.getSharedPrefs(this)
+
+        // if moving from 2.15 to 2.16 then we do not want to show the intro
+        // remove this after ~2.17 and default to 'false' if the pref is not set
+        if (!prefs.contains(IntentHandler.INTRODUCTION_SLIDES_SHOWN)) {
+            return if (!InitialActivity.wasFreshInstall(prefs)) {
+                prefs.edit { putBoolean(IntentHandler.INTRODUCTION_SLIDES_SHOWN, true) }
+                true
+            } else {
+                false
+            }
+        }
+
+        return prefs.getBoolean(IntentHandler.INTRODUCTION_SLIDES_SHOWN, false)
     }
 
     /**
@@ -810,7 +844,8 @@ open class DeckPicker :
 
     fun refreshState() {
         mActivityPaused = false
-        if (mSyncOnResume) {
+        // Due to the App Introduction, this may be called before permission has been granted.
+        if (mSyncOnResume && hasStorageAccessPermission(this)) {
             Timber.i("Performing Sync on Resume")
             sync()
             mSyncOnResume = false

@@ -88,8 +88,7 @@ open class MyAccount : AnkiActivity() {
         }
         mayOpenUrl(Uri.parse(resources.getString(R.string.register_url)))
         initAllContentViews()
-        val preferences = AnkiDroidApp.getSharedPrefs(baseContext)
-        if (preferences.getString("hkey", "")!!.isNotEmpty()) {
+        if (isLoggedIn()) {
             switchToState(STATE_LOGGED_IN)
         } else {
             switchToState(STATE_LOG_IN)
@@ -100,6 +99,9 @@ open class MyAccount : AnkiActivity() {
             mAnkidroidLogo.visibility = View.VISIBLE
         }
     }
+
+    protected fun isLoggedIn() =
+        AnkiDroidApp.getSharedPrefs(baseContext).getString("hkey", "")!!.isNotEmpty()
 
     fun attemptLogin() {
         val username = mUsername.text.toString().trim { it <= ' ' } // trim spaces, issue 1586

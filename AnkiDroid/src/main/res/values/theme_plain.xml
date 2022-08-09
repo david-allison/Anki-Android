@@ -62,6 +62,9 @@
         <item name="filterItemTextColor">@color/theme_light_drawer_item</item>
         <item name="filterItemTextColorSelected">@color/material_light_blue_500</item>
         <item name="filterHeaderDivider">@color/black</item>
+
+        <!-- Introduction -->
+        <item name="introductionLogoTransparent">#99FFFFFF</item>
     </style>
 
     <!-- Preferences screens -->

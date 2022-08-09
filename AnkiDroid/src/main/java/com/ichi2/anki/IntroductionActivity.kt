@@ -22,6 +22,7 @@ import android.os.Bundle
 import android.os.Process
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
 import com.github.appintro.AppIntro
@@ -30,6 +31,7 @@ import com.ichi2.anki.InitialActivity.StartupFailure
 import com.ichi2.anki.introduction.SetupCollectionFragment
 import com.ichi2.anki.introduction.SetupCollectionFragment.*
 import com.ichi2.anki.introduction.SetupCollectionFragment.Companion.handleCollectionSetupOption
+import com.ichi2.themes.ThemeUtils.getThemedColor
 import com.ichi2.themes.Themes
 import timber.log.Timber
 
@@ -40,7 +42,7 @@ class IntroductionActivity : AppIntro() {
 
     private val onLoginResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode == RESULT_OK) {
-            finish()
+            startDeckPicker(RESULT_SYNC_PROFILE)
         } else {
             Timber.i("login was not successful")
         }
@@ -67,12 +69,12 @@ class IntroductionActivity : AppIntro() {
 
         handleCollectionSetupOption { option ->
             when (option) {
-                CollectionSetupOption.DeckPickerWithNewCollection -> startDeckPicker()
+                CollectionSetupOption.DeckPickerWithNewCollection -> startDeckPicker(RESULT_START_NEW)
                 CollectionSetupOption.SyncFromExistingAccount -> openLoginDialog()
             }
         }
 
-        this.setColorDoneText(R.color.black)
+        this.setColorDoneText(getThemedColor(android.R.attr.textColorPrimary))
     }
 
     private fun openLoginDialog() {
@@ -81,18 +83,22 @@ class IntroductionActivity : AppIntro() {
 
     override fun onSkipPressed(currentFragment: Fragment?) {
         super.onSkipPressed(currentFragment)
-        startDeckPicker()
+        startDeckPicker(RESULT_START_NEW)
     }
 
     override fun onDonePressed(currentFragment: Fragment?) {
         super.onDonePressed(currentFragment)
-        startDeckPicker()
+        startDeckPicker(RESULT_START_NEW)
     }
 
-    private fun startDeckPicker() {
-        AnkiDroidApp.getSharedPrefs(this).edit().putBoolean(IntentHandler.INTRODUCTION_SLIDES_SHOWN, true).apply()
+    private fun startDeckPicker(result: Int = RESULT_START_NEW) {
+        AnkiDroidApp.getSharedPrefs(this).edit { putBoolean(IntentHandler.INTRODUCTION_SLIDES_SHOWN, true) }
         val deckPicker = Intent(this, DeckPicker::class.java)
         deckPicker.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (result == RESULT_SYNC_PROFILE) {
+            deckPicker.putExtra("syncFromLogin", true)
+        }
+
         startActivity(deckPicker)
         finish()
     }
@@ -152,5 +158,10 @@ class IntroductionActivity : AppIntro() {
             Process.killProcess(Process.myPid())
         }.start()
         return true
+    }
+
+    companion object {
+        const val RESULT_START_NEW = 1
+        const val RESULT_SYNC_PROFILE = 2
     }
 }
