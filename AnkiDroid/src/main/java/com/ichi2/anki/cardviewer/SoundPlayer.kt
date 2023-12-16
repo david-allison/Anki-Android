@@ -83,7 +83,7 @@ import java.io.File
  *
  */
 class SoundPlayer(
-    private val soundPlayer: SoundTagPlayer,
+    private val soundTagPlayer: SoundTagPlayer,
     private val ttsPlayer: Deferred<TtsPlayer>,
     private val lifecycle: Lifecycle,
     private val onSoundGroupCompleted: () -> Unit,
@@ -175,7 +175,7 @@ class SoundPlayer(
     }
 
     override fun close() {
-        soundPlayer.releaseSound()
+        soundTagPlayer.releaseSound()
         try {
             ttsPlayer.getCompleted().close()
         } catch (e: Exception) {
@@ -225,7 +225,7 @@ class SoundPlayer(
         suspend fun play() {
             ensureActive()
             when (tag) {
-                is SoundOrVideoTag -> soundPlayer.play(tag, soundErrorListener)
+                is SoundOrVideoTag -> soundTagPlayer.play(tag, soundErrorListener)
                 is TTSTag -> {
                     awaitTtsPlayer()?.play(tag)
                 }
@@ -310,7 +310,7 @@ class SoundPlayer(
             val soundPlayer = SoundTagPlayer(soundUriBase)
 
             return SoundPlayer(
-                soundPlayer = soundPlayer,
+                soundTagPlayer = soundPlayer,
                 ttsPlayer = tts,
                 lifecycle = viewer.lifecycle,
                 onSoundGroupCompleted = viewer::onSoundGroupCompleted,
