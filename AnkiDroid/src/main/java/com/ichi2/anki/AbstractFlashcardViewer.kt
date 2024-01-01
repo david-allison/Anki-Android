@@ -1700,6 +1700,11 @@ abstract class AbstractFlashcardViewer :
                 true
             }
 
+            ViewerCommand.SAVE_VOICE -> {
+                saveRecording()
+                true
+            }
+
             ViewerCommand.REPLAY_VOICE -> {
                 replayVoice()
                 true
@@ -1742,6 +1747,10 @@ abstract class AbstractFlashcardViewer :
     }
 
     protected open fun replayVoice() {
+        // intentionally blank
+    }
+
+    protected open fun saveRecording() {
         // intentionally blank
     }
 

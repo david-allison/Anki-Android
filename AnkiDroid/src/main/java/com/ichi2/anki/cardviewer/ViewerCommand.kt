@@ -31,7 +31,6 @@ import com.ichi2.anki.reviewer.MappableBinding.Companion.fromPreference
 import com.ichi2.anki.reviewer.MappableBinding.Companion.toPreferenceString
 import java.util.*
 import java.util.function.BiFunction
-import java.util.stream.Collectors
 
 /** Abstraction: Discuss moving many of these to 'Reviewer'  */
 enum class ViewerCommand(val resourceId: Int) {
@@ -65,6 +64,7 @@ enum class ViewerCommand(val resourceId: Int) {
     CARD_INFO(R.string.card_info_title),
     ABORT_AND_SYNC(R.string.gesture_abort_sync),
     RECORD_VOICE(R.string.record_voice),
+    SAVE_VOICE(R.string.save_voice),
     REPLAY_VOICE(R.string.replay_voice),
     TOGGLE_WHITEBOARD(R.string.gesture_toggle_whiteboard),
     CLEAR_WHITEBOARD(R.string.clear_whiteboard),
@@ -76,9 +76,9 @@ enum class ViewerCommand(val resourceId: Int) {
 
     companion object {
         val allDefaultBindings: List<MappableBinding>
-            get() = Arrays.stream(values())
-                .flatMap { x: ViewerCommand -> x.defaultValue.stream() }
-                .collect(Collectors.toList())
+            get() = entries.toTypedArray()
+                .flatMap { it.defaultValue }
+                .toList()
 
         fun fromPreferenceKey(key: String) = ViewerCommand.entries.first { it.preferenceKey == key }
     }
@@ -164,6 +164,7 @@ enum class ViewerCommand(val resourceId: Int) {
                 PLAY_MEDIA -> listOf(keyCode(KeyEvent.KEYCODE_R, CardSide.BOTH), keyCode(KeyEvent.KEYCODE_F5, CardSide.BOTH))
                 REPLAY_VOICE -> listOf(keyCode(KeyEvent.KEYCODE_V, CardSide.BOTH))
                 RECORD_VOICE -> listOf(keyCode(KeyEvent.KEYCODE_V, CardSide.BOTH, shift()))
+                SAVE_VOICE -> listOf(keyCode(KeyEvent.KEYCODE_S, CardSide.BOTH, shift()))
                 UNDO -> listOf(keyCode(KeyEvent.KEYCODE_Z, CardSide.BOTH))
                 REDO -> listOf(keyCode(KeyEvent.KEYCODE_Z, CardSide.BOTH, ModifierKeys(shift = true, ctrl = true, alt = false)))
                 TOGGLE_FLAG_RED -> listOf(keyCode(KeyEvent.KEYCODE_1, CardSide.BOTH, ctrl()), keyCode(KeyEvent.KEYCODE_NUMPAD_1, CardSide.BOTH, ctrl()))
