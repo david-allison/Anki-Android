@@ -22,6 +22,7 @@
         <!-- Tab layout -->
         <item name="tabLayoutBackgroundColor">@color/theme_plain_primary</item>
         <!-- Reviewer colors -->
+        <item name="showAnswerColor">@color/theme_plain_primary</item>
         <item name="topBarColor">@color/theme_plain_primary_light</item>
         <!-- Reviewer button drawables -->
         <item name="againButtonRef">@drawable/footer_button_all_plain</item>

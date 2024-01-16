@@ -54,6 +54,7 @@
         <item name="reviewCountColor">@color/material_green_700</item>
         <item name="zeroCountColor">#1f000000</item>
         <!-- Reviewer colors -->
+        <item name="showAnswerColor">@color/material_blue_grey_700</item>
         <item name="topBarColor">@color/material_light_blue_100</item>
         <item name="maxTimerColor">@color/material_red_500</item>
         <item name="answerButtonTextColor">@color/white</item>
