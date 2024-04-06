@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/answer_buttons_highlight_color">
-    <item android:id="@android:id/mask">
+
+    <item android:id="@android:id/mask"
+        android:left="8dp"
+        android:right="8dp"
+        android:top="8dp"
+        android:bottom="8dp">
         <shape android:shape="rectangle" >
-            <solid android:color="@color/material_red_700" />
+            <solid android:color="#fff4c7c3" />
+            <corners android:radius="10dp" />
         </shape>
     </item>
     <item
-        android:id="@android:id/background"
-        android:drawable="@color/material_red_700" />
+        android:left="4dp"
+        android:right="4dp">
+        <shape android:shape="rectangle" >
+            <solid android:color="#fff4c7c3" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
 </ripple>

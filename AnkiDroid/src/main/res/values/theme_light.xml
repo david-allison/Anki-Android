@@ -57,19 +57,20 @@
         <item name="topBarColor">@color/material_light_blue_100</item>
         <item name="maxTimerColor">@color/material_red_500</item>
         <item name="answerButtonTextColor">@color/white</item>
-        <item name="againButtonTextColor">@color/white</item>
-        <item name="hardButtonTextColor">@color/white</item>
-        <item name="goodButtonTextColor">@color/white</item>
-        <item name="easyButtonTextColor">@color/white</item>
+        <item name="againButtonTextColor">#FF0000</item>
+        <item name="hardButtonTextColor">@color/material_grey_800</item>
+        <item name="goodButtonTextColor">#228B22</item>
+        <item name="easyButtonTextColor">#1E90FF</item>
         <item name="alternativeBackgroundColor">#f4f5f9</item>
         <!-- Reviewer button drawables -->
-        <item name="showAnswerColor">@color/material_blue_grey_700</item>
+        <item name="showAnswerColor">@color/material_grey_100</item>
         <item name="againButtonRef">@drawable/footer_button_again</item>
         <item name="hardButtonRef">@drawable/footer_button_hard</item>
         <item name="goodButtonRef">@drawable/footer_button_good</item>
         <item name="easyButtonRef">@drawable/footer_button_easy</item>
         <item name="againButtonRippleRef">@drawable/footer_button_again_ripple</item>
         <item name="hardButtonRippleRef">@drawable/footer_button_hard_ripple</item>
+        <item name="hardButtonOriginalRippleRef">@drawable/footer_button_hard_ripple_original</item>
         <item name="goodButtonRippleRef">@drawable/footer_button_good_ripple</item>
         <item name="easyButtonRippleRef">@drawable/footer_button_easy_ripple</item>
         <!-- Card Browser Colors -->

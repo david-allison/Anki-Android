@@ -49,15 +49,16 @@
         <item name="android:ellipsize">marquee</item>
         <item name="android:gravity">bottom|center_horizontal</item>
         <item name="android:singleLine">true</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="FooterButtonEaseTextBase" parent="FooterButtonNextTime">
-        <item name="android:textSize">14sp</item>
         <item name="android:typeface">sans</item>
     </style>
     <style name="FooterButtonEaseText" parent="FooterButtonEaseTextBase" >
         <item name="android:fontFamily">@string/font_fontFamily_medium</item>
+        <item name="android:textSize">17sp</item>
+        <item name="itemTextAppearanceActiveBoldEnabled">true</item>
     </style>
 
     <!-- Styles for each of the 4 answer buttons -->

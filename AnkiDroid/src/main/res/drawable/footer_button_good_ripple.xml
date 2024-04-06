@@ -3,10 +3,16 @@
     android:color="@color/answer_buttons_highlight_color">
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle" >
-            <solid android:color="@color/material_green_500" />
+            <solid android:color="@color/material_green_100" />
+            <corners android:radius="10dp" />
         </shape>
     </item>
     <item
-        android:id="@android:id/background"
-        android:drawable="@color/material_green_500" />
+        android:left="4dp"
+        android:right="4dp">
+        <shape android:shape="rectangle" >
+            <solid android:color="@color/material_green_100" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
 </ripple>
