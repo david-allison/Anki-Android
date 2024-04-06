@@ -32,7 +32,7 @@
         <item name="popupMenuStyle">@style/PopupMenuStyle</item>
         <item name="spinnerStyle">@style/SpinnerStyle</item>
         <!-- Action bar styles -->
-        <item name="appBarColor">?attr/colorPrimary</item>
+        <item name="appBarColor">?attr/alternativeBackgroundColor</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="windowActionModeOverlay">true</item>
@@ -54,7 +54,7 @@
         <item name="reviewCountColor">@color/material_green_700</item>
         <item name="zeroCountColor">#1f000000</item>
         <!-- Reviewer colors -->
-        <item name="topBarColor">@color/material_light_blue_100</item>
+        <item name="topBarColor">?attr/alternativeBackgroundColor</item>
         <item name="maxTimerColor">@color/material_red_500</item>
         <item name="answerButtonTextColor">@color/white</item>
         <item name="againButtonTextColor">#FF0000</item>

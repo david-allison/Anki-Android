@@ -186,10 +186,10 @@ open class Reviewer :
         if (sharedPrefs().getString("answerButtonPosition", "bottom") == "bottom") {
             setNavigationBarColor(R.attr.showAnswerColor)
         }
-        if (!sharedPrefs().getBoolean("showDeckTitle", false)) {
-            // avoid showing "AnkiDroid"
-            supportActionBar?.title = ""
-        }
+//        if (!sharedPrefs().getBoolean("showDeckTitle", false)) {
+//            // avoid showing "AnkiDroid"
+//            supportActionBar?.title = ""
+//        }
         startLoadingCollection()
     }
 
