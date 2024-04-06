@@ -214,4 +214,24 @@
         <item name="android:elevation">0.8dp</item>
     </style>
 
+    <style name="AgainIndicatorStyle">
+        <item name="colorControlNormal">?attr/againButtonTextColor</item>
+        <item name="colorOnPrimary">#fff4c7c3</item>
+    </style>
+
+    <style name="HardIndicatorStyle">
+        <item name="colorControlNormal">?attr/hardButtonTextColor</item>
+        <item name="colorOnPrimary">@color/material_blue_grey_100</item>
+    </style>
+
+    <style name="GoodIndicatorStyle">
+        <item name="colorControlNormal">?attr/goodButtonTextColor</item>
+        <item name="colorOnPrimary">@color/material_green_100</item>
+    </style>
+
+    <style name="EasyIndicatorStyle">
+        <item name="colorControlNormal">?attr/easyButtonTextColor</item>
+        <item name="colorOnPrimary">@color/material_light_blue_100</item>
+    </style>
+
 </resources>

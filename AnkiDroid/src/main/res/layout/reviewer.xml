@@ -8,6 +8,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+
     <!-- Bring in each component from separate files as we have fullscreen versions of reviewer -->
     <RelativeLayout
         android:id="@+id/front_frame"
@@ -15,6 +17,7 @@
         android:layout_height="match_parent"
         android:background="?attr/alternativeBackgroundColor"
         >
+
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/appbar"
             android:layout_width="match_parent"
@@ -57,15 +60,101 @@
             android:layout_below="@id/top_bar"
             />
 
+
+        <FrameLayout
+            android:id="@+id/aaa"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/reviewer_progress"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="8dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/btn_indicator_review_pass"
+            android:theme="@style/EasyIndicatorStyle"
+            />
+        <FrameLayout
+            android:id="@+id/bbb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/aaa"
+            android:layout_alignTop="@id/aaa"
+            android:layout_marginHorizontal="4dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/btn_indicator_review_pass"
+            android:theme="@style/GoodIndicatorStyle"
+            />
+        <FrameLayout
+            android:id="@+id/ccc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/bbb"
+            android:layout_alignTop="@id/bbb"
+            android:layout_marginBottom="8dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/btn_indicator_review_pass"
+            android:theme="@style/HardIndicatorStyle"
+            />
+        <FrameLayout
+            android:id="@+id/ddd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/ccc"
+            android:layout_alignTop="@id/ccc"
+            android:layout_marginBottom="8dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/btn_indicator_fail"
+            android:theme="@style/AgainIndicatorStyle"
+            />
+
+        <FrameLayout
+            android:id="@+id/again_step"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/ddd"
+            android:layout_marginBottom="8dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_toStartOf="@id/ccc"
+            android:background="@drawable/btn_indicator_fail"
+            android:theme="@style/AgainIndicatorStyle" />
+
+        <FrameLayout
+            android:id="@+id/hard_step"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/ccc"
+            android:layout_below="@+id/ccc"
+            android:background="@drawable/btn_indicator_review_step_retry"
+            android:theme="@style/HardIndicatorStyle" />
+
+        <FrameLayout
+            android:id="@+id/good_step"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@id/bbb"
+            android:layout_below="@+id/aaa"
+            android:background="@drawable/btn_indicator_review_step_next"
+            android:theme="@style/GoodIndicatorStyle"
+            />
+
+        <FrameLayout
+            android:id="@+id/easy_step"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignStart="@id/aaa"
+            android:layout_below="@+id/aaa"
+            android:background="@drawable/btn_indicator_review_step_graduate"
+            android:theme="@style/EasyIndicatorStyle" />
+
         <include
             layout="@layout/reviewer_mic_tool_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/reviewer_progress" />
+            android:layout_below="@id/easy_step" />
 
         <include
             layout="@layout/reviewer_flashcard"
             android:layout_width="wrap_content"
+            android:visibility="gone"
             android:layout_height="wrap_content"
             android:layout_below="@id/mic_tool_bar_layer"
             />
