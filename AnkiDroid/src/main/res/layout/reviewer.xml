@@ -21,11 +21,20 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/toolbar" />
 
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/reviewer_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="10"
+            android:progress="7"
+            android:layout_below="@id/top_bar"
+            />
+
         <include
             layout="@layout/reviewer_mic_tool_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/top_bar" />
+            android:layout_below="@id/reviewer_progress" />
 
         <include
             layout="@layout/reviewer_flashcard"

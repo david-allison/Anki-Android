@@ -99,7 +99,7 @@
             android:visibility="visible"
             android:focusable="false"
             android:orientation="horizontal"
-            android:background="?attr/hardButtonOriginalRippleRef"
+            android:background="@color/transparent"
             android:paddingTop="2dp"
             android:paddingLeft="4dp"
             android:paddingRight="4dp"
@@ -200,7 +200,10 @@
             android:orientation="vertical"
             android:focusable="true"
             android:background="?attr/hardButtonOriginalRippleRef"
-            tools:visibility="gone">
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            tools:visibility="visible">
 
             <com.ichi2.ui.FixedTextView
                 android:layout_width="wrap_content"
