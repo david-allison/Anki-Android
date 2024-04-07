@@ -83,11 +83,12 @@ enum class AnswerButtons {
         fun getBackgroundColors(ctx: AnkiActivity): IntArray {
             val backgroundIds: IntArray =
                 if (ctx.animationEnabled()) {
+                    // TODO: optimize
                     intArrayOf(
-                        R.attr.againButtonRippleRef,
-                        R.attr.hardButtonRippleRef,
-                        R.attr.goodButtonRippleRef,
-                        R.attr.easyButtonRippleRef
+                        R.attr.buttonRippleRef,
+                        R.attr.buttonRippleRef,
+                        R.attr.buttonRippleRef,
+                        R.attr.buttonRippleRef
                     )
                 } else {
                     intArrayOf(

@@ -55,10 +55,7 @@
         <item name="hardButtonRef">@drawable/footer_button_all_black</item>
         <item name="goodButtonRef">@drawable/footer_button_all_black</item>
         <item name="easyButtonRef">@drawable/footer_button_all_black</item>
-        <item name="againButtonRippleRef">@drawable/footer_button_ripple_border</item>
-        <item name="hardButtonRippleRef">@drawable/footer_button_ripple_border</item>
-        <item name="goodButtonRippleRef">@drawable/footer_button_ripple_border</item>
-        <item name="easyButtonRippleRef">@drawable/footer_button_ripple_border</item>
+        <item name="buttonRippleRef">@drawable/footer_button_ripple_border</item>
         <!-- Card Browser Colors -->
         <item name="cardBrowserDivider">@color/white</item>
         <!-- Browser colors -->

@@ -107,10 +107,7 @@
     <attr name="goodButtonRef" format="reference"/>
     <attr name="easyButtonRef" format="reference"/>
     <!-- Same thing but with ripples -->
-    <attr name="againButtonRippleRef" format="reference"/>
-    <attr name="hardButtonRippleRef" format="reference"/>
-    <attr name="goodButtonRippleRef" format="reference"/>
-    <attr name="easyButtonRippleRef" format="reference"/>
+    <attr name="buttonRippleRef" format="reference"/>
     <!-- Reviewer button text colors-->
     <attr name="answerButtonTextColor" format="color"/>
     <attr name="againButtonTextColor" format="color"/>
