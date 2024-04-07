@@ -48,15 +48,17 @@
         <item name="goodButtonTextColor">@color/material_green_400</item>
         <item name="easyButtonTextColor">@color/material_blue_700</item>
         <item name="alternativeBackgroundColor">#101010</item>
+        <item name="answerButtonBackground">#000000</item>
+        <item name="answerButtonBorderColor">#505050</item>
         <!-- Reviewer button drawables -->
         <item name="againButtonRef">@drawable/footer_button_all_black</item>
         <item name="hardButtonRef">@drawable/footer_button_all_black</item>
         <item name="goodButtonRef">@drawable/footer_button_all_black</item>
         <item name="easyButtonRef">@drawable/footer_button_all_black</item>
-        <item name="againButtonRippleRef">@drawable/footer_button_all_black_ripple</item>
-        <item name="hardButtonRippleRef">@drawable/footer_button_all_black_ripple</item>
-        <item name="goodButtonRippleRef">@drawable/footer_button_all_black_ripple</item>
-        <item name="easyButtonRippleRef">@drawable/footer_button_all_black_ripple</item>
+        <item name="againButtonRippleRef">@drawable/footer_button_ripple_border</item>
+        <item name="hardButtonRippleRef">@drawable/footer_button_ripple_border</item>
+        <item name="goodButtonRippleRef">@drawable/footer_button_ripple_border</item>
+        <item name="easyButtonRippleRef">@drawable/footer_button_ripple_border</item>
         <!-- Card Browser Colors -->
         <item name="cardBrowserDivider">@color/white</item>
         <!-- Browser colors -->
