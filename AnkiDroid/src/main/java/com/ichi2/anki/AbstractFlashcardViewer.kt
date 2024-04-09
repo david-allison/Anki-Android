@@ -197,7 +197,7 @@ abstract class AbstractFlashcardViewer :
     internal var easeButton4: EaseButton? = null
     protected var topBarLayout: RelativeLayout? = null
     private val clipboard: ClipboardManager? = null
-    private var previousAnswerIndicator: PreviousAnswerIndicator? = null
+    private lateinit var previousAnswerIndicator: PreviousAnswerIndicator
 
     private var currentEase = 0
     private var initialFlipCardHeight = 0
@@ -833,12 +833,8 @@ abstract class AbstractFlashcardViewer :
                 return@launchCatchingTask
             }
             isSelecting = false
-            if (previousAnswerIndicator == null) {
-                // workaround for a broken ReviewerKeyboardInputTest
-                return@launchCatchingTask
-            }
             // Temporarily sets the answer indicator dots appearing below the toolbar
-            previousAnswerIndicator?.displayAnswerIndicator(ease)
+            previousAnswerIndicator.displayAnswerIndicator(ease)
             soundPlayer.stopSounds()
             currentEase = ease
 
@@ -1146,12 +1142,12 @@ abstract class AbstractFlashcardViewer :
     }
 
     protected open fun switchTopBarVisibility(visible: Int) {
-        previousAnswerIndicator!!.setVisibility(visible)
+        previousAnswerIndicator.setVisibility(visible)
     }
 
     protected open fun initControls() {
         cardFrame!!.visibility = View.VISIBLE
-        previousAnswerIndicator!!.setVisibility(View.VISIBLE)
+        previousAnswerIndicator.setVisibility(View.VISIBLE)
         flipCardLayout!!.visibility = View.VISIBLE
         answerField!!.visibility = if (typeAnswer!!.validForEditText()) View.VISIBLE else View.GONE
         answerField!!.setOnEditorActionListener { _, actionId: Int, _ ->
@@ -1828,7 +1824,7 @@ abstract class AbstractFlashcardViewer :
 
     protected open fun closeReviewer(result: Int) {
         automaticAnswer.disable()
-        previousAnswerIndicator!!.stopAutomaticHide()
+        previousAnswerIndicator.stopAutomaticHide()
         longClickHandler.removeCallbacks(startLongClickAction)
         this@AbstractFlashcardViewer.setResult(result)
         finish()
