@@ -16,7 +16,11 @@
 
 package com.ichi2.anki.reviewer
 
+import android.animation.ObjectAnimator
+import android.graphics.drawable.Drawable
+import android.webkit.WebView
 import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
 import com.ichi2.anki.AbstractFlashcardViewer
 import com.ichi2.anki.R
 import com.ichi2.anki.reviewer.PreviousAnswerIndicator.Companion.CHOSEN_ANSWER_DURATION_MS
@@ -30,7 +34,7 @@ import timber.log.Timber
  *
  * This is hidden after a timer ([CHOSEN_ANSWER_DURATION_MS])
  */
-class PreviousAnswerIndicator(private val chosenAnswerText: TextView) {
+class PreviousAnswerIndicator(private val chosenAnswerText: TextView, val getWebView: () -> WebView?) {
 
     /** After the indicator is displayed, it is hidden after a timeout */
     private val timerHandler = newHandler()
@@ -73,6 +77,15 @@ class PreviousAnswerIndicator(private val chosenAnswerText: TextView) {
         // remove chosen answer hint after a while
         timerHandler.removeCallbacks(removeChosenAnswerText)
         timerHandler.postDelayed(removeChosenAnswerText, CHOSEN_ANSWER_DURATION_MS)
+
+        getWebView()?.let { webView ->
+            val d: Drawable = ResourcesCompat.getDrawable(webView.context.resources, R.drawable.btn_indicator_layered, null)!!
+            d.setBounds(0, 0, webView.measuredWidth, webView.measuredHeight)
+            webView.overlay.add(d)
+            val animator = ObjectAnimator.ofInt(d, "alpha", 255, 0)
+            animator.setDuration(700)
+            animator.start()
+        }
     }
 
     private fun clear() {
