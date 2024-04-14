@@ -21,11 +21,11 @@
         android:gravity="top|right"
         >
         <shape android:shape="rectangle">
-            <solid android:color="@color/material_red_200" />
+            <solid android:color="#FFF59D" />
             <corners android:radius="12dp" />
         </shape>
     </item>
-    <item android:drawable="@drawable/new_and_learn_again"
+    <item android:drawable="@drawable/new_and_learn_hard"
         android:width="44dp"
         android:height="44dp"
         android:top="2dp"

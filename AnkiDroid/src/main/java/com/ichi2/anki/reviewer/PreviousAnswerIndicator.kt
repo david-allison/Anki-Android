@@ -22,6 +22,10 @@ import android.webkit.WebView
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import com.ichi2.anki.AbstractFlashcardViewer
+import com.ichi2.anki.AbstractFlashcardViewer.Companion.EASE_1
+import com.ichi2.anki.AbstractFlashcardViewer.Companion.EASE_2
+import com.ichi2.anki.AbstractFlashcardViewer.Companion.EASE_3
+import com.ichi2.anki.AbstractFlashcardViewer.Companion.EASE_4
 import com.ichi2.anki.R
 import com.ichi2.anki.reviewer.PreviousAnswerIndicator.Companion.CHOSEN_ANSWER_DURATION_MS
 import com.ichi2.utils.HandlerUtils.newHandler
@@ -78,12 +82,20 @@ class PreviousAnswerIndicator(private val chosenAnswerText: TextView, val getWeb
         timerHandler.removeCallbacks(removeChosenAnswerText)
         timerHandler.postDelayed(removeChosenAnswerText, CHOSEN_ANSWER_DURATION_MS)
 
+        val indicator = when (ease) {
+            EASE_1 -> R.drawable.btn_indicator_again_layered
+            EASE_2 -> R.drawable.btn_indicator_hard_layered
+            EASE_3 -> R.drawable.btn_indicator_good_layered
+            EASE_4 -> R.drawable.btn_indicator_easy_layered
+            else -> throw IllegalArgumentException()
+        }
+
         getWebView()?.let { webView ->
-            val d: Drawable = ResourcesCompat.getDrawable(webView.context.resources, R.drawable.btn_indicator_layered, null)!!
+            val d: Drawable = ResourcesCompat.getDrawable(webView.context.resources, indicator, null)!!
             d.setBounds(0, 0, webView.measuredWidth, webView.measuredHeight)
             webView.overlay.add(d)
             val animator = ObjectAnimator.ofInt(d, "alpha", 255, 0)
-            animator.setDuration(700)
+            animator.setDuration(900)
             animator.start()
         }
     }
