@@ -18,8 +18,10 @@ package com.ichi2.libanki
 import com.ichi2.anki.getDayStart
 import com.ichi2.libanki.utils.Time
 import com.ichi2.libanki.utils.TimeManager.time
+import com.ichi2.utils.isRobolectric
 import net.ankiweb.rsdroid.Backend
 import net.ankiweb.rsdroid.BackendFactory
+import net.ankiweb.rsdroid.exceptions.BackendInvalidInputException.BackendCollectionAlreadyOpenException
 import java.io.File
 
 object Storage {
@@ -49,7 +51,12 @@ object Storage {
         if (afterFullSync) {
             create = false
         } else {
-            backend.openCollection(if (isInMemory) ":memory:" else path)
+            try {
+                backend.openCollection(if (isInMemory) ":memory:" else path)
+            } catch (e: BackendCollectionAlreadyOpenException) {
+                if (!isRobolectric) throw e
+                throw Error("BackendCollectionAlreadyOpenException", e)
+            }
         }
         val db = DB.withRustBackend(backend)
 
