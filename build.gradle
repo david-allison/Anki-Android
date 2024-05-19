@@ -43,10 +43,10 @@ subprojects {
             project.android.testOptions.unitTests.all {
                 // tell backend to avoid rollover time, and disable interval fuzzing
                 environment "ANKI_TEST_MODE", "1"
-
                 useJUnitPlatform()
                 testLogging {
-                    events "failed", "skipped"
+                    // logging "started" helps us catch timeouts
+                    events "started", "passed", "failed", "skipped"
                     showStackTraces = true
                     exceptionFormat = "full"
                 }
