@@ -34,7 +34,6 @@ import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.browser.CardBrowserViewModel
 import com.ichi2.anki.browser.CardBrowserViewModel.Companion.DISPLAY_COLUMN_1_KEY
 import com.ichi2.anki.browser.CardBrowserViewModel.Companion.DISPLAY_COLUMN_2_KEY
-import com.ichi2.anki.common.utils.isRunningAsUnitTest
 import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.model.CardsOrNotes.CARDS
 import com.ichi2.anki.model.CardsOrNotes.NOTES
@@ -58,9 +57,7 @@ import com.ichi2.ui.FixedTextView
 import com.ichi2.utils.LanguageUtil
 import io.mockk.every
 import io.mockk.mockkObject
-import io.mockk.mockkStatic
 import io.mockk.unmockkObject
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
@@ -399,11 +396,9 @@ class CardBrowserTest : RobolectricTest() {
     @Test
     fun startupFromCardBrowserActionItemShouldEndActivityIfNoPermissions() {
         try {
-            mockkStatic(::isRunningAsUnitTest)
             mockkObject(IntentHandler)
 
             every { grantedStoragePermissions(any(), any()) } returns false
-            every { isRunningAsUnitTest } returns false
 
             val browserController = Robolectric.buildActivity(CardBrowser::class.java).create()
             val cardBrowser = browserController.get()
@@ -411,7 +406,6 @@ class CardBrowserTest : RobolectricTest() {
 
             assertThat("Activity should be finishing", cardBrowser.isFinishing)
         } finally {
-            unmockkStatic(::isRunningAsUnitTest)
             unmockkObject(IntentHandler)
         }
     }
