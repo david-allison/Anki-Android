@@ -388,7 +388,7 @@ open class AnkiDroidJsAPI(private val activity: AbstractFlashcardViewer) {
 
     private suspend fun ankiSearchCardWithCallback(apiContract: ApiContract): ByteArray = withContext(Dispatchers.Main) {
         val cards = try {
-            searchForCards(apiContract.cardSuppliedData, SortOrder.UseCollectionOrdering(), CardsOrNotes.CARDS)
+            searchForRows(apiContract.cardSuppliedData, SortOrder.UseCollectionOrdering(), CardsOrNotes.CARDS)
         } catch (exc: Exception) {
             activity.webView!!.evaluateJavascript(
                 "console.log('${context.getString(R.string.search_card_js_api_no_results)}')",
@@ -399,22 +399,23 @@ open class AnkiDroidJsAPI(private val activity: AbstractFlashcardViewer) {
         }
         val searchResult: MutableList<String> = ArrayList()
         for (s in cards) {
-            val jsonObject = JSONObject()
-            val fieldsData = s.card.note(getColUnsafe).fields
-            val fieldsName = s.card.noteType(getColUnsafe).fieldsNames
-
-            val noteId = s.card.nid
-            val cardId = s.card.id
-            jsonObject.put("cardId", cardId)
-            jsonObject.put("noteId", noteId)
-
-            val jsonFieldObject = JSONObject()
-            fieldsName.zip(fieldsData).forEach { pair ->
-                jsonFieldObject.put(pair.component1(), pair.component2())
-            }
-            jsonObject.put("fieldsData", jsonFieldObject)
-
-            searchResult.add(jsonObject.toString())
+            TODO()
+//            val jsonObject = JSONObject()
+//            val fieldsData = s.card.note(getColUnsafe).fields
+//            val fieldsName = s.card.noteType(getColUnsafe).fieldsNames
+//
+//            val noteId = s.card.nid
+//            val cardId = s.card.id
+//            jsonObject.put("cardId", cardId)
+//            jsonObject.put("noteId", noteId)
+//
+//            val jsonFieldObject = JSONObject()
+//            fieldsName.zip(fieldsData).forEach { pair ->
+//                jsonFieldObject.put(pair.component1(), pair.component2())
+//            }
+//            jsonObject.put("fieldsData", jsonFieldObject)
+//
+//            searchResult.add(jsonObject.toString())
         }
 
         // quote result to prevent JSON injection attack

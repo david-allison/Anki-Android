@@ -372,7 +372,7 @@ class CardBrowserTest : RobolectricTest() {
         // check if all card flags turned green
         assertThat(
             "All cards should be flagged",
-            cardBrowser.viewModel.allCardIds
+            cardBrowser.viewModel.allIds
                 .map { cardId -> getCardFlagAfterFlagChangeDone(cardBrowser, cardId) }
                 .all { flag1 -> flag1 == Flag.GREEN.code }
         )
@@ -754,7 +754,7 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     private fun deleteCardAtPosition(browser: CardBrowser, positionToCorrupt: Int) {
-        removeCardFromCollection(browser.viewModel.allCardIds[positionToCorrupt])
+        removeCardFromCollection(browser.viewModel.allIds[positionToCorrupt])
         browser.clearCardData(positionToCorrupt)
     }
 
