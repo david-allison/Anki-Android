@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import anki.collection.OpChanges
 import anki.collection.OpChangesWithCount
+import anki.search.BrowserColumns
 import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.withCol
@@ -121,7 +122,7 @@ class CardBrowserViewModel(
      * Whether the browser is working in Cards mode or Notes mode.
      * default: [CARDS]
      * */
-    private val flowOfCardsOrNotes = MutableStateFlow(CARDS)
+    val flowOfCardsOrNotes = MutableStateFlow(CARDS)
     val cardsOrNotes get() = flowOfCardsOrNotes.value
 
     // card that was clicked (not marked)
@@ -139,6 +140,12 @@ class CardBrowserViewModel(
     val flowOfColumn2 = MutableStateFlow(CardBrowserColumn.ANSWER)
     val column1 get() = flowOfColumn1.value
     val column2 get() = flowOfColumn2.value
+
+    /** Potential headings for the first column */
+    lateinit var column1Candidates: List<BrowserColumns.Column>
+
+    /** Potential headings for the second column */
+    lateinit var column2Candidates: List<BrowserColumns.Column>
 
     val flowOfSearchQueryExpanded = MutableStateFlow(false)
 
@@ -305,12 +312,11 @@ class CardBrowserViewModel(
             val cardsOrNotes = withCol { CardsOrNotes.fromCollection() }
             flowOfCardsOrNotes.update { cardsOrNotes }
 
-            val columns = BrowserColumnCollection.load(sharedPrefs(), cardsOrNotes)
-            flowOfColumn1.update { columns.columns[0] }
-            flowOfColumn2.update { columns.columns[1] }
+            val allColumns = withCol { allBrowserColumns() }.associateBy { it.key }
+            column1Candidates = CardBrowserColumn.COLUMN1_KEYS.map { allColumns[it.ankiColumnKey]!! }
+            column2Candidates = CardBrowserColumn.COLUMN2_KEYS.map { allColumns[it.ankiColumnKey]!! }
 
-            // This impacts browserRowForId(), which we do not use yet
-            withCol { backend.setActiveBrowserColumns(columns.backendKeys) }
+            setupColumns(cardsOrNotes)
 
             withCol {
                 sortTypeFlow.update { SortType.fromCol(config, cardsOrNotes, sharedPrefs()) }
@@ -322,6 +328,16 @@ class CardBrowserViewModel(
                 flowOfInitCompleted.update { true }
             }
         }
+    }
+
+    private suspend fun setupColumns(cardsOrNotes: CardsOrNotes) {
+        Timber.d("loading columns columns for %s mode", cardsOrNotes)
+        val columns = BrowserColumnCollection.load(sharedPrefs(), cardsOrNotes)
+        flowOfColumn1.update { columns.columns[0] }
+        flowOfColumn2.update { columns.columns[1] }
+
+        // This impacts browserRowForId(), which we do not use yet
+        withCol { backend.setActiveBrowserColumns(columns.backendKeys) }
     }
 
     @VisibleForTesting
@@ -378,6 +394,7 @@ class CardBrowserViewModel(
             newValue.saveToCollection()
         }
         flowOfCardsOrNotes.update { newValue }
+        setupColumns(newValue)
     }
 
     fun setTruncated(value: Boolean) {
@@ -756,6 +773,7 @@ class CardBrowserViewModel(
     }
 
     private fun updateColumnCollection(block: (MutableList<CardBrowserColumn?>) -> Unit) {
+        Timber.d("updateColumnCollection")
         BrowserColumnCollection.update(sharedPrefs(), cardsOrNotes) {
             block(it)
             return@update true
@@ -872,3 +890,6 @@ class PreviewerIdsFile(path: String) : File(path), Parcelable {
         }
     }
 }
+
+fun BrowserColumns.Column.getLabel(cardsOrNotes: CardsOrNotes): String =
+    if (cardsOrNotes == CARDS) cardsModeLabel else notesModeLabel
