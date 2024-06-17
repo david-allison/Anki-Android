@@ -349,7 +349,6 @@ open class CardBrowser :
         cardsAdapter = BrowserMultiColumnAdapter(
             this,
             viewModel,
-            browserRowTransformation = viewModel::transformBrowserRow,
             onTap = ::onTap,
             onLongPress = ::onLongPress
         )
@@ -385,9 +384,7 @@ open class CardBrowser :
     }
 
     fun notifyDataSetChanged() {
-        cardsListView.post {
-            cardsAdapter.notifyDataSetChanged()
-        }
+        cardsAdapter.notifyDataSetChanged()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -1361,7 +1358,6 @@ open class CardBrowser :
     private fun updateList() {
         if (!colIsOpenUnsafe()) return
         Timber.d("updateList")
-        notifyDataSetChanged()
         deckSpinnerSelection.notifyDataSetChanged()
         onSelectionChanged()
         updatePreviewMenuItem()

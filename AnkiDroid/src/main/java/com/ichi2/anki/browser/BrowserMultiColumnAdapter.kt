@@ -17,6 +17,9 @@
 package com.ichi2.anki.browser
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -24,18 +27,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
+import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.ThemeUtils
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
-import anki.search.BrowserRow
 import anki.search.BrowserRow.Color
 import com.ichi2.anki.AnkiDroidApp.Companion.sharedPrefs
 import com.ichi2.anki.Flag
 import com.ichi2.anki.R
+import com.ichi2.anki.utils.ext.clamp
 import net.ankiweb.rsdroid.BackendException
 import timber.log.Timber
 import kotlin.math.abs
+import android.graphics.Color as AndroidColor
 
 typealias RowIsSelected = Boolean
 
@@ -43,12 +48,13 @@ typealias RowIsSelected = Boolean
  * An adapter over a list of [CardOrNoteId].
  *
  * This has two states: regular and multi-select
+ *
+ * @see R.layout.card_item_browser
  */
 class BrowserMultiColumnAdapter(
     private val context: Context,
     // TODO: move move to the ViewModel
     private val viewModel: CardBrowserViewModel,
-    private val browserRowTransformation: (CardOrNoteId) -> Pair<BrowserRow, RowIsSelected>,
     private val onLongPress: (CardOrNoteId) -> Unit,
     private val onTap: (CardOrNoteId) -> Unit
 ) : RecyclerView.Adapter<BrowserMultiColumnAdapter.MultiColumnViewHolder>() {
@@ -114,8 +120,29 @@ class BrowserMultiColumnAdapter(
             checkBoxView.isChecked = value
         }
 
-        fun setColor(colorValue: Int) {
-            itemView.setBackgroundColor(colorValue)
+        fun setColor(@ColorInt color: Int) {
+            val pressedColor = darkenColor(color, 0.85f)
+
+            require(pressedColor != color)
+            val rippleDrawable = RippleDrawable(
+                ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_pressed)),
+                    intArrayOf(pressedColor)
+                ),
+                ColorDrawable(color),
+                null
+            )
+
+            itemView.background = rippleDrawable
+        }
+
+        @ColorInt
+        @Suppress("SameParameterValue")
+        private fun darkenColor(@ColorInt color: Int, factor: Float): Int {
+            val hsv = FloatArray(3)
+            AndroidColor.colorToHSV(color, hsv)
+            hsv[2] = (hsv[2] * factor).clamp(0f, 1f)
+            return AndroidColor.HSVToColor(hsv)
         }
 
         fun setIsTruncated(truncated: Boolean) {
@@ -170,7 +197,7 @@ class BrowserMultiColumnAdapter(
         }
 
         try {
-            val (row, isSelected) = browserRowTransformation(id)
+            val (row, isSelected) = viewModel.transformBrowserRow(id)
             holder.firstColumn = row.getCells(0).text
             holder.secondColumn = row.getCells(1).text
             holder.setIsSelected(isSelected)

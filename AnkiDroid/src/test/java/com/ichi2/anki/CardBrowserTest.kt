@@ -1104,32 +1104,8 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     private fun CheckedCardResult.getColumnHeaderText(header: CardBrowserColumn): String? {
-        // 2: template
-        // 3: noteCrt
-        // 4: deck
-        // 5: difficulty
-        // 7: cardEase
-        // 8: cardIvl
-        // 9: cardLapses
-        // 10: noteMod
-        // 11: note
-        // 13: retrievability
-        // 14: cardReps
-        // 15: noteFld
-        // 16: stability
-        // 17: noteTags
-
-        val column = when (header) {
-            CardBrowserColumn.DUE -> "cardDue"
-            CardBrowserColumn.CHANGED -> "cardMod"
-            CardBrowserColumn.QUESTION -> "question"
-            CardBrowserColumn.ANSWER -> "answer"
-            else -> {
-                TODO(header.name)
-            }
-        }
         // There's currently a minimum of 2 columns
-        col.backend.setActiveBrowserColumns(listOf(column, "answer"))
+        col.backend.setActiveBrowserColumns(listOf(header.ankiColumnKey, "answer"))
         return col.backend.browserRowForId(this.cardOrNoteId).getCells(0).text
     }
 

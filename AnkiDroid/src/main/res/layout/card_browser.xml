@@ -46,7 +46,12 @@
             android:clipToPadding="false"
             android:paddingBottom="72dp"
             android:drawSelectorOnTop="true"
-            android:fastScrollEnabled="true" />
+            app:fastScrollEnabled="true"
+            app:fastScrollVerticalThumbDrawable="@drawable/thumb_drawable"
+            app:fastScrollVerticalTrackDrawable="@drawable/line_drawable"
+            app:fastScrollHorizontalThumbDrawable="@drawable/thumb_drawable"
+            app:fastScrollHorizontalTrackDrawable="@drawable/line_drawable"
+            />
 
     </LinearLayout>
 
