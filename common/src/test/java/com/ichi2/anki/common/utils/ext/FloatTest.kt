@@ -16,9 +16,9 @@
 
 package com.ichi2.anki.common.utils.ext
 
-import androidx.core.math.MathUtils.clamp
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
@@ -28,16 +28,7 @@ class FloatTest {
 
     @Test
     fun clampOneZero() {
-        fun Float.clampOneZero() = this.clamp(0f, 1f)
-
-        assertThat(1.0f.clampOneZero(), equalTo(1.0f))
-        assertThat(1.1f.clampOneZero(), equalTo(1.0f))
-
-        assertThat(0.0f.clampOneZero(), equalTo(0.0f))
-        assertThat((-1.0f).clampOneZero(), equalTo(0.0f))
-
-        assertThat((0.5f).clampOneZero(), equalTo(0.5f))
-        assertThat((0.3f).clampOneZero(), equalTo(0.3f))
+        fail("test")
     }
 
     @Test
