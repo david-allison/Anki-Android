@@ -143,6 +143,13 @@ class CustomStudyDialog(
     private val dialogDeckId: DeckId
         get() = requireArguments().getLong(DID)
 
+    /**
+     * `null` initially when the main view is shown
+     * otherwise, the [ContextMenuOption] representing the current sub-dialog
+     */
+    private val selectedSubDialog: ContextMenuOption?
+        get() = requireArguments().getNullableInt(ID)?.let { ContextMenuOption.entries[it] }
+
     /** @see CustomStudyDefaults */
     private lateinit var defaults: CustomStudyDefaults
 
@@ -168,7 +175,7 @@ class CustomStudyDialog(
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         super.onCreate(savedInstanceState)
-        val option = getOption()
+        val option = selectedSubDialog
         this.defaults = collection.sched.customStudyDefaults(dialogDeckId).toDomainModel()
         return if (option == null) {
             Timber.i("Showing Custom Study main menu")
@@ -383,13 +390,8 @@ class CustomStudyDialog(
         }
     }
 
-    /**
-     * The ContextMenuOption saved in [ID]. It may be unset for the standard study dialog.
-     */
-    private fun getOption() = requireArguments().getNullableInt(ID)?. let { ContextMenuOption.entries[it] }
-
     /** Line 1 of the number entry dialog */
-    private val text1: String get() = when (getOption()) {
+    private val text1: String get() = when (selectedSubDialog) {
         STUDY_NEW -> defaults.newQueueAvailable()
         STUDY_REV -> defaults.reviewQueueAvailable()
         else -> ""
@@ -397,7 +399,7 @@ class CustomStudyDialog(
     private val text2: String
         get() {
             val res = resources
-            return when (getOption()) {
+            return when (selectedSubDialog) {
                 STUDY_NEW -> res.getString(R.string.custom_study_new_extend)
                 STUDY_REV -> res.getString(R.string.custom_study_rev_extend)
                 STUDY_FORGOT -> res.getString(R.string.custom_study_forgotten)
@@ -410,7 +412,7 @@ class CustomStudyDialog(
     private val defaultValue: String
         get() {
             val prefs = requireActivity().sharedPrefs()
-            return when (getOption()) {
+            return when (selectedSubDialog) {
                 STUDY_NEW -> defaults.extendNew.initialValue.toString()
                 STUDY_REV -> defaults.extendReview.initialValue.toString()
                 STUDY_FORGOT -> prefs.getInt("forgottenDays", 1).toString()
