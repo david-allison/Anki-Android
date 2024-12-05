@@ -19,6 +19,7 @@ package com.ichi2.anki.dialogs.customstudy
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.res.Resources
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -182,12 +183,11 @@ class CustomStudyDialog(
 
     private fun buildContextMenu(): AlertDialog {
         val listIds = getListIds()
-        val titles = listIds.map { resources.getString(it.stringResource) }
 
         return AlertDialog.Builder(requireActivity())
             .title(R.string.custom_study)
             .cancelable(true)
-            .listItems(items = titles) { _, index ->
+            .listItems(items = listIds.map { it.getTitle(resources) }) { _, index ->
                 when (listIds[index]) {
                     STUDY_TAGS -> {
                         /*
@@ -501,14 +501,14 @@ class CustomStudyDialog(
      * Possible context menu options that could be shown in the custom study dialog.
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    enum class ContextMenuOption(val stringResource: Int) {
-        STUDY_NEW(R.string.custom_study_increase_new_limit),
-        STUDY_REV(R.string.custom_study_increase_review_limit),
-        STUDY_FORGOT(R.string.custom_study_review_forgotten),
-        STUDY_AHEAD(R.string.custom_study_review_ahead),
-        STUDY_RANDOM(R.string.custom_study_random_selection),
-        STUDY_PREVIEW(R.string.custom_study_preview_new),
-        STUDY_TAGS(R.string.custom_study_limit_tags)
+    enum class ContextMenuOption(val getTitle: Resources.() -> String) {
+        STUDY_NEW({ TR.customStudyIncreaseTodaysNewCardLimit() }),
+        STUDY_REV({ TR.customStudyIncreaseTodaysReviewCardLimit() }),
+        STUDY_FORGOT({ TR.customStudyReviewForgottenCards() }),
+        STUDY_AHEAD({ TR.customStudyReviewAhead() }),
+        STUDY_RANDOM({ getString(R.string.custom_study_random_selection) }),
+        STUDY_PREVIEW({ TR.customStudyPreviewNewCards() }),
+        STUDY_TAGS({ getString(R.string.custom_study_limit_tags) })
     }
 
     /**
