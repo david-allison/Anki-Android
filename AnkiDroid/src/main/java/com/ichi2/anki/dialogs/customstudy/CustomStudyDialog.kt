@@ -56,6 +56,7 @@ import com.ichi2.libanki.Consts.DynPriority
 import com.ichi2.libanki.Deck
 import com.ichi2.libanki.DeckId
 import com.ichi2.utils.BundleUtils.getNullableInt
+import com.ichi2.utils.KotlinCleanup
 import com.ichi2.utils.cancelable
 import com.ichi2.utils.customView
 import com.ichi2.utils.listItems
@@ -78,7 +79,55 @@ private const val ID = "id"
  */
 private const val DID = "did"
 
-class CustomStudyDialog(private val collection: Collection, private val customStudyListener: CustomStudyListener?) : AnalyticsDialogFragment(), TagsDialogListener {
+/**
+ * Custom studying either:
+ *  1. Modifies the new/review limits on the selected deck ([STUDY_NEW]/[STUDY_REV])
+ *    * When a user has reached daily deck limits and wishes to study more
+ *  2. Produces a filtered deck named 'custom study' deck where a user can study outside the typical
+ *    schedule
+ *    * Various uses. Typically cramming for a retention boost immediately before an exam
+ *      can also
+ *
+ * The filtered deck is often (ab)used by users to study outside the spaced repetition algorithm
+ *
+ * ## Links
+ * * [https://docs.ankiweb.net/filtered-decks.html#custom-study](https://docs.ankiweb.net/filtered-decks.html#custom-study)
+ * * [com.ichi2.libanki.sched.Scheduler.customStudyDefaults]
+ *     * [sched.proto: CustomStudyDefaultsResponse](https://github.com/search?q=repo%3Aankitects%2Fanki+CustomStudyDefaultsResponse+language%3A%22Protocol+Buffer%22&type=code&l=Protocol+Buffer)
+ * * [com.ichi2.libanki.sched.Scheduler.customStudy]
+ *     * [sched.proto: CustomStudyRequest](https://github.com/search?q=repo%3Aankitects%2Fanki+CustomStudyRequest+language%3A%22Protocol+Buffer%22&type=code&l=Protocol+Buffer)
+ * * [https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py](https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py)
+ *
+ * ## UI
+ * [CustomStudyDialog] represents either:
+ * * A [main menu][buildContextMenu] where a user can select a method of custom study defined by [ContextMenuOption]:
+ *   * Increase today's new card limit [STUDY_NEW]
+ *   * Increase today's review card limit [STUDY_REV]
+ *   * Review forgotten cards [STUDY_FORGOT]
+ *   * Review ahead [STUDY_AHEAD]
+ *   * Study a random selection of cards [STUDY_RANDOM] (not in upstream)
+ *   * Preview new cards [STUDY_PREVIEW]
+ *   * Study by tag [STUDY_TAGS]
+ *
+ * * An [input dialog][buildInputDialog], for a user to change and submit a [ContextMenuOption]
+ *   * Example: changing the number of new cards
+ *
+ * #### Not Implemented
+ * Anki Desktop contains the following items which are not yet implemented
+ * * Study by card state or tags
+ *   * New cards only
+ *   * Due cards only
+ *   * All review cards in random order
+ *   * All cards in random order (don't reschedule)
+ *
+ * ## Nomenclature
+ * Filtered decks were previously known as 'dynamic' decks, and before that: 'cram' decks
+ */
+@KotlinCleanup("remove 'collection' parameter and use withCol { }")
+class CustomStudyDialog(
+    private val collection: Collection,
+    private val customStudyListener: CustomStudyListener?
+) : AnalyticsDialogFragment(), TagsDialogListener {
 
     interface CustomStudyListener {
         fun onCreateCustomStudySession()
