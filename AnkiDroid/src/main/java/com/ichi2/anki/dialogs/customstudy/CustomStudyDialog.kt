@@ -75,16 +75,6 @@ import timber.log.Timber
 import java.util.Locale
 
 /**
- * Key for the ordinal of the [ContextMenuOption] to display. May be not set.
- */
-private const val ID = "id"
-
-/**
- * Key for the id of the deck this dialog deals with
- */
-private const val DID = "did"
-
-/**
  * Custom studying either:
  *  1. Modifies the new/review limits on the selected deck ([STUDY_NEW]/[STUDY_REV])
  *    * When a user has reached daily deck limits and wishes to study more
@@ -141,14 +131,14 @@ class CustomStudyDialog(
 
     /** ID of the [Deck] which this dialog was created for */
     private val dialogDeckId: DeckId
-        get() = requireArguments().getLong(DID)
+        get() = requireArguments().getLong(ARG_DID)
 
     /**
      * `null` initially when the main view is shown
      * otherwise, the [ContextMenuOption] representing the current sub-dialog
      */
     private val selectedSubDialog: ContextMenuOption?
-        get() = requireArguments().getNullableInt(ID)?.let { ContextMenuOption.entries[it] }
+        get() = requireArguments().getNullableInt(ARG_SUB_DIALOG_ID)?.let { ContextMenuOption.entries[it] }
 
     /** @see CustomStudyDefaults */
     private lateinit var defaults: CustomStudyDefaults
@@ -160,9 +150,9 @@ class CustomStudyDialog(
         val args = this.arguments ?: Bundle()
         args.apply {
             if (contextMenuAttribute != null) {
-                putInt(ID, contextMenuAttribute.ordinal)
+                putInt(ARG_SUB_DIALOG_ID, contextMenuAttribute.ordinal)
             }
-            putLong(DID, did)
+            putLong(ARG_DID, did)
         }
         this.arguments = args
         return this
@@ -617,5 +607,19 @@ class CustomStudyDialog(
                     tags = this.tagsList
                 )
         }
+    }
+
+    companion object {
+        /**
+         * (required) Key for the [DeckId] this dialog deals with.
+         * @see CustomStudyDialog.dialogDeckId
+         */
+        private const val ARG_DID = "did"
+
+        /**
+         * (optional) Key for the ordinal of the [ContextMenuOption] to display.
+         * @see CustomStudyDialog.selectedSubDialog
+         */
+        private const val ARG_SUB_DIALOG_ID = "subDialogId"
     }
 }
