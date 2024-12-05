@@ -32,33 +32,28 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
 import anki.scheduler.CustomStudyDefaultsResponse
 import anki.scheduler.CustomStudyRequestKt
+import anki.scheduler.CustomStudyRequestKt.cram
 import anki.scheduler.customStudyRequest
 import com.ichi2.anki.CollectionManager.TR
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_AHEAD
+import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_CARD_STATE_OR_TAGS
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_FORGOT
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_NEW
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_PREVIEW
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_REV
-import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_TAGS
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults.Companion.toDomainModel
 import com.ichi2.anki.dialogs.tags.TagsDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
 import com.ichi2.anki.launchCatchingTask
-import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.preferences.sharedPrefs
-import com.ichi2.anki.showThemedToast
 import com.ichi2.anki.utils.ext.dismissAllDialogFragments
 import com.ichi2.anki.utils.ext.sharedPrefs
 import com.ichi2.anki.utils.ext.showDialogFragment
-import com.ichi2.anki.withProgress
 import com.ichi2.annotations.NeedsTest
 import com.ichi2.libanki.Collection
-import com.ichi2.libanki.Consts
-import com.ichi2.libanki.Consts.DynPriority
 import com.ichi2.libanki.Deck
 import com.ichi2.libanki.DeckId
 import com.ichi2.libanki.undoableOp
@@ -70,8 +65,6 @@ import com.ichi2.utils.listItems
 import com.ichi2.utils.negativeButton
 import com.ichi2.utils.positiveButton
 import com.ichi2.utils.title
-import net.ankiweb.rsdroid.exceptions.BackendDeckIsFilteredException
-import org.json.JSONObject
 import timber.log.Timber
 
 /**
@@ -101,18 +94,19 @@ import timber.log.Timber
  *   * Review forgotten cards [STUDY_FORGOT]
  *   * Review ahead [STUDY_AHEAD]
  *   * Preview new cards [STUDY_PREVIEW]
- *   * Study by tag [STUDY_TAGS]
+ *   * Study by card state or tags [STUDY_CARD_STATE_OR_TAGS]
+ *     * New cards only
+ *     * Due cards only
+ *     * All review cards in random order
+ *     * All cards in random order (don't reschedule)
  *
  * * An [input dialog][buildInputDialog], for a user to change and submit a [ContextMenuOption]
  *   * Example: changing the number of new cards
  *
  * #### Not Implemented
  * Anki Desktop contains the following items which are not yet implemented
- * * Study by card state or tags
- *   * New cards only
- *   * Due cards only
- *   * All review cards in random order
- *   * All cards in random order (don't reschedule)
+ * * Select tags to Exclude
+ * * Checkbox (default: false): Require one or more of these tags
  *
  * ## Nomenclature
  * Filtered decks were previously known as 'dynamic' decks, and before that: 'cram' decks
@@ -185,7 +179,7 @@ class CustomStudyDialog(
             .cancelable(true)
             .listItems(items = listIds.map { it.getTitle(resources) }) { _, index ->
                 when (listIds[index]) {
-                    STUDY_TAGS -> {
+                    STUDY_CARD_STATE_OR_TAGS -> {
                         /*
                          * This is a special Dialog for CUSTOM STUDY, where instead of only collecting a
                          * number, it is necessary to collect a list of tags. This case handles the creation
@@ -275,33 +269,6 @@ class CustomStudyDialog(
     private suspend fun customStudy(contextMenuOption: ContextMenuOption, userEntry: Int) {
         Timber.i("Custom study: $contextMenuOption; input = $userEntry")
 
-        suspend fun customStudy(block: CustomStudyRequestKt.Dsl.() -> Unit) {
-            undoableOp {
-                collection.sched.customStudy(
-                    customStudyRequest {
-                        deckId = dialogDeckId
-                        block(this)
-                    }
-                )
-            }
-        }
-        suspend fun extendLimits(block: CustomStudyRequestKt.Dsl.() -> Unit) {
-            try {
-                customStudy { block(this) }
-                customStudyListener?.onExtendStudyLimits()
-            } finally {
-                requireActivity().dismissAllDialogFragments()
-            }
-        }
-        suspend fun createCustomStudy(block: CustomStudyRequestKt.Dsl.() -> Unit) {
-            try {
-                customStudy { block(this) }
-                customStudyListener?.onCreateCustomStudySession()
-            } finally {
-                requireActivity().dismissAllDialogFragments()
-            }
-        }
-
         // save the default values (not in upstream)
         when (contextMenuOption) {
             STUDY_FORGOT -> sharedPrefs().edit { putInt("forgottenDays", userEntry) }
@@ -313,10 +280,10 @@ class CustomStudyDialog(
         when (contextMenuOption) {
             STUDY_NEW -> extendLimits { newLimitDelta = userEntry }
             STUDY_REV -> extendLimits { reviewLimitDelta = userEntry }
-            STUDY_FORGOT -> createCustomStudy { forgotDays = userEntry }
-            STUDY_AHEAD -> createCustomStudy { reviewAheadDays = userEntry }
-            STUDY_PREVIEW -> createCustomStudy { previewDays = userEntry }
-            STUDY_TAGS -> TODO("This branch has not been covered before")
+            STUDY_FORGOT -> createCustomStudySession { forgotDays = userEntry }
+            STUDY_AHEAD -> createCustomStudySession { reviewAheadDays = userEntry }
+            STUDY_PREVIEW -> createCustomStudySession { previewDays = userEntry }
+            STUDY_CARD_STATE_OR_TAGS -> TODO("This branch has not been covered before")
         }
     }
 
@@ -325,22 +292,18 @@ class CustomStudyDialog(
      * Generates the search screen for the custom study deck.
      */
     @NeedsTest("14537: limit to particular tags")
-    override fun onSelectedTags(selectedTags: List<String>, indeterminateTags: List<String>, stateFilter: CardStateFilter) {
-        val sb = StringBuilder(stateFilter.toSearch)
-        val arr: MutableList<String?> = ArrayList(selectedTags.size)
-        if (selectedTags.isNotEmpty()) {
-            for (tag in selectedTags) {
-                arr.add("tag:\"$tag\"")
+    override fun onSelectedTags(selectedTags: List<String>, indeterminateTags: List<String>, customStudyExtra: CustomStudyCramResponse) {
+        Timber.i("Custom study: ${selectedTags.count()} tag(s); filter = $customStudyExtra")
+
+        launchCatchingTask {
+            createCustomStudySession {
+                cram = cram {
+                    tagsToInclude.addAll(selectedTags)
+                    kind = customStudyExtra.kind
+                    cardLimit = customStudyExtra.cardLimit
+                }
             }
-            sb.append("(").append(arr.joinToString(" or ")).append(")")
         }
-        createTagsCustomStudySession(
-            arrayOf(
-                sb.toString(),
-                Consts.DYN_MAX_SIZE,
-                Consts.DYN_RANDOM
-            )
-        )
     }
 
     /**
@@ -349,7 +312,7 @@ class CustomStudyDialog(
      */
     private fun getListIds(): List<ContextMenuOption> {
         // Standard context menu
-        return mutableListOf(STUDY_FORGOT, STUDY_AHEAD, STUDY_PREVIEW, STUDY_TAGS).apply {
+        return mutableListOf(STUDY_FORGOT, STUDY_AHEAD, STUDY_PREVIEW, STUDY_CARD_STATE_OR_TAGS).apply {
             if (defaults.extendReview.isUsable) {
                 this.add(0, STUDY_REV)
             }
@@ -357,6 +320,32 @@ class CustomStudyDialog(
             if (defaults.extendNew.isUsable) {
                 this.add(0, STUDY_NEW)
             }
+        }
+    }
+
+    private suspend fun extendLimits(block: CustomStudyRequestKt.Dsl.() -> Unit) {
+        try {
+            val customStudyRequest = customStudyRequest {
+                deckId = dialogDeckId
+                block(this)
+            }
+            undoableOp { collection.sched.customStudy(customStudyRequest) }
+            customStudyListener?.onExtendStudyLimits()
+        } finally {
+            requireActivity().dismissAllDialogFragments()
+        }
+    }
+
+    private suspend fun createCustomStudySession(block: CustomStudyRequestKt.Dsl.() -> Unit) {
+        try {
+            val customStudyRequest = customStudyRequest {
+                deckId = dialogDeckId
+                block(this)
+            }
+            undoableOp { collection.sched.customStudy(customStudyRequest) }
+            customStudyListener?.onCreateCustomStudySession()
+        } finally {
+            requireActivity().dismissAllDialogFragments()
         }
     }
 
@@ -392,66 +381,6 @@ class CustomStudyDialog(
         }
 
     /**
-     * Create a custom study session
-     * @param terms search terms
-     */
-    private fun createTagsCustomStudySession(terms: Array<Any>) {
-        val dyn: Deck
-
-        val decks = collection.decks
-        val deckToStudyName = decks.name(dialogDeckId)
-        val customStudyDeck = resources.getString(R.string.custom_study_deck_name)
-        val cur = decks.byName(customStudyDeck)
-        if (cur != null) {
-            Timber.i("Found deck: '%s'", customStudyDeck)
-            if (cur.isNormal) {
-                Timber.w("Deck: '%s' was non-dynamic", customStudyDeck)
-                showThemedToast(requireContext(), getString(R.string.custom_study_deck_exists), true)
-                return
-            } else {
-                Timber.i("Emptying dynamic deck '%s' for custom study", customStudyDeck)
-                // safe to empty
-                collection.sched.emptyDyn(cur.getLong("id"))
-                // reuse; don't delete as it may have children
-                dyn = cur
-                decks.select(cur.getLong("id"))
-            }
-        } else {
-            Timber.i("Creating Dynamic Deck '%s' for custom study", customStudyDeck)
-            dyn = try {
-                decks.get(decks.newFiltered(customStudyDeck))!!
-            } catch (ex: BackendDeckIsFilteredException) {
-                showThemedToast(requireActivity(), ex.localizedMessage ?: ex.message ?: "", true)
-                return
-            }
-        }
-        // and then set various options
-        dyn.put("delays", JSONObject.NULL)
-        val ar = dyn.getJSONArray("terms")
-        ar.getJSONArray(0).put(0, "deck:\"" + deckToStudyName + "\" " + terms[0])
-        ar.getJSONArray(0).put(1, terms[1])
-        @DynPriority val priority = terms[2] as Int
-        ar.getJSONArray(0).put(2, priority)
-        dyn.put("resched", true)
-        // Rebuild the filtered deck
-        Timber.i("Rebuilding Custom Study Deck")
-        // PERF: Should be in background
-        collection.decks.save(dyn)
-        // launch this in the activity scope, rather than the fragment scope
-        requireActivity().launchCatchingTask { rebuildDynamicDeck() }
-        // Hide the dialogs (required due to a DeckPicker issue)
-        requireActivity().dismissAllDialogFragments()
-    }
-
-    private suspend fun rebuildDynamicDeck() {
-        Timber.d("rebuildDynamicDeck()")
-        withProgress {
-            withCol { sched.rebuildDyn(decks.selected()) }
-            customStudyListener?.onCreateCustomStudySession()
-        }
-    }
-
-    /**
      * Possible context menu options that could be shown in the custom study dialog.
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -461,7 +390,7 @@ class CustomStudyDialog(
         STUDY_FORGOT({ TR.customStudyReviewForgottenCards() }),
         STUDY_AHEAD({ TR.customStudyReviewAhead() }),
         STUDY_PREVIEW({ TR.customStudyPreviewNewCards() }),
-        STUDY_TAGS({ getString(R.string.custom_study_limit_tags) })
+        STUDY_CARD_STATE_OR_TAGS({ TR.customStudyStudyByCardStateOrTag() })
     }
 
     /**
