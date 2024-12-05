@@ -134,6 +134,10 @@ class CustomStudyDialog(
         fun onExtendStudyLimits()
     }
 
+    /** ID of the [Deck] which this dialog was created for */
+    private val dialogDeckId: DeckId
+        get() = requireArguments().getLong(DID)
+
     fun withArguments(
         did: DeckId,
         contextMenuAttribute: ContextMenuOption? = null
@@ -160,7 +164,7 @@ class CustomStudyDialog(
         return if (option == null) {
             Timber.i("Showing Custom Study main menu")
             // Select the specified deck
-            collection.decks.select(requireArguments().getLong(DID))
+            collection.decks.select(dialogDeckId)
             buildContextMenu()
         } else {
             Timber.i("Showing Custom Study dialog: $option")
@@ -183,23 +187,18 @@ class CustomStudyDialog(
                          * number, it is necessary to collect a list of tags. This case handles the creation
                          * of that Dialog.
                          */
-                        val currentDeck = requireArguments().getLong(DID)
-
                         val dialogFragment = TagsDialog().withArguments(
                             context = requireContext(),
                             type = TagsDialog.DialogType.CUSTOM_STUDY_TAGS,
                             checkedTags = ArrayList(),
-                            allTags = ArrayList(collection.tags.byDeck(currentDeck))
+                            allTags = ArrayList(collection.tags.byDeck(dialogDeckId))
                         )
                         requireActivity().showDialogFragment(dialogFragment)
                     }
                     else -> {
                         // User asked for a standard custom study option
                         val d = CustomStudyDialog(collection, customStudyListener)
-                            .withArguments(
-                                requireArguments().getLong(DID),
-                                listIds[index]
-                            )
+                            .withArguments(dialogDeckId, listIds[index])
                         requireActivity().showDialogFragment(d)
                     }
                 }
@@ -232,8 +231,6 @@ class CustomStudyDialog(
         if (contextMenuOption == STUDY_NEW || contextMenuOption == STUDY_REV) {
             editText.inputType = EditorInfo.TYPE_CLASS_NUMBER or EditorInfo.TYPE_NUMBER_FLAG_SIGNED
         }
-        // deck id
-        val did = requireArguments().getLong(DID)
         // Set material dialog parameters
         val dialog = AlertDialog.Builder(requireActivity())
             .customView(view = v, paddingLeft = 64, paddingRight = 64, paddingTop = 32, paddingBottom = 32)
@@ -249,7 +246,7 @@ class CustomStudyDialog(
                 when (contextMenuOption) {
                     STUDY_NEW -> {
                         requireActivity().sharedPrefs().edit { putInt("extendNew", n) }
-                        val deck = collection.decks.get(did)!!
+                        val deck = collection.decks.get(dialogDeckId)!!
                         deck.put("extendNew", n)
                         collection.decks.save(deck)
                         collection.sched.extendLimits(n, 0)
@@ -257,7 +254,7 @@ class CustomStudyDialog(
                     }
                     STUDY_REV -> {
                         requireActivity().sharedPrefs().edit { putInt("extendRev", n) }
-                        val deck = collection.decks.get(did)!!
+                        val deck = collection.decks.get(dialogDeckId)!!
                         deck.put("extendRev", n)
                         collection.decks.save(deck)
                         collection.sched.extendLimits(0, n)
@@ -424,10 +421,9 @@ class CustomStudyDialog(
      */
     private fun createCustomStudySession(delays: JSONArray, terms: Array<Any>, resched: Boolean) {
         val dyn: Deck
-        val did = requireArguments().getLong(DID)
 
         val decks = collection.decks
-        val deckToStudyName = decks.name(did)
+        val deckToStudyName = decks.name(dialogDeckId)
         val customStudyDeck = resources.getString(R.string.custom_study_deck_name)
         val cur = decks.byName(customStudyDeck)
         if (cur != null) {
