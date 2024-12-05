@@ -1,5 +1,6 @@
 /****************************************************************************************
  * Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>                          *
+ * Copyright (c) 2024 David Allison <davidallisongithub@gmail.com>                      *
  *                                                                                      *
  * This program is free software; you can redistribute it and/or modify it under        *
  * the terms of the GNU General Public License as published by the Free Software        *
@@ -28,6 +29,8 @@ import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
+import anki.scheduler.CustomStudyDefaultsResponse
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CrashReportService
 import com.ichi2.anki.R
@@ -40,6 +43,7 @@ import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.ST
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_RANDOM
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_REV
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption.STUDY_TAGS
+import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults.Companion.toDomainModel
 import com.ichi2.anki.dialogs.tags.TagsDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
 import com.ichi2.anki.launchCatchingTask
@@ -138,6 +142,9 @@ class CustomStudyDialog(
     private val dialogDeckId: DeckId
         get() = requireArguments().getLong(DID)
 
+    /** @see CustomStudyDefaults */
+    private lateinit var defaults: CustomStudyDefaults
+
     fun withArguments(
         did: DeckId,
         contextMenuAttribute: ContextMenuOption? = null
@@ -161,6 +168,7 @@ class CustomStudyDialog(
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         super.onCreate(savedInstanceState)
         val option = getOption()
+        this.defaults = collection.sched.customStudyDefaults(dialogDeckId).toDomainModel()
         return if (option == null) {
             Timber.i("Showing Custom Study main menu")
             // Select the specified deck
@@ -365,8 +373,7 @@ class CustomStudyDialog(
     private fun getListIds(): List<ContextMenuOption> {
         // Standard context menu
         return mutableListOf(STUDY_REV, STUDY_FORGOT, STUDY_AHEAD, STUDY_RANDOM, STUDY_PREVIEW, STUDY_TAGS).apply {
-            if (collection.sched.totalNewForCurrentDeck() != 0) {
-                // If no new cards we won't show STUDY_NEW
+            if (defaults.extendNew.isUsable) {
                 this.add(0, STUDY_NEW)
             }
         }
@@ -377,15 +384,12 @@ class CustomStudyDialog(
      */
     private fun getOption() = requireArguments().getNullableInt(ID)?. let { ContextMenuOption.entries[it] }
 
-    private val text1: String
-        get() {
-            val res = resources
-            return when (getOption()) {
-                STUDY_NEW -> res.getString(R.string.custom_study_new_total_new, collection.sched.totalNewForCurrentDeck())
-                STUDY_REV -> res.getString(R.string.custom_study_rev_total_rev, collection.sched.totalRevForCurrentDeck())
-                else -> ""
-            }
-        }
+    /** Line 1 of the number entry dialog */
+    private val text1: String get() = when (getOption()) {
+        STUDY_NEW -> defaults.newQueueAvailable()
+        STUDY_REV -> defaults.reviewQueueAvailable()
+        else -> ""
+    }
     private val text2: String
         get() {
             val res = resources
@@ -403,8 +407,8 @@ class CustomStudyDialog(
         get() {
             val prefs = requireActivity().sharedPrefs()
             return when (getOption()) {
-                STUDY_NEW -> prefs.getInt("extendNew", 10).toString()
-                STUDY_REV -> prefs.getInt("extendRev", 50).toString()
+                STUDY_NEW -> defaults.extendNew.initialValue.toString()
+                STUDY_REV -> defaults.extendReview.initialValue.toString()
                 STUDY_FORGOT -> prefs.getInt("forgottenDays", 1).toString()
                 STUDY_AHEAD -> prefs.getInt("aheadDays", 1).toString()
                 STUDY_RANDOM -> prefs.getInt("randomCards", 100).toString()
@@ -505,5 +509,107 @@ class CustomStudyDialog(
         STUDY_RANDOM(R.string.custom_study_random_selection),
         STUDY_PREVIEW(R.string.custom_study_preview_new),
         STUDY_TAGS(R.string.custom_study_limit_tags)
+    }
+
+    /**
+     * Default values for extending deck limits, and default tag selection
+     *
+     * Adapter which documents [anki.scheduler.CustomStudyDefaultsResponse]
+     *
+     * Upstream: [sched.proto: CustomStudyDefaultsResponse](https://github.com/search?q=repo%3Aankitects%2Fanki+CustomStudyDefaultsResponse+language%3A%22Protocol+Buffer%22&type=code&l=Protocol+Buffer)
+     */
+    private class CustomStudyDefaults(
+        val extendNew: ExtendLimits,
+        val extendReview: ExtendLimits,
+        @Suppress("unused")
+        val tags: List<CustomStudyDefaultsResponse.Tag>
+    ) {
+        /** Available new cards: 1 (2 in subdecks) */
+        fun newQueueAvailable(): String = TR.customStudyAvailableNewCards2(extendNew.countWithChildren())
+
+        /** Available review cards: 1 (2 in subdecks) */
+        fun reviewQueueAvailable(): String = TR.customStudyAvailableReviewCards2(extendReview.countWithChildren())
+
+        /**
+         * Data displayed to a user wanting to temporarily extend the daily limits of
+         * either new/review cards for a deck
+         *
+         * Displays `Available new cards: 1 (2 in subdecks)` when a limit is reached with remaining cards:
+         * ```
+         * Deck (1)
+         *   Deck::Child1 (1)
+         *   Deck::Child2 (1)
+         * ```
+         */
+        class ExtendLimits(
+            /** The initial value to display in the input dialog */
+            val initialValue: Int,
+            /**
+             * The number of pending cards in only the parent deck
+             *
+             * **Example**
+             * Returns **1** when a limit is reached with remaining cards:
+             * ```
+             * Deck (1)
+             *   Deck::Child1 (1)
+             *   Deck::Child2 (1)
+             * ```
+             */
+            val cardsInParentDeck: Int,
+            /**
+             * The sum of cards in only the child decks
+             *
+             * **Example**
+             * * Returns **2** when a limit is reached  with remaining cards:
+             * * ```
+             * * Deck (1)
+             * *   Deck::Child1 (1)
+             * *   Deck::Child2 (1)
+             * * ```
+             */
+            val cardsInChildDecks: Int
+        ) {
+            /**
+             * "Extend" only has an effect if there are pending cards in the target deck
+             *
+             * The number of pending cards in child decks is only informative
+             */
+            val isUsable
+                get() = cardsInParentDeck > 0
+
+            /**
+             * A string representing the count of cards which have exceeded a deck limit
+             *
+             * `123 (456 in subdecks)` or `123`
+             *
+             * For use in either
+             * [net.ankiweb.rsdroid.Translations.customStudyAvailableReviewCards2] or
+             * [net.ankiweb.rsdroid.Translations.customStudyAvailableNewCards2]
+             *
+             */
+            fun countWithChildren(): String =
+                if (cardsInChildDecks == 0) {
+                    cardsInParentDeck.toString()
+                } else {
+                    "$cardsInParentDeck ${TR.customStudyAvailableChildCount(cardsInChildDecks)}"
+                }
+        }
+
+        companion object {
+            fun CustomStudyDefaultsResponse.toDomainModel(): CustomStudyDefaults =
+                CustomStudyDefaults(
+                    extendNew = ExtendLimits(
+                        initialValue = extendNew,
+                        cardsInParentDeck = availableNew,
+                        cardsInChildDecks = availableNewInChildren
+                    ),
+                    extendReview = ExtendLimits(
+                        initialValue = extendReview,
+                        cardsInParentDeck = availableReview,
+                        cardsInChildDecks = availableReviewInChildren
+                    ),
+                    tags = this.tagsList
+                )
+        }
     }
 }
