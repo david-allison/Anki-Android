@@ -1024,6 +1024,18 @@ class CardBrowserViewModelTest : JvmTest() {
             )
         }
 
+    @Test
+    fun `change note type - no selection`(): Unit = throw NotImplementedError()
+
+    @Test
+    fun `change note type - mixed selection`(): Unit = throw NotImplementedError()
+
+    @Test
+    fun `change note type - single valid selection`(): Unit = throw NotImplementedError()
+
+    @Test
+    fun `change note type - valid multiselect`(): Unit = throw NotImplementedError()
+
     private fun assertDate(str: String?) {
         // 2025-01-09 @ 18:06
         assertNotNull(str)

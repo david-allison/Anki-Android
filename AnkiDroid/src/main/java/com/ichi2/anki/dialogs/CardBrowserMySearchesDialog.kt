@@ -17,6 +17,7 @@ import com.ichi2.utils.positiveButton
 import com.ichi2.utils.show
 import com.ichi2.utils.title
 import timber.log.Timber
+import kotlin.collections.Map
 
 // TODO: Add different classes for the two different dialogs
 
