@@ -52,15 +52,25 @@ fun checkWebviewVersion(activity: AnkiActivity) {
 }
 
 @MainThread
-fun getWebviewUserAgent(context: Context): String? {
+fun getWebviewUserAgent(
+    context: Context,
+    explainError: Boolean = false,
+): String? {
+    fun getMissingPackageErrorString(message: String?): String? =
+        try {
+            context.getString(R.string.ankidroid_init_failed_webview, message ?: "")
+        } catch (e: Throwable) {
+            message
+        }
+
     try {
         return WebView(context).settings.userAgentString
     } catch (e: Throwable) {
-        // don't log to ACRA: 'No WebView installed
+        // don't log to ACRA: 'No WebView installed'
         // android.util.AndroidRuntimeException: android.util.AndroidRuntimeException: android.webkit.WebViewFactory$MissingWebViewPackageException: Failed to load WebView provider: No WebView installed
         if (e.stackTraceToString().contains("MissingWebViewPackageException")) {
             Timber.w(e, "MissingWebViewPackageException")
-            return null
+            return if (explainError) getMissingPackageErrorString(e.message) else null
         }
         CrashReportService.sendExceptionReport(e, "WebViewUtils", "some issue occurred while extracting webview user agent")
     }

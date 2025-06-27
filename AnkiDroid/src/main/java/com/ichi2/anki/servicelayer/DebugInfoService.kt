@@ -36,7 +36,7 @@ object DebugInfoService {
      * Note that the `FSRS` parameter can be null if the collection doesn't exist or the config is not set.
      */
     suspend fun getDebugInfo(info: Context): String {
-        val webviewUserAgent = withContext(Dispatchers.Main) { getWebviewUserAgent(info) }
+        val webviewUserAgent = withContext(Dispatchers.Main) { getWebviewUserAgent(info, explainError = true) }
         // isFSRSEnabled is null on startup
         val isFSRSEnabled = getFSRSStatus()
         return """
