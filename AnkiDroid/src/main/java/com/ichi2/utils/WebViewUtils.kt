@@ -56,6 +56,12 @@ fun getWebviewUserAgent(context: Context): String? {
     try {
         return WebView(context).settings.userAgentString
     } catch (e: Throwable) {
+        // don't log to ACRA: 'No WebView installed
+        // android.util.AndroidRuntimeException: android.util.AndroidRuntimeException: android.webkit.WebViewFactory$MissingWebViewPackageException: Failed to load WebView provider: No WebView installed
+        if (e.stackTraceToString().contains("MissingWebViewPackageException")) {
+            Timber.w(e, "MissingWebViewPackageException")
+            return null
+        }
         CrashReportService.sendExceptionReport(e, "WebViewUtils", "some issue occurred while extracting webview user agent")
     }
     return null
