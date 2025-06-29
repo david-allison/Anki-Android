@@ -24,6 +24,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -34,7 +35,9 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import anki.collection.OpChanges
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.google.android.material.search.SearchBar
 import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.R
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode
@@ -120,6 +123,17 @@ class CardBrowserFragment :
             }
 
         progressIndicator = view.findViewById(R.id.browser_progress)
+
+        val searchBar = view.findViewById<SearchBar>(R.id.search_bar)
+        val color = MaterialColors.getColor(searchBar, com.google.android.material.R.attr.colorControlNormal)
+        val menu = searchBar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon?.let {
+                it.mutate()
+                DrawableCompat.setTint(it, color)
+            }
+        }
 
         setupFlows()
     }
