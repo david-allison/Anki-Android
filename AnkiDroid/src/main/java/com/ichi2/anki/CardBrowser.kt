@@ -38,7 +38,6 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import androidx.annotation.CheckResult
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
-import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.ThemeUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -48,6 +47,7 @@ import androidx.fragment.app.commit
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import anki.collection.OpChanges
+import com.google.android.material.search.SearchBar
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anim.ActivityTransitionAnimation.Direction
 import com.ichi2.anki.CollectionManager.TR
@@ -180,10 +180,9 @@ open class CardBrowser :
 
     // private lateinit var deckSpinnerSelection: DeckSpinnerSelection
 
-    private var searchView: CardBrowserSearchView? = null
+    private var searchView: com.google.android.material.search.SearchBar? = null
 
     private lateinit var tagsDialogFactory: TagsDialogFactory
-    private var searchItem: MenuItem? = null
     private var saveSearchItem: MenuItem? = null
     private var mySearchesItem: MenuItem? = null
     private var previewItem: MenuItem? = null
@@ -235,7 +234,7 @@ open class CardBrowser :
                 closeCardBrowser(DeckPicker.RESULT_DB_ERROR)
             }
             if (result.resultCode == RESULT_OK) {
-                forceRefreshSearch(useSearchTextValue = true)
+                forceRefreshSearch()
             }
             invalidateOptionsMenu() // maybe the availability of undo changed
         }
@@ -325,6 +324,14 @@ open class CardBrowser :
             }
         }
 
+    fun SearchBar.setQuery(
+        s: String,
+        submit: Boolean,
+    ) {
+        this.setText(s)
+        viewModel.launchSearchForCards(s)
+    }
+
     private val multiSelectOnBackPressedCallback =
         object : OnBackPressedCallback(enabled = false) {
             override fun handleOnBackPressed() {
@@ -337,7 +344,6 @@ open class CardBrowser :
     @NeedsTest("search bar is set after selecting a saved search as first action")
     private fun searchForQuery(query: String) {
         // setQuery before expand does not set the view's value
-        searchItem!!.expandActionView()
         searchView!!.setQuery(query, submit = true)
     }
 
@@ -381,6 +387,7 @@ open class CardBrowser :
         setContentView(R.layout.card_browser)
         // initNavigationDrawer(findViewById(android.R.id.content))
 
+        searchView = findViewById(R.id.search_bar)
         noteEditorFrame = findViewById(R.id.note_editor_frame)
 
         /**
@@ -537,22 +544,10 @@ open class CardBrowser :
     private fun setupFlows() {
         // provides a name for each flow receiver to improve stack traces
 
-        fun onSearchQueryExpanded(searchQueryExpanded: Boolean) {
-            Timber.d("query expansion changed: %b", searchQueryExpanded)
-            if (searchQueryExpanded) {
-                searchItem?.expandActionView()
-            } else {
-                searchItem?.collapseActionView()
-                // invalidate options menu so that disappeared icons would appear again
-                invalidateOptionsMenu()
-            }
-        }
-
         fun onSelectedRowsChanged(rows: Set<Any>) = onSelectionChanged()
 
         fun onFilterQueryChanged(filterQuery: String) {
             // setQuery before expand does not set the view's value
-            searchItem!!.expandActionView()
             searchView!!.setQuery(filterQuery, submit = false)
         }
 
@@ -592,7 +587,6 @@ open class CardBrowser :
                 Searching -> {
                     if ("" != viewModel.searchTerms && searchView != null) {
                         searchView!!.setQuery(viewModel.searchTerms, false)
-                        searchItem!!.expandActionView()
                     }
                 }
                 SearchState.Completed -> redrawAfterSearch()
@@ -610,7 +604,6 @@ open class CardBrowser :
             }
         }
 
-        viewModel.flowOfSearchQueryExpanded.launchCollectionInLifecycleScope(::onSearchQueryExpanded)
         viewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         viewModel.flowOfFilterQuery.launchCollectionInLifecycleScope(::onFilterQueryChanged)
         viewModel.flowOfDeckId.launchCollectionInLifecycleScope(::onDeckIdChanged)
@@ -685,15 +678,11 @@ open class CardBrowser :
                     Timber.i("Ctrl+E: Add Note")
                     launchCatchingTask { addNoteFromCardBrowser() }
                     return true
-                } else if (searchView?.isIconified == true) {
+                } else {
                     Timber.i("E: Edit note")
                     // search box is not available so treat the event as a shortcut
                     openNoteEditorForCurrentlySelectedNote()
                     return true
-                } else {
-                    Timber.i("E: Character added")
-                    // search box might be available and receiving input so treat this as usual text
-                    return false
                 }
             }
             KeyEvent.KEYCODE_D -> {
@@ -725,16 +714,9 @@ open class CardBrowser :
                 }
             }
             KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_DEL -> {
-                if (searchView?.isIconified == false) {
-                    Timber.i("Delete pressed - Search active, deleting character")
-                    // the search box is available and could potentially receive input so handle the
-                    // DEL as a simple text deletion and not as a keyboard shortcut
-                    return false
-                } else {
-                    Timber.i("Delete pressed - Delete Selected Note")
-                    deleteSelectedNotes()
-                    return true
-                }
+                Timber.i("Delete pressed - Delete Selected Note")
+                deleteSelectedNotes()
+                return true
             }
             KeyEvent.KEYCODE_F -> {
                 if (event.isCtrlPressed && event.isAltPressed) {
@@ -744,7 +726,8 @@ open class CardBrowser :
                 }
                 if (event.isCtrlPressed) {
                     Timber.i("Ctrl+F - Find notes")
-                    searchItem?.expandActionView()
+                    TODO()
+                    // searchItem?.expandActionView()
                     return true
                 }
             }
@@ -949,63 +932,6 @@ open class CardBrowser :
             mySearchesItem = menu.findItem(R.id.action_list_my_searches)
             val savedFiltersObj = viewModel.savedSearchesUnsafe(getColUnsafe)
             mySearchesItem!!.isVisible = savedFiltersObj.isNotEmpty()
-            searchItem = menu.findItem(R.id.action_search)
-            searchItem!!.setOnActionExpandListener(
-                object : MenuItem.OnActionExpandListener {
-                    override fun onMenuItemActionExpand(item: MenuItem): Boolean {
-                        viewModel.setSearchQueryExpanded(true)
-                        return true
-                    }
-
-                    override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
-                        if (item.actionView == searchView) {
-                            if (isKeyboardVisible(searchView)) {
-                                Timber.d("keyboard is visible, hiding it")
-                                hideKeyboard()
-                                return false
-                            }
-                        }
-                        viewModel.setSearchQueryExpanded(false)
-                        // SearchView doesn't support empty queries so we always reset the search when collapsing
-                        searchView!!.setQuery("", false)
-                        viewModel.launchSearchForCards("")
-                        return true
-                    }
-                },
-            )
-            searchView =
-                (searchItem!!.actionView as CardBrowserSearchView).apply {
-                    queryHint = resources.getString(R.string.card_browser_search_hint)
-                    setMaxWidth(Integer.MAX_VALUE)
-                    setOnQueryTextListener(
-                        object : SearchView.OnQueryTextListener {
-                            override fun onQueryTextChange(newText: String): Boolean {
-                                if (this@apply.ignoreValueChange) {
-                                    return true
-                                }
-                                viewModel.updateQueryText(newText)
-                                return true
-                            }
-
-                            override fun onQueryTextSubmit(query: String): Boolean {
-                                viewModel.launchSearchForCards(query)
-                                searchView!!.clearFocus()
-                                return true
-                            }
-                        },
-                    )
-                }
-            // Fixes #6500 - keep the search consistent if coming back from note editor
-            // Fixes #9010 - consistent search after drawer change calls invalidateOptionsMenu
-            if (!viewModel.tempSearchQuery.isNullOrEmpty() || viewModel.searchTerms.isNotEmpty()) {
-                searchItem!!.expandActionView() // This calls mSearchView.setOnSearchClickListener
-                val toUse = if (!viewModel.tempSearchQuery.isNullOrEmpty()) viewModel.tempSearchQuery else viewModel.searchTerms
-                searchView!!.setQuery(toUse!!, false)
-            }
-            searchView!!.setOnSearchClickListener {
-                // Provide SearchView with the previous search terms
-                searchView!!.setQuery(viewModel.searchTerms, false)
-            }
         } else {
             // multi-select mode
             menuInflater.inflate(R.menu.card_browser_multiselect, menu)
@@ -1421,7 +1347,7 @@ open class CardBrowser :
     }
 
     private fun openSaveSearchView() {
-        val searchTerms = searchView!!.query.toString()
+        val searchTerms = searchView!!.text.toString()
         showDialogFragment(
             newInstance(
                 null,
@@ -1649,12 +1575,8 @@ open class CardBrowser :
         )
     }
 
-    private fun forceRefreshSearch(useSearchTextValue: Boolean = false) {
-        if (useSearchTextValue && searchView != null) {
-            viewModel.launchSearchForCards(searchView!!.query.toString())
-        } else {
-            viewModel.launchSearchForCards()
-        }
+    private fun forceRefreshSearch() {
+        viewModel.launchSearchForCards()
     }
 
     @NeedsTest("searchView == null -> return early & ensure no snackbar when the screen is opened")
@@ -1675,8 +1597,8 @@ open class CardBrowser :
                     invalidateOptionsMenu()
                     View.GONE
                 }
-            // check whether mSearchView is initialized as it is lateinit property.
-            if (searchView == null || searchView!!.isIconified) {
+            // check whether searchView is initialized as it is lateinit property.
+            if (searchView == null) {
                 return@launchCatchingTask
             }
             updateList()
