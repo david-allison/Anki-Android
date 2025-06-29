@@ -1,59 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <androidx.coordinatorlayout.widget.CoordinatorLayout
-    android:id="@+id/root_layout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    android:windowSoftInputMode="adjustNothing"
     >
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical" >
-
         <LinearLayout
-            android:id="@+id/browser_column_headings"
             android:layout_width="match_parent"
-            android:background="@drawable/browser_heading_bottom_divider"
-            android:orientation="horizontal"
-            android:paddingVertical="2dp"
-            android:layout_height="wrap_content"
-            android:longClickable="true">
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" >
+
+            <LinearLayout
+                android:id="@+id/browser_column_headings"
+                android:layout_width="match_parent"
+                android:background="@drawable/browser_heading_bottom_divider"
+                android:orientation="horizontal"
+                android:paddingVertical="2dp"
+                android:layout_height="wrap_content"
+                android:longClickable="true">
+
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/browser_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="gone"
+                />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/card_browser_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollFooter="@color/transparent"
+                    android:dividerHeight="0.5dp"
+                    android:drawSelectorOnTop="true"
+                    />
+
+                <com.ichi2.anki.ui.RecyclerFastScroller
+                    android:id="@+id/browser_scroller"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_alignParentEnd="true"
+                    />
+
+            </RelativeLayout>
 
         </LinearLayout>
 
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/browser_progress"
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.search.SearchBar
+            android:id="@+id/search_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:indeterminate="true"
-            android:visibility="gone"
-            />
+            app:navigationIcon="@drawable/ic_menu_24"
+            android:hint="Search cards/notes"
+            app:menu="@menu/card_browser"  />
 
-        <RelativeLayout
+        <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-8dp"
+            android:paddingHorizontal="16dp"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/card_browser_list"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:overScrollFooter="@color/transparent"
-                android:dividerHeight="0.5dp"
-                android:drawSelectorOnTop="true"
-                />
-
-            <com.ichi2.anki.ui.RecyclerFastScroller
-                android:id="@+id/browser_scroller"
+            <com.google.android.material.chip.Chip
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_alignParentEnd="true"
+                android:layout_height="wrap_content"
+                app:chipIcon="@drawable/ic_cards_star"
+                android:text="All Decks"
                 />
+        </com.google.android.material.chip.ChipGroup>
 
-        </RelativeLayout>
+    </com.google.android.material.appbar.AppBarLayout>
 
-    </LinearLayout>
+    <com.google.android.material.search.SearchView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:hint="HINT 2"
+        app:layout_anchor="@id/search_bar">
 
+        <!-- Search suggestions/results go here (ScrollView, RecyclerView, etc.). -->
+
+    </com.google.android.material.search.SearchView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

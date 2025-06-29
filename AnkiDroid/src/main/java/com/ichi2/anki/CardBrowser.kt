@@ -32,7 +32,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.BaseAdapter
 import android.widget.LinearLayout
 import android.widget.Spinner
-import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
@@ -118,7 +117,6 @@ import com.ichi2.libanki.Collection
 import com.ichi2.libanki.DeckId
 import com.ichi2.libanki.SortOrder
 import com.ichi2.ui.CardBrowserSearchView
-import com.ichi2.utils.LanguageUtil
 import com.ichi2.utils.TagsUtil.getUpdatedTags
 import com.ichi2.utils.increaseHorizontalPaddingOfOverflowMenuIcons
 import com.ichi2.widget.WidgetStatus.updateInBackground
@@ -132,7 +130,7 @@ import timber.log.Timber
 // The class is only 'open' due to testing
 @KotlinCleanup("scan through this class and add attributes - in process")
 open class CardBrowser :
-    NavigationDrawerActivity(),
+    AnkiActivity(),
     SubtitleListener,
     DeckSelectionListener,
     TagsDialogListener,
@@ -159,7 +157,7 @@ open class CardBrowser :
         }
     }
 
-    override var fragmented: Boolean
+    var fragmented: Boolean
         get() = viewModel.isFragmented
         set(value) {
             throw UnsupportedOperationException()
@@ -177,7 +175,7 @@ open class CardBrowser :
      */
     private var noteEditorFrame: FragmentContainerView? = null
 
-    private lateinit var deckSpinnerSelection: DeckSpinnerSelection
+    // private lateinit var deckSpinnerSelection: DeckSpinnerSelection
 
     private var searchView: CardBrowserSearchView? = null
 
@@ -189,7 +187,7 @@ open class CardBrowser :
     private var undoSnackbar: Snackbar? = null
 
     // card that was clicked (not marked)
-    override var currentCardId
+    var currentCardId
         get() = viewModel.currentCardId
         set(value) {
             viewModel.currentCardId = value
@@ -259,7 +257,7 @@ open class CardBrowser :
             }
             invalidateOptionsMenu() // maybe the availability of undo changed
         }
-    private lateinit var actionBarTitle: TextView
+    // private lateinit var actionBarTitle: TextView
 
     // TODO: Remove this and use `opChanges`
     private var reloadRequired = false
@@ -356,6 +354,7 @@ open class CardBrowser :
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(androidx.appcompat.R.style.Theme_AppCompat_NoActionBar)
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
         }
@@ -377,7 +376,7 @@ open class CardBrowser :
         val launchOptions = intent?.toCardBrowserLaunchOptions() // must be called after super.onCreate()
 
         setContentView(R.layout.card_browser)
-        initNavigationDrawer(findViewById(android.R.id.content))
+        // initNavigationDrawer(findViewById(android.R.id.content))
 
         noteEditorFrame = findViewById(R.id.note_editor_frame)
 
@@ -417,16 +416,16 @@ open class CardBrowser :
 
         // initialize the lateinit variables
         // Load reference to action bar title
-        actionBarTitle = findViewById(R.id.toolbar_title)
-
-        deckSpinnerSelection =
-            DeckSpinnerSelection(
-                this,
-                findViewById(R.id.toolbar_spinner),
-                showAllDecks = true,
-                alwaysShowDefault = false,
-                showFilteredDecks = true,
-            )
+        // actionBarTitle = findViewById(R.id.toolbar_title)
+//
+//        deckSpinnerSelection =
+//            DeckSpinnerSelection(
+//                this,
+//                findViewById(R.id.toolbar_spinner),
+//                showAllDecks = true,
+//                alwaysShowDefault = false,
+//                showFilteredDecks = true,
+//            )
 
         startLoadingCollection()
 
@@ -462,11 +461,11 @@ open class CardBrowser :
             }
         }
     }
-
-    override fun setupBackPressedCallbacks() {
-        onBackPressedDispatcher.addCallback(this, multiSelectOnBackPressedCallback)
-        super.setupBackPressedCallbacks()
-    }
+//
+//    override fun setupBackPressedCallbacks() {
+//        onBackPressedDispatcher.addCallback(this, multiSelectOnBackPressedCallback)
+//        super.setupBackPressedCallbacks()
+//    }
 
     private fun showSaveChangesDialog(launcher: NoteEditorLauncher) {
         DiscardChangesDialog.showDialog(
@@ -553,7 +552,7 @@ open class CardBrowser :
         suspend fun onDeckIdChanged(deckId: DeckId?) {
             if (deckId == null) return
             // this handles ALL_DECKS_ID
-            deckSpinnerSelection.selectDeckById(deckId, false)
+            Timber.e("TOOD")
         }
 
         fun onCanSaveChanged(canSave: Boolean) {
@@ -565,14 +564,10 @@ open class CardBrowser :
                 // Turn on Multi-Select Mode so that the user can select multiple cards at once.
                 Timber.d("load multiselect mode")
                 // show title and hide spinner
-                actionBarTitle.visibility = View.VISIBLE
-                deckSpinnerSelection.setSpinnerVisibility(View.GONE)
                 multiSelectOnBackPressedCallback.isEnabled = true
             } else {
                 Timber.d("end multiselect mode")
                 refreshSubtitle()
-                deckSpinnerSelection.setSpinnerVisibility(View.VISIBLE)
-                actionBarTitle.visibility = View.GONE
                 multiSelectOnBackPressedCallback.isEnabled = false
             }
             // reload the actionbar using the multi-select mode actionbar
@@ -640,15 +635,15 @@ open class CardBrowser :
         registerReceiver()
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
-        deckSpinnerSelection.apply {
-            initializeActionBarDeckSpinner(col, supportActionBar!!)
-            launchCatchingTask {
-                selectDeckById(
-                    viewModel.deckId ?: DeckSpinnerSelection.ALL_DECKS_ID,
-                    false,
-                )
-            }
-        }
+//        deckSpinnerSelection.apply {
+//            initializeActionBarDeckSpinner(col, supportActionBar!!)
+//            launchCatchingTask {
+//                selectDeckById(
+//                    viewModel.deckId ?: DeckSpinnerSelection.ALL_DECKS_ID,
+//                    false,
+//                )
+//            }
+//        }
     }
 
     suspend fun selectDeckAndSave(deckId: DeckId) {
@@ -917,7 +912,7 @@ open class CardBrowser :
 
     override fun onResume() {
         super.onResume()
-        selectNavigationItem(R.id.nav_browser)
+        // selectNavigationItem(R.id.nav_browser)
         searchView?.post {
             hideKeyboard()
         }
@@ -929,7 +924,7 @@ open class CardBrowser :
         actionBarMenu = menu
         if (!viewModel.isInMultiSelectMode) {
             // restore drawer click listener and icon
-            restoreDrawerIcon()
+            // restoreDrawerIcon()
             menuInflater.inflate(R.menu.card_browser, menu)
             menu.findItem(R.id.action_search_by_flag).subMenu?.let { subMenu ->
                 setupFlags(subMenu, Mode.SINGLE_SELECT)
@@ -1003,7 +998,7 @@ open class CardBrowser :
             menu.findItem(R.id.action_flag).subMenu?.let { subMenu ->
                 setupFlags(subMenu, Mode.MULTI_SELECT)
             }
-            showBackIcon()
+            // showBackIcon()
             increaseHorizontalPaddingOfOverflowMenuIcons(menu)
         }
         // Append note editor menu to card browser menu if fragmented and deck is not empty
@@ -1069,13 +1064,13 @@ open class CardBrowser :
         }
     }
 
-    override fun onNavigationPressed() {
-        if (viewModel.isInMultiSelectMode) {
-            viewModel.endMultiSelectMode()
-        } else {
-            super.onNavigationPressed()
-        }
-    }
+//    override fun onNavigationPressed() {
+//        if (viewModel.isInMultiSelectMode) {
+//            viewModel.endMultiSelectMode()
+//        } else {
+//            super.onNavigationPressed()
+//        }
+//    }
 
     private fun updatePreviewMenuItem() {
         previewItem?.isVisible = !fragmented && viewModel.rowCount > 0
@@ -1088,7 +1083,7 @@ open class CardBrowser :
             return
         }
         // set the number of selected rows (only in multiselect)
-        actionBarTitle.text = String.format(LanguageUtil.getLocaleCompat(resources), "%d", viewModel.selectedRowCount())
+        // actionBarTitle.text = String.format(LanguageUtil.getLocaleCompat(resources), "%d", viewModel.selectedRowCount())
         if (viewModel.hasSelectedAnyRows()) {
             actionBarMenu.findItem(R.id.action_suspend_card).apply {
                 title = TR.browsingToggleSuspend().toSentenceCase(this@CardBrowser, R.string.sentence_toggle_suspend)
@@ -1177,7 +1172,7 @@ open class CardBrowser :
     @NeedsTest("filter-suspended query needs testing")
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when {
-            drawerToggle.onOptionsItemSelected(item) -> return true
+            // drawerToggle.onOptionsItemSelected(item) -> return true
 
             // dismiss undo-snackbar if shown to avoid race condition
             // (when another operation will be performed on the model, it will undo the latest operation)
@@ -1637,7 +1632,6 @@ open class CardBrowser :
     private fun updateList() {
         if (!colIsOpenUnsafe()) return
         Timber.d("updateList")
-        deckSpinnerSelection.notifyDataSetChanged()
         onSelectionChanged()
         updatePreviewMenuItem()
     }
