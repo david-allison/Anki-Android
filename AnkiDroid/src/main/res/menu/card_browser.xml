@@ -7,14 +7,8 @@
         android:id="@+id/action_add_note_from_card_browser"
         android:icon="@drawable/ic_add_white"
         android:title="@string/menu_add"
-        ankidroid:showAsAction="ifRoom"/>
+        ankidroid:showAsAction="never"/>
 
-    <item
-        android:id="@+id/action_search"
-        android:icon="@drawable/ic_search_white"
-        android:title="@string/card_browser_cram_search"
-        ankidroid:actionViewClass="com.ichi2.ui.CardBrowserSearchView"
-        ankidroid:showAsAction="always|collapseActionView"/>
 
     <item
         android:id="@+id/action_save_search"
@@ -53,7 +47,10 @@
 
     <item
         android:id="@+id/action_preview"
-        android:title="@string/card_editor_preview_card"/>
+        android:title="@string/card_editor_preview_card"
+        android:icon="@drawable/ic_remove_red_eye_white"
+        ankidroid:showAsAction="ifRoom"
+        />
 
     <item
         android:id="@+id/action_select_all"
