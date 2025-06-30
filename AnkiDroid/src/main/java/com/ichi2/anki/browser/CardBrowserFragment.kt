@@ -54,6 +54,7 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck.Companion.fromCollection
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.requireAnkiActivity
+import com.ichi2.anki.requireNavigationDrawerActivity
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.utils.showDialogFragmentImpl
@@ -141,6 +142,10 @@ class CardBrowserFragment :
                 setOnMenuItemClickListener { item ->
                     requireActivity().onMenuItemSelected(FEATURE_OPTIONS_PANEL, item)
                     true
+                }
+
+                setNavigationOnClickListener {
+                    requireNavigationDrawerActivity().onNavigationPressed()
                 }
             }
         // TODO: load based on viewModel.searchViewExpanded
