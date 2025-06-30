@@ -489,15 +489,7 @@ open class CardBrowser :
         // provides a name for each flow receiver to improve stack traces
 
         fun isInMultiSelectModeChanged(inMultiSelect: Boolean) {
-            if (inMultiSelect) {
-                // Turn on Multi-Select Mode so that the user can select multiple cards at once.
-                Timber.d("load multiselect mode")
-                // show title and hide spinner
-                multiSelectOnBackPressedCallback.isEnabled = true
-            } else {
-                Timber.d("end multiselect mode")
-                multiSelectOnBackPressedCallback.isEnabled = false
-            }
+            multiSelectOnBackPressedCallback.isEnabled = inMultiSelect
             // reload the actionbar using the multi-select mode actionbar
             invalidateOptionsMenu()
         }
@@ -536,7 +528,6 @@ open class CardBrowser :
         viewModel.flowOfMultiSelectMenuState.launchCollectionInLifecycleScope(::onMenuChanged)
     }
 
-    // Finish initializing the activity after the collection has been correctly loaded
     override fun onCollectionLoaded(col: Collection) {
         super.onCollectionLoaded(col)
         Timber.d("onCollectionLoaded()")
