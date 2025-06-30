@@ -1361,14 +1361,19 @@ open class CardBrowser :
         get() {
             val count = viewModel.rowCount
 
-            @androidx.annotation.StringRes val subtitleId =
+            val subtitleId =
                 if (viewModel.cardsOrNotes == CARDS) {
                     R.plurals.card_browser_subtitle
                 } else {
                     R.plurals.card_browser_subtitle_notes_mode
                 }
-            return resources.getQuantityString(subtitleId, count, count)
+
+            showSnackbar(resources.getQuantityString(subtitleId, count, count), Snackbar.LENGTH_SHORT)
         }
+    }
+
+    override val subtitleText: String
+        get() = ""
 
     @RustCleanup("this isn't how Desktop Anki does it")
     override fun onSelectedTags(
