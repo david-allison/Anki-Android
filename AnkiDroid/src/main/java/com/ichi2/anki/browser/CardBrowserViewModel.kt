@@ -136,6 +136,11 @@ class CardBrowserViewModel(
 
     val flowOfSearchState = MutableSharedFlow<SearchState>()
 
+    val flowOfNoteEditorVisible =
+        flowOfSearchState.map {
+            isFragmented && rowCount > 0
+        }
+
     val flowOfSearchTerms = MutableStateFlow("")
 
     val searchTerms: String
