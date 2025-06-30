@@ -25,7 +25,6 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
-import android.view.SubMenu
 import android.view.View
 import android.view.WindowManager
 import android.widget.BaseAdapter
@@ -38,13 +37,11 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import androidx.annotation.CheckResult
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
-import androidx.appcompat.widget.ThemeUtils
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import anki.collection.OpChanges
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anim.ActivityTransitionAnimation.Direction
@@ -64,6 +61,7 @@ import com.ichi2.anki.browser.CardBrowserViewModel.SearchState.Searching
 import com.ichi2.anki.browser.CardOrNoteId
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment
 import com.ichi2.anki.browser.IdsFile
+import com.ichi2.anki.browser.Mode
 import com.ichi2.anki.browser.RepositionCardFragment
 import com.ichi2.anki.browser.RepositionCardFragment.Companion.REQUEST_REPOSITION_NEW_CARDS
 import com.ichi2.anki.browser.RepositionCardsRequest.ContainsNonNewCardsError
@@ -71,6 +69,7 @@ import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
 import com.ichi2.anki.browser.SaveSearchResult
 import com.ichi2.anki.browser.SharedPreferencesLastDeckIdRepository
 import com.ichi2.anki.browser.registerFindReplaceHandler
+import com.ichi2.anki.browser.setup
 import com.ichi2.anki.browser.toCardBrowserLaunchOptions
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
@@ -110,7 +109,6 @@ import com.ichi2.anki.scheduling.registerOnForgetHandler
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.ResizablePaneManager
-import com.ichi2.anki.ui.internationalization.toSentenceCase
 import com.ichi2.anki.utils.ext.getCurrentDialogFragment
 import com.ichi2.anki.utils.ext.ifNotZero
 import com.ichi2.anki.utils.ext.setFragmentResultListener
@@ -178,7 +176,6 @@ open class CardBrowser :
     // private lateinit var deckSpinnerSelection: DeckSpinnerSelection
 
     private lateinit var tagsDialogFactory: TagsDialogFactory
-    private var previewItem: MenuItem? = null
     private var undoSnackbar: Snackbar? = null
 
     // card that was clicked (not marked)
@@ -845,15 +842,9 @@ open class CardBrowser :
         actionBarMenu = menu
         if (!viewModel.isInMultiSelectMode) {
             menuInflater.inflate(R.menu.card_browser, menu)
-            menu.findItem(R.id.action_search_by_flag).subMenu?.let { subMenu ->
-                setupFlags(subMenu, Mode.SINGLE_SELECT)
-            }
-            viewModel.flowOfStandardMenuState.value.setup(menu, this)
+            viewModel.flowOfStandardMenuState.value.setup(menu, this, viewModel)
         } else {
             menuInflater.inflate(R.menu.card_browser_multiselect, menu)
-            menu.findItem(R.id.action_flag).subMenu?.let { subMenu ->
-                setupFlags(subMenu, Mode.MULTI_SELECT)
-            }
             viewModel.flowOfMultiSelectMenuState.value.setup(menu, this, viewModel)
             increaseHorizontalPaddingOfOverflowMenuIcons(menu)
         }
@@ -881,49 +872,6 @@ open class CardBrowser :
         return super.onCreateOptionsMenu(menu)
     }
 
-    /**
-     * Representing different selection modes.
-     */
-    enum class Mode(
-        val value: Int,
-    ) {
-        SINGLE_SELECT(1000),
-        MULTI_SELECT(1001),
-    }
-
-    private fun setupFlags(
-        subMenu: SubMenu,
-        mode: Mode,
-    ) {
-        lifecycleScope.launch {
-            val groupId =
-                when (mode) {
-                    Mode.SINGLE_SELECT -> mode.value
-                    Mode.MULTI_SELECT -> mode.value
-                }
-
-            for ((flag, displayName) in Flag.queryDisplayNames()) {
-                val item =
-                    subMenu
-                        .add(groupId, flag.code, Menu.NONE, displayName)
-                        .setIcon(flag.drawableRes)
-                if (flag == Flag.NONE) {
-                    val color = ThemeUtils.getThemeAttrColor(this@CardBrowser, android.R.attr.colorControlNormal)
-                    item.icon?.mutate()?.setTint(color)
-                }
-            }
-        }
-    }
-
-    private fun updatePreviewMenuItem() {
-        previewItem?.isVisible = !fragmented && viewModel.rowCount > 0
-        actionBarMenu?.findItem(R.id.action_select_all)?.isVisible =
-            viewModel.rowCount > 0 &&
-            viewModel.selectedRowCount() < viewModel.rowCount
-    }
-
-    private fun hasSelectedAllCards(): Boolean = viewModel.selectedRowCount() >= viewModel.rowCount // must handle 0.
-
     private fun updateFlagForSelectedRows(flag: Flag) =
         launchCatchingTask {
             updateSelectedCardsFlag(flag)
@@ -943,7 +891,6 @@ open class CardBrowser :
         // TODO: try to offload the cards processing in updateCardsInList() on a background thread,
         // otherwise it could hang the main thread
         updateCardsInList(updatedCardIds)
-        invalidateOptionsMenu() // maybe the availability of undo changed
         if (updatedCardIds.any { it == reviewerCardId }) {
             reloadRequired = true
         }
@@ -964,8 +911,6 @@ open class CardBrowser :
     @NeedsTest("filter-suspended query needs testing")
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when {
-            // drawerToggle.onOptionsItemSelected(item) -> return true
-
             // dismiss undo-snackbar if shown to avoid race condition
             // (when another operation will be performed on the model, it will undo the latest operation)
             undoSnackbar != null && undoSnackbar!!.isShown -> undoSnackbar!!.dismiss()
@@ -1396,7 +1341,6 @@ open class CardBrowser :
         )
     }
 
-    // TMP: updates preview
     private fun forceRefreshSearch() {
         viewModel.launchSearchForCards()
     }
@@ -1559,7 +1503,6 @@ open class CardBrowser :
         forceRefreshSearch()
         viewModel.endMultiSelectMode(SingleSelectCause.Other)
         refreshSubtitle()
-        invalidateOptionsMenu() // maybe the availability of undo changed
     }
 
     fun searchAllDecks() =
@@ -1701,67 +1644,6 @@ open class CardBrowser :
             viewModel: CardBrowserViewModel,
             inFragmentedActivity: Boolean = false,
         ): NoteEditorLauncher = NoteEditorLauncher.AddNoteFromCardBrowser(viewModel, inFragmentedActivity)
-    }
-}
-
-fun CardBrowserViewModel.MenuState.Standard.setup(
-    menu: Menu,
-    context: Context,
-) {
-    menu.findItem(R.id.action_create_filtered_deck)?.title = TR.qtMiscCreateFilteredDeck()
-
-    menu.findItem(R.id.action_save_search)?.isVisible = this.saveSearchEnabled
-    menu.findItem(R.id.action_list_my_searches)?.isVisible = this.openMySearchesEnabled
-    menu.findItem(R.id.action_select_all)?.isVisible = this.selectAllEnabled
-    menu.findItem(R.id.action_undo)?.isVisible = this.undoEnabled
-    menu.findItem(R.id.action_preview)?.isVisible = this.previewEnabled
-    menu.findItem(R.id.action_find_replace)?.isVisible = this.findReplaceEnabled
-    menu.findItem(R.id.action_find_replace)?.title = TR.browsingFindAndReplace().toSentenceCase(context, R.string.sentence_find_and_replace)
-}
-
-fun CardBrowserViewModel.MenuState.MultiSelect.setup(
-    menu: Menu,
-    context: Context,
-    viewModel: CardBrowserViewModel,
-) {
-    menu.findItem(R.id.action_reschedule_cards)?.title = TR.actionsSetDueDate().toSentenceCase(context, R.string.sentence_set_due_date)
-    menu.findItem(R.id.action_suspend_card)?.title = TR.browsingToggleSuspend().toSentenceCase(context, R.string.sentence_toggle_suspend)
-    menu.findItem(R.id.action_toggle_bury)?.title = TR.browsingToggleBury().toSentenceCase(context, R.string.sentence_toggle_bury)
-    menu.findItem(R.id.action_mark_card)?.title = TR.browsingToggleMark()
-
-    menu.findItem(R.id.action_select_all)?.isVisible = this.selectAllEnabled
-    menu.findItem(R.id.action_select_none)?.isVisible = this.selectNoneEnabled
-    menu.findItem(R.id.action_undo)?.isVisible = this.undoEnabled
-    menu.findItem(R.id.action_preview)?.isVisible = this.previewEnabled
-    menu.findItem(R.id.action_view_card_info)?.isVisible = this.cardInfoEnabled
-    menu.findItem(R.id.action_edit_note)?.isVisible = this.canEditNote
-    menu.findItem(R.id.action_find_replace)?.isVisible = this.findReplaceEnabled
-    menu.findItem(R.id.action_find_replace)?.title = TR.browsingFindAndReplace().toSentenceCase(context, R.string.sentence_find_and_replace)
-
-    menu.findItem(R.id.action_export_selected)?.apply {
-        this.title =
-            if (viewModel.cardsOrNotes == CARDS) {
-                context.resources.getQuantityString(
-                    R.plurals.card_browser_export_cards,
-                    viewModel.selectedRowCount(),
-                )
-            } else {
-                context.resources.getQuantityString(
-                    R.plurals.card_browser_export_notes,
-                    viewModel.selectedRowCount(),
-                )
-            }
-    }
-
-    // TODO: change this
-    viewModel.viewModelScope.launch {
-        menu.findItem(R.id.action_delete_card)?.apply {
-            this.title =
-                context.resources.getQuantityString(
-                    R.plurals.card_browser_delete_notes,
-                    viewModel.selectedNoteCount(),
-                )
-        }
     }
 }
 

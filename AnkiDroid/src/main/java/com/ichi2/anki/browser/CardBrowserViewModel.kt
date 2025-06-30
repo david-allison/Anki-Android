@@ -1571,3 +1571,13 @@ data class ColumnHeading(
     val label: String,
     val ankiColumnKey: String,
 ) : Parcelable
+
+/**
+ * Representing different selection modes.
+ */
+enum class Mode(
+    val value: Int,
+) {
+    SINGLE_SELECT(1000),
+    MULTI_SELECT(1001),
+}
