@@ -53,6 +53,7 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck.Companion.fromCollection
 import com.ichi2.anki.launchCatchingTask
+import com.ichi2.anki.setup
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.utils.showDialogFragmentImpl
@@ -137,7 +138,6 @@ class CardBrowserFragment :
 
         searchBar =
             view.findViewById<SearchBar>(R.id.search_bar).apply {
-                inflateMenu(R.menu.card_browser)
                 setOnMenuItemClickListener { item ->
                     requireActivity().onMenuItemSelected(FEATURE_OPTIONS_PANEL, item)
                     true
@@ -196,6 +196,18 @@ class CardBrowserFragment :
             cardsAdapter.notifyDataSetChanged()
         }
 
+        fun onStandardMenuChanged(menuState: CardBrowserViewModel.MenuState.Standard) {
+            Timber.d("menu updated")
+            menuState.setup(searchBar.menu, requireContext())
+            // TODO: Flags isn't setup yet
+        }
+
+        fun onMultiSelectMenuChanged(menuState: CardBrowserViewModel.MenuState.MultiSelect) {
+            Timber.d("menu updated")
+            menuState.setup(searchBar.menu, requireContext(), viewModel)
+            // TODO: Flags isn't setup yet
+        }
+
         fun isInMultiSelectModeChanged(inMultiSelect: Boolean) {
             if (inMultiSelect) {
                 // A checkbox is added on the rows, match padding to keep the headings aligned
@@ -208,6 +220,14 @@ class CardBrowserFragment :
             // update adapter to remove check boxes
             cardsAdapter.notifyDataSetChanged()
             autoScrollTo(viewModel.lastSelectedPosition, viewModel.oldCardTopOffset)
+
+            searchBar.menu.clear()
+            if (inMultiSelect) {
+                searchBar.inflateMenu(R.menu.card_browser_multiselect)
+                onStandardMenuChanged(viewModel.flowOfStandardMenuState.value)
+            } else {
+                searchBar.inflateMenu(R.menu.card_browser)
+            }
         }
 
         fun searchStateChanged(searchState: SearchState) {
@@ -289,6 +309,8 @@ class CardBrowserFragment :
         viewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
         viewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
         viewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckIdChanged)
+        viewModel.flowOfStandardMenuState.launchCollectionInLifecycleScope(::onStandardMenuChanged)
+        viewModel.flowOfMultiSelectMenuState.launchCollectionInLifecycleScope(::onMultiSelectMenuChanged)
     }
 
     override fun opExecuted(
