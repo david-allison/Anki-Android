@@ -21,6 +21,7 @@ package com.ichi2.anki
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Menu
@@ -109,6 +110,7 @@ import com.ichi2.libanki.ChangeManager
 import com.ichi2.libanki.Collection
 import com.ichi2.libanki.DeckId
 import com.ichi2.libanki.SortOrder
+import com.ichi2.themes.setTransparentStatusBar
 import com.ichi2.utils.TagsUtil.getUpdatedTags
 import com.ichi2.utils.increaseHorizontalPaddingOfOverflowMenuIcons
 import com.ichi2.widget.WidgetStatus.updateInBackground
@@ -321,6 +323,7 @@ open class CardBrowser :
             showUndoSnackbar(TR.browsingCardsUpdated(changed.count))
         }
 
+    @Suppress("deprecation") // STOPSHIP
     override fun onCreate(savedInstanceState: Bundle?) {
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
@@ -344,6 +347,9 @@ open class CardBrowser :
 
         setContentView(R.layout.card_browser)
         initNavigationDrawer(findViewById(android.R.id.content))
+
+        setTransparentStatusBar()
+        drawerLayout.setStatusBarBackgroundColor(Color.TRANSPARENT)
 
         noteEditorFrame = findViewById(R.id.note_editor_frame)
 
