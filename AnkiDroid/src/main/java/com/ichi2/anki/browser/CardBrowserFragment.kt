@@ -21,6 +21,7 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window.FEATURE_OPTIONS_PANEL
 import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.TextView
@@ -156,7 +157,14 @@ class CardBrowserFragment :
                 }
             }
 
-        searchBar = view.findViewById(R.id.search_bar)
+        searchBar =
+            view.findViewById<SearchBar>(R.id.search_bar).apply {
+                inflateMenu(R.menu.card_browser)
+                setOnMenuItemClickListener { item ->
+                    requireActivity().onMenuItemSelected(FEATURE_OPTIONS_PANEL, item)
+                    true
+                }
+            }
         // TODO: load based on viewModel.searchViewExpanded
         searchView =
             view.findViewById<SearchView>(R.id.search_view).apply {

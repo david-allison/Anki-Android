@@ -89,7 +89,7 @@
             android:layout_height="wrap_content"
             app:navigationIcon="@drawable/ic_menu_24"
             android:hint="Search cards/notes"
-            app:menu="@menu/card_browser"  />
+            tools:menu="@menu/card_browser"  />
 
         <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
