@@ -1661,7 +1661,17 @@ fun CardBrowser.getVisibleRows() =
 val CardBrowser.isShowingSelectAll: Boolean
     get() {
         waitForAsyncTasksToComplete()
-        return actionBarMenu?.findItem(R.id.action_select_all)?.isVisible == true
+        assertThat(
+            viewModel.flowOfStandardMenuState.value.selectAllEnabled,
+            equalTo(viewModel.flowOfMultiSelectMenuState.value.selectAllEnabled),
+        )
+        return viewModel.flowOfStandardMenuState.value.selectAllEnabled
+    }
+
+val CardBrowser.isShowingSelectNone: Boolean
+    get() {
+        waitForAsyncTasksToComplete()
+        return viewModel.flowOfMultiSelectMenuState.value.selectNoneEnabled
     }
 
 val CardBrowser.columnHeadingViews

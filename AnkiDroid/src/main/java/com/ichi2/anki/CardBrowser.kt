@@ -176,8 +176,6 @@ open class CardBrowser :
      */
     private var noteEditorFrame: FragmentContainerView? = null
 
-    // private lateinit var deckSpinnerSelection: DeckSpinnerSelection
-
     private lateinit var tagsDialogFactory: TagsDialogFactory
     private var undoSnackbar: Snackbar? = null
 
@@ -252,13 +250,9 @@ open class CardBrowser :
             }
             invalidateOptionsMenu() // maybe the availability of undo changed
         }
-    // private lateinit var actionBarTitle: TextView
 
     // TODO: Remove this and use `opChanges`
     private var reloadRequired = false
-
-    @VisibleForTesting
-    internal var actionBarMenu: Menu? = null
 
     init {
         ChangeManager.subscribe(this)
@@ -811,15 +805,10 @@ open class CardBrowser :
         viewModel.removeUnsubmittedInput()
     }
 
-    override fun onResume() {
-        super.onResume()
-    }
-
     @KotlinCleanup("Add a few variables to get rid of the !!")
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         Timber.d("onCreateOptionsMenu()")
 
-        actionBarMenu = menu
         if (!viewModel.isInMultiSelectMode) {
             menuInflater.inflate(R.menu.card_browser, menu)
             viewModel.flowOfStandardMenuState.value.setup(menu, this, viewModel)
@@ -832,9 +821,7 @@ open class CardBrowser :
         if (fragmented && viewModel.rowCount != 0) {
             fragment?.onCreateMenu(menu, menuInflater)
         }
-        actionBarMenu?.findItem(R.id.action_undo)?.run {
-            title = getColUnsafe.undoLabel()
-        }
+        menu.findItem(R.id.action_undo)?.title = getColUnsafe.undoLabel()
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -1438,7 +1425,6 @@ open class CardBrowser :
     }
 
     private fun refreshAfterUndo() {
-        hideProgressBar()
         // reload whole view
         forceRefreshSearch()
         viewModel.endMultiSelectMode(SingleSelectCause.Other)
