@@ -495,8 +495,8 @@ open class CardBrowser :
             Timber.e("TOOD")
         }
 
-        fun onMultiSelectModeChanged(modeChange: ChangeMultiSelectMode) {
-            if (modeChange.resultedInMultiSelect) {
+        fun isInMultiSelectModeChanged(inMultiSelect: Boolean) {
+            if (inMultiSelect) {
                 // Turn on Multi-Select Mode so that the user can select multiple cards at once.
                 Timber.d("load multiselect mode")
                 // show title and hide spinner
