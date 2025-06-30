@@ -636,8 +636,7 @@ open class CardBrowser :
                 }
                 if (event.isCtrlPressed) {
                     Timber.i("Ctrl+F - Find notes")
-                    TODO()
-                    // searchItem?.expandActionView()
+                    viewModel.expandSearchView()
                     return true
                 }
             }
