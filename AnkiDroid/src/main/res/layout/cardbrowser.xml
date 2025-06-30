@@ -89,14 +89,14 @@
             android:layout_height="wrap_content"
             app:navigationIcon="@drawable/ic_menu_24"
             android:hint="Search cards/notes"
-            tools:menu="@menu/card_browser"  />
+            tools:menu="@menu/card_browser" />
 
         <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="-8dp"
             android:paddingHorizontal="16dp"
-            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+            app:layout_scrollFlags="scroll|enterAlways">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_decks"
