@@ -53,7 +53,7 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck.Companion.fromCollection
 import com.ichi2.anki.launchCatchingTask
-import com.ichi2.anki.setup
+import com.ichi2.anki.requireAnkiActivity
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.utils.showDialogFragmentImpl
@@ -198,14 +198,18 @@ class CardBrowserFragment :
 
         fun onStandardMenuChanged(menuState: CardBrowserViewModel.MenuState.Standard) {
             Timber.d("menu updated")
-            menuState.setup(searchBar.menu, requireContext())
-            // TODO: Flags isn't setup yet
+            menuState.setup(searchBar.menu, requireContext(), viewModel)
+            searchBar.menu?.findItem(R.id.action_undo)?.run {
+                title = requireAnkiActivity().getColUnsafe.undoLabel()
+            }
         }
 
         fun onMultiSelectMenuChanged(menuState: CardBrowserViewModel.MenuState.MultiSelect) {
             Timber.d("menu updated")
             menuState.setup(searchBar.menu, requireContext(), viewModel)
-            // TODO: Flags isn't setup yet
+            searchBar.menu?.findItem(R.id.action_undo)?.run {
+                title = requireAnkiActivity().getColUnsafe.undoLabel()
+            }
         }
 
         fun isInMultiSelectModeChanged(inMultiSelect: Boolean) {
