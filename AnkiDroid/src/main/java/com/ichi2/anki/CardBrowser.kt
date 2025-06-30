@@ -669,7 +669,7 @@ open class CardBrowser :
                     return true
                 } else if (event.isAltPressed) {
                     Timber.i("Alt+S: Show suspended cards")
-                    searchForSuspendedCards()
+                    viewModel.searchForSuspendedCards()
                     return true
                 }
             }
@@ -701,7 +701,7 @@ open class CardBrowser :
             KeyEvent.KEYCODE_M -> {
                 if (event.isCtrlPressed) {
                     Timber.i("Ctrl+M: Search marked notes")
-                    searchForMarkedNotes()
+                    viewModel.searchForMarkedNotes()
                     return true
                 }
             }
@@ -831,11 +831,7 @@ open class CardBrowser :
         }
 
     /**
-     * Sets the flag for selected cards, default norm of flags are as:
-     *
-     * 0: No Flag, 1: RED, 2: ORANGE, 3: GREEN
-     * 4: BLUE, 5: PINK, 6: Turquoise, 7: PURPLE
-     *
+     * Sets the flag for selected cards
      */
     @VisibleForTesting
     suspend fun updateSelectedCardsFlag(flag: Flag) {
@@ -898,11 +894,11 @@ open class CardBrowser :
                 return true
             }
             R.id.action_show_marked -> {
-                searchForMarkedNotes()
+                viewModel.searchForMarkedNotes()
                 return true
             }
             R.id.action_show_suspended -> {
-                searchForSuspendedCards()
+                viewModel.searchForSuspendedCards()
                 return true
             }
             R.id.action_search_by_tag -> {
@@ -1015,20 +1011,6 @@ open class CardBrowser :
                 dialog.showFilteredDeckDialog()
             }
         }
-    }
-
-    /**
-     * @see CardBrowserViewModel.searchForSuspendedCards
-     */
-    private fun searchForSuspendedCards() {
-        launchCatchingTask { viewModel.searchForSuspendedCards() }
-    }
-
-    /**
-     * @see CardBrowserViewModel.searchForMarkedNotes
-     */
-    private fun searchForMarkedNotes() {
-        launchCatchingTask { viewModel.searchForMarkedNotes() }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
