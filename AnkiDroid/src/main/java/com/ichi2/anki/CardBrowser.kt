@@ -126,7 +126,7 @@ import timber.log.Timber
 // The class is only 'open' due to testing
 @KotlinCleanup("scan through this class and add attributes - in process")
 open class CardBrowser :
-    AnkiActivity(),
+    NavigationDrawerActivity(),
     DeckDropDownAdapter.SubtitleProvider,
     DeckSelectionListener,
     TagsDialogListener,
@@ -153,7 +153,7 @@ open class CardBrowser :
         }
     }
 
-    var fragmented: Boolean
+    override var fragmented: Boolean
         get() = viewModel.isFragmented
         set(value) {
             throw UnsupportedOperationException()
@@ -177,7 +177,7 @@ open class CardBrowser :
     private var undoSnackbar: Snackbar? = null
 
     // card that was clicked (not marked)
-    var currentCardId
+    override var currentCardId
         get() = viewModel.currentCardId
         set(value) {
             viewModel.currentCardId = value
@@ -326,7 +326,6 @@ open class CardBrowser :
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(androidx.appcompat.R.style.Theme_AppCompat_NoActionBar)
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
         }
@@ -348,7 +347,7 @@ open class CardBrowser :
         val launchOptions = intent?.toCardBrowserLaunchOptions() // must be called after super.onCreate()
 
         setContentView(R.layout.card_browser)
-        // initNavigationDrawer(findViewById(android.R.id.content))
+        initNavigationDrawer(findViewById(android.R.id.content))
 
         noteEditorFrame = findViewById(R.id.note_editor_frame)
 
