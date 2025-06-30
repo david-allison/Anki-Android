@@ -432,11 +432,11 @@ open class CardBrowser :
             }
         }
     }
-//
-//    override fun setupBackPressedCallbacks() {
-//        onBackPressedDispatcher.addCallback(this, multiSelectOnBackPressedCallback)
-//        super.setupBackPressedCallbacks()
-//    }
+
+    override fun setupBackPressedCallbacks() {
+        onBackPressedDispatcher.addCallback(this, multiSelectOnBackPressedCallback)
+        super.setupBackPressedCallbacks()
+    }
 
     private fun showSaveChangesDialog(launcher: NoteEditorLauncher) {
         DiscardChangesDialog.showDialog(
