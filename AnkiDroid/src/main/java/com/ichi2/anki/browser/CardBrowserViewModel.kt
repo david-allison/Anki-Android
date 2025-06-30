@@ -144,8 +144,10 @@ class CardBrowserViewModel(
 
     val flowOfSearchState = MutableSharedFlow<SearchState>()
 
-    var searchTerms = ""
-        private set
+    val flowOfSearchTerms = MutableStateFlow("")
+
+    val searchTerms: String
+        get() = flowOfSearchTerms.value
 
     @VisibleForTesting
     var restrictOnDeck: String = ""
@@ -192,16 +194,16 @@ class CardBrowserViewModel(
     val activeColumns
         get() = flowOfActiveColumns.value.columns
 
-    val flowOfSearchQueryExpanded = MutableStateFlow(false)
+    val flowOfSearchViewExpanded = MutableStateFlow(false)
 
-    private val searchQueryInputFlow = MutableStateFlow<String?>(null)
+    /** Unsubmitted input */
+    private val flowOfUnsubmittedSearchText = MutableStateFlow<String?>(null)
 
-    /** The query which is currently in the search box, potentially null. Only set when search box was open  */
-    val tempSearchQuery get() = searchQueryInputFlow.value
-
-    /** Whether the current element in the search bar can be saved */
+    /**
+     * Whether the unsubmitted search text can be searched/saved
+     */
     val flowOfCanSearch =
-        searchQueryInputFlow
+        flowOfUnsubmittedSearchText
             .map { it?.isNotEmpty() == true }
             .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = false)
 
@@ -293,6 +295,26 @@ class CardBrowserViewModel(
     val flowOfDeckId = MutableStateFlow(lastDeckId)
     val deckId get() = flowOfDeckId.value
 
+    val flowOfDeckSelection: Flow<DeckSelection> =
+        flowOfDeckId.map { deckId ->
+            if (deckId == null || deckId == ALL_DECKS_ID) {
+                return@map DeckSelection.AllDecks
+            }
+            return@map DeckSelection.Deck(
+                id = deckId,
+                name = withCol { decks.get(deckId)!!.name },
+            )
+        }
+
+    sealed class DeckSelection {
+        data object AllDecks : DeckSelection()
+
+        data class Deck(
+            val id: DeckId,
+            val name: String,
+        ) : DeckSelection()
+    }
+
     suspend fun queryCardInfoDestination(): CardInfoDestination? {
         val firstSelectedCard = selectedRows.firstOrNull()?.toCardId(cardsOrNotes) ?: return null
         return CardInfoDestination(firstSelectedCard)
@@ -363,14 +385,14 @@ class CardBrowserViewModel(
         var selectAllDecks = false
         when (options) {
             is CardBrowserLaunchOptions.SystemContextMenu -> {
-                searchTerms = options.search.toString()
+                flowOfSearchTerms.value = options.search.toString()
             }
             is CardBrowserLaunchOptions.SearchQueryJs -> {
-                searchTerms = options.search
+                flowOfSearchTerms.value = options.search
                 selectAllDecks = options.allDecks
             }
             is CardBrowserLaunchOptions.DeepLink -> {
-                searchTerms = options.search
+                flowOfSearchTerms.value = options.search
             }
             null -> {}
         }
@@ -1035,29 +1057,22 @@ class CardBrowserViewModel(
         return cards.indexOf(idToFind)
     }
 
-    fun setSearchQueryExpanded(expand: Boolean) {
-        if (expand) {
-            expandSearchQuery()
-        } else {
-            collapseSearchQuery()
-        }
+    fun collapseSearchView() {
+        flowOfUnsubmittedSearchText.update { null }
+        flowOfSearchViewExpanded.update { false }
     }
 
-    private fun collapseSearchQuery() {
-        searchQueryInputFlow.update { null }
-        flowOfSearchQueryExpanded.update { false }
-    }
-
-    private fun expandSearchQuery() {
-        flowOfSearchQueryExpanded.update { true }
+    fun expandSearchView() {
+        flowOfSearchViewExpanded.update { true }
     }
 
     fun updateQueryText(newText: String) {
-        searchQueryInputFlow.update { newText }
+        flowOfUnsubmittedSearchText.update { newText }
     }
 
     fun removeUnsubmittedInput() {
-        searchQueryInputFlow.update { null }
+        // TODO: No longer needed
+        flowOfUnsubmittedSearchText.update { null }
     }
 
     fun moveSelectedCardsToDeck(deckId: DeckId): Deferred<OpChangesWithCount> =
@@ -1095,7 +1110,7 @@ class CardBrowserViewModel(
             Timber.d("skipping duplicate search: forceRefresh is false")
             return
         }
-        searchTerms =
+        flowOfSearchTerms.value =
             if (shouldIgnoreAccents) {
                 searchQuery.normalizeForSearch()
             } else {
@@ -1118,6 +1133,7 @@ class CardBrowserViewModel(
         if (!initCompleted) return
 
         viewModelScope.launch {
+            collapseSearchView()
             // update the UI while we're searching
             clearCardsList()
 
@@ -1133,6 +1149,7 @@ class CardBrowserViewModel(
                 launchCatchingIO(
                     errorMessageHandler = { error -> flowOfSearchState.emit(SearchState.Error(error)) },
                 ) {
+                    collapseSearchView()
                     flowOfSearchState.emit(SearchState.Searching)
                     Timber.d("performing search: '%s'", query)
                     val cards = com.ichi2.anki.searchForRows(query, order.toSortOrder(), cardsOrNotes)

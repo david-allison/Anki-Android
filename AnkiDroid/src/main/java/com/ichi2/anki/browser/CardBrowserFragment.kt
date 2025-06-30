@@ -17,15 +17,17 @@
 package com.ichi2.anki.browser
 
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -35,14 +37,17 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import anki.collection.OpChanges
-import com.google.android.material.color.MaterialColors
+import com.google.android.material.chip.Chip
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.search.SearchBar
+import com.google.android.material.search.SearchView
 import com.ichi2.anki.CardBrowser
+import com.ichi2.anki.DeckSpinnerSelection.Companion.ALL_DECKS_ID
 import com.ichi2.anki.R
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.MultiSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
+import com.ichi2.anki.browser.CardBrowserViewModel.DeckSelection
 import com.ichi2.anki.browser.CardBrowserViewModel.RowSelection
 import com.ichi2.anki.browser.CardBrowserViewModel.SearchState
 import com.ichi2.anki.browser.CardBrowserViewModel.SearchState.Initializing
@@ -51,10 +56,14 @@ import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_ALL
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_NONE
 import com.ichi2.anki.common.utils.android.isRobolectric
+import com.ichi2.anki.dialogs.DeckSelectionDialog
+import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck
+import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck.Companion.fromCollection
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
+import com.ichi2.anki.utils.showDialogFragmentImpl
 import com.ichi2.anki.utils.ext.visibleItemPositions
 import com.ichi2.utils.HandlerUtils
 import kotlinx.coroutines.flow.Flow
@@ -86,6 +95,11 @@ class CardBrowserFragment :
     lateinit var toggleRowSelections: ImageButton
 
     private lateinit var progressIndicator: LinearProgressIndicator
+
+    private lateinit var searchBar: SearchBar
+    private lateinit var searchView: SearchView
+
+    private lateinit var deckChip: Chip
 
     override fun onViewCreated(
         view: View,
@@ -124,16 +138,51 @@ class CardBrowserFragment :
 
         progressIndicator = view.findViewById(R.id.browser_progress)
 
-        val searchBar = view.findViewById<SearchBar>(R.id.search_bar)
-        val color = MaterialColors.getColor(searchBar, com.google.android.material.R.attr.colorControlNormal)
-        val menu = searchBar.menu
-        for (i in 0 until menu.size()) {
-            val item = menu.getItem(i)
-            item.icon?.let {
-                it.mutate()
-                DrawableCompat.setTint(it, color)
+        deckChip =
+            view.findViewById<Chip>(R.id.chip_decks).apply {
+                setOnClickListener {
+                    launchCatchingTask {
+                        val decks = fromCollection(includeFiltered = true).toMutableList()
+                        decks.add(SelectableDeck(ALL_DECKS_ID, getString(R.string.card_browser_all_decks)))
+                        val dialog =
+                            DeckSelectionDialog.newInstance(
+                                title = getString(R.string.search_deck),
+                                summaryMessage = null,
+                                keepRestoreDefaultButton = false,
+                                decks = decks,
+                            )
+                        showDialogFragmentImpl(childFragmentManager, dialog)
+                    }
+                }
             }
-        }
+
+        searchBar = view.findViewById(R.id.search_bar)
+        // TODO: load based on viewModel.searchViewExpanded
+        searchView =
+            view.findViewById<SearchView>(R.id.search_view).apply {
+                editText.doAfterTextChanged {
+                    viewModel.updateQueryText(it.toString())
+                }
+                editText.setOnEditorActionListener { v, actionId, event ->
+                    if (actionId != EditorInfo.IME_ACTION_SEARCH &&
+                        actionId != EditorInfo.IME_ACTION_DONE &&
+                        !(event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+                    ) {
+                        return@setOnEditorActionListener false
+                    }
+                    viewModel.launchSearchForCards(v.text.toString())
+                    true
+                }
+
+                addTransitionListener { _, _, newState ->
+                    if (newState == SearchView.TransitionState.HIDDEN) {
+                        viewModel.collapseSearchView()
+                    }
+                    if (newState == SearchView.TransitionState.SHOWN) {
+                        viewModel.expandSearchView()
+                    }
+                }
+            }
 
         setupFlows()
     }
@@ -241,6 +290,27 @@ class CardBrowserFragment :
                 )
         }
 
+        fun onSearchViewExpanded(value: Boolean) {
+            if (value) {
+                searchView.show()
+            } else {
+                searchView.hide()
+            }
+        }
+
+        fun onSearchChanged(value: String) {
+            Timber.d("onQueryChanged")
+            searchBar.setText(value)
+        }
+
+        fun onDeckIdChanged(deckSelection: DeckSelection) {
+            deckChip.text =
+                when (deckSelection) {
+                    is DeckSelection.AllDecks -> getString(R.string.card_browser_all_decks)
+                    is DeckSelection.Deck -> deckSelection.name
+                }
+        }
+
         viewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         viewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         viewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -250,6 +320,9 @@ class CardBrowserFragment :
         viewModel.flowOfColumnHeadings.launchCollectionInLifecycleScope(::onColumnNamesChanged)
         viewModel.flowOfCardStateChanged.launchCollectionInLifecycleScope(::onCardsMarkedEvent)
         viewModel.flowOfToggleSelectionState.launchCollectionInLifecycleScope(::onToggleSelectionStateUpdated)
+        viewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
+        viewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
+        viewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckIdChanged)
     }
 
     override fun opExecuted(
