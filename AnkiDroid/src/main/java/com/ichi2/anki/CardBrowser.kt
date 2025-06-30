@@ -1290,38 +1290,21 @@ open class CardBrowser :
                     View.GONE
                 }
 
-            if (viewModel.hasSelectedAllDecks()) {
-                showSnackbar(subtitleText, Snackbar.LENGTH_SHORT)
-            } else {
-                // If we haven't selected all decks, allow the user the option to search all decks.
-                val message =
-                    if (viewModel.rowCount == 0) {
-                        getString(R.string.card_browser_no_cards_in_deck, selectedDeckNameForUi)
-                    } else {
-                        subtitleText
-                    }
-                showSnackbar(message, Snackbar.LENGTH_INDEFINITE) {
-                    setAction(R.string.card_browser_search_all_decks) { searchAllDecks() }
-                }
-            }
-        }
-    }
-
-    /**
-     * @return text to be used in the subtitle of the drop-down deck selector
-     */
-    override val subtitleText: String
-        get() {
             val count = viewModel.rowCount
 
-            @androidx.annotation.StringRes val subtitleId =
+            val subtitleId =
                 if (viewModel.cardsOrNotes == CARDS) {
                     R.plurals.card_browser_subtitle
                 } else {
                     R.plurals.card_browser_subtitle_notes_mode
                 }
-            return resources.getQuantityString(subtitleId, count, count)
+
+            showSnackbar(resources.getQuantityString(subtitleId, count, count), Snackbar.LENGTH_SHORT)
         }
+    }
+
+    override val subtitleText: String
+        get() = ""
 
     @RustCleanup("this isn't how Desktop Anki does it")
     override fun onSelectedTags(
