@@ -34,7 +34,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.annotation.CheckResult
-import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentContainerView
@@ -473,10 +472,8 @@ open class CardBrowser :
      * Loads the NoteEditor fragment in container if the view is x-large.
      */
     fun loadNoteEditorFragmentIfFragmented() {
-        if (!fragmented) {
-            return
-        }
-        // Show note editor frame
+        require(fragmented)
+
         noteEditorFrame!!.isVisible = true
 
         // If there are unsaved changes in NoteEditor then show dialog for confirmation
@@ -509,7 +506,17 @@ open class CardBrowser :
             when (searchState) {
                 Initializing -> { }
                 Searching -> { }
-                SearchState.Completed -> redrawAfterSearch()
+                SearchState.Completed -> {
+                    redrawAfterSearch()
+                    // TODO: move to ViewModel
+                    launchCatchingTask {
+                        viewModel.currentCardId =
+                            (
+                                viewModel.focusedRow
+                                    ?: viewModel.cards[0]
+                            ).toCardId(viewModel.cardsOrNotes)
+                    }
+                }
                 is SearchState.Error -> {
                     showError(searchState.error, crashReportData = null)
                 }
@@ -518,6 +525,8 @@ open class CardBrowser :
 
         fun onSelectedCardUpdated(unit: Unit) {
             if (fragmented) {
+                // TODO: this shouldn't be needed
+                noteEditorFrame?.isVisible = true
                 loadNoteEditorFragmentIfFragmented()
             } else {
                 onEditCardActivityResult.launch(editNoteLauncher.toIntent(this))
@@ -529,12 +538,21 @@ open class CardBrowser :
             invalidateOptionsMenu()
         }
 
+        fun onNoteEditorVisibleChanged(isVisible: Boolean) {
+            noteEditorFrame?.isVisible = isVisible
+            if (isVisible) {
+                loadNoteEditorFragmentIfFragmented()
+            }
+            invalidateOptionsMenu()
+        }
+
         viewModel.flowOfDeckId.launchCollectionInLifecycleScope(::onDeckIdChanged)
         viewModel.flowOfCanSearch.launchCollectionInLifecycleScope(::onCanSaveChanged)
         viewModel.flowOfMultiSelectModeChanged.launchCollectionInLifecycleScope(::onMultiSelectModeChanged)
         viewModel.flowOfIsInMultiSelectMode.launchCollectionInLifecycleScope(::isInMultiSelectModeChanged)
         viewModel.flowOfSearchState.launchCollectionInLifecycleScope(::searchStateChanged)
         viewModel.cardSelectionEventFlow.launchCollectionInLifecycleScope(::onSelectedCardUpdated)
+        viewModel.flowOfNoteEditorVisible.launchCollectionInLifecycleScope(::onNoteEditorVisibleChanged)
         // TODO: This is called too much
         viewModel.flowOfStandardMenuState.launchCollectionInLifecycleScope(::onMenuChanged)
         viewModel.flowOfMultiSelectMenuState.launchCollectionInLifecycleScope(::onMenuChanged)
@@ -1278,56 +1296,15 @@ open class CardBrowser :
     }
 
     @NeedsTest("searchView == null -> return early & ensure no snackbar when the screen is opened")
-    @MainThread
     private fun redrawAfterSearch() {
-        launchCatchingTask {
-            Timber.i("CardBrowser:: Completed searchCards() Successfully")
-            // Check whether deck is empty or not
-            val isDeckEmpty = viewModel.rowCount == 0
-            // Hide note editor frame if deck is empty and fragmented
-            noteEditorFrame?.visibility =
-                if (fragmented && !isDeckEmpty) {
-                    viewModel.currentCardId = (viewModel.focusedRow ?: viewModel.cards[0]).toCardId(viewModel.cardsOrNotes)
-                    loadNoteEditorFragmentIfFragmented()
-                    View.VISIBLE
-                } else {
-                    invalidateOptionsMenu()
-                    View.GONE
-                }
-
-            if (viewModel.hasSelectedAllDecks()) {
-                showSnackbar(numberOfCardsOrNoteShown, Snackbar.LENGTH_SHORT)
+        Timber.i("CardBrowser:: Completed searchCards() Successfully")
+        val subtitleId =
+            if (viewModel.cardsOrNotes == CARDS) {
+                R.plurals.card_browser_subtitle
             } else {
-                // If we haven't selected all decks, allow the user the option to search all decks.
-                val message =
-                    if (viewModel.rowCount == 0) {
-                        getString(R.string.card_browser_no_cards_in_deck, selectedDeckNameForUi)
-                    } else {
-                        numberOfCardsOrNoteShown
-                    }
-                showSnackbar(message, Snackbar.LENGTH_SHORT) {
-                    setAction(R.string.card_browser_search_all_decks) { searchAllDecks() }
-                }
+                R.plurals.card_browser_subtitle_notes_mode
             }
-        }
-    }
-
-    /**
-     * @return A message stating the number of cards/notes shown by the browser.
-     */
-    val numberOfCardsOrNoteShown: String
-        get() {
-            val count = viewModel.rowCount
-
-            val subtitleId =
-                if (viewModel.cardsOrNotes == CARDS) {
-                    R.plurals.card_browser_subtitle
-                } else {
-                    R.plurals.card_browser_subtitle_notes_mode
-                }
-
-            showSnackbar(resources.getQuantityString(subtitleId, count, count), Snackbar.LENGTH_SHORT)
-        }
+        showSnackbar(resources.getQuantityString(subtitleId, viewModel.rowCount, viewModel.rowCount), Snackbar.LENGTH_SHORT)
     }
 
     override val subtitleText: String
