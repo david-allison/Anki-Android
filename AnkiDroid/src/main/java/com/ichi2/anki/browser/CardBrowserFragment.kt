@@ -62,11 +62,14 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck
 import com.ichi2.anki.dialogs.DeckSelectionDialog.SelectableDeck.Companion.fromCollection
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.observability.ChangeManager
+import com.ichi2.anki.setup
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.utils.showDialogFragmentImpl
 import com.ichi2.anki.utils.ext.visibleItemPositions
 import com.ichi2.utils.HandlerUtils
+import com.ichi2.utils.dp
+import com.ichi2.utils.updatePaddingRelative
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -159,7 +162,6 @@ class CardBrowserFragment :
 
         searchBar =
             view.findViewById<SearchBar>(R.id.search_bar).apply {
-                inflateMenu(R.menu.card_browser)
                 setOnMenuItemClickListener { item ->
                     requireActivity().onMenuItemSelected(FEATURE_OPTIONS_PANEL, item)
                     true
@@ -213,9 +215,29 @@ class CardBrowserFragment :
             cardsAdapter.notifyDataSetChanged()
         }
 
+        fun onStandardMenuChanged(menuState: CardBrowserViewModel.MenuState.Standard) {
+            Timber.d("menu updated")
+            menuState.setup(searchBar.menu, requireContext())
+            // TODO: Flags isn't setup yet
+        }
+
+        fun onMultiSelectMenuChanged(menuState: CardBrowserViewModel.MenuState.MultiSelect) {
+            Timber.d("menu updated")
+            menuState.setup(searchBar.menu, requireContext(), viewModel)
+            // TODO: Flags isn't setup yet
+        }
+
         fun onMultiSelectModeChanged(modeChange: ChangeMultiSelectMode) {
             val inMultiSelect = modeChange.resultedInMultiSelect
             toggleRowSelections.isVisible = inMultiSelect
+
+            if (inMultiSelect) {
+                // A checkbox is added on the rows, match padding to keep the headings aligned
+                // Due to the ripple on long press, we set padding
+                browserColumnHeadings.updatePaddingRelative(start = 48.dp)
+            } else {
+                browserColumnHeadings.updatePaddingRelative(start = 0.dp)
+            }
 
             // update adapter to remove check boxes
             cardsAdapter.notifyDataSetChanged()
@@ -240,6 +262,14 @@ class CardBrowserFragment :
                     }
                 cardsAdapter.notifyDataSetChanged()
                 rowPositionAndOffset?.let { autoScrollTo(it) }
+            }
+
+            searchBar.menu.clear()
+            if (inMultiSelect) {
+                searchBar.inflateMenu(R.menu.card_browser_multiselect)
+                onStandardMenuChanged(viewModel.flowOfStandardMenuState.value)
+            } else {
+                searchBar.inflateMenu(R.menu.card_browser)
             }
         }
 
@@ -331,6 +361,8 @@ class CardBrowserFragment :
         viewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
         viewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
         viewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckIdChanged)
+        viewModel.flowOfStandardMenuState.launchCollectionInLifecycleScope(::onStandardMenuChanged)
+        viewModel.flowOfMultiSelectMenuState.launchCollectionInLifecycleScope(::onMultiSelectMenuChanged)
     }
 
     override fun opExecuted(

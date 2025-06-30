@@ -46,6 +46,7 @@ import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.MultiSe
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_ALL
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_NONE
+import com.ichi2.anki.R
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.ALL_FIELDS_AS_FIELD
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.TAGS_AS_FIELD
 import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
@@ -155,7 +156,7 @@ class CardBrowserViewModel(
 
     /** text in the search box (potentially unsubmitted) */
     // this does not currently bind to the value in the UI and is only used for posting
-    val flowOfFilterQuery = MutableSharedFlow<String>()
+    val flowOfFilterQuery = MutableStateFlow("")
 
     /**
      * Whether the browser is working in Cards mode or Notes mode.
@@ -198,14 +199,6 @@ class CardBrowserViewModel(
 
     /** Unsubmitted input */
     private val flowOfUnsubmittedSearchText = MutableStateFlow<String?>(null)
-
-    /**
-     * Whether the unsubmitted search text can be searched/saved
-     */
-    val flowOfCanSearch =
-        flowOfUnsubmittedSearchText
-            .map { it?.isNotEmpty() == true }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = false)
 
     val flowOfIsTruncated: MutableStateFlow<Boolean> =
         MutableStateFlow(sharedPrefs().getBoolean("isTruncated", false))
@@ -315,6 +308,10 @@ class CardBrowserViewModel(
         ) : DeckSelection()
     }
 
+    val flowOfStandardMenuState = MutableStateFlow(MenuState.Standard())
+
+    val flowOfMultiSelectMenuState = MutableStateFlow(MenuState.MultiSelect())
+
     suspend fun queryCardInfoDestination(): CardInfoDestination? {
         val firstSelectedCard = selectedRows.firstOrNull()?.toCardId(cardsOrNotes) ?: return null
         return CardInfoDestination(firstSelectedCard)
@@ -423,6 +420,53 @@ class CardBrowserViewModel(
                 savedStateHandle[STATE_MULTISELECT] = it.resultedInMultiSelect
             }.launchIn(viewModelScope)
 
+        flowOfSearchState
+            .onEach {
+                flowOfStandardMenuState.update {
+                    it.copy(
+                        // must handle 0.
+                        selectAllEnabled = selectedRowCount() < rowCount,
+                        previewEnabled = rowCount > 0,
+                        // TODO: Figure out the logic here
+                        saveSearchEnabled = true,
+                    )
+                }
+
+                flowOfMultiSelectMenuState.update {
+                    it.copy(
+                        // must handle 0.
+                        selectAllEnabled = selectedRowCount() < rowCount,
+                        previewEnabled = rowCount > 0,
+                        cardInfoEnabled = selectedRowCount() == 1,
+                        canEditNote = !isFragmented && selectedRowCount() == 1,
+                    )
+                }
+            }.launchIn(viewModelScope)
+
+        flowOfUnsubmittedSearchText
+            .onEach { searchText ->
+                flowOfStandardMenuState.update {
+                    it.copy(saveSearchEnabled = searchText?.isNotEmpty() == true)
+                }
+            }.launchIn(viewModelScope)
+
+        flowOfSelectedRows
+            .onEach { selected ->
+                flowOfStandardMenuState.update {
+                    it.copy(
+                        selectAllEnabled = selected.size < rowCount,
+                    )
+                }
+                flowOfMultiSelectMenuState.update {
+                    it.copy(
+                        selectAllEnabled = selected.size < rowCount,
+                        selectNoneEnabled = selected.any(),
+                        cardInfoEnabled = selected.size == 1,
+                        canEditNote = !isFragmented && selected.size == 1,
+                    )
+                }
+            }.launchIn(viewModelScope)
+
         viewModelScope.launch {
             shouldIgnoreAccents = withCol { config.getBool(ConfigKey.Bool.IGNORE_ACCENTS_IN_SEARCH) }
 
@@ -438,6 +482,10 @@ class CardBrowserViewModel(
                 sortTypeFlow.update { SortType.fromCol(config, cardsOrNotes, sharedPrefs()) }
                 reverseDirectionFlow.update { ReverseDirection.fromConfig(config) }
             }
+
+            flowOfStandardMenuState.value = MenuState.initial(this@CardBrowserViewModel)
+            flowOfMultiSelectMenuState.value = MenuState.initialMs(this@CardBrowserViewModel)
+
             Timber.i("initCompleted")
 
             if (!manualInit) {
@@ -806,6 +854,15 @@ class CardBrowserViewModel(
         return true
     }
 
+    fun onCollectionChange() =
+        viewModelScope.launch {
+            flowOfStandardMenuState.update {
+                it.copy(
+                    undoEnabled = withCol { undoAvailable() },
+                )
+            }
+        }
+
     /**
      * Toggles the 'suspend' state of the selected cards
      *
@@ -955,6 +1012,7 @@ class CardBrowserViewModel(
         val filters = savedSearches().toMutableMap()
         func(filters)
         withCol { config.set("savedFilters", filters) }
+        flowOfStandardMenuState.update { it.copy(openMySearchesEnabled = filters.any()) }
         return filters
     }
 
@@ -1358,6 +1416,65 @@ class CardBrowserViewModel(
      * Returns the decks which are suitable for [moveSelectedCardsToDeck]
      */
     suspend fun getAvailableDecks(): List<DeckNameId> = withCol { decks.allNamesAndIds(includeFiltered = false) }
+
+    sealed class MenuState {
+        /** [com.ichi2.anki.R.menu.card_browser] */
+        data class Standard(
+            val saveSearchEnabled: Boolean = false,
+            val openMySearchesEnabled: Boolean = false,
+            val undoEnabled: Boolean = false,
+            val selectAllEnabled: Boolean = false,
+            val findReplaceEnabled: Boolean = false,
+            val previewEnabled: Boolean = false,
+        ) : MenuState()
+
+        /** [com.ichi2.anki.R.menu.card_browser_multiselect] */
+        data class MultiSelect(
+            val undoEnabled: Boolean = false,
+            val previewEnabled: Boolean = false,
+            val selectAllEnabled: Boolean = false,
+            val selectNoneEnabled: Boolean = false,
+            val findReplaceEnabled: Boolean = false,
+            val cardInfoEnabled: Boolean = false,
+            val canEditNote: Boolean = false,
+        ) : MenuState()
+
+        companion object {
+            suspend fun initial(viewModel: CardBrowserViewModel): Standard =
+                Standard(
+                    saveSearchEnabled = viewModel.flowOfUnsubmittedSearchText.value?.isNotEmpty() == true,
+                    openMySearchesEnabled = viewModel.savedSearches().isNotEmpty(),
+                    undoEnabled = withCol { undoAvailable() },
+                    findReplaceEnabled =
+                        viewModel.sharedPrefs().getBoolean(
+                            AnkiDroidApp.appResources.getString(R.string.pref_browser_find_replace),
+                            false,
+                        ),
+                    // must handle 0.
+                    selectAllEnabled = viewModel.selectedRowCount() < viewModel.rowCount,
+                    previewEnabled = viewModel.rowCount > 0,
+                )
+
+            suspend fun initialMs(viewModel: CardBrowserViewModel): MultiSelect {
+                val selectedRowCount = viewModel.selectedRowCount()
+                val rowCount = viewModel.rowCount
+                return MultiSelect(
+                    undoEnabled = withCol { undoAvailable() },
+                    findReplaceEnabled =
+                        viewModel.sharedPrefs().getBoolean(
+                            AnkiDroidApp.appResources.getString(R.string.pref_browser_find_replace),
+                            false,
+                        ),
+                    // must handle 0.
+                    selectAllEnabled = selectedRowCount < rowCount,
+                    selectNoneEnabled = selectedRowCount >= rowCount,
+                    previewEnabled = rowCount > 0,
+                    cardInfoEnabled = selectedRowCount == 1,
+                    canEditNote = !viewModel.isFragmented && selectedRowCount == 1,
+                )
+            }
+        }
+    }
 }
 
 enum class SaveSearchResult {
