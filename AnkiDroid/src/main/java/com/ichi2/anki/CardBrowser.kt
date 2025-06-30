@@ -27,10 +27,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
-import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Spinner
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
@@ -487,15 +485,9 @@ open class CardBrowser :
         }
     }
 
-    private fun refreshSubtitle() {
-        (findViewById<Spinner>(R.id.toolbar_spinner)?.adapter as? BaseAdapter)?.notifyDataSetChanged()
-    }
-
     @Suppress("UNUSED_PARAMETER")
     private fun setupFlows() {
         // provides a name for each flow receiver to improve stack traces
-
-        fun onSelectedRowsChanged(rows: Set<Any>) = onSelectionChanged()
 
         suspend fun onDeckIdChanged(deckId: DeckId?) {
             if (deckId == null) return
@@ -511,18 +503,14 @@ open class CardBrowser :
                 multiSelectOnBackPressedCallback.isEnabled = true
             } else {
                 Timber.d("end multiselect mode")
-                refreshSubtitle()
                 multiSelectOnBackPressedCallback.isEnabled = false
             }
             // reload the actionbar using the multi-select mode actionbar
             invalidateOptionsMenu()
         }
 
-        fun cardsUpdatedChanged(unit: Unit) = refreshSubtitle()
-
         fun searchStateChanged(searchState: SearchState) {
             Timber.d("search state: %s", searchState)
-            refreshSubtitle()
 
             when (searchState) {
                 Initializing -> { }
@@ -547,12 +535,10 @@ open class CardBrowser :
             invalidateOptionsMenu()
         }
 
-        viewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         viewModel.flowOfDeckId.launchCollectionInLifecycleScope(::onDeckIdChanged)
         viewModel.flowOfCanSearch.launchCollectionInLifecycleScope(::onCanSaveChanged)
         viewModel.flowOfMultiSelectModeChanged.launchCollectionInLifecycleScope(::onMultiSelectModeChanged)
         viewModel.flowOfIsInMultiSelectMode.launchCollectionInLifecycleScope(::isInMultiSelectModeChanged)
-        viewModel.flowOfCardsUpdated.launchCollectionInLifecycleScope(::cardsUpdatedChanged)
         viewModel.flowOfSearchState.launchCollectionInLifecycleScope(::searchStateChanged)
         viewModel.cardSelectionEventFlow.launchCollectionInLifecycleScope(::onSelectedCardUpdated)
         // TODO: This is called too much
@@ -855,20 +841,6 @@ open class CardBrowser :
         actionBarMenu?.findItem(R.id.action_undo)?.run {
             title = getColUnsafe.undoLabel()
         }
-
-        actionBarMenu?.findItem(R.id.action_reschedule_cards)?.title =
-            TR.actionsSetDueDate().toSentenceCase(this, R.string.sentence_set_due_date)
-
-        actionBarMenu?.findItem(R.id.action_grade_now)?.title =
-            TR.actionsGradeNow().toSentenceCase(this, R.string.sentence_grade_now)
-
-        val isFindReplaceEnabled = sharedPrefs().getBoolean(getString(R.string.pref_browser_find_replace), false)
-        menu.findItem(R.id.action_find_replace)?.apply {
-            isVisible = isFindReplaceEnabled
-            title = TR.browsingFindAndReplace().toSentenceCase(this@CardBrowser, R.string.sentence_find_and_replace)
-        }
-        previewItem = menu.findItem(R.id.action_preview)
-        onSelectionChanged()
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -888,9 +860,6 @@ open class CardBrowser :
     suspend fun updateSelectedCardsFlag(flag: Flag) {
         // list of cards with updated flags
         val updatedCardIds = withProgress { viewModel.updateSelectedCardsFlag(flag) }
-        // TODO: try to offload the cards processing in updateCardsInList() on a background thread,
-        // otherwise it could hang the main thread
-        updateCardsInList(updatedCardIds)
         if (updatedCardIds.any { it == reviewerCardId }) {
             reloadRequired = true
         }
@@ -1350,7 +1319,6 @@ open class CardBrowser :
     private fun redrawAfterSearch() {
         launchCatchingTask {
             Timber.i("CardBrowser:: Completed searchCards() Successfully")
-            updateList()
             // Check whether deck is empty or not
             val isDeckEmpty = viewModel.rowCount == 0
             // Hide note editor frame if deck is empty and fragmented
@@ -1364,7 +1332,6 @@ open class CardBrowser :
                     View.GONE
                 }
 
-            updateList()
             if (viewModel.hasSelectedAllDecks()) {
                 showSnackbar(numberOfCardsOrNoteShown, Snackbar.LENGTH_SHORT)
             } else {
@@ -1381,22 +1348,6 @@ open class CardBrowser :
             }
         }
     }
-
-    @MainThread
-    private fun updateList() {
-        if (!colIsOpenUnsafe()) return
-        Timber.d("updateList")
-        onSelectionChanged()
-    }
-
-    @NeedsTest("select 1, check title, select 2, check title")
-    private fun onSelectionChanged() {
-        Timber.d("onSelectionChanged")
-        refreshSubtitle()
-    }
-
-    override val deckDropDownSubtitle: String
-        get() = numberOfCardsOrNoteShown
 
     /**
      * @return A message stating the number of cards/notes shown by the browser.
@@ -1465,16 +1416,6 @@ open class CardBrowser :
     @VisibleForTesting
     fun filterByFlag(flag: Flag) = launchCatchingTask { viewModel.setFlagFilter(flag) }
 
-    /**
-     * Loads/Reloads (Updates the Q, A & etc) of cards in the [cardIds] list
-     * @param cardIds Card IDs that were changed
-     */
-    private fun updateCardsInList(
-        @Suppress("UNUSED_PARAMETER") cardIds: List<CardId>,
-    ) {
-        updateList()
-    }
-
     private fun toggleSuspendCards() = launchCatchingTask { withProgress { viewModel.toggleSuspendCards().join() } }
 
     /** @see CardBrowserViewModel.toggleBury */
@@ -1502,7 +1443,6 @@ open class CardBrowser :
         // reload whole view
         forceRefreshSearch()
         viewModel.endMultiSelectMode(SingleSelectCause.Other)
-        refreshSubtitle()
     }
 
     fun searchAllDecks() =
