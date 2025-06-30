@@ -481,12 +481,6 @@ open class CardBrowser :
     private fun setupFlows() {
         // provides a name for each flow receiver to improve stack traces
 
-        suspend fun onDeckIdChanged(deckId: DeckId?) {
-            if (deckId == null) return
-            // this handles ALL_DECKS_ID
-            Timber.e("TOOD")
-        }
-
         fun isInMultiSelectModeChanged(inMultiSelect: Boolean) {
             if (inMultiSelect) {
                 // Turn on Multi-Select Mode so that the user can select multiple cards at once.
@@ -527,7 +521,6 @@ open class CardBrowser :
             invalidateOptionsMenu()
         }
 
-        viewModel.flowOfDeckId.launchCollectionInLifecycleScope(::onDeckIdChanged)
         viewModel.flowOfIsInMultiSelectMode.launchCollectionInLifecycleScope(::isInMultiSelectModeChanged)
         viewModel.flowOfSearchState.launchCollectionInLifecycleScope(::searchStateChanged)
         viewModel.cardSelectionEventFlow.launchCollectionInLifecycleScope(::onSelectedCardUpdated)
