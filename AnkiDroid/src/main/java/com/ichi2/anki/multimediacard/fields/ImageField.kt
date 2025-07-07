@@ -23,6 +23,7 @@ import androidx.annotation.CheckResult
 import androidx.annotation.VisibleForTesting
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.mediaFolder
 import org.jsoup.Jsoup
 import timber.log.Timber
 import java.io.File
@@ -89,7 +90,7 @@ class ImageField :
         ): File? {
             val path = parseImageSrcFromHtml(value)
             return if (path.isNotEmpty()) {
-                File(col.collectionFiles.mediaFolder, path)
+                File(col.mediaFolder, path)
             } else {
                 null
             }

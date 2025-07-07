@@ -42,6 +42,9 @@ import anki.sync.SyncAuth
 import anki.sync.SyncStatusResponse
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
+import com.ichi2.anki.libanki.CollectionFiles.FolderBasedCollection
+import com.ichi2.anki.libanki.CollectionFiles.InMemory
+import com.ichi2.anki.libanki.Storage.OpenDbArgs
 import com.ichi2.anki.libanki.Utils.ids2str
 import com.ichi2.anki.libanki.backend.model.toBackendNote
 import com.ichi2.anki.libanki.backend.model.toProtoBuf
@@ -77,7 +80,8 @@ class Collection(
     val backend: Backend,
     databaseBuilder: (Backend) -> DB,
 ) {
-    val colDb = collectionFiles.colDb
+    val colDb: File
+        get() = collectionFiles.requireDiskBasedCollection().colDb
 
     /** Access backend translations */
     val tr = backend.tr
@@ -154,8 +158,6 @@ class Collection(
         }
     }
 
-    fun name() = collectionFiles.collectionName
-
     /**
      * Scheduler
      * ***********************************************************
@@ -213,11 +215,18 @@ class Collection(
         afterFullSync: Boolean = false,
         databaseBuilder: (Backend) -> DB,
     ): Boolean {
-        Timber.i("(Re)opening Database: %s", colDb)
+        val reopenArgs =
+            when (collectionFiles) {
+                is InMemory -> OpenDbArgs.InMemory
+                is FolderBasedCollection -> {
+                    OpenDbArgs.Path(collectionFiles.colDb)
+                }
+            }
+        Timber.i("(Re)opening Database: %s", reopenArgs)
         return if (dbClosed) {
             val (database, created) =
                 Storage.openDB(
-                    path = colDb,
+                    args = reopenArgs,
                     backend = backend,
                     afterFullSync = afterFullSync,
                     buildDatabase = databaseBuilder,
@@ -685,3 +694,6 @@ class Collection(
 
 @NotInLibAnki
 fun EmptyCardsReport.emptyCids(): List<CardId> = notesList.flatMap { it.cardIdsList }
+
+val Collection.mediaFolder: File
+    get() = collectionFiles.requireDiskBasedCollection().mediaFolder

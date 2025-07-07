@@ -25,7 +25,6 @@ import com.ichi2.anki.dialogs.DeckPickerContextMenu.DeckPickerContextMenuOption
 import com.ichi2.anki.dialogs.utils.title
 import com.ichi2.anki.exception.UnknownDatabaseVersionException
 import com.ichi2.anki.libanki.DeckId
-import com.ichi2.anki.libanki.Storage
 import com.ichi2.anki.libanki.sched.Ease
 import com.ichi2.anki.preferences.sharedPrefs
 import com.ichi2.anki.utils.Destination
@@ -813,12 +812,14 @@ class DeckPickerTest : RobolectricTest() {
     }
 
     private fun setupColV16() {
-        Storage.setUseInMemory(false)
+        TODO()
+        // Storage.setUseInMemory(false)
         useCollection(CollectionType.SCHEMA_V_16)
     }
 
     private fun setupColV250() {
-        Storage.setUseInMemory(false)
+        TODO()
+        // Storage.setUseInMemory(false)
         useCollection(CollectionType.SCHEMA_V_250)
     }
 

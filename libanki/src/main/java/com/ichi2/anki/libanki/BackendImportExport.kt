@@ -66,11 +66,12 @@ fun importCollectionPackage(
     colPath: CollectionFiles,
     colpkgPath: String,
 ) {
+    val col = colPath.requireDiskBasedCollection()
     backend.importCollectionPackage(
-        colPath = colPath.colDb.absolutePath,
+        colPath = col.colDb.absolutePath,
         backupPath = colpkgPath,
-        mediaFolder = colPath.mediaFolder.absolutePath,
-        mediaDb = colPath.mediaDb.absolutePath,
+        mediaFolder = col.mediaFolder.absolutePath,
+        mediaDb = col.mediaDb.absolutePath,
     )
 }
 

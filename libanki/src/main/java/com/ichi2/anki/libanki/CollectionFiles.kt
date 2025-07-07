@@ -20,12 +20,22 @@ package com.ichi2.anki.libanki
 import com.ichi2.anki.libanki.utils.NotInLibAnki
 import java.io.File
 
-@NotInLibAnki
-class CollectionFiles(
-    folderPath: File,
-    val collectionName: String = "collection",
-) {
-    val colDb = File(folderPath, "$collectionName.anki2")
-    val mediaFolder = File(folderPath, "$collectionName.media")
-    val mediaDb = File(folderPath, "$collectionName.media.db")
+sealed class CollectionFiles {
+    @NotInLibAnki
+    class FolderBasedCollection(
+        folderPath: File,
+        val collectionName: String = "collection",
+    ) : CollectionFiles() {
+        val colDb = File(folderPath, "$collectionName.anki2")
+        val mediaFolder = File(folderPath, "$collectionName.media")
+        val mediaDb = File(folderPath, "$collectionName.media.db")
+    }
+
+    data object InMemory : CollectionFiles()
+
+    fun requireDiskBasedCollection(): FolderBasedCollection =
+        when (this) {
+            is InMemory -> throw UnsupportedOperationException("collection is in-memory")
+            is FolderBasedCollection -> this
+        }
 }

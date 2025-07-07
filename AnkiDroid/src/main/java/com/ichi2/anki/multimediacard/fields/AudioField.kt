@@ -20,6 +20,7 @@
 package com.ichi2.anki.multimediacard.fields
 
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.mediaFolder
 import java.io.File
 import java.util.regex.Pattern
 
@@ -56,7 +57,7 @@ abstract class AudioField :
         if (m.find()) {
             mediaFileName = m.group(1)!!
         }
-        mediaFile = File(col.collectionFiles.mediaFolder, mediaFileName)
+        mediaFile = File(col.mediaFolder, mediaFileName)
     }
 
     companion object {

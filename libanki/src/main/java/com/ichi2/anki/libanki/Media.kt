@@ -35,13 +35,15 @@ import java.io.File
 open class Media(
     private val col: Collection,
 ) {
-    val dir = col.collectionFiles.mediaFolder
+    val dir: File by lazy { col.collectionFiles.requireDiskBasedCollection().mediaFolder }
 
     init {
-        Timber.v("dir %s", dir)
-        val file = dir
-        if (!file.exists()) {
-            file.mkdirs()
+        if (col.collectionFiles !is CollectionFiles.InMemory) {
+            Timber.v("dir %s", dir)
+            val file = dir
+            if (!file.exists()) {
+                file.mkdirs()
+            }
         }
     }
 

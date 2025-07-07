@@ -14,25 +14,13 @@
  *  this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.ichi2.testutils
+package com.ichi2.anki.libanki.utils
 
-import androidx.annotation.CallSuper
-import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
-import com.ichi2.anki.observability.ChangeManager
-import kotlinx.coroutines.test.TestDispatcher
-import org.junit.Before
+import com.ichi2.anki.libanki.testutils.InMemoryCollectionManager
+import com.ichi2.anki.libanki.testutils.TestCollectionManager
 
-open class JvmTest : InMemoryAnkiTest() {
-    @Before
-    @CallSuper
-    override fun setUp() {
-        super.setUp()
-        ChangeManager.clearSubscribers()
-    }
-
-    override fun setupTestDispatcher(dispatcher: TestDispatcher) {
-        super.setupTestDispatcher(dispatcher)
-        ioDispatcher = dispatcher
-    }
+class LibAnkiTest : InMemoryAnkiTest() {
+    override val collectionManager: TestCollectionManager
+        get() = InMemoryCollectionManager
 }

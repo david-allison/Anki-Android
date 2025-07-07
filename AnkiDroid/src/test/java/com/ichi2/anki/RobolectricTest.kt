@@ -45,7 +45,6 @@ import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
-import com.ichi2.anki.libanki.Storage
 import com.ichi2.anki.libanki.testutils.AnkiTest
 import com.ichi2.anki.libanki.testutils.TestCollectionManager
 import com.ichi2.anki.observability.ChangeManager
@@ -151,7 +150,9 @@ open class RobolectricTest :
 
         maybeSetupBackend()
 
-        Storage.setUseInMemory(useInMemoryDatabase())
+        if (!useInMemoryDatabase()) {
+            TODO()
+        }
 
         // Reset static variable for custom tabs failure.
         CustomTabActivityHelper.resetFailed()
