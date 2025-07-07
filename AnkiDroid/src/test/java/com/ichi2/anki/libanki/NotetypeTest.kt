@@ -32,10 +32,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-fun clozeClass(): String = "class=\"cloze\""
-
-fun clozeData(data: String): String = " data-cloze=\"${data}\""
-
 @RunWith(AndroidJUnit4::class)
 @KotlinCleanup("improve kotlin code where possible")
 class NotetypeTest : JvmTest() {

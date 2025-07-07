@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 David Allison <davidallisongithub@gmail.com>
+ *  Copyright (c) 2025 David Allison <davidallisongithub@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU General Public License as published by the Free Software
@@ -13,20 +13,13 @@
  *  You should have received a copy of the GNU General Public License along with
  *  this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ichi2.anki.libanki
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.testutils.JvmTest
-import org.hamcrest.CoreMatchers.equalTo
-import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Test
-import org.junit.runner.RunWith
+package com.ichi2.anki.libanki.testutils.ext
 
-@RunWith(AndroidJUnit4::class)
-class MetaTest : JvmTest() {
-    @Test
-    fun ensureDatabaseIsInMemory() {
-        val path = col.db.queryString("select file from pragma_database_list")
-        assertThat("Default test database should be in-memory.", path, equalTo(""))
-    }
+import androidx.annotation.VisibleForTesting
+import com.ichi2.anki.libanki.Card
+
+@VisibleForTesting(otherwise = VisibleForTesting.NONE)
+fun Card.setFlag(flag: Int) {
+    flags = flag
 }
