@@ -46,6 +46,7 @@ import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.testutils.AnkiTest
+import com.ichi2.anki.libanki.testutils.InMemoryCollectionManager
 import com.ichi2.anki.libanki.testutils.TestCollectionManager
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
@@ -116,7 +117,7 @@ open class RobolectricTest :
     val timeoutRule: TimeoutRule = TimeoutRule.seconds(60)
 
     override val collectionManager: TestCollectionManager
-        get() = CollectionManagerTestAdapter
+        get() = if (useInMemoryDatabase()) InMemoryCollectionManager else CollectionManagerTestAdapter
 
     @Before
     @CallSuper
@@ -149,10 +150,6 @@ open class RobolectricTest :
         CollectionManager.setColForTests(null)
 
         maybeSetupBackend()
-
-        if (!useInMemoryDatabase()) {
-            TODO()
-        }
 
         // Reset static variable for custom tabs failure.
         CustomTabActivityHelper.resetFailed()
