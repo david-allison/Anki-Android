@@ -3,8 +3,8 @@
 package com.ichi2.anki.libanki
 
 import com.ichi2.anki.libanki.template.MathJax
-import com.ichi2.anki.libanki.testutils.clozeClass
 import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
+import com.ichi2.anki.libanki.testutils.clozeClass
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not

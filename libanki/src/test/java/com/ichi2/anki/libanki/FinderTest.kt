@@ -1,50 +1,43 @@
 /*
- Copyright (c) 2020 David Allison <davidallisongithub@gmail.com>
-
- This program is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License as published by the Free Software
- Foundation; either version 3 of the License, or (at your option) any later
- version.
-
- This program is distributed in the hope that it will be useful, but WITHOUT ANY
- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License along with
- this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  Copyright (c) 2025 David Allison <davidallisongithub@gmail.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify it under
+ *  the terms of the GNU General Public License as published by the Free Software
+ *  Foundation; either version 3 of the License, or (at your option) any later
+ *  version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with
+ *  this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.ichi2.anki.libanki
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.libanki.QueueType.Suspended
-import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
 import com.ichi2.anki.libanki.sched.Ease
 import com.ichi2.anki.libanki.sched.Scheduler
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import com.ichi2.anki.libanki.testutils.ext.addNote
-import com.ichi2.testutils.JvmTest
 import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.MatcherAssert
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.contains
+import org.hamcrest.Matchers
 import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.hasItem
 import org.hamcrest.Matchers.hasSize
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import timber.log.Timber
 import java.util.Calendar
 
-@RunWith(AndroidJUnit4::class)
-class FinderTest : JvmTest() {
+class FinderTest : InMemoryAnkiTest() {
     @Test
-    @Config(qualifiers = "en")
-    @Throws(
-        ConfirmModSchemaException::class,
-    )
     fun searchForBuriedReturnsManuallyAndSiblingBuried() {
         val searchQuery = "is:buried"
         enableBurySiblings()
@@ -150,35 +143,35 @@ class FinderTest : JvmTest() {
 
         val latestCardIds = note.cids()
         // tag searches
-        assertEquals(5, col.findCards("tag:*").size)
-        assertEquals(1, col.findCards("tag:\\*").size)
-        assertEquals(
+        Assert.assertEquals(5, col.findCards("tag:*").size)
+        Assert.assertEquals(1, col.findCards("tag:\\*").size)
+        Assert.assertEquals(
             1,
             col.findCards("tag:%").size,
         )
-        assertEquals(2, col.findCards("tag:animal_1").size)
-        assertEquals(1, col.findCards("tag:animal\\_1").size)
-        assertEquals(0, col.findCards("tag:donkey").size)
-        assertEquals(1, col.findCards("tag:sheep").size)
-        assertEquals(1, col.findCards("tag:sheep tag:goat").size)
-        assertEquals(0, col.findCards("tag:sheep tag:monkey").size)
-        assertEquals(1, col.findCards("tag:monkey").size)
-        assertEquals(1, col.findCards("tag:sheep -tag:monkey").size)
-        assertEquals(4, col.findCards("-tag:sheep").size)
+        Assert.assertEquals(2, col.findCards("tag:animal_1").size)
+        Assert.assertEquals(1, col.findCards("tag:animal\\_1").size)
+        Assert.assertEquals(0, col.findCards("tag:donkey").size)
+        Assert.assertEquals(1, col.findCards("tag:sheep").size)
+        Assert.assertEquals(1, col.findCards("tag:sheep tag:goat").size)
+        Assert.assertEquals(0, col.findCards("tag:sheep tag:monkey").size)
+        Assert.assertEquals(1, col.findCards("tag:monkey").size)
+        Assert.assertEquals(1, col.findCards("tag:sheep -tag:monkey").size)
+        Assert.assertEquals(4, col.findCards("-tag:sheep").size)
         col.tags.bulkAdd(col.db.queryLongList("select id from notes"), "foo bar")
-        assertEquals(5, col.findCards("tag:foo").size)
-        assertEquals(5, col.findCards("tag:bar").size)
+        Assert.assertEquals(5, col.findCards("tag:foo").size)
+        Assert.assertEquals(5, col.findCards("tag:bar").size)
         val ids = col.db.queryLongList("select id from notes")
         col.tags.bulkRemove(ids, "foo")
-        assertEquals(0, col.findCards("tag:foo").size)
-        assertEquals(5, col.findCards("tag:bar").size)
+        Assert.assertEquals(0, col.findCards("tag:foo").size)
+        Assert.assertEquals(5, col.findCards("tag:bar").size)
         // text searches
-        assertEquals(2, col.findCards("cat").size)
-        assertEquals(1, col.findCards("cat -dog").size)
-        assertEquals(1, col.findCards("cat -dog").size)
-        assertEquals(1, col.findCards("are goats").size)
-        assertEquals(0, col.findCards("\"are goats\"").size)
-        assertEquals(1, col.findCards("\"goats are\"").size)
+        Assert.assertEquals(2, col.findCards("cat").size)
+        Assert.assertEquals(1, col.findCards("cat -dog").size)
+        Assert.assertEquals(1, col.findCards("cat -dog").size)
+        Assert.assertEquals(1, col.findCards("are goats").size)
+        Assert.assertEquals(0, col.findCards("\"are goats\"").size)
+        Assert.assertEquals(1, col.findCards("\"goats are\"").size)
         // card states
         var c =
             note.cards()[0].apply {
@@ -186,38 +179,38 @@ class FinderTest : JvmTest() {
                 queue = QueueType.Rev
                 type = CardType.Rev
             }
-        assertEquals(0, col.findCards("is:review").size)
+        Assert.assertEquals(0, col.findCards("is:review").size)
         col.updateCard(c, skipUndoEntry = true)
-        assertThat(col.findCards("is:review"), contains(c.id))
-        assertEquals(0, col.findCards("is:due").size)
+        assertThat(col.findCards("is:review"), Matchers.contains(c.id))
+        Assert.assertEquals(0, col.findCards("is:due").size)
         c.update {
             due = 0
             queue = QueueType.Rev
         }
-        assertThat(col.findCards("is:due"), contains(c.id))
-        assertEquals(4, col.findCards("-is:due").size)
+        assertThat(col.findCards("is:due"), Matchers.contains(c.id))
+        Assert.assertEquals(4, col.findCards("-is:due").size)
         // ensure this card gets a later mod time
         c.update { queue = Suspended }
         col.db.execute("update cards set mod = mod + 1 where id = ?", c.id)
-        assertThat(col.findCards("is:suspended"), contains(c.id))
+        assertThat(col.findCards("is:suspended"), Matchers.contains(c.id))
         // nids
-        assertEquals(0, col.findCards("nid:54321").size)
-        assertEquals(2, col.findCards("nid:" + note.id).size)
-        assertEquals(2, col.findCards("nid:$n1id,$n2id").size)
+        Assert.assertEquals(0, col.findCards("nid:54321").size)
+        Assert.assertEquals(2, col.findCards("nid:" + note.id).size)
+        Assert.assertEquals(2, col.findCards("nid:$n1id,$n2id").size)
         // templates
-        assertEquals(0, col.findCards("card:foo").size)
-        assertEquals(4, col.findCards("\"card:card 1\"").size)
-        assertEquals(1, col.findCards("card:reverse").size)
-        assertEquals(4, col.findCards("card:1").size)
-        assertEquals(1, col.findCards("card:2").size)
+        Assert.assertEquals(0, col.findCards("card:foo").size)
+        Assert.assertEquals(4, col.findCards("\"card:card 1\"").size)
+        Assert.assertEquals(1, col.findCards("card:reverse").size)
+        Assert.assertEquals(4, col.findCards("card:1").size)
+        Assert.assertEquals(1, col.findCards("card:2").size)
         // fields
-        assertEquals(1, col.findCards("front:dog").size)
-        assertEquals(4, col.findCards("-front:dog").size)
-        assertEquals(0, col.findCards("front:sheep").size)
-        assertEquals(2, col.findCards("back:sheep").size)
-        assertEquals(3, col.findCards("-back:sheep").size)
-        assertEquals(0, col.findCards("front:do").size)
-        assertEquals(5, col.findCards("front:*").size)
+        Assert.assertEquals(1, col.findCards("front:dog").size)
+        Assert.assertEquals(4, col.findCards("-front:dog").size)
+        Assert.assertEquals(0, col.findCards("front:sheep").size)
+        Assert.assertEquals(2, col.findCards("back:sheep").size)
+        Assert.assertEquals(3, col.findCards("-back:sheep").size)
+        Assert.assertEquals(0, col.findCards("front:do").size)
+        Assert.assertEquals(5, col.findCards("front:*").size)
         // ordering
         col.config.set("sortType", "noteCrt")
 
@@ -241,7 +234,10 @@ class FinderTest : JvmTest() {
         )
         col.config.set("sortType", "noteFld")
 
-        assertEquals(catCard.id, col.findCards("", SortOrder.UseCollectionOrdering())[0])
+        Assert.assertEquals(
+            catCard.id,
+            col.findCards("", SortOrder.UseCollectionOrdering())[0],
+        )
         assertTrue(
             latestCardIds.contains(
                 col
@@ -262,7 +258,10 @@ class FinderTest : JvmTest() {
                     ).last(),
             ),
         )
-        assertEquals(firstCardId, col.findCards("", SortOrder.UseCollectionOrdering())[0])
+        Assert.assertEquals(
+            firstCardId,
+            col.findCards("", SortOrder.UseCollectionOrdering())[0],
+        )
         col.config.set("sortBackwards", true)
 
         assertTrue(latestCardIds.contains(col.findCards("", SortOrder.UseCollectionOrdering())[0]))
@@ -275,23 +274,23 @@ class FinderTest : JvmTest() {
          */
 
         // model
-        assertEquals(3, col.findCards("note:basic").size)
-        assertEquals(2, col.findCards("-note:basic").size)
-        assertEquals(5, col.findCards("-note:foo").size)
+        Assert.assertEquals(3, col.findCards("note:basic").size)
+        Assert.assertEquals(2, col.findCards("-note:basic").size)
+        Assert.assertEquals(5, col.findCards("-note:foo").size)
         // col
-        assertEquals(5, col.findCards("deck:default").size)
-        assertEquals(0, col.findCards("-deck:default").size)
-        assertEquals(5, col.findCards("-deck:foo").size)
-        assertEquals(5, col.findCards("deck:def*").size)
-        assertEquals(5, col.findCards("deck:*EFAULT").size)
-        assertEquals(0, col.findCards("deck:*cefault").size)
+        Assert.assertEquals(5, col.findCards("deck:default").size)
+        Assert.assertEquals(0, col.findCards("-deck:default").size)
+        Assert.assertEquals(5, col.findCards("-deck:foo").size)
+        Assert.assertEquals(5, col.findCards("deck:def*").size)
+        Assert.assertEquals(5, col.findCards("deck:*EFAULT").size)
+        Assert.assertEquals(0, col.findCards("deck:*cefault").size)
         // full search
         note = col.newNote()
         note.setItem("Front", "hello<b>world</b>")
         note.setItem("Back", "abc")
         col.addNote(note)
         // as it's the sort field, it matches
-        assertEquals(2, col.findCards("helloworld").size)
+        Assert.assertEquals(2, col.findCards("helloworld").size)
         // assertEquals(, col.findCards("helloworld", full=true).size())2 This is commented upstream
         // if we put it on the back, it won't
         val noteFront = note.getItem("Front")
@@ -299,7 +298,7 @@ class FinderTest : JvmTest() {
         note.setItem("Front", noteBack)
         note.setItem("Back", noteFront)
         note.flush()
-        assertEquals(0, col.findCards("helloworld").size)
+        Assert.assertEquals(0, col.findCards("helloworld").size)
         //  Those lines are commented above
         // assertEquals(, col.findCards("helloworld", full=true).size())2
         // assertEquals(, col.findCards("back:helloworld", full=true).size()G)2
@@ -314,58 +313,70 @@ class FinderTest : JvmTest() {
             id,
         )
 
-        assertEquals(7, col.findCards("deck:default").size)
-        assertEquals(1, col.findCards("deck:default::child").size)
-        assertEquals(6, col.findCards("deck:default -deck:default::*").size)
+        Assert.assertEquals(7, col.findCards("deck:default").size)
+        Assert.assertEquals(1, col.findCards("deck:default::child").size)
+        Assert.assertEquals(6, col.findCards("deck:default -deck:default::*").size)
         // properties
         id = col.db.queryLongScalar("select id from cards limit 1")
         col.db.execute(
             "update cards set queue=2, ivl=10, reps=20, due=30, factor=2200 where id = ?",
             id,
         )
-        assertEquals(1, col.findCards("prop:ivl>5").size)
-        assertThat(col.findCards("prop:ivl<5").size, greaterThan(1))
-        assertEquals(1, col.findCards("prop:ivl>=5").size)
-        assertEquals(0, col.findCards("prop:ivl=9").size)
-        assertEquals(1, col.findCards("prop:ivl=10").size)
-        assertThat(col.findCards("prop:ivl!=10").size, greaterThan(1))
+        Assert.assertEquals(1, col.findCards("prop:ivl>5").size)
+        MatcherAssert.assertThat(col.findCards("prop:ivl<5").size, greaterThan(1))
+        Assert.assertEquals(1, col.findCards("prop:ivl>=5").size)
+        Assert.assertEquals(0, col.findCards("prop:ivl=9").size)
+        Assert.assertEquals(1, col.findCards("prop:ivl=10").size)
+        MatcherAssert.assertThat(
+            col.findCards("prop:ivl!=10").size,
+            greaterThan(1),
+        )
         // due dates should work
-        assertEquals(0, col.findCards("prop:due=29").size)
+        Assert.assertEquals(0, col.findCards("prop:due=29").size)
         // ease factors
-        assertEquals(0, col.findCards("prop:ease=2.3").size)
-        assertEquals(1, col.findCards("prop:ease=2.2").size)
-        assertEquals(1, col.findCards("prop:ease>2").size)
-        assertThat(col.findCards("-prop:ease>2").size, greaterThan(1))
+        Assert.assertEquals(0, col.findCards("prop:ease=2.3").size)
+        Assert.assertEquals(1, col.findCards("prop:ease=2.2").size)
+        Assert.assertEquals(1, col.findCards("prop:ease>2").size)
+        MatcherAssert.assertThat(
+            col.findCards("-prop:ease>2").size,
+            greaterThan(1),
+        )
         // recently failed
         if (!isNearCutoff()) {
-            assertEquals(0, col.findCards("rated:1:1").size)
-            assertEquals(0, col.findCards("rated:1:2").size)
+            Assert.assertEquals(0, col.findCards("rated:1:1").size)
+            Assert.assertEquals(0, col.findCards("rated:1:2").size)
             c = col.sched.card!!
             col.sched.answerCard(c, Ease.HARD)
-            assertEquals(0, col.findCards("rated:1:1").size)
-            assertEquals(1, col.findCards("rated:1:2").size)
+            Assert.assertEquals(0, col.findCards("rated:1:1").size)
+            Assert.assertEquals(1, col.findCards("rated:1:2").size)
             c = col.sched.card!!
             col.sched.answerCard(c, Ease.AGAIN)
-            assertEquals(1, col.findCards("rated:1:1").size)
-            assertEquals(1, col.findCards("rated:1:2").size)
-            assertEquals(2, col.findCards("rated:1").size)
-            assertEquals(1, col.findCards("rated:2:2").size)
+            Assert.assertEquals(1, col.findCards("rated:1:1").size)
+            Assert.assertEquals(1, col.findCards("rated:1:2").size)
+            Assert.assertEquals(2, col.findCards("rated:1").size)
+            Assert.assertEquals(1, col.findCards("rated:2:2").size)
         } else {
             Timber.w("some find tests disabled near cutoff")
         }
         // empty field
-        assertEquals(0, col.findCards("front:").size)
+        Assert.assertEquals(0, col.findCards("front:").size)
         note = col.newNote()
         note.setItem("Front", "")
         note.setItem("Back", "abc2")
         assertEquals(1, col.addNote(note))
-        assertEquals(1, col.findCards("front:").size)
+        Assert.assertEquals(1, col.findCards("front:").size)
         // OR searches and nesting
-        assertEquals(2, col.findCards("tag:monkey or tag:sheep").size)
-        assertEquals(2, col.findCards("(tag:monkey OR tag:sheep)").size)
-        assertEquals(6, col.findCards("-(tag:monkey OR tag:sheep)").size)
-        assertEquals(2, col.findCards("tag:monkey or (tag:sheep sheep)").size)
-        assertEquals(1, col.findCards("tag:monkey or (tag:sheep octopus)").size)
+        Assert.assertEquals(2, col.findCards("tag:monkey or tag:sheep").size)
+        Assert.assertEquals(2, col.findCards("(tag:monkey OR tag:sheep)").size)
+        Assert.assertEquals(6, col.findCards("-(tag:monkey OR tag:sheep)").size)
+        Assert.assertEquals(
+            2,
+            col.findCards("tag:monkey or (tag:sheep sheep)").size,
+        )
+        Assert.assertEquals(
+            1,
+            col.findCards("tag:monkey or (tag:sheep octopus)").size,
+        )
         // flag
         // Todo: ensure it fails
         // assertThrows(Exception.class, () -> col.findCards("flag:12"));
@@ -394,15 +405,15 @@ class FinderTest : JvmTest() {
         note.addTag("cat2::some::something")
         col.addNote(note)
 
-        assertEquals(0, col.findCards("tag:cat").size)
-        assertEquals(4, col.findCards("tag:cat*").size)
-        assertEquals(2, col.findCards("tag:cat1").size)
-        assertEquals(2, col.findCards("tag:cat2").size)
-        assertEquals(1, col.findCards("tag:cat1::some").size)
-        assertEquals(2, col.findCards("tag:cat1::some*").size)
-        assertEquals(1, col.findCards("tag:cat1::something").size)
-        assertEquals(2, col.findCards("tag:cat2::some").size)
-        assertEquals(
+        Assert.assertEquals(0, col.findCards("tag:cat").size)
+        Assert.assertEquals(4, col.findCards("tag:cat*").size)
+        Assert.assertEquals(2, col.findCards("tag:cat1").size)
+        Assert.assertEquals(2, col.findCards("tag:cat2").size)
+        Assert.assertEquals(1, col.findCards("tag:cat1::some").size)
+        Assert.assertEquals(2, col.findCards("tag:cat1::some*").size)
+        Assert.assertEquals(1, col.findCards("tag:cat1::something").size)
+        Assert.assertEquals(2, col.findCards("tag:cat2::some").size)
+        Assert.assertEquals(
             0,
             col.findCards("tag:cat2::some::").size,
         )
@@ -420,24 +431,27 @@ class FinderTest : JvmTest() {
         col.addNote(note2)
         val nids = listOf(note.id, note2.id)
         // should do nothing
-        assertEquals(0, col.findReplace(nids, "abc", "123").count)
+        Assert.assertEquals(0, col.findReplace(nids, "abc", "123").count)
         // global replace
-        assertEquals(2, col.findReplace(nids, "foo", "qux").count)
+        Assert.assertEquals(2, col.findReplace(nids, "foo", "qux").count)
         note.load()
         assertEquals("qux", note.getItem("Front"))
         note2.load()
         assertEquals("qux", note2.getItem("Back"))
         // single field replace
-        assertEquals(1, col.findReplace(nids, "qux", "foo", field = "Front").count)
+        Assert.assertEquals(
+            1,
+            col.findReplace(nids, "qux", "foo", field = "Front").count,
+        )
         note.load()
         assertEquals("foo", note.getItem("Front"))
         note2.load()
         assertEquals("qux", note2.getItem("Back"))
         // regex replace
-        assertEquals(0, col.findReplace(nids, "B.r", "reg").count)
+        Assert.assertEquals(0, col.findReplace(nids, "B.r", "reg").count)
         note.load()
         assertNotEquals("reg", note.getItem("Back"))
-        assertEquals(1, col.findReplace(nids, "B.r", "reg", true).count)
+        Assert.assertEquals(1, col.findReplace(nids, "B.r", "reg", true).count)
         note.load()
         assertEquals(note.getItem("Back"), "reg")
     }
