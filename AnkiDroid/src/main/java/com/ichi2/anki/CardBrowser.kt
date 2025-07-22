@@ -1100,13 +1100,19 @@ open class CardBrowser :
         // actionBarTitle.text = String.format(LanguageUtil.getLocaleCompat(resources), "%d", viewModel.selectedRowCount())
         if (viewModel.hasSelectedAnyRows()) {
             actionBarMenu.findItem(R.id.action_suspend_card).apply {
-                title = TR.browsingToggleSuspend().toSentenceCase(this@CardBrowser, R.string.sentence_toggle_suspend)
+                title =
+                    TR
+                        .browsingToggleSuspend()
+                        .toSentenceCase(this@CardBrowser, R.string.sentence_toggle_suspend)
                 // TODO: I don't think this icon is necessary
                 setIcon(R.drawable.ic_suspend)
                 isVisible = viewModel.hasSelectedAnyRows()
             }
             actionBarMenu.findItem(R.id.action_toggle_bury).apply {
-                title = TR.browsingToggleBury().toSentenceCase(this@CardBrowser, R.string.sentence_toggle_bury)
+                title =
+                    TR
+                        .browsingToggleBury()
+                        .toSentenceCase(this@CardBrowser, R.string.sentence_toggle_bury)
                 isVisible = viewModel.hasSelectedAnyRows()
             }
             actionBarMenu.findItem(R.id.action_mark_card).apply {
