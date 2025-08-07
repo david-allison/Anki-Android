@@ -56,7 +56,6 @@ import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.CardType
 import com.ichi2.anki.libanki.DeckId
-import com.ichi2.anki.libanki.DeckNameId
 import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.libanki.QueueType.ManuallyBuried
 import com.ichi2.anki.libanki.QueueType.SiblingBuried
@@ -64,6 +63,7 @@ import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.model.CardsOrNotes.CARDS
 import com.ichi2.anki.model.CardsOrNotes.NOTES
+import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.model.SortType
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
@@ -1360,7 +1360,7 @@ class CardBrowserViewModel(
     /**
      * Returns the decks which are suitable for [moveSelectedCardsToDeck]
      */
-    suspend fun getAvailableDecks(): List<DeckNameId> = withCol { decks.allNamesAndIds(includeFiltered = false) }
+    suspend fun getAvailableDecks(): List<SelectableDeck.Deck> = SelectableDeck.fromCollection(includeFiltered = false)
 }
 
 enum class SaveSearchResult {
