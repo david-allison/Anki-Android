@@ -160,6 +160,9 @@ class CardBrowserFragment :
     // only usable if 'useSearchView' is set
     private var searchBar: SearchBar? = null
     private var searchView: SearchView? = null
+
+    /** filters/suggestions/results when [searchView] is open */
+    private var searchViewItemsAdapter: ExpandedSearchViewAdapter? = null
     private var deckChip: Chip? = null
 
     @get:LayoutRes
@@ -231,6 +234,16 @@ class CardBrowserFragment :
                     requireNavigationDrawerActivity().onNavigationPressed()
                 }
             }
+
+        view.findViewById<RecyclerView>(R.id.search_view_items)?.apply {
+            this.layoutManager = LinearLayoutManager(requireContext())
+            val adapter =
+                ExpandedSearchViewAdapter(
+                    viewModel = activityViewModel,
+                )
+            this.adapter = adapter
+            this@CardBrowserFragment.searchViewItemsAdapter = adapter
+        }
 
         searchView =
             view.findViewById<SearchView>(R.id.search_view)?.apply {
@@ -488,6 +501,11 @@ class CardBrowserFragment :
             searchBar?.setText(value)
         }
 
+        fun onSearchViewChanged(searchViewItems: ExpandedSearchView?) {
+            if (searchViewItems == null) return
+            searchViewItemsAdapter?.submitList(searchViewItems.items)
+        }
+
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -501,6 +519,7 @@ class CardBrowserFragment :
         activityViewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckChanged)
         activityViewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
         activityViewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
+        activityViewModel.flowOfExpandedSearchView.launchCollectionInLifecycleScope(::onSearchViewChanged)
     }
 
     private fun setupFragmentResultListeners() {

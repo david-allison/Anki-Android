@@ -205,6 +205,19 @@ class CardBrowserViewModel(
 
     private val searchQueryInputFlow = MutableStateFlow<String?>(null)
 
+    val flowOfExpandedSearchView: Flow<ExpandedSearchView?> =
+        flowOfSearchViewExpanded
+            .combine(searchQueryInputFlow) { expanded, stringInput ->
+                if (!expanded) return@combine null
+
+                val items = mutableListOf<ExpandedSearchViewItem>()
+                if (stringInput?.isNotEmpty() == true) {
+                    items.add(ExpandedSearchViewItem.SaveSearch(stringInput))
+                }
+
+                ExpandedSearchView(items)
+            }
+
     /** The query which is currently in the search box, potentially null. Only set when search box was open  */
     val tempSearchQuery get() = searchQueryInputFlow.value
 
@@ -1429,16 +1442,28 @@ class CardBrowserViewModel(
      */
     suspend fun getAvailableDecks(): List<SelectableDeck.Deck> = SelectableDeck.fromCollection(includeFiltered = false)
 
-    /** Opens the UI to save the current [tempSearchQuery] as a saved search */
-    fun saveCurrentSearch() =
+    /** Opens the UI to save [searchTerms] as a saved search */
+    fun saveCurrentSearch(searchTerms: String? = tempSearchQuery) =
         viewModelScope.launch {
-            val query = tempSearchQuery
-            if (query.isNullOrEmpty()) {
+            if (searchTerms.isNullOrEmpty()) {
                 Timber.d("not prompting to saving search: no query")
                 return@launch
             }
-            flowOfSaveSearchNamePrompt.emit(query)
+            flowOfSaveSearchNamePrompt.emit(searchTerms)
         }
+}
+
+/** Defines the order and options for when the search view is expanded */
+data class ExpandedSearchView(
+    val items: List<ExpandedSearchViewItem>,
+)
+
+/** Potential items in an [ExpandedSearchView] */
+sealed class ExpandedSearchViewItem {
+    /** Saves the current search as a Saved Search */
+    data class SaveSearch(
+        val terms: String,
+    ) : ExpandedSearchViewItem()
 }
 
 enum class SaveSearchResult {

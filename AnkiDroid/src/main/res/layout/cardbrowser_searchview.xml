@@ -121,8 +121,12 @@
         tools:hint="Search cards/notes"
         app:layout_anchor="@id/search_bar">
 
-        <!-- Content when SearchView is open -->
-        <!-- TODO: Add Saved Searches/History here  -->
+        <!-- Content when SearchView is open (saved items/recents) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/search_view_items"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
 
     </com.google.android.material.search.SearchView>
 
