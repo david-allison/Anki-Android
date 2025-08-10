@@ -33,6 +33,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -98,6 +99,7 @@ import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.undoAndShowSnackbar
 import com.ichi2.anki.utils.ext.getCurrentDialogFragment
 import com.ichi2.anki.utils.ext.ifNotZero
+import com.ichi2.anki.utils.ext.onSubmit
 import com.ichi2.anki.utils.ext.setFragmentResultListener
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.anki.utils.ext.visibleItemPositions
@@ -232,6 +234,14 @@ class CardBrowserFragment :
 
         searchView =
             view.findViewById<SearchView>(R.id.search_view)?.apply {
+                editText.doAfterTextChanged {
+                    activityViewModel.updateQueryText(it.toString())
+                }
+                onSubmit { v, actionId, event ->
+                    activityViewModel.launchSearchForCards(v.text.toString())
+                    true
+                }
+
                 addTransitionListener { _, _, newState ->
                     if (newState == SearchView.TransitionState.HIDDEN) {
                         activityViewModel.collapseSearchView()
@@ -473,6 +483,11 @@ class CardBrowserFragment :
             }
         }
 
+        fun onSearchChanged(value: String) {
+            Timber.d("onSearchChanged")
+            searchBar?.setText(value)
+        }
+
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -485,6 +500,7 @@ class CardBrowserFragment :
         viewModel.flowOfSearchForDecks.launchCollectionInLifecycleScope(::onSearchForDecks)
         activityViewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckChanged)
         activityViewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
+        activityViewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
     }
 
     private fun setupFragmentResultListeners() {

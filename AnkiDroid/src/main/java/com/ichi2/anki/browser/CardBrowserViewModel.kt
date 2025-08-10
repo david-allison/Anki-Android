@@ -404,9 +404,12 @@ class CardBrowserViewModel(
             null -> {}
         }
 
+        var initialSearch = true
         performSearchFlow
             .onEach {
-                launchSearchForCards()
+                // if restoring state, retain the 'search collapsed' state
+                launchSearchForCards(collapseSearch = !initialSearch)
+                initialSearch = false
             }.launchIn(viewModelScope)
 
         reverseDirectionFlow
@@ -1153,6 +1156,7 @@ class CardBrowserViewModel(
     fun launchSearchForCards(
         searchQuery: String,
         forceRefresh: Boolean = true,
+        collapseSearch: Boolean = true,
     ) {
         if (!forceRefresh && searchTerms == searchQuery) {
             Timber.d("skipping duplicate search: forceRefresh is false")
@@ -1166,7 +1170,7 @@ class CardBrowserViewModel(
             }
 
         viewModelScope.launch {
-            launchSearchForCards()
+            launchSearchForCards(collapseSearch = collapseSearch)
         }
     }
 
@@ -1177,10 +1181,19 @@ class CardBrowserViewModel(
      * @see com.ichi2.anki.searchForRows
      */
     @NeedsTest("Invalid searches are handled. For instance: 'and'")
-    fun launchSearchForCards(cardOrNoteIdsToSelect: List<CardOrNoteId> = emptyList()) {
+    fun launchSearchForCards(
+        cardOrNoteIdsToSelect: List<CardOrNoteId> = emptyList(),
+        collapseSearch: Boolean = true,
+    ) {
         if (!initCompleted) return
 
+        fun notifyUi() {
+            if (!collapseSearch) return
+            collapseSearchView()
+        }
+
         viewModelScope.launch {
+            notifyUi()
             // update the UI while we're searching
             clearCardsList()
 
@@ -1196,6 +1209,7 @@ class CardBrowserViewModel(
                 launchCatchingIO(
                     errorMessageHandler = { error -> flowOfSearchState.emit(SearchState.Error(error)) },
                 ) {
+                    notifyUi()
                     flowOfSearchState.emit(SearchState.Searching)
                     Timber.d("performing search: '%s'", query)
                     val cards = com.ichi2.anki.searchForRows(query, order.toSortOrder(), cardsOrNotes)
