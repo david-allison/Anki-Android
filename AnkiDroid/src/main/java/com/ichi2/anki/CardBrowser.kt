@@ -64,8 +64,9 @@ import com.ichi2.anki.browser.CardBrowserViewModel.SearchState.Initializing
 import com.ichi2.anki.browser.CardBrowserViewModel.SearchState.Searching
 import com.ichi2.anki.browser.CardOrNoteId
 import com.ichi2.anki.browser.IdsFile
-import com.ichi2.anki.browser.SaveSearchResult
+import com.ichi2.anki.browser.SavedSearch
 import com.ichi2.anki.browser.SharedPreferencesLastDeckIdRepository
+import com.ichi2.anki.browser.SnackbarMessage
 import com.ichi2.anki.browser.registerFindReplaceHandler
 import com.ichi2.anki.browser.toCardBrowserLaunchOptions
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -255,21 +256,16 @@ open class CardBrowser :
             override fun onSelection(searchName: String) {
                 Timber.d("OnSelection using search named: %s", searchName)
                 launchCatchingTask {
-                    viewModel.savedSearches()[searchName]?.also { savedSearch ->
-                        Timber.d("OnSelection using search terms: %s", savedSearch)
-                        searchForQuery(savedSearch)
+                    viewModel.savedSearches.find { it.name == searchName }?.also { savedSearch ->
+                        Timber.d("OnSelection using search terms: %s", savedSearch.terms)
+                        searchForQuery(savedSearch.terms)
                     }
                 }
             }
 
             override fun onRemoveSearch(searchName: String) {
                 Timber.d("OnRemoveSelection using search named: %s", searchName)
-                launchCatchingTask {
-                    val updatedFilters = viewModel.removeSavedSearch(searchName)
-                    if (updatedFilters.isEmpty()) {
-                        mySearchesItem!!.isVisible = false
-                    }
-                }
+                viewModel.removeSavedSearch(searchName)
             }
 
             override fun onSaveSearch(
@@ -286,19 +282,12 @@ open class CardBrowser :
                     )
                     return
                 }
-                launchCatchingTask {
-                    when (viewModel.saveSearch(searchName, searchTerms)) {
-                        SaveSearchResult.ALREADY_EXISTS ->
-                            showSnackbar(
-                                R.string.card_browser_list_my_searches_new_search_error_dup,
-                                Snackbar.LENGTH_SHORT,
-                            )
-                        SaveSearchResult.SUCCESS -> {
-                            searchView?.setQuery("", false)
-                            mySearchesItem?.isVisible = true
-                        }
-                    }
-                }
+                viewModel.saveSearch(
+                    SavedSearch(
+                        name = searchName,
+                        terms = searchTerms,
+                    ),
+                )
             }
         }
 
@@ -578,6 +567,26 @@ open class CardBrowser :
             showDialogFragment(dialog)
         }
 
+        fun savedSearchesChanged(searches: List<SavedSearch>) {
+            // TODO: setQuery should be in ViewModel, but functionality is pending removal
+            searchView?.setQuery("", false)
+            mySearchesItem?.isVisible = searches.any()
+        }
+
+        fun onSnackbarMessage(message: SnackbarMessage) {
+            val displayString =
+                when (message) {
+                    SnackbarMessage.SavedSearchNameExists -> getString(R.string.card_browser_list_my_searches_new_search_error_dup)
+                    SnackbarMessage.UnspecifiedError -> getString(R.string.something_wrong)
+                    is SnackbarMessage.SavedSearchAdded ->
+                        getString(
+                            R.string.card_browser_list_my_searches_search_created,
+                            message.search.name,
+                        )
+                }
+            showSnackbar(displayString, Snackbar.LENGTH_SHORT)
+        }
+
         viewModel.flowOfSearchQueryExpanded.launchCollectionInLifecycleScope(::onSearchQueryExpanded)
         viewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         viewModel.flowOfFilterQuery.launchCollectionInLifecycleScope(::onFilterQueryChanged)
@@ -588,6 +597,8 @@ open class CardBrowser :
         viewModel.flowOfSearchState.launchCollectionInLifecycleScope(::searchStateChanged)
         viewModel.cardSelectionEventFlow.launchCollectionInLifecycleScope(::onSelectedCardUpdated)
         viewModel.flowOfSaveSearchNamePrompt.filterNotNull().launchCollectionInLifecycleScope(::onSaveSearchNamePrompt)
+        viewModel.flowOfSavedSearches.launchCollectionInLifecycleScope(::savedSearchesChanged)
+        viewModel.flowOfSnackbar.launchCollectionInLifecycleScope(::onSnackbarMessage)
     }
 
     fun isKeyboardVisible(view: View?): Boolean =
@@ -814,9 +825,10 @@ open class CardBrowser :
             menu.findItem(R.id.action_create_filtered_deck).title = TR.qtMiscCreateFilteredDeck()
             saveSearchItem = menu.findItem(R.id.action_save_search)
             saveSearchItem?.isVisible = false // the searchview's query always starts empty.
-            mySearchesItem = menu.findItem(R.id.action_list_my_searches)
-            val savedFiltersObj = viewModel.savedSearchesUnsafe(getColUnsafe)
-            mySearchesItem!!.isVisible = savedFiltersObj.isNotEmpty()
+            mySearchesItem =
+                menu.findItem(R.id.action_list_my_searches).apply {
+                    isVisible = viewModel.flowOfSavedSearches.value.isNotEmpty()
+                }
             searchItem = menu.findItem(R.id.action_search)
             searchItem!!.setOnActionExpandListener(
                 object : MenuItem.OnActionExpandListener {
@@ -1105,17 +1117,14 @@ open class CardBrowser :
     }
 
     private fun showSavedSearches() {
-        launchCatchingTask {
-            val savedFilters = viewModel.savedSearches()
-            showDialogFragment(
-                CardBrowserMySearchesDialog.newInstance(
-                    savedFilters,
-                    mySearchesDialogListener,
-                    "",
-                    CardBrowserMySearchesDialog.CARD_BROWSER_MY_SEARCHES_TYPE_LIST,
-                ),
-            )
-        }
+        showDialogFragment(
+            CardBrowserMySearchesDialog.newInstance(
+                viewModel.savedSearches,
+                mySearchesDialogListener,
+                "",
+                CardBrowserMySearchesDialog.CARD_BROWSER_MY_SEARCHES_TYPE_LIST,
+            ),
+        )
     }
 
     fun openGradeNow() =

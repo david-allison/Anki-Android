@@ -286,6 +286,13 @@ class CardBrowserViewModel(
      */
     val flowOfSaveSearchNamePrompt = MutableSharedFlow<String>()
 
+    val flowOfSavedSearches = MutableStateFlow<List<SavedSearch>>(listOf())
+
+    val savedSearches: List<SavedSearch>
+        get() = flowOfSavedSearches.value
+
+    val flowOfSnackbar = MutableSharedFlow<SnackbarMessage>()
+
     var focusedRow: CardOrNoteId? = null
         set(value) {
             if (!isFragmented) return
@@ -473,6 +480,9 @@ class CardBrowserViewModel(
                 sortTypeFlow.update { SortType.fromCol(config, cardsOrNotes, sharedPrefs()) }
                 reverseDirectionFlow.update { ReverseDirection.fromConfig(config) }
             }
+
+            flowOfSavedSearches.update { withCol { querySavedSearches() } }
+
             Timber.i("initCompleted")
 
             if (!manualInit) {
@@ -1002,40 +1012,33 @@ class CardBrowserViewModel(
             if (it == -1) null else it
         }
 
-    private suspend fun updateSavedSearches(func: MutableMap<String, String>.() -> Unit): Map<String, String> {
-        val filters = savedSearches().toMutableMap()
-        func(filters)
-        withCol { config.set("savedFilters", filters) }
-        return filters
-    }
+    fun saveSearch(savedSearch: SavedSearch) {
+        viewModelScope.launch {
+            Timber.i("saving search")
+            val updatedSearches = withCol { saveSearch(savedSearch) }
 
-    suspend fun savedSearches(): Map<String, String> = withCol { config.get("savedFilters") } ?: hashMapOf()
-
-    fun savedSearchesUnsafe(col: com.ichi2.anki.libanki.Collection): Map<String, String> = col.config.get("savedFilters") ?: hashMapOf()
-
-    suspend fun removeSavedSearch(searchName: String): Map<String, String> {
-        Timber.d("removing user search")
-        return updateSavedSearches {
-            remove(searchName)
-        }
-    }
-
-    @CheckResult
-    suspend fun saveSearch(
-        searchName: String,
-        searchTerms: String,
-    ): SaveSearchResult {
-        Timber.d("saving user search")
-        var alreadyExists = false
-        updateSavedSearches {
-            if (get(searchName) != null) {
-                alreadyExists = true
+            if (updatedSearches == null) {
+                Timber.w("failed to save search")
+                flowOfSnackbar.emit(SnackbarMessage.SavedSearchNameExists)
             } else {
-                set(searchName, searchTerms)
+                flowOfSavedSearches.value = updatedSearches
+                flowOfSnackbar.emit(SnackbarMessage.SavedSearchAdded(savedSearch))
             }
         }
-        return if (alreadyExists) SaveSearchResult.ALREADY_EXISTS else SaveSearchResult.SUCCESS
     }
+
+    fun removeSavedSearch(searchName: String) =
+        viewModelScope.launch {
+            Timber.i("removing search")
+            val result = withCol { removeSavedSearchByName(searchName) }
+
+            if (result == null) {
+                Timber.w("failed to remove search")
+                flowOfSnackbar.emit(SnackbarMessage.UnspecifiedError)
+            } else {
+                flowOfSavedSearches.value = result
+            }
+        }
 
     /** Ignores any values before [initCompleted] is set */
     private fun <T> Flow<T>.ignoreValuesFromViewModelLaunch(): Flow<T> = this.filter { initCompleted }
@@ -1453,6 +1456,16 @@ class CardBrowserViewModel(
         }
 }
 
+sealed class SnackbarMessage {
+    data object SavedSearchNameExists : SnackbarMessage()
+
+    data class SavedSearchAdded(
+        val search: SavedSearch,
+    ) : SnackbarMessage()
+
+    data object UnspecifiedError : SnackbarMessage()
+}
+
 /** Defines the order and options for when the search view is expanded */
 data class ExpandedSearchView(
     val items: List<ExpandedSearchViewItem>,
@@ -1464,11 +1477,6 @@ sealed class ExpandedSearchViewItem {
     data class SaveSearch(
         val terms: String,
     ) : ExpandedSearchViewItem()
-}
-
-enum class SaveSearchResult {
-    ALREADY_EXISTS,
-    SUCCESS,
 }
 
 /**

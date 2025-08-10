@@ -56,6 +56,7 @@ import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_A
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_NONE
 import com.ichi2.anki.browser.RepositionCardsRequest.ContainsNonNewCardsError
 import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
+import com.ichi2.anki.browser.SnackbarMessage.SavedSearchAdded
 import com.ichi2.anki.export.ExportDialogFragment
 import com.ichi2.anki.flagCardForNote
 import com.ichi2.anki.libanki.CardId
@@ -103,27 +104,70 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class CardBrowserViewModelTest : JvmTest() {
     @Test
+    fun `initial saved searches`() {
+        assertNotNull(col.saveSearch(SavedSearch("hello", "aa")))
+
+        runViewModelTest {
+            assertThat("pre-saved search", savedSearches, hasSize(1))
+            assertThat("pre-saved search", savedSearches.single(), equalTo(SavedSearch("hello", "aa")))
+        }
+    }
+
+    @Test
     fun `delete search history - Issue 14989`() =
         runViewModelTest {
-            saveSearch("hello", "aa").also { result ->
-                assertThat(result, equalTo(SaveSearchResult.SUCCESS))
+            flowOfSavedSearches.test {
+                val searchToAdd = SavedSearch("hello", "aa")
+
+                saveSearch(searchToAdd)
+
+                expectMostRecentItem().also { list ->
+                    assertThat("after save", list, hasSize(1))
+                    assertThat("item after save", list[0], equalTo(SavedSearch("hello", "aa")))
+                }
+
+                removeSavedSearch(searchName = searchToAdd.name)
+
+                expectMostRecentItem().also { list ->
+                    assertThat("no items after 'remove'", list, hasSize(0))
+                }
             }
-            savedSearches().also { searches ->
-                assertThat("filters after saving", searches.size, equalTo(1))
-                assertThat("filters after saving", searches["hello"], equalTo("aa"))
+        }
+
+    @Test
+    fun `saving search with same name performs no update`() =
+        runViewModelTest {
+            flowOfSavedSearches.test {
+                val searchToAdd = SavedSearch("hello", "aa")
+                saveSearch(searchToAdd)
+
+                expectMostRecentItem().also { list ->
+                    assertThat("after save", list, hasSize(1))
+                    assertThat("item after save", list[0], equalTo(SavedSearch("hello", "aa")))
+                }
+
+                saveSearch(searchToAdd.copy(terms = "bb"))
+
+                expectNoEvents()
             }
-            removeSavedSearch("hello")
-            assertThat("filters should be empty after removing", savedSearches().size, equalTo(0))
         }
 
     @Test
     fun `saving search with same name fails`() =
         runViewModelTest {
-            saveSearch("hello", "aa").also { result ->
-                assertThat("saving a new search succeeds", result, equalTo(SaveSearchResult.SUCCESS))
-            }
-            saveSearch("hello", "bb").also { result ->
-                assertThat("saving with same name fails", result, equalTo(SaveSearchResult.ALREADY_EXISTS))
+            flowOfSnackbar.test {
+                val searchToAdd = SavedSearch("hello", "aa")
+                saveSearch(searchToAdd)
+
+                expectMostRecentItem().also { snackbar ->
+                    assertThat("after save", snackbar, equalTo(SavedSearchAdded(SavedSearch("hello", "aa"))))
+                }
+
+                saveSearch(searchToAdd.copy(terms = "bb"))
+
+                expectMostRecentItem().also { snackbar ->
+                    assertThat("name exists error", snackbar, equalTo(SnackbarMessage.SavedSearchNameExists))
+                }
             }
         }
 
