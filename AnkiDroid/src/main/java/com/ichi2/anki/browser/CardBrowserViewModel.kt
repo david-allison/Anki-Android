@@ -266,6 +266,13 @@ class CardBrowserViewModel(
      */
     val flowOfCardStateChanged = MutableSharedFlow<Unit>()
 
+    /**
+     * Opens a prompt for the user to input a saved search name
+     *
+     * The parameter is the 'searchTerms' to be used in the saved search
+     */
+    val flowOfSaveSearchNamePrompt = MutableSharedFlow<String>()
+
     var focusedRow: CardOrNoteId? = null
         set(value) {
             if (!isFragmented) return
@@ -1421,6 +1428,17 @@ class CardBrowserViewModel(
      * Returns the decks which are suitable for [moveSelectedCardsToDeck]
      */
     suspend fun getAvailableDecks(): List<SelectableDeck.Deck> = SelectableDeck.fromCollection(includeFiltered = false)
+
+    /** Opens the UI to save the current [tempSearchQuery] as a saved search */
+    fun saveCurrentSearch() =
+        viewModelScope.launch {
+            val query = tempSearchQuery
+            if (query.isNullOrEmpty()) {
+                Timber.d("not prompting to saving search: no query")
+                return@launch
+            }
+            flowOfSaveSearchNamePrompt.emit(query)
+        }
 }
 
 enum class SaveSearchResult {
