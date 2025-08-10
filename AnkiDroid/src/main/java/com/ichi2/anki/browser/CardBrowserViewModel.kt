@@ -506,8 +506,6 @@ class CardBrowserViewModel(
                                 // must handle 0.
                                 selectAllEnabled = selectedRowCount() < rowCount,
                                 previewEnabled = rowCount > 0,
-                                // TODO: Figure out the logic here
-                                saveSearchEnabled = true,
                             )
                         }
                         is MenuState.MultiSelect -> {
@@ -517,17 +515,6 @@ class CardBrowserViewModel(
                                 canEditNote = !isFragmented && selectedRowCount() == 1,
                             )
                         }
-                    }
-                }
-            }.launchIn(viewModelScope)
-
-        searchQueryInputFlow
-            .onEach { searchText ->
-                flowOfMenuState.update {
-                    if (it is MenuState.Standard) {
-                        it.copy(saveSearchEnabled = searchText?.isNotEmpty() == true)
-                    } else {
-                        it
                     }
                 }
             }.launchIn(viewModelScope)
@@ -1539,13 +1526,14 @@ class CardBrowserViewModel(
     sealed class MenuState {
         /** [com.ichi2.anki.R.menu.card_browser] */
         data class Standard(
-            val saveSearchEnabled: Boolean = false,
-            val openMySearchesEnabled: Boolean = false,
             val undoEnabled: Boolean = false,
             val selectAllEnabled: Boolean = false,
             val findReplaceEnabled: Boolean = false,
             val previewEnabled: Boolean = false,
-        ) : MenuState()
+        ) : MenuState() {
+            val saveSearchEnabled: Boolean = false
+            val openMySearchesEnabled: Boolean = false
+        }
 
         /** [com.ichi2.anki.R.menu.card_browser_multiselect] */
         data class MultiSelect(
@@ -1560,8 +1548,6 @@ class CardBrowserViewModel(
         companion object {
             suspend fun initialStandardSelect(viewModel: CardBrowserViewModel): Standard =
                 Standard(
-                    saveSearchEnabled = viewModel.searchQueryInputFlow.value?.isNotEmpty() == true,
-                    openMySearchesEnabled = viewModel.savedSearches.isNotEmpty(),
                     undoEnabled = withCol { undoAvailable() },
                     findReplaceEnabled =
                         viewModel.sharedPrefs().getBoolean(

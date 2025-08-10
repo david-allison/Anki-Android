@@ -71,6 +71,9 @@ private fun MenuState.Standard.setup(
     menu.findItem(R.id.action_search_by_flag)?.subMenu?.let { subMenu ->
         viewModel.setupFlags(context, subMenu, Mode.SINGLE_SELECT)
     }
+
+    // In the new menu, a user taps the search bar to search
+    menu.findItem(R.id.action_search)?.isVisible = false
 }
 
 private fun MenuState.MultiSelect.setup(
