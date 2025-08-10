@@ -25,6 +25,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window.FEATURE_OPTIONS_PANEL
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.LayoutRes
@@ -60,6 +61,7 @@ import com.ichi2.anki.android.input.shortcut
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.MultiSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
+import com.ichi2.anki.browser.CardBrowserViewModel.MenuState
 import com.ichi2.anki.browser.CardBrowserViewModel.RowSelection
 import com.ichi2.anki.browser.CardBrowserViewModel.SearchState
 import com.ichi2.anki.browser.CardBrowserViewModel.SearchState.Initializing
@@ -232,6 +234,12 @@ class CardBrowserFragment :
             view.findViewById<SearchBar>(R.id.search_bar)?.apply {
                 setNavigationOnClickListener {
                     requireNavigationDrawerActivity().onNavigationPressed()
+                }
+
+                // for now, the activity has priority handling the menu
+                setOnMenuItemClickListener { item ->
+                    requireActivity().onMenuItemSelected(FEATURE_OPTIONS_PANEL, item)
+                    true
                 }
             }
 
@@ -506,6 +514,11 @@ class CardBrowserFragment :
             searchViewItemsAdapter?.submitList(searchViewItems.items)
         }
 
+        fun onMenuChanged(menuState: MenuState) {
+            val searchBar = searchBar ?: return
+            menuState.setup(searchBar, requireContext(), activityViewModel)
+        }
+
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -520,6 +533,7 @@ class CardBrowserFragment :
         activityViewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
         activityViewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
         activityViewModel.flowOfExpandedSearchView.launchCollectionInLifecycleScope(::onSearchViewChanged)
+        activityViewModel.flowOfMenuState.launchCollectionInLifecycleScope(::onMenuChanged)
     }
 
     private fun setupFragmentResultListeners() {

@@ -42,6 +42,7 @@ import com.ichi2.anki.CrashReportService
 import com.ichi2.anki.DeckSpinnerSelection.Companion.ALL_DECKS_ID
 import com.ichi2.anki.Flag
 import com.ichi2.anki.PreviewerDestination
+import com.ichi2.anki.R
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.MultiSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_ALL
@@ -120,6 +121,7 @@ import kotlin.math.min
 @NeedsTest("columIndex1/2 config is not not updated on init")
 @NeedsTest("13442: selected deck is not changed, as this affects the reviewer")
 @NeedsTest("search is called after launch()")
+@NeedsTest("MenuState")
 class CardBrowserViewModel(
     private val lastDeckIdRepository: LastDeckIdRepository,
     private val cacheDir: File,
@@ -307,6 +309,8 @@ class CardBrowserViewModel(
             field = value
         }
 
+    val flowOfMenuState = MutableStateFlow<MenuState>(if (isInMultiSelectMode) MenuState.MultiSelect() else MenuState.Standard())
+
     suspend fun queryAllSelectedCardIds() = selectedRows.queryCardIds(this.cardsOrNotes)
 
     suspend fun queryAllSelectedNoteIds() = selectedRows.queryNoteIds(this.cardsOrNotes)
@@ -464,13 +468,82 @@ class CardBrowserViewModel(
             }.launchIn(viewModelScope)
 
         flowOfMultiSelectModeChanged
-            .onEach {
-                savedStateHandle[STATE_MULTISELECT] = it.resultedInMultiSelect
+            .onEach { change ->
+                savedStateHandle[STATE_MULTISELECT] = change.resultedInMultiSelect
+
+                val isMultiSelect = (flowOfMenuState.value::class == MenuState.MultiSelect::class)
+                if (change.resultedInMultiSelect == isMultiSelect) {
+                    Timber.w("no change?")
+                    return@onEach
+                }
+
+                viewModelScope.launch {
+                    val next =
+                        if (change.resultedInMultiSelect) {
+                            MenuState.initialMultiSelect(
+                                this@CardBrowserViewModel,
+                            )
+                        } else {
+                            MenuState.initialStandardSelect(this@CardBrowserViewModel)
+                        }
+                    // TODO
+                    Timber.d("update to %s", next)
+                    flowOfMenuState.value = next
+                }
             }.launchIn(viewModelScope)
 
         flowOfSearchViewExpanded
             .onEach { expanded ->
                 savedStateHandle[STATE_SEARCH_VIEW_EXPANDED] = expanded
+            }.launchIn(viewModelScope)
+
+        flowOfSearchState
+            .onEach {
+                flowOfMenuState.update {
+                    when (it) {
+                        is MenuState.Standard -> {
+                            it.copy(
+                                // must handle 0.
+                                selectAllEnabled = selectedRowCount() < rowCount,
+                                previewEnabled = rowCount > 0,
+                                // TODO: Figure out the logic here
+                                saveSearchEnabled = true,
+                            )
+                        }
+                        is MenuState.MultiSelect -> {
+                            it.copy(
+                                previewEnabled = rowCount > 0,
+                                cardInfoEnabled = selectedRowCount() == 1,
+                                canEditNote = !isFragmented && selectedRowCount() == 1,
+                            )
+                        }
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        searchQueryInputFlow
+            .onEach { searchText ->
+                flowOfMenuState.update {
+                    if (it is MenuState.Standard) {
+                        it.copy(saveSearchEnabled = searchText?.isNotEmpty() == true)
+                    } else {
+                        it
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        flowOfSelectedRows
+            .onEach { selected ->
+                flowOfMenuState.update {
+                    when (it) {
+                        is MenuState.Standard -> it.copy(selectAllEnabled = selected.size < rowCount)
+                        is MenuState.MultiSelect ->
+                            it.copy(
+                                cardInfoEnabled = selected.size == 1,
+                                canEditNote = !isFragmented && selected.size == 1,
+                            )
+                    }
+                }
             }.launchIn(viewModelScope)
 
         viewModelScope.launch {
@@ -1462,6 +1535,62 @@ class CardBrowserViewModel(
             }
             flowOfSaveSearchNamePrompt.emit(searchTerms)
         }
+
+    sealed class MenuState {
+        /** [com.ichi2.anki.R.menu.card_browser] */
+        data class Standard(
+            val saveSearchEnabled: Boolean = false,
+            val openMySearchesEnabled: Boolean = false,
+            val undoEnabled: Boolean = false,
+            val selectAllEnabled: Boolean = false,
+            val findReplaceEnabled: Boolean = false,
+            val previewEnabled: Boolean = false,
+        ) : MenuState()
+
+        /** [com.ichi2.anki.R.menu.card_browser_multiselect] */
+        data class MultiSelect(
+            val undoEnabled: Boolean = false,
+            val previewEnabled: Boolean = false,
+            val findReplaceEnabled: Boolean = false,
+            val cardInfoEnabled: Boolean = false,
+            val canEditNote: Boolean = false,
+            val canGradeNow: Boolean = false,
+        ) : MenuState()
+
+        companion object {
+            suspend fun initialStandardSelect(viewModel: CardBrowserViewModel): Standard =
+                Standard(
+                    saveSearchEnabled = viewModel.searchQueryInputFlow.value?.isNotEmpty() == true,
+                    openMySearchesEnabled = viewModel.savedSearches.isNotEmpty(),
+                    undoEnabled = withCol { undoAvailable() },
+                    findReplaceEnabled =
+                        viewModel.sharedPrefs().getBoolean(
+                            AnkiDroidApp.appResources.getString(R.string.pref_browser_find_replace),
+                            false,
+                        ),
+                    // must handle 0.
+                    selectAllEnabled = viewModel.selectedRowCount() < viewModel.rowCount,
+                    previewEnabled = viewModel.rowCount > 0,
+                )
+
+            suspend fun initialMultiSelect(viewModel: CardBrowserViewModel): MultiSelect {
+                val selectedRowCount = viewModel.selectedRowCount()
+                val rowCount = viewModel.rowCount
+                return MultiSelect(
+                    undoEnabled = withCol { undoAvailable() },
+                    findReplaceEnabled =
+                        viewModel.sharedPrefs().getBoolean(
+                            AnkiDroidApp.appResources.getString(R.string.pref_browser_find_replace),
+                            false,
+                        ),
+                    previewEnabled = rowCount > 0,
+                    cardInfoEnabled = selectedRowCount == 1,
+                    canEditNote = !viewModel.isFragmented && selectedRowCount == 1,
+                    canGradeNow = rowCount > 0,
+                )
+            }
+        }
+    }
 }
 
 sealed class SnackbarMessage {
