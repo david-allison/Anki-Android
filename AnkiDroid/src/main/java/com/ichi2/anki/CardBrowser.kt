@@ -294,8 +294,8 @@ open class CardBrowser :
                                 Snackbar.LENGTH_SHORT,
                             )
                         SaveSearchResult.SUCCESS -> {
-                            searchView!!.setQuery("", false)
-                            mySearchesItem!!.isVisible = true
+                            searchView?.setQuery("", false)
+                            mySearchesItem?.isVisible = true
                         }
                     }
                 }
@@ -504,8 +504,8 @@ open class CardBrowser :
 
         fun onFilterQueryChanged(filterQuery: String) {
             // setQuery before expand does not set the view's value
-            searchItem!!.expandActionView()
-            searchView!!.setQuery(filterQuery, submit = false)
+            searchItem?.expandActionView()
+            searchView?.setQuery(filterQuery, submit = false)
         }
 
         suspend fun onDeckIdChanged(deckId: DeckId?) {
