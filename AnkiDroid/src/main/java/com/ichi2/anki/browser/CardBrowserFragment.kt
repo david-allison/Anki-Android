@@ -88,6 +88,7 @@ import com.ichi2.anki.export.ExportDialogFragment
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.model.CardStateFilter
+import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.model.SortType
 import com.ichi2.anki.observability.ChangeManager
@@ -519,6 +520,18 @@ class CardBrowserFragment :
             menuState.setup(searchBar, requireContext(), activityViewModel)
         }
 
+        fun onCardsOrNotesChanged(cardsOrNotes: CardsOrNotes) {
+            val hintText =
+                getString(
+                    when (cardsOrNotes) {
+                        CardsOrNotes.NOTES -> R.string.search_notes
+                        CardsOrNotes.CARDS -> R.string.search_cards
+                    },
+                )
+            searchBar?.hint = hintText
+            searchView?.hint = hintText
+        }
+
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -534,6 +547,7 @@ class CardBrowserFragment :
         activityViewModel.flowOfSearchTerms.launchCollectionInLifecycleScope(::onSearchChanged)
         activityViewModel.flowOfExpandedSearchView.launchCollectionInLifecycleScope(::onSearchViewChanged)
         activityViewModel.flowOfMenuState.launchCollectionInLifecycleScope(::onMenuChanged)
+        activityViewModel.flowOfCardsOrNotes.launchCollectionInLifecycleScope(::onCardsOrNotesChanged)
     }
 
     private fun setupFragmentResultListeners() {

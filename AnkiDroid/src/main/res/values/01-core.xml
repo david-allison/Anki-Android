@@ -131,6 +131,10 @@
     <string name="export_collection">Export collection</string>
     <string name="nothing">Nothing</string>
 
+    <!-- Card Browser -->
+    <string name="search_cards">Search cards</string>
+    <string name="search_notes">Search notes</string>
+
     <!-- Card template editor -->
     <string name="title_activity_template_editor">Card types</string>
     <string name="card_template_editor_front">Front template</string>
