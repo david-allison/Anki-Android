@@ -205,19 +205,6 @@ class CardBrowserViewModel(
 
     private val searchQueryInputFlow = MutableStateFlow<String?>(null)
 
-    val flowOfExpandedSearchView: Flow<ExpandedSearchView?> =
-        flowOfSearchViewExpanded
-            .combine(searchQueryInputFlow) { expanded, stringInput ->
-                if (!expanded) return@combine null
-
-                val items = mutableListOf<ExpandedSearchViewItem>()
-                if (stringInput?.isNotEmpty() == true) {
-                    items.add(ExpandedSearchViewItem.SaveSearch(stringInput))
-                }
-
-                ExpandedSearchView(items)
-            }
-
     /** The query which is currently in the search box, potentially null. Only set when search box was open  */
     val tempSearchQuery get() = searchQueryInputFlow.value
 
@@ -292,6 +279,27 @@ class CardBrowserViewModel(
         get() = flowOfSavedSearches.value
 
     val flowOfSnackbar = MutableSharedFlow<SnackbarMessage>()
+
+    val flowOfExpandedSearchView: Flow<ExpandedSearchView?> =
+        flowOfSearchViewExpanded
+            .combine(searchQueryInputFlow) { expanded, stringInput ->
+                if (!expanded) return@combine null
+                buildList<ExpandedSearchViewItem> {
+                    if (stringInput?.isNotEmpty() == true) {
+                        add(ExpandedSearchViewItem.SaveSearch(stringInput))
+                    }
+                }
+            }.combine(flowOfSavedSearches) { list, savedSearches ->
+                if (list == null) return@combine null
+                // as a future extension, we may want to filter the list of saved searched based on
+                // the supplied search string
+
+                if (savedSearches.any()) {
+                    list + ExpandedSearchViewItem.SavedSearchHeader + savedSearches.map { ExpandedSearchViewItem.SavedSearchItem(it) }
+                } else {
+                    list
+                }
+            }.map { items -> items?.let { ExpandedSearchView(it) } }
 
     var focusedRow: CardOrNoteId? = null
         set(value) {
@@ -1476,6 +1484,12 @@ sealed class ExpandedSearchViewItem {
     /** Saves the current search as a Saved Search */
     data class SaveSearch(
         val terms: String,
+    ) : ExpandedSearchViewItem()
+
+    data object SavedSearchHeader : ExpandedSearchViewItem()
+
+    data class SavedSearchItem(
+        val savedSearch: SavedSearch,
     ) : ExpandedSearchViewItem()
 }
 
