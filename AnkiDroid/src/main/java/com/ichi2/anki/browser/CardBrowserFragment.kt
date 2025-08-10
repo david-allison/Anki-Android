@@ -229,7 +229,18 @@ class CardBrowserFragment :
                     requireNavigationDrawerActivity().onNavigationPressed()
                 }
             }
-        searchView = view.findViewById<SearchView>(R.id.search_view)
+
+        searchView =
+            view.findViewById<SearchView>(R.id.search_view)?.apply {
+                addTransitionListener { _, _, newState ->
+                    if (newState == SearchView.TransitionState.HIDDEN) {
+                        activityViewModel.collapseSearchView()
+                    }
+                    if (newState == SearchView.TransitionState.SHOWN) {
+                        activityViewModel.expandSearchView()
+                    }
+                }
+            }
 
         setupFlows()
 
@@ -454,6 +465,14 @@ class CardBrowserFragment :
             deckChip?.text = deck?.getDisplayName(requireContext())
         }
 
+        fun onSearchViewExpanded(value: Boolean) {
+            if (value) {
+                searchView?.show()
+            } else {
+                searchView?.hide()
+            }
+        }
+
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -465,6 +484,7 @@ class CardBrowserFragment :
         activityViewModel.flowOfToggleSelectionState.launchCollectionInLifecycleScope(::onToggleSelectionStateUpdated)
         viewModel.flowOfSearchForDecks.launchCollectionInLifecycleScope(::onSearchForDecks)
         activityViewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckChanged)
+        activityViewModel.flowOfSearchViewExpanded.launchCollectionInLifecycleScope(::onSearchViewExpanded)
     }
 
     private fun setupFragmentResultListeners() {

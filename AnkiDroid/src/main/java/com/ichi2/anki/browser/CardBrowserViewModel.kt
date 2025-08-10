@@ -196,6 +196,13 @@ class CardBrowserViewModel(
 
     val flowOfSearchQueryExpanded = MutableStateFlow(false)
 
+    /** Whether the new SearchView is expanded */
+    val flowOfSearchViewExpanded = MutableStateFlow(savedStateHandle.get<Boolean>(STATE_SEARCH_VIEW_EXPANDED) ?: false)
+
+    /** Whether the new SearchView is expanded */
+    val searchViewExpanded: Boolean
+        get() = flowOfSearchViewExpanded.value
+
     private val searchQueryInputFlow = MutableStateFlow<String?>(null)
 
     /** The query which is currently in the search box, potentially null. Only set when search box was open  */
@@ -421,6 +428,11 @@ class CardBrowserViewModel(
         flowOfMultiSelectModeChanged
             .onEach {
                 savedStateHandle[STATE_MULTISELECT] = it.resultedInMultiSelect
+            }.launchIn(viewModelScope)
+
+        flowOfSearchViewExpanded
+            .onEach { expanded ->
+                savedStateHandle[STATE_SEARCH_VIEW_EXPANDED] = expanded
             }.launchIn(viewModelScope)
 
         viewModelScope.launch {
@@ -1092,6 +1104,17 @@ class CardBrowserViewModel(
         flowOfSearchQueryExpanded.update { true }
     }
 
+    /** Collapses the SearchView and cancels the pending search */
+    fun collapseSearchView() {
+        searchQueryInputFlow.update { null }
+        flowOfSearchViewExpanded.update { false }
+    }
+
+    /** Expands the SearchView, allowing a user to search, or select past/saved queries */
+    fun expandSearchView() {
+        flowOfSearchViewExpanded.update { true }
+    }
+
     fun updateQueryText(newText: String) {
         searchQueryInputFlow.update { newText }
     }
@@ -1271,6 +1294,9 @@ class CardBrowserViewModel(
     companion object {
         const val STATE_MULTISELECT = "multiselect"
         const val STATE_MULTISELECT_VALUES = "multiselect_values"
+
+        /** State for [flowOfSearchViewExpanded] */
+        const val STATE_SEARCH_VIEW_EXPANDED = "searchViewExpanded"
 
         fun factory(
             lastDeckIdRepository: LastDeckIdRepository,

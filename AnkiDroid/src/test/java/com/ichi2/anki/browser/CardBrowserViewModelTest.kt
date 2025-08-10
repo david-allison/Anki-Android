@@ -50,6 +50,7 @@ import com.ichi2.anki.browser.CardBrowserLaunchOptions.DeepLink
 import com.ichi2.anki.browser.CardBrowserLaunchOptions.SystemContextMenu
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.Companion.STATE_MULTISELECT_VALUES
+import com.ichi2.anki.browser.CardBrowserViewModel.Companion.STATE_SEARCH_VIEW_EXPANDED
 import com.ichi2.anki.browser.CardBrowserViewModel.RowSelection
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_ALL
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_NONE
@@ -1141,6 +1142,32 @@ class CardBrowserViewModelTest : JvmTest() {
         runViewModelTest(savedStateHandle = handle, manualInit = false) {
             assertThat("row is still selected", selectedRows, hasSize(1))
             assertThat("same row is selected", selectedRows.single(), equalTo(idOfSelectedRow))
+        }
+    }
+
+    @Test
+    fun `SearchView expand and collapse`() {
+        val handle = SavedStateHandle()
+        runViewModelTest(savedStateHandle = handle) {
+            assertThat("Default SearchView expanded", searchViewExpanded, equalTo(false))
+            assertThat("Default SearchView expanded state", handle[STATE_SEARCH_VIEW_EXPANDED], equalTo(false))
+
+            expandSearchView()
+            assertThat("SearchView after expand", searchViewExpanded, equalTo(true))
+            assertThat("SearchView state after expand", handle[STATE_SEARCH_VIEW_EXPANDED], equalTo(true))
+
+            collapseSearchView()
+            assertThat("SearchView after collapse", searchViewExpanded, equalTo(false))
+            assertThat("SearchView state after collapse", handle[STATE_SEARCH_VIEW_EXPANDED], equalTo(false))
+        }
+    }
+
+    @Test
+    fun `SearchView state restoration`() {
+        val handle = SavedStateHandle()
+        handle[STATE_SEARCH_VIEW_EXPANDED] = true
+        runViewModelTest(savedStateHandle = handle) {
+            assertThat("SearchView after state restore", searchViewExpanded, equalTo(true))
         }
     }
 

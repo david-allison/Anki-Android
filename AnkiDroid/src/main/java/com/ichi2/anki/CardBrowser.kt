@@ -626,7 +626,7 @@ open class CardBrowser :
                     Timber.i("Ctrl+E: Add Note")
                     launchCatchingTask { addNoteFromCardBrowser() }
                     return true
-                } else if (searchView?.isIconified == true) {
+                } else if (searchView?.isIconified == true && !viewModel.searchViewExpanded) {
                     Timber.i("E: Edit note")
                     // search box is not available so treat the event as a shortcut
                     // Disable 'E' edit shortcut in split mode as the integrated NoteEditor
@@ -651,7 +651,7 @@ open class CardBrowser :
                 }
             }
             KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_DEL -> {
-                if (searchView?.isIconified == false) {
+                if (searchView?.isIconified == false || viewModel.searchViewExpanded) {
                     Timber.i("Delete pressed - Search active, deleting character")
                     // the search box is available and could potentially receive input so handle the
                     // DEL as a simple text deletion and not as a keyboard shortcut
