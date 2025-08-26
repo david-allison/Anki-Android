@@ -9,7 +9,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import kotlin.math.max
-import kotlin.time.Duration.Companion.milliseconds
 
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
@@ -171,24 +170,28 @@ val gradleTestMaxParallelForks by extra(
 
 private fun String?.parseIntOrDefault(defaultValue: Int): Int = this?.toIntOrNull() ?: defaultValue
 
+var appendedGitHubTestingHeader = false
+
 private fun logTestResultsToGitHubActions(desc: TestDescriptor, result: TestResult) {
     if (!ciBuild) return
 
-    val elapsed = (result.endTime - result.startTime).milliseconds
+    val elapsed = (result.endTime - result.startTime).toString()
 
     val tests = result.testCount
     val passed = result.successfulTestCount
     val failed = result.failedTestCount
     val skipped = result.skippedTestCount
+    val module = desc.displayName // :AnkiDroid:testPlayDebugUnitTest
+    val status = result.resultType // SUCCESS
 
-    // Gradle Test Run :AnkiDroid:testPlayDebugUnitTest returned SUCCESS in 5m 30s
-    val markdownSummary = """
-                        |${desc.displayName} returned **${result.resultType}** in $elapsed
-                        || Tests | Passed | Failed | Skipped |
-                        ||-------|--------|--------|---------|
-                        || $tests| $passed| $failed| $skipped|
-                        |----
-                    """.trimMargin()
+    var markdownSummary = "| $module | $status | $elapsed | $tests| $passed| $failed| $skipped|\n"
+
+    if (!appendedGitHubTestingHeader) {
+        markdownSummary = "| Module | Status | Duration (ms) | Tests | Passed | Failed | Skipped |\n" +
+                "|-------|-------|-------|-------|--------|--------|---------|\n" + markdownSummary
+        appendedGitHubTestingHeader = true
+    }
+
 
     appendToGitHubActionsSummary(markdownSummary)
 }
