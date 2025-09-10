@@ -367,16 +367,9 @@ class DeckPickerWidgetConfig :
 
     /** Updates the visibility of the "no decks" placeholder and the widget configuration container */
     fun updateViewVisibility() {
-        val noDecksPlaceholder = findViewById<View>(R.id.no_decks_placeholder)
-        val widgetConfigContainer = findViewById<View>(R.id.widgetConfigContainer)
-
-        if (deckAdapter.itemCount > 0) {
-            noDecksPlaceholder.visibility = View.GONE
-            widgetConfigContainer.visibility = View.VISIBLE
-        } else {
-            noDecksPlaceholder.visibility = View.VISIBLE
-            widgetConfigContainer.visibility = View.GONE
-        }
+        val hasItems = deckAdapter.itemCount > 0
+        findViewById<View>(R.id.widgetConfigContainer).isVisible = hasItems
+        findViewById<View>(R.id.no_decks_placeholder).isVisible = !hasItems
     }
 
     /** ItemTouchHelper callback for handling drag and drop of decks. */
