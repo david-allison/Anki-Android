@@ -23,6 +23,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ichi2.anki.R
+import com.ichi2.anki.databinding.AxisDisplayBinding
 import com.ichi2.anki.reviewer.Axis
 import com.ichi2.anki.reviewer.Binding
 import timber.log.Timber
@@ -52,21 +53,21 @@ class AxisSelector : LinearLayout {
         defStyle,
     )
 
-    private val name: TextView
-    private val minButton: Button
-    private val axisDisplay: AxisValueDisplay
-    private val maxButton: Button
+    private val binding =
+        AxisDisplayBinding.inflate(
+            context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater,
+            this,
+            true,
+        )
+
+    private val name: TextView = binding.axisName
+    private val minButton: Button = binding.selectMinExtremity
+    private val axisDisplay: AxisValueDisplay = binding.axisValue
+    private val maxButton: Button = binding.selectMaxExtremity
 
     private var onExtremitySelectedListener: ((Binding.AxisButtonBinding) -> Unit)? = null
 
     init {
-        val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        inflater.inflate(R.layout.axis_display, this, true)
-        name = findViewById(R.id.axis_name)
-        minButton = findViewById(R.id.select_min_extremity)
-        axisDisplay = findViewById(R.id.axis_value)
-        maxButton = findViewById(R.id.select_max_extremity)
-
         // Disabling buttons ensures that a user cannot map a negative value on a unidirectional
         // axis, such as the triggers on my 8BitDo
         // It's hard to know if an axis is single, or multidimensional until we've received input
