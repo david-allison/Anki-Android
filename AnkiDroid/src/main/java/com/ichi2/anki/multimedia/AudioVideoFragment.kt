@@ -23,8 +23,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.TextView
+import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.annotation.StringRes
@@ -35,11 +36,10 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
-import com.google.android.material.button.MaterialButton
 import com.ichi2.anki.CrashReportService
 import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.databinding.FragmentAudioVideoBinding
 import com.ichi2.anki.multimedia.AudioVideoFragment.MediaOption.AUDIO_CLIP
 import com.ichi2.anki.multimedia.AudioVideoFragment.MediaOption.VIDEO_CLIP
 import com.ichi2.anki.multimedia.MultimediaActivity.Companion.EXTRA_MEDIA_OPTIONS
@@ -56,6 +56,9 @@ import java.io.File
 
 /** Handles the Multimedia Audio and Video attachment in the NoteEditor */
 class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
+    // binding pattern to handle onCreateView/onDestroyView
+    private var fragmentBinding: FragmentAudioVideoBinding? = null
+    private val binding get() = fragmentBinding!!
     private lateinit var selectedMediaOptions: MediaOption
 
     override val title: String
@@ -114,8 +117,6 @@ class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
     }
 
     private lateinit var mediaPlayer: ExoPlayer
-    private lateinit var playerView: PlayerView
-    private lateinit var mediaFileSize: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +131,16 @@ class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
             selectedMediaOptions = it.getSerializableCompat<MediaOption>(EXTRA_MEDIA_OPTIONS) as MediaOption
         }
     }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = FragmentAudioVideoBinding
+        .inflate(inflater, container, false)
+        .apply {
+            fragmentBinding = this
+        }.root
 
     override fun onViewCreated(
         view: View,
@@ -173,7 +184,6 @@ class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
     @OptIn(UnstableApi::class)
     private fun setupMediaPlayer() {
         Timber.d("Setting up media player")
-        playerView = requireView().findViewById(R.id.player_view)
         mediaPlayer =
             ExoPlayer
                 .Builder(requireContext())
@@ -185,19 +195,18 @@ class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
                         ).build(),
                     true,
                 ).build()
-        playerView.player = mediaPlayer
-        mediaFileSize = requireView().findViewById(R.id.media_size_textview)
-        playerView.setControllerAnimationEnabled(true)
+        binding.playerView.player = mediaPlayer
+        binding.playerView.setControllerAnimationEnabled(true)
 
         if (selectedMediaOptions == AUDIO_CLIP) {
             Timber.d("Media file is of audio type, setting default artwork")
-            playerView.defaultArtwork =
+            binding.playerView.defaultArtwork =
                 ContextCompat.getDrawable(requireContext(), R.drawable.round_audio_file_24)
         }
     }
 
     private fun setupDoneButton() {
-        view?.findViewById<MaterialButton>(R.id.action_done)?.setOnClickListener {
+        binding.actionDone.setOnClickListener {
             Timber.d("MultimediaImageFragment:: Done button pressed")
             if (viewModel.selectedMediaFileSize == 0L) {
                 Timber.d("Audio or Video length is not valid")
@@ -377,7 +386,7 @@ class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
 
                 viewModel.updateCurrentMultimediaPath(clipCopy)
                 viewModel.selectedMediaFileSize = clipCopy.length()
-                mediaFileSize.text = clipCopy.toHumanReadableSize()
+                binding.mediaFileSize.text = clipCopy.toHumanReadableSize()
             }
         } catch (e: Exception) {
             Timber.e(e, "Unable to copy media file from ContentProvider")
