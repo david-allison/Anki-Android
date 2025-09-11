@@ -18,16 +18,18 @@ package com.ichi2.anki.previewer
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import androidx.core.os.BundleCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.ichi2.anki.R
+import com.ichi2.anki.databinding.TemplatePreviewerContainerBinding
 import com.ichi2.anki.previewer.TemplatePreviewerFragment.Companion.ARGS_KEY
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -36,12 +38,26 @@ import timber.log.Timber
  * Container for [TemplatePreviewerFragment] that works as a standalone page
  * by including a toolbar and a TabLayout for changing the current template.
  */
-class TemplatePreviewerPage : Fragment(R.layout.template_previewer_container) {
+class TemplatePreviewerPage : Fragment() {
+    // binding pattern to handle onCreateView/onDestroyView
+    private var fragmentBinding: TemplatePreviewerContainerBinding? = null
+    private val binding get() = fragmentBinding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = TemplatePreviewerContainerBinding
+        .inflate(inflater, container, false)
+        .apply {
+            fragmentBinding = this
+        }.root
+
     override fun onViewCreated(
         view: View,
         savedInstanceState: Bundle?,
     ) {
-        view.findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener {
+        binding.toolbar.setNavigationOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
 
@@ -52,7 +68,6 @@ class TemplatePreviewerPage : Fragment(R.layout.template_previewer_container) {
         }
 
         val viewModel = fragment.viewModel
-        val tabLayout = view.findViewById<TabLayout>(R.id.tab_layout)
 
         lifecycleScope.launch {
             val cardsWithEmptyFronts = viewModel.cardsWithEmptyFronts?.await()
@@ -63,11 +78,11 @@ class TemplatePreviewerPage : Fragment(R.layout.template_previewer_container) {
                     } else {
                         templateName
                     }
-                val newTab = tabLayout.newTab().setText(tabTitle)
-                tabLayout.addTab(newTab)
+                val newTab = binding.tabLayout.newTab().setText(tabTitle)
+                binding.tabLayout.addTab(newTab)
             }
-            tabLayout.selectTab(tabLayout.getTabAt(viewModel.getCurrentTabIndex()))
-            tabLayout.addOnTabSelectedListener(
+            binding.tabLayout.selectTab(binding.tabLayout.getTabAt(viewModel.getCurrentTabIndex()))
+            binding.tabLayout.addOnTabSelectedListener(
                 object : OnTabSelectedListener {
                     override fun onTabSelected(tab: TabLayout.Tab) {
                         Timber.v("Selected tab %d", tab.position)
@@ -84,6 +99,11 @@ class TemplatePreviewerPage : Fragment(R.layout.template_previewer_container) {
                 },
             )
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        fragmentBinding = null
     }
 
     companion object {
