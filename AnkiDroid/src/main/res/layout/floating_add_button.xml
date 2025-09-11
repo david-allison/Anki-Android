@@ -51,7 +51,7 @@
                     android:text="@string/menu_get_shared_decks"
                     />
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/add_shared_action"
+                    android:id="@+id/add_shared_button"
                     style="?attr/floatingActionButtonSmallStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -88,7 +88,7 @@
                     android:text="@string/new_dynamic_deck"
                     />
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/add_filtered_deck_action"
+                    android:id="@+id/add_filtered_deck_button"
                     android:layout_width="wrap_content"
                     style="?attr/floatingActionButtonSmallStyle"
                     android:layout_height="wrap_content"
@@ -125,7 +125,7 @@
                     android:text="@string/new_deck"
                     />
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/add_deck_action"
+                    android:id="@+id/add_deck_button"
                     android:layout_width="wrap_content"
                     style="?attr/floatingActionButtonSmallStyle"
                     android:layout_height="wrap_content"

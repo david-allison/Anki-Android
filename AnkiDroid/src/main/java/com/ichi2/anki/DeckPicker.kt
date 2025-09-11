@@ -605,7 +605,7 @@ open class DeckPicker :
             }
         // Setup the FloatingActionButtons
         floatingActionMenu =
-            DeckPickerFloatingActionMenu(this, view, this).apply {
+            DeckPickerFloatingActionMenu(this, binding, this).apply {
                 toggleListener =
                     FloatingActionBarToggleListener { isOpening ->
                         closeFloatingActionBarBackPressCallback.isEnabled = isOpening
