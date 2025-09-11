@@ -21,7 +21,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import com.ichi2.anki.R
 import com.ichi2.anki.databinding.PermissionsStartingAt30Binding
 import com.ichi2.utils.Permissions
 import com.ichi2.utils.Permissions.canManageExternalStorage
