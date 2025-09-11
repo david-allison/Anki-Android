@@ -22,8 +22,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
-import com.ichi2.anki.R
+import com.ichi2.anki.databinding.DialogAxisPickerBinding
 import com.ichi2.anki.reviewer.Axis
 import com.ichi2.anki.reviewer.Binding
 import timber.log.Timber
@@ -37,20 +36,22 @@ import timber.log.Timber
  * @see AxisSelector
  */
 class AxisPicker(
-    val rootLayout: ConstraintLayout,
+    val binding: DialogAxisPickerBinding,
 ) {
-    // DDisplays a message asking a user to provide input to the screen
+    val rootLayout = binding.root
+
+    // Displays a message asking a user to provide input to the screen
     // We use a TextView to listen due to issues with handling AXIS_BRAKE and AXIS_GAS
     // When listening to 'rootLayout', these axes are ONLY detected after another joystick is moved
-    private val textView: TextView = rootLayout.findViewById(R.id.axis_picker_selected_axis)
+    private val textView: TextView = binding.selectedAxisTextView
 
     /** Contains [availableAxes], initially invisible */
-    private val availableAxesContainer: View = rootLayout.findViewById(R.id.axis_picker_scrollview)
+    private val availableAxesContainer: View = binding.availableAxesContainer
 
     /** Where [AxisSelector] are added dynamically if motion is detected*/
-    private val availableAxes: LinearLayout = rootLayout.findViewById(R.id.axis_picker_available_axes)
+    private val availableAxes: LinearLayout = binding.availableAxes
 
-    private val context: Context get() = rootLayout.context
+    private val context: Context get() = binding.root.context
 
     /** Maps from an [Axis] to the [AxisSelector] displaying + allowing selection of it */
     private val axisMap = mutableMapOf<Axis, AxisSelector>()
@@ -111,8 +112,8 @@ class AxisPicker(
 
     companion object {
         fun inflate(context: Context): AxisPicker {
-            val layout = LayoutInflater.from(context).inflate(R.layout.dialog_axis_picker, null)
-            return AxisPicker(layout as ConstraintLayout)
+            val binding = DialogAxisPickerBinding.inflate(LayoutInflater.from(context))
+            return AxisPicker(binding)
         }
     }
 }
