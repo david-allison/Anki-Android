@@ -18,14 +18,13 @@ package com.ichi2.anki.reviewreminders
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.materialswitch.MaterialSwitch
-import com.ichi2.anki.R
+import com.ichi2.anki.databinding.ScheduleRemindersListItemBinding
 
 class ScheduleRemindersAdapter(
     private val setDeckNameFromScopeForView: (ReviewReminderScope, TextView) -> Unit,
@@ -33,23 +32,21 @@ class ScheduleRemindersAdapter(
     private val editReminder: (ReviewReminder) -> Unit,
 ) : ListAdapter<ReviewReminder, ScheduleRemindersAdapter.ViewHolder>(diffCallback) {
     inner class ViewHolder(
-        holder: View,
-    ) : RecyclerView.ViewHolder(holder) {
+        binding: ScheduleRemindersListItemBinding,
+    ) : RecyclerView.ViewHolder(binding.root) {
         var reminder: ReviewReminder? = null
-        val deckTextView: TextView = holder.findViewById(R.id.reminders_list_deck_text)
-        val timeTextView: TextView = holder.findViewById(R.id.reminders_list_time_text)
-        val switchView: MaterialSwitch = holder.findViewById(R.id.reminders_list_switch)
+        val deckTextView: TextView = binding.remindersListDeckText
+        val timeTextView: TextView = binding.remindersListTimeText
+        val switchView: MaterialSwitch = binding.remindersListSwitch
     }
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
     ): ViewHolder {
-        val view =
-            LayoutInflater
-                .from(parent.context)
-                .inflate(R.layout.schedule_reminders_list_item, parent, false)
-        return ViewHolder(view)
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = ScheduleRemindersListItemBinding.inflate(inflater, parent, false)
+        return ViewHolder(binding)
     }
 
     @SuppressLint("DefaultLocale")
