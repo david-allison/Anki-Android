@@ -17,8 +17,9 @@ package com.ichi2.anki.dialogs.help
 
 import android.app.Dialog
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.LinearLayout
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.annotation.VisibleForTesting
@@ -34,6 +35,8 @@ import com.ichi2.anki.analytics.UsageAnalytics
 import com.ichi2.anki.analytics.UsageAnalytics.Actions
 import com.ichi2.anki.analytics.UsageAnalytics.Category
 import com.ichi2.anki.ankiActivity
+import com.ichi2.anki.databinding.DialogHelpBinding
+import com.ichi2.anki.databinding.FragmentHelpPageBinding
 import com.ichi2.anki.dialogs.help.HelpItem.Action.OpenUrl
 import com.ichi2.anki.dialogs.help.HelpItem.Action.OpenUrlResource
 import com.ichi2.anki.dialogs.help.HelpItem.Action.Rate
@@ -52,7 +55,7 @@ class HelpDialog : DialogFragment() {
     lateinit var actionsDispatcher: HelpItemActionsDispatcher
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val customView = requireActivity().layoutInflater.inflate(R.layout.dialog_help, null)
+        val binding = DialogHelpBinding.inflate(requireActivity().layoutInflater)
         ankiActivity?.let { ankiActivity ->
             actionsDispatcher = AnkiActivityHelpActionsDispatcher(ankiActivity)
         }
@@ -63,7 +66,7 @@ class HelpDialog : DialogFragment() {
         return AlertDialog
             .Builder(requireContext())
             .title(requireArguments().getInt(ARG_MENU_TITLE))
-            .customView(customView)
+            .customView(binding.root)
             .createAndApply {
                 // the dialog captures the BACK call so we manually pop the inner FragmentManager
                 // if there's a second page
@@ -184,18 +187,30 @@ internal const val ARG_SELECTED_MENU_ITEM = " selected_menu_item"
 /**
  * This fragment is responsible for showing a list of menu items in the application's [HelpDialog].
  */
-class HelpPageFragment : Fragment(R.layout.fragment_help_page) {
+class HelpPageFragment : Fragment() {
+    private var fragmentBinding: FragmentHelpPageBinding? = null
+    private val binding get() = fragmentBinding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = FragmentHelpPageBinding
+        .inflate(inflater, container, false)
+        .apply {
+            fragmentBinding = this
+        }.root
+
     override fun onViewCreated(
         view: View,
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
-        val pageContentLayout = view.findViewById<LinearLayout>(R.id.page_content)
         requireArgsHelpEntries().forEach { menuItem ->
             val contentRow =
                 requireActivity().layoutInflater.inflate(
                     R.layout.item_help_entry,
-                    pageContentLayout,
+                    binding.pageContent,
                     false,
                 ) as TextView
             contentRow.apply {
@@ -209,9 +224,14 @@ class HelpPageFragment : Fragment(R.layout.fragment_help_page) {
                         bundleOf(ARG_SELECTED_MENU_ITEM to menuItem),
                     )
                 }
-                pageContentLayout.addView(this)
+                binding.pageContent.addView(this)
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        fragmentBinding = null
     }
 }
 
