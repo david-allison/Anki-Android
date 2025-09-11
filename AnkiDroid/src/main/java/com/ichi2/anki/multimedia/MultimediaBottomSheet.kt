@@ -22,12 +22,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import androidx.annotation.IdRes
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.databinding.BottomsheetMultimediaBinding
 import com.ichi2.anki.multimedia.MultimediaBottomSheet.MultimediaAction.OPEN_CAMERA
 import com.ichi2.anki.multimedia.MultimediaBottomSheet.MultimediaAction.OPEN_DRAWING
 import com.ichi2.anki.multimedia.MultimediaBottomSheet.MultimediaAction.SELECT_AUDIO_FILE
@@ -42,35 +41,52 @@ import com.ichi2.anki.multimedia.MultimediaBottomSheet.MultimediaAction.SELECT_V
 class MultimediaBottomSheet : BottomSheetDialogFragment() {
     private val viewModel: MultimediaViewModel by activityViewModels()
 
+    // binding pattern to handle onCreateView/onDestroyView
+    private var fragmentBinding: BottomsheetMultimediaBinding? = null
+    private val binding: BottomsheetMultimediaBinding get() = fragmentBinding!!
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-        val view = inflater.inflate(R.layout.bottomsheet_multimedia, container, false)
+    ): View? =
+        BottomsheetMultimediaBinding
+            .inflate(inflater, container, false)
+            .apply {
+                fragmentBinding = this
+            }.root
+
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
+        super.onViewCreated(view, savedInstanceState)
 
         /** setup a click on the listener to emit [MultimediaViewModel.multimediaAction] */
         fun setupListener(
-            @IdRes id: Int,
+            layout: LinearLayout,
             action: MultimediaAction,
-        ) = view.findViewById<LinearLayout>(id).setOnClickListener {
+        ) = layout.setOnClickListener {
             viewModel.setMultimediaAction(action)
             dismiss()
         }
 
-        setupListener(R.id.multimedia_action_image, SELECT_IMAGE_FILE)
-        setupListener(R.id.multimedia_action_audio, SELECT_AUDIO_FILE)
-        setupListener(R.id.multimedia_action_drawing, OPEN_DRAWING)
-        setupListener(R.id.multimedia_action_recording, SELECT_AUDIO_RECORDING)
-        setupListener(R.id.multimedia_action_video, SELECT_VIDEO_FILE)
-        setupListener(R.id.multimedia_action_camera, OPEN_CAMERA)
-
-        return view
+        setupListener(binding.multimediaActionImage, SELECT_IMAGE_FILE)
+        setupListener(binding.multimediaActionAudio, SELECT_AUDIO_FILE)
+        setupListener(binding.multimediaActionDrawing, OPEN_DRAWING)
+        setupListener(binding.multimediaActionRecording, SELECT_AUDIO_RECORDING)
+        setupListener(binding.multimediaActionVideo, SELECT_VIDEO_FILE)
+        setupListener(binding.multimediaActionCamera, OPEN_CAMERA)
     }
 
     override fun onStart() {
         super.onStart()
         BottomSheetBehavior.from(requireView().parent as View).state = BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        fragmentBinding = null
     }
 
     /**
