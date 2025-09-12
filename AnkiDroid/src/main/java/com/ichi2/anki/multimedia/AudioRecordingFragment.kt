@@ -39,7 +39,7 @@ import com.ichi2.utils.Permissions
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class AudioRecordingFragment : MultimediaFragment(R.layout.fragment_audio_recording) {
+class AudioRecordingFragment : MultimediaFragment() {
     // binding pattern to handle onCreateView/onDestroyView
     private var fragmentBinding: FragmentAudioRecordingBinding? = null
     private val binding = fragmentBinding!!

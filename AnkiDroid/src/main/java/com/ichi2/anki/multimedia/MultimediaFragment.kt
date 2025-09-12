@@ -24,7 +24,6 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.DrawableRes
-import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -55,13 +54,9 @@ import java.io.File
  * This class provides a common framework for fragments that need to handle multimedia operations,
  * including caching directories, managing fields and notes, and setting toolbar titles.
  *
- * @param layout The layout resource ID to be inflated by this fragment.
- *
  * @see MultimediaActivity
  */
-abstract class MultimediaFragment(
-    @LayoutRes layout: Int,
-) : Fragment(layout) {
+abstract class MultimediaFragment : Fragment() {
     abstract val title: String
 
     val viewModel: MultimediaViewModel by viewModels()

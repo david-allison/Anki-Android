@@ -79,7 +79,7 @@ import java.text.NumberFormat
 private const val SVG_IMAGE = "image/svg+xml"
 
 @NeedsTest("Ensure correct option is executed i.e. gallery or camera")
-class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_image) {
+class MultimediaImageFragment : MultimediaFragment() {
     // binding pattern to handle onCreateView/onDestroyView
     private var fragmentBinding: FragmentMultimediaImageBinding? = null
     private val binding get() = fragmentBinding!!

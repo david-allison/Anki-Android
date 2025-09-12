@@ -55,7 +55,7 @@ import timber.log.Timber
 import java.io.File
 
 /** Handles the Multimedia Audio and Video attachment in the NoteEditor */
-class AudioVideoFragment : MultimediaFragment(R.layout.fragment_audio_video) {
+class AudioVideoFragment : MultimediaFragment() {
     // binding pattern to handle onCreateView/onDestroyView
     private var fragmentBinding: FragmentAudioVideoBinding? = null
     private val binding get() = fragmentBinding!!
