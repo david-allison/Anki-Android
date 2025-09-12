@@ -1248,8 +1248,8 @@ class CardBrowserTest : RobolectricTest() {
         withBrowser {
             showFindAndReplaceDialog()
             // nothing selected so checkbox 'Only selected notes' is not available
-            onView(withId(R.id.check_only_selected_notes)).inRoot(isDialog()).check(matches(isNotEnabled()))
-            onView(withId(R.id.check_only_selected_notes)).inRoot(isDialog()).check(matches(isNotChecked()))
+            onView(withId(R.id.only_selected_notes)).inRoot(isDialog()).check(matches(isNotEnabled()))
+            onView(withId(R.id.only_selected_notes)).inRoot(isDialog()).check(matches(isNotChecked()))
             val fieldSelectorAdapter = getFindReplaceFieldsAdapter()
             onView(withId(R.id.check_ignore_case)).inRoot(isDialog()).check(matches(isChecked()))
             onView(withId(R.id.check_input_as_regex)).inRoot(isDialog()).check(matches(isNotChecked()))
