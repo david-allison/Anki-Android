@@ -30,9 +30,6 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.ListView
-import android.widget.TextView
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
@@ -42,9 +39,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputLayout
 import com.ichi2.anki.R
+import com.ichi2.anki.databinding.AlertDialogCheckboxBinding
+import com.ichi2.anki.databinding.AlertDialogTitleWithHelpBinding
+import com.ichi2.anki.databinding.DialogGenericRecyclerViewBinding
+import com.ichi2.anki.databinding.DialogListviewMessageBinding
 import com.ichi2.themes.Theme
 import com.ichi2.themes.Themes
-import com.ichi2.ui.FixedTextView
 import com.ichi2.utils.HandlerUtils.executeOnMainThread
 import timber.log.Timber
 
@@ -209,8 +209,8 @@ fun AlertDialog.Builder.checkBoxPrompt(
     if (stringRes == null && text == null) {
         throw IllegalArgumentException("either `stringRes` or `text` must be set")
     }
-    val checkBoxView = View.inflate(this.context, R.layout.alert_dialog_checkbox, null)
-    val checkBox = checkBoxView.findViewById<CheckBox>(R.id.checkbox)
+    val viewBinding = AlertDialogCheckboxBinding.inflate(LayoutInflater.from(context))
+    val checkBox = viewBinding.checkbox
 
     val checkBoxLabel = if (stringRes != null) context.getString(stringRes) else text
     checkBox.text = checkBoxLabel
@@ -220,7 +220,7 @@ fun AlertDialog.Builder.checkBoxPrompt(
         onToggle(isChecked)
     }
 
-    return this.setView(checkBoxView)
+    return this.setView(viewBinding.root)
 }
 
 fun AlertDialog.getCheckBoxPrompt(): CheckBox =
@@ -263,10 +263,11 @@ fun AlertDialog.Builder.customView(
 }
 
 fun AlertDialog.Builder.customListAdapter(adapter: RecyclerView.Adapter<*>) {
-    val recyclerView = LayoutInflater.from(context).inflate(R.layout.dialog_generic_recycler_view, null, false) as RecyclerView
+    val viewBinding = DialogGenericRecyclerViewBinding.inflate(LayoutInflater.from(context))
+    val recyclerView = viewBinding.dialogRecyclerView
     recyclerView.adapter = adapter
     recyclerView.layoutManager = LinearLayoutManager(context)
-    this.setView(recyclerView)
+    this.setView(viewBinding.root)
 }
 
 /**
@@ -278,12 +279,13 @@ fun AlertDialog.Builder.customListAdapterWithDecoration(
     adapter: RecyclerView.Adapter<*>,
     context: Context,
 ) {
-    val recyclerView = LayoutInflater.from(context).inflate(R.layout.dialog_generic_recycler_view, null, false) as RecyclerView
+    val viewBinding = DialogGenericRecyclerViewBinding.inflate(LayoutInflater.from(context))
+    val recyclerView = viewBinding.dialogRecyclerView
     recyclerView.adapter = adapter
     recyclerView.layoutManager = LinearLayoutManager(context)
     val dividerItemDecoration = DividerItemDecoration(recyclerView.context, LinearLayoutManager.VERTICAL)
     recyclerView.addItemDecoration(dividerItemDecoration)
-    this.setView(recyclerView)
+    this.setView(viewBinding.root)
 }
 
 /**
@@ -413,17 +415,15 @@ fun AlertDialog.Builder.listItemsAndMessage(
     items: List<CharSequence>,
     onClick: (dialog: DialogInterface, index: Int) -> Unit,
 ): AlertDialog.Builder {
-    val dialogView = View.inflate(this.context, R.layout.dialog_listview_message, null)
-    dialogView.findViewById<FixedTextView>(R.id.dialog_message).text = message
-
-    val listView = dialogView.findViewById<ListView>(R.id.dialog_list_view)
-    listView.adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, items)
+    val viewBinding = DialogListviewMessageBinding.inflate(LayoutInflater.from(context))
+    viewBinding.message.text = message
+    viewBinding.listView.adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, items)
 
     val dialog = this.create()
-    listView.setOnItemClickListener { _, _, index, _ ->
+    viewBinding.listView.setOnItemClickListener { _, _, index, _ ->
         onClick(dialog, index)
     }
-    return this.setView(dialogView)
+    return this.setView(viewBinding.root)
 }
 
 /**
@@ -447,20 +447,18 @@ fun AlertDialog.Builder.titleWithHelpIcon(
     block: View.OnClickListener,
 ) {
     // setup the view for the dialog
-    val customTitleView = LayoutInflater.from(context).inflate(R.layout.alert_dialog_title_with_help, null, false)
-    setCustomTitle(customTitleView)
+    val viewBinding = AlertDialogTitleWithHelpBinding.inflate(LayoutInflater.from(context))
+    setCustomTitle(viewBinding.root)
 
     // apply a custom title
-    val titleTextView = customTitleView.findViewById<TextView>(android.R.id.title)
-
     if (stringRes != null) {
-        titleTextView.setText(stringRes)
+        viewBinding.title.setText(stringRes)
     } else if (text != null) {
-        titleTextView.text = text
+        viewBinding.title.text = text
     }
 
     // set the action when clicking the help icon
-    customTitleView.findViewById<ImageView>(R.id.help_icon).setOnClickListener { v ->
+    viewBinding.helpIcon.setOnClickListener { v ->
         Timber.i("dialog help icon click")
         block.onClick(v)
     }
