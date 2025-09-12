@@ -27,6 +27,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.ichi2.anki.R
 import com.ichi2.anki.cardviewer.Gesture
 import com.ichi2.anki.cardviewer.GestureListener
+import com.ichi2.anki.databinding.GesturePickerBinding
 import com.ichi2.anki.dialogs.WarningDisplay
 import com.ichi2.utils.UiUtil.setSelectedValue
 import timber.log.Timber
@@ -45,24 +46,21 @@ class GesturePicker(
     defStyleAttr: Int = 0,
 ) : ConstraintLayout(ctx, attributeSet, defStyleAttr),
     WarningDisplay {
-    private val gestureSpinner: Spinner
-    private val gestureDisplay: GestureDisplay
+    private val binding: GesturePickerBinding
     override val warningTextView: FixedTextView
 
     private var onGestureListener: GestureListener? = null
 
     init {
         val inflater = ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        inflater.inflate(R.layout.gesture_picker, this)
-        gestureDisplay = findViewById(R.id.gestureDisplay)
-        gestureSpinner = findViewById(R.id.spinner_gesture)
-        warningTextView = findViewById(R.id.warning)
-        gestureDisplay.setGestureChangedListener(this::onGesture)
-        gestureSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, allGestures())
-        gestureSpinner.onItemSelectedListener = InnerSpinner()
+        binding = GesturePickerBinding.inflate(inflater, this, true)
+        warningTextView = binding.warning
+        binding.gestureDisplay.setGestureChangedListener(this::onGesture)
+        binding.gestureSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, allGestures())
+        binding.gestureSpinner.onItemSelectedListener = InnerSpinner()
     }
 
-    fun getGesture() = gestureDisplay.getGesture()
+    fun getGesture() = binding.gestureDisplay.getGesture()
 
     private fun onGesture(gesture: Gesture?) {
         Timber.d("gesture: %s", gesture?.toDisplayString(context))
@@ -77,8 +75,8 @@ class GesturePicker(
     }
 
     private fun setGesture(gesture: Gesture?) {
-        gestureSpinner.setSelectedValue(GestureWrapper(gesture))
-        gestureDisplay.setGesture(gesture)
+        binding.gestureSpinner.setSelectedValue(GestureWrapper(gesture))
+        binding.gestureDisplay.setGesture(gesture)
     }
 
     /** Not fired if deselected */
@@ -88,7 +86,7 @@ class GesturePicker(
 
     private fun allGestures(): List<GestureWrapper> = (listOf(null) + availableGestures()).map(this::GestureWrapper).toList()
 
-    private fun availableGestures() = gestureDisplay.availableValues()
+    private fun availableGestures() = binding.gestureDisplay.availableValues()
 
     inner class GestureWrapper(
         val gesture: Gesture?,
