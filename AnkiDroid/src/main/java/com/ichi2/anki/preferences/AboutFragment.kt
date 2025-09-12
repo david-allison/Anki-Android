@@ -20,18 +20,17 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateFormat
 import android.text.method.LinkMovementMethod
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
+import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.parseAsHtml
 import androidx.fragment.app.Fragment
-import com.google.android.material.appbar.MaterialToolbar
 import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.BuildConfig
 import com.ichi2.anki.Info
 import com.ichi2.anki.R
+import com.ichi2.anki.databinding.AboutLayoutBinding
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.requireAnkiActivity
 import com.ichi2.anki.scheduling.Fsrs
@@ -50,42 +49,44 @@ import java.util.Locale
 import net.ankiweb.rsdroid.BuildConfig as BackendBuildConfig
 
 class AboutFragment : Fragment(R.layout.about_layout) {
+    // binding pattern to handle onCreateView/onDestroyView
+    private var fragmentBinding: AboutLayoutBinding? = null
+    private val binding get() = fragmentBinding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = AboutLayoutBinding
+        .inflate(inflater, container, false)
+        .apply {
+            fragmentBinding = this
+        }.root
+
     override fun onViewCreated(
         view: View,
         savedInstanceState: Bundle?,
     ) {
-        view.findViewById<MaterialToolbar>(R.id.toolbar).apply {
-            setNavigationOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
-        }
+        binding.toolbar.setNavigationOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
 
-        // Version date
-        val apkBuildDate =
+        binding.buildDate.text =
             SimpleDateFormat(DateFormat.getBestDateTimePattern(Locale.getDefault(), "d MMM yyyy"))
                 .format(Date(BuildConfig.BUILD_TIME))
-        view.findViewById<TextView>(R.id.about_build_date).text = apkBuildDate
 
-        // Version text
-        view.findViewById<TextView>(R.id.about_version).text =
-            pkgVersionName
-
-        // Backend version text
-        view.findViewById<TextView>(R.id.about_backend).text =
+        binding.version.text = pkgVersionName
+        binding.backendVersion.text =
             "(anki " + BackendBuildConfig.ANKI_DESKTOP_VERSION + " / " + BackendBuildConfig.ANKI_COMMIT_HASH.subSequence(0, 8) + ")"
-
-        // FSRS version text
-        view.findViewById<TextView>(R.id.about_fsrs).text = Fsrs.displayVersion ?.let { version ->
+        binding.fsrsVersion.text = Fsrs.displayVersion ?.let { version ->
             "($version)"
         } ?: ""
 
         // Logo secret
-        view
-            .findViewById<ImageView>(R.id.about_app_logo)
-            .setOnClickListener(DevOptionsSecretClickListener(this))
+        binding.appLogo.setOnClickListener(DevOptionsSecretClickListener(this))
 
         // Contributors text
         val contributorsLink = getString(R.string.link_contributors)
         val contributingGuideLink = getString(R.string.link_contribution)
-        view.findViewById<TextView>(R.id.about_contributors_description).apply {
+        binding.contributorsDescription.apply {
             text = getString(R.string.about_contributors_description, contributorsLink, contributingGuideLink).parseAsHtml()
             movementMethod = LinkMovementMethod.getInstance()
         }
@@ -95,7 +96,7 @@ class AboutFragment : Fragment(R.layout.about_layout) {
         val agplLicenseLink = getString(R.string.link_agpl_wiki)
         val sourceCodeLink = getString(R.string.link_source)
         val dependencyLicenseLink = getString(R.string.dependency_license_wiki)
-        view.findViewById<TextView>(R.id.about_license_description).apply {
+        binding.licenseDescription.apply {
             text =
                 (
                     getString(R.string.license_description, gplLicenseLink, agplLicenseLink, sourceCodeLink) + "<br>" +
@@ -106,18 +107,16 @@ class AboutFragment : Fragment(R.layout.about_layout) {
 
         // Donate text
         val donateLink = getString(R.string.link_opencollective_donate)
-        view.findViewById<TextView>(R.id.about_donate_description).apply {
+        binding.donateDescription.apply {
             text = getString(R.string.donate_description, donateLink).parseAsHtml()
             movementMethod = LinkMovementMethod.getInstance()
         }
 
-        // Rate Ankidroid button
-        view.findViewById<Button>(R.id.about_rate).setOnClickListener {
+        binding.rateAnkiDroid.setOnClickListener {
             IntentUtil.tryOpenIntent(requireAnkiActivity(), AnkiDroidApp.getMarketIntent(requireContext()))
         }
 
-        // Open changelog button
-        view.findViewById<Button>(R.id.about_open_changelog).setOnClickListener {
+        binding.openChangelog.setOnClickListener {
             val openChangelogIntent =
                 Intent(requireContext(), Info::class.java).apply {
                     putExtra(Info.TYPE_EXTRA, Info.TYPE_NEW_VERSION)
@@ -125,10 +124,12 @@ class AboutFragment : Fragment(R.layout.about_layout) {
             startActivity(openChangelogIntent)
         }
 
-        // Copy debug info button
-        view.findViewById<Button>(R.id.about_copy_debug).setOnClickListener {
-            copyDebugInfo()
-        }
+        binding.copyDebugInfo.setOnClickListener { copyDebugInfo() }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        fragmentBinding = null
     }
 
     /**
