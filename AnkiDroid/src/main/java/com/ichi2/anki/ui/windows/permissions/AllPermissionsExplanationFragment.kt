@@ -18,11 +18,13 @@ package com.ichi2.anki.ui.windows.permissions
 
 import android.os.Build
 import android.os.Bundle
-import android.view.View
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.view.isVisible
 import com.ichi2.anki.R
+import com.ichi2.anki.databinding.AllPermissionsExplanationFragmentBinding
 import com.ichi2.utils.Permissions
 import timber.log.Timber
 
@@ -34,7 +36,7 @@ import timber.log.Timber
  * See [the docs](https://developer.android.com/training/permissions/explaining-access#privacy-dashboard).
  */
 @RequiresApi(Build.VERSION_CODES.S)
-class AllPermissionsExplanationFragment : PermissionsFragment(R.layout.all_permissions_explanation_fragment) {
+class AllPermissionsExplanationFragment : PermissionsFragment() {
     /**
      * Attempts to open the dialog for granting permissions. Falls back to opening the OS settings if the dialog fails to
      * show up or if the permissions are rejected by the user. The dialog may fail to show up if the user has previously denied the
@@ -58,38 +60,35 @@ class AllPermissionsExplanationFragment : PermissionsFragment(R.layout.all_permi
             ActivityResultContracts.StartActivityForResult(),
         ) {}
 
-    override fun onViewCreated(
-        view: View,
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ) {
-        super.onViewCreated(view, savedInstanceState)
-
-        val externalStoragePermission = view.findViewById<PermissionsItem>(R.id.manage_external_storage_permission_item)
-        val notificationPermission = view.findViewById<PermissionsItem>(R.id.post_notification_permission_item)
-        val recordAudioPermission = view.findViewById<PermissionsItem>(R.id.record_audio_permission_item)
-
-        val shouldRequestExternalStorage = Permissions.canManageExternalStorage(requireContext())
-        if (shouldRequestExternalStorage) {
-            externalStoragePermission.apply {
-                isVisible = true
-                requestExternalStorageOnClick(accessAllFilesLauncher)
+    ) = AllPermissionsExplanationFragmentBinding
+        .inflate(inflater, container, false)
+        .also { viewBinding ->
+            val shouldRequestExternalStorage = Permissions.canManageExternalStorage(requireContext())
+            if (shouldRequestExternalStorage) {
+                viewBinding.manageExternalStoragePermissionItem.apply {
+                    isVisible = true
+                    requestExternalStorageOnClick(accessAllFilesLauncher)
+                }
             }
-        }
-        view.findViewById<View>(R.id.heading_required_permissions).isVisible = shouldRequestExternalStorage
+            viewBinding.headingRequiredPermissions.isVisible = shouldRequestExternalStorage
 
-        Permissions.postNotification?.let {
-            notificationPermission.apply {
-                isVisible = true
-                offerToGrantOrRevokeOnClick(permissionRequestLauncher, arrayOf(it))
+            Permissions.postNotification?.let {
+                viewBinding.postNotificationPermissionItem.apply {
+                    isVisible = true
+                    offerToGrantOrRevokeOnClick(permissionRequestLauncher, arrayOf(it))
+                }
             }
-        }
 
-        recordAudioPermission.apply {
-            isVisible = true
-            offerToGrantOrRevokeOnClick(
-                permissionRequestLauncher,
-                arrayOf(Permissions.recordAudioPermission),
-            )
-        }
-    }
+            viewBinding.recordAudioPermissionItem.apply {
+                isVisible = true
+                offerToGrantOrRevokeOnClick(
+                    permissionRequestLauncher,
+                    arrayOf(Permissions.recordAudioPermission),
+                )
+            }
+        }.root
 }
