@@ -29,7 +29,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.MaterialToolbar
 import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.R
@@ -38,6 +37,7 @@ import com.ichi2.anki.browser.BrowserColumnSelectionRecyclerItem.UsageItem
 import com.ichi2.anki.browser.ColumnUsage.ACTIVE
 import com.ichi2.anki.browser.ColumnUsage.AVAILABLE
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.databinding.BrowserColumnsSelectionBinding
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.snackbar.showSnackbar
@@ -67,12 +67,12 @@ import timber.log.Timber
 class BrowserColumnSelectionFragment : DialogFragment(R.layout.browser_columns_selection) {
     private val viewModel: CardBrowserViewModel by activityViewModels()
 
+    private lateinit var binding: BrowserColumnsSelectionBinding
+
     lateinit var columnAdapter: BrowserColumnSelectionAdapter
 
     /** The columns which were selected when this dialog was opened */
     private lateinit var initiallySelectedColumns: List<CardBrowserColumn>
-
-    private lateinit var toolbar: MaterialToolbar
 
     private val onBackPressedDispatcher
         get() = (dialog as ComponentDialog).onBackPressedDispatcher
@@ -111,6 +111,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.browser_columns_s
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+        binding = BrowserColumnsSelectionBinding.bind(view)
 
         val (active, available) =
             if (savedInstanceState == null) {
@@ -123,8 +124,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.browser_columns_s
             }
         setupRecyclerView(view, active, available)
 
-        this.toolbar = view.findViewById(R.id.toolbar)
-        toolbar.setOnMenuItemClickListener { menuItem ->
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
             Timber.d("menu item click: %s", menuItem.title)
             when (menuItem.itemId) {
                 R.id.action_save_columns -> {
@@ -147,7 +147,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.browser_columns_s
                 else -> false
             }
         }
-        toolbar.setNavigationOnClickListener {
+        binding.toolbar.setNavigationOnClickListener {
             Timber.d("navigation up clicked")
             onBackPressedDispatcher.onBackPressed()
         }
@@ -221,7 +221,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.browser_columns_s
             },
         )
 
-        view.findViewById<RecyclerView>(R.id.recycler_view).apply {
+        binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
             this.adapter = columnAdapter
             itemTouchHelper.attachToRecyclerView(this)
