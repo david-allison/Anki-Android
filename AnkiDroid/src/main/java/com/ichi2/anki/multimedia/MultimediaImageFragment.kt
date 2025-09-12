@@ -27,9 +27,10 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AlertDialog
@@ -40,11 +41,11 @@ import androidx.core.content.IntentCompat
 import androidx.core.os.BundleCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.DrawingActivity
 import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.databinding.FragmentMultimediaImageBinding
 import com.ichi2.anki.multimedia.MultimediaActivity.Companion.EXTRA_MEDIA_OPTIONS
 import com.ichi2.anki.multimedia.MultimediaActivity.Companion.MULTIMEDIA_RESULT
 import com.ichi2.anki.multimedia.MultimediaActivity.Companion.MULTIMEDIA_RESULT_FIELD_INDEX
@@ -79,10 +80,12 @@ private const val SVG_IMAGE = "image/svg+xml"
 
 @NeedsTest("Ensure correct option is executed i.e. gallery or camera")
 class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_image) {
+    // binding pattern to handle onCreateView/onDestroyView
+    private var fragmentBinding: FragmentMultimediaImageBinding? = null
+    private val binding get() = fragmentBinding!!
+
     override val title: String
         get() = resources.getString(R.string.multimedia_editor_popup_image)
-
-    private lateinit var imageFileSize: TextView
 
     private lateinit var selectedImageOptions: ImageOptions
 
@@ -275,13 +278,22 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
         }
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = FragmentMultimediaImageBinding
+        .inflate(inflater, container, false)
+        .apply {
+            fragmentBinding = this
+        }.root
+
     override fun onViewCreated(
         view: View,
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
         setupMenu(multimediaMenu)
-        imageFileSize = view.findViewById(R.id.image_size_textview)
 
         handleImageUri()
         setupDoneButton()
@@ -290,6 +302,11 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean("HAS_STARTED_IMAGE_SELECTION", hasStartedImageSelection)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        fragmentBinding = null
     }
 
     private fun handleImageUri() {
@@ -328,7 +345,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
     }
 
     private fun setupDoneButton() {
-        view?.findViewById<MaterialButton>(R.id.action_done)?.setOnClickListener {
+        binding.actionDone.setOnClickListener {
             Timber.d("MultimediaImageFragment:: Done button pressed")
             if (viewModel.selectedMediaFileSize == 0L) {
                 Timber.d("Image length is not valid")
@@ -451,7 +468,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
 
     private fun updateAndDisplayImageSize(file: File) {
         viewModel.selectedMediaFileSize = file.length()
-        imageFileSize.text = file.toHumanReadableSize()
+        binding.imageFileSize.text = file.toHumanReadableSize()
     }
 
     private fun showLargeFileCropDialog(length: Long) {
@@ -562,7 +579,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
         val mimeType = context?.contentResolver?.getType(imageUri)
 
         // Get the WebView and set it visible
-        view?.findViewById<WebView>(R.id.multimedia_webview)?.apply {
+        binding.multimediaWebView.apply {
             visibility = View.VISIBLE
 
             // Load image based on its MIME type
@@ -653,7 +670,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
             </html>
             """.trimIndent()
 
-        view?.findViewById<WebView>(R.id.multimedia_webview)?.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
+        fragmentBinding?.multimediaWebView?.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
     }
 
     private fun requestCrop() {
