@@ -305,7 +305,11 @@ open class AnkiDroidApp :
             } catch (e: SystemStorageException) {
                 // The user can't write to the AnkiDroid directory (=> cant write to the collection)
                 // AND getExternalFilesDir is null - file permissions are likely corrupted (Android 16 bug)
-                // => show the 'fatal storage error' screen
+                // The user can't use AnkiDroid, and either:
+                //   * The directory is in /Android/data and is now unusable
+                //   * The directory is somewhere else, also unusable, and the default directory is
+                //     invalid => can't restore to default
+                // => show the 'fatal storage error' screen regarding `getExternalFilesDir`
                 fatalInitializationError = FatalInitializationError.StorageError(e)
             }
         }
