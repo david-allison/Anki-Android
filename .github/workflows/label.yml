@@ -208,6 +208,7 @@ jobs:
             })
   
   # Add 'Needs Review' label to newly opened, non-draft PRs
+  ## draft test
   add_needs_review_label:
     if: github.event.action == 'opened' && !github.event.pull_request.draft
     permissions:
