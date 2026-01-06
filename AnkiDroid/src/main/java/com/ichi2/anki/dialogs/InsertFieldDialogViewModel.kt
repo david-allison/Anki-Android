@@ -26,6 +26,7 @@ import com.ichi2.anki.model.SpecialFields
 import com.ichi2.anki.utils.ext.require
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 
 private typealias SpecialFieldModel = com.ichi2.anki.model.SpecialField
 
@@ -37,6 +38,8 @@ private typealias SpecialFieldModel = com.ichi2.anki.model.SpecialField
 class InsertFieldDialogViewModel(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+    var currentTab: Tab = Tab.BASIC
+
     /** The field names of the note type */
     val fieldNames = savedStateHandle.require<ArrayList<String>>(KEY_FIELD_ITEMS).map(::FieldName)
 
@@ -55,6 +58,7 @@ class InsertFieldDialogViewModel(
      * Select a named field defined on the note type
      */
     fun selectNamedField(fieldName: FieldName) {
+        Timber.i("selected named field")
         if (!fieldNames.contains(fieldName)) return
         selectedFieldFlow.value = SelectedField.NoteTypeField.from(fieldName)
     }
@@ -63,6 +67,7 @@ class InsertFieldDialogViewModel(
      * Select a usable special field
      */
     fun selectSpecialField(field: SpecialFieldModel) {
+        Timber.i("selected special field: %s", field.name)
         if (!specialFields.contains(field)) return
         selectedFieldFlow.value = SelectedField.SpecialField(model = field)
     }
@@ -96,6 +101,13 @@ class InsertFieldDialogViewModel(
          */
         @CheckResult
         abstract fun renderToTemplateTag(): String
+    }
+
+    enum class Tab(
+        val position: Int,
+    ) {
+        BASIC(0),
+        SPECIAL(1),
     }
 
     companion object {
