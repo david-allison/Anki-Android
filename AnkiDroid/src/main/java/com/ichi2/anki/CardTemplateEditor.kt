@@ -62,6 +62,7 @@ import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.android.input.ShortcutGroup
 import com.ichi2.anki.android.input.shortcut
+import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.databinding.CardTemplateEditorBinding
@@ -73,6 +74,7 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.dialogs.DeckSelectionDialog.DeckSelectionListener
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.dialogs.InsertFieldDialog
+import com.ichi2.anki.dialogs.InsertFieldMetadata
 import com.ichi2.anki.libanki.CardTemplates
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Note
@@ -533,6 +535,15 @@ open class CardTemplateEditor :
 
         var currentEditorViewId = 0
 
+        private val currentEditTab: EditTab?
+            get() =
+                when (currentEditorViewId) {
+                    R.id.front_edit -> EditTab.FRONT
+                    R.id.back_edit -> EditTab.BACK
+                    R.id.styling_edit -> EditTab.STYLING
+                    else -> null
+                }
+
         private lateinit var templateEditor: CardTemplateEditor
         lateinit var tempModel: CardTemplateNotetype
 
@@ -639,9 +650,10 @@ open class CardTemplateEditor :
                     override fun afterTextChanged(arg0: Editable) {
                         refreshFragmentRunnable?.let { refreshFragmentHandler.removeCallbacks(it) }
 
-                        when (currentEditorViewId) {
-                            R.id.styling_edit -> tempModel.css = binding.editText.text.toString()
-                            R.id.back_edit -> template.afmt = binding.editText.text.toString()
+                        when (currentEditTab) {
+                            EditTab.STYLING -> tempModel.css = binding.editText.text.toString()
+                            EditTab.BACK -> template.afmt = binding.editText.text.toString()
+                            EditTab.FRONT -> template.qfmt = binding.editText.text.toString()
                             else -> template.qfmt = binding.editText.text.toString()
                         }
                         templateEditor.tempNoteType!!.updateTemplate(cardIndex, template)
@@ -750,7 +762,18 @@ open class CardTemplateEditor :
         )
         fun showInsertFieldDialog() {
             templateEditor.fieldNames?.let { fieldNames ->
-                val dialog = InsertFieldDialog.newInstance(fieldNames, insertFieldRequestKey)
+                val side =
+                    when (currentEditTab) {
+                        EditTab.FRONT -> SingleCardSide.FRONT
+                        EditTab.BACK -> SingleCardSide.BACK
+                        else -> SingleCardSide.FRONT
+                    }
+                val dialog =
+                    InsertFieldDialog.newInstance(
+                        fieldItems = fieldNames,
+                        metadata = InsertFieldMetadata(side = side),
+                        requestKey = insertFieldRequestKey,
+                    )
                 templateEditor.showDialogFragment(dialog)
             }
         }
@@ -1498,6 +1521,12 @@ open class CardTemplateEditor :
                 return f
             }
         }
+    }
+
+    enum class EditTab {
+        FRONT,
+        BACK,
+        STYLING,
     }
 
     companion object {
