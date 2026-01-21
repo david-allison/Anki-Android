@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.browser.SearchHistory
 import com.ichi2.anki.browser.withCardBrowserFragment
+import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,9 +37,27 @@ class StandardSearchFragmentTest : RobolectricTest() {
     }
 
     @Test
-    fun `test sample`() {
+    fun `history entries are loaded`() {
+        SearchHistory().addRecent(SearchHistoryEntry("aa"))
+
         withFragment {
-            assertEquals(4, binding.searchHistory.count)
+            assertEquals(1, binding.searchHistory.count)
+        }
+    }
+
+    @Test
+    fun `history entries are truncated`() {
+        val expectedMaxEntries = 5
+        assertEquals(expectedMaxEntries, StandardSearchFragment.MAX_SEARCH_HISTORY_ENTRIES)
+
+        val history = SearchHistory()
+        repeat(expectedMaxEntries + 1) {
+            history.addRecent(SearchHistoryEntry(it.toString()))
+        }
+
+        withFragment {
+            assertEquals(expectedMaxEntries, binding.searchHistory.count)
+            assertEquals(expectedMaxEntries + 1, viewModel.searchHistory.size)
         }
     }
 
