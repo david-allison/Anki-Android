@@ -174,6 +174,10 @@ class StandardSearchFragment : Fragment(R.layout.fragment_standard_search) {
             }
         }
 
+        viewModel.canManageSavedSearchesFlow.launchCollectionInLifecycleScope {
+            binding.manageSavedSearchesContainer.isVisible = it
+        }
+
         binding.manageSavedSearchesContainer.setOnClickListener {
             binding.manageSavedSearches.performClick()
             val dialog = SavedBrowserSearchesDialogFragment.newInstance(savedSearches)

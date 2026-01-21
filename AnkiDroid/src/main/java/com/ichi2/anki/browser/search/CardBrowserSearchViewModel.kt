@@ -75,6 +75,8 @@ class CardBrowserSearchViewModel(
 
     val savedSearchesFlow = MutableStateFlow<List<SavedSearch>>(emptyList())
 
+    val canManageSavedSearchesFlow = savedSearchesFlow.map { it.isNotEmpty() }
+
     val userMessageFlow = MutableSharedFlow<UserMessage?>()
 
     init {
