@@ -16,11 +16,24 @@
 
 package com.ichi2.anki.browser.search
 
+import androidx.annotation.CheckResult
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anki.search.SearchNode
+import anki.search.searchNode
+import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.Flag
 import com.ichi2.anki.browser.SearchHistory
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
+import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.FilterState
+import com.ichi2.anki.common.utils.annotation.KotlinCleanup
+import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.DeckId
+import com.ichi2.anki.libanki.DeckNameId
+import com.ichi2.anki.libanki.NoteTypeId
+import com.ichi2.anki.libanki.NoteTypeNameID
+import com.ichi2.anki.libanki.SearchJoiner
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +42,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
+
+typealias SubmittedSearch = SearchHistoryEntry
 
 /**
  * A ViewModel for logic relating to creating/selecting a search in the [com.ichi2.anki.CardBrowser]
@@ -71,13 +86,15 @@ class CardBrowserSearchViewModel(
 
     val closeSearchViewFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1, replay = 1)
 
-    val submittedSearchFlow = MutableStateFlow<String?>(null)
+    val submittedSearchFlow = MutableStateFlow<SubmittedSearch?>(null)
 
     val savedSearchesFlow = MutableStateFlow<List<SavedSearch>>(emptyList())
 
     val canManageSavedSearchesFlow = savedSearchesFlow.map { it.isNotEmpty() }
 
     val userMessageFlow = MutableSharedFlow<UserMessage?>()
+
+    val filterStateFlow = MutableStateFlow(FilterState())
 
     init {
         viewModelScope.launch {
@@ -125,22 +142,26 @@ class CardBrowserSearchViewModel(
             // searches with trailing and leading spaces are equivalent
             val submittedText = submittedText.trim()
 
-            val updatedEntries =
-                searchHistoryManager.addRecent(
-                    SearchHistoryEntry(
-                        query = submittedText,
-                    ),
+            val searchToSubmit =
+                buildSubmittedSearch(
+                    query = submittedText,
+                    filters = filterStateFlow.value,
                 )
+
+            val updatedEntries = searchHistoryManager.addRecent(searchToSubmit)
             searchHistoryFlow.value = updatedEntries
             closeSearchViewFlow.emit(Unit)
-            submittedSearchFlow.emit(submittedText)
+            submittedSearchFlow.emit(searchToSubmit)
         }
 
-    fun selectSearchHistoryEntry(entry: SearchHistoryEntry) {
-        Timber.i("selected search history entry")
-        onSearchTextChanged(entry.query)
-        submitCurrentSearch()
-    }
+    fun selectSearchHistoryEntry(entry: SearchHistoryEntry) =
+        viewModelScope.launch {
+            Timber.i("selected search history entry")
+            onSearchTextChanged(entry.query)
+            val allDeckData = withCol { decks.allNamesAndIds() }
+            filterStateFlow.value = FilterState.from(entry, allDeckData)
+            submitCurrentSearch()
+        }
 
     fun addSavedSearch(savedSearch: SavedSearch) =
         viewModelScope.launch {
@@ -203,9 +224,103 @@ class CardBrowserSearchViewModel(
         SAVED_SEARCH_DELETED,
     }
 
+    data class FilterState(
+        val decks: List<DeckNameId> = emptyList(),
+        val flags: List<Flag> = emptyList(),
+        val tags: List<String> = emptyList(),
+        val noteTypes: List<NoteTypeId> = emptyList(),
+        val cardStates: List<CardState> = emptyList(),
+    ) {
+        companion object {
+            @KotlinCleanup("not used when it should be later on")
+            fun from(
+                entry: SubmittedSearch,
+                allDeckData: List<DeckNameId>,
+            ) = FilterState(
+                decks = entry.deckIds.map { did -> allDeckData.first { it.id == did } },
+                flags = entry.flags,
+                tags = entry.tags,
+                noteTypes = entry.noteTypes,
+                cardStates = entry.cardStates,
+            )
+        }
+    }
+
     companion object {
         private const val STATE_ADVANCED_SEARCH_ENABLED = "advancedSearch"
         private const val STATE_BASIC_SEARCH_TEXT = "basicSearchText"
         private const val STATE_ADVANCED_SEARCH_TEXT = "advancedSearchText"
     }
+}
+
+private fun buildSubmittedSearch(
+    query: String,
+    filters: FilterState,
+) = SubmittedSearch(
+    query = query,
+    deckIds = filters.decks.map { it.id },
+    flags = filters.flags,
+    tags = filters.tags,
+    noteTypes = filters.noteTypes,
+    cardStates = filters.cardStates,
+)
+
+@CheckResult
+context(col: Collection)
+fun SubmittedSearch.buildSearchString(): String? {
+    val deckNameMap: List<DeckNameId> = if (this.deckIds.any()) col.decks.allNamesAndIds() else emptyList()
+    val ntidMap: List<NoteTypeNameID> = if (this.noteTypes.any()) col.notetypes.allNamesAndIds().toList() else emptyList()
+
+    return this.buildSearchString(deckNameMap, ntidMap)
+}
+
+@CheckResult
+context(col: Collection)
+fun SubmittedSearch.buildSearchString(
+    deckNameMap: List<DeckNameId>,
+    ntidMap: List<NoteTypeNameID>,
+): String? {
+    val search = this
+
+    val nodeList =
+        try {
+            buildList {
+                fun <T> List<T>.toGroupNode(transform: (T) -> SearchNode): SearchNode? {
+                    if (this.isEmpty()) return null
+                    val searchNodes = this.map(transform)
+                    return col.groupSearches(
+                        searchNodes,
+                        SearchJoiner.OR,
+                    )
+                }
+
+                fun didToName(id: DeckId) = deckNameMap.firstOrNull { it.id == id }?.name
+
+                fun ntidToName(id: NoteTypeId) = ntidMap.firstOrNull { it.id == id }?.name
+
+                // a blank search should be provided if there are no filters
+                if (!hasFiltersSet || search.query.isNotBlank()) {
+                    add(searchNode { parsableText = search.query.trim() })
+                }
+
+                add(
+                    search.deckIds.toGroupNode { did ->
+                        searchNode { deck = didToName(did) ?: throw IllegalStateException() }
+                    },
+                )
+                add(search.flags.toGroupNode { it.toSearchNode() })
+                add(search.tags.toGroupNode { t -> searchNode { tag = t } })
+                add(
+                    search.noteTypes.toGroupNode { ntid ->
+                        searchNode { note = ntidToName(ntid) ?: throw IllegalStateException() }
+                    },
+                )
+                add(search.cardStates.toGroupNode { it.toSearchNode() })
+            }.filterNotNull()
+        } catch (_: IllegalStateException) {
+            // TODO: using exception as control flow
+            return null
+        }
+
+    return col.buildSearchString(nodeList, SearchJoiner.AND)
 }

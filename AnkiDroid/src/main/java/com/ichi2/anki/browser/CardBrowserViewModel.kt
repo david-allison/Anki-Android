@@ -53,6 +53,8 @@ import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.browser.search.SavedSearches
 import com.ichi2.anki.browser.search.SearchRequest
 import com.ichi2.anki.browser.search.SearchString
+import com.ichi2.anki.browser.search.SubmittedSearch
+import com.ichi2.anki.browser.search.buildSearchString
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
 import com.ichi2.anki.export.ExportDialogFragment.ExportType
@@ -1194,6 +1196,22 @@ class CardBrowserViewModel(
         reason.previouslySelectedRowIds = _selectedRows.toSet()
         _selectedRows.clear()
         flowOfMultiSelectModeChanged.value = reason
+    }
+
+    /**
+     * @param forceRefresh if `true`, perform a search even if the search query is unchanged
+     */
+    fun launchSearchForCards(
+        searchQuery: SubmittedSearch,
+        forceRefresh: Boolean,
+    ) = viewModelScope.launch {
+        val searchString =
+            withCol { searchQuery.buildSearchString() } ?: run {
+                Timber.w("failed to build search string")
+                // TODO: display an error to the user
+                return@launch
+            }
+        launchSearchForCards(searchString, forceRefresh)
     }
 
     /**

@@ -129,7 +129,6 @@ class StandardSearchFragment : Fragment(R.layout.fragment_standard_search) {
         }
     }
 
-
     private fun setupSavedSearches() {
         class SavedSearchAdapter(
             private val context: Context,

@@ -134,11 +134,14 @@ class SearchHistory(
 
         override fun toString() = query
 
+        val hasFiltersSet
+            get() = allFilters.any { it.isNotEmpty() }
+
         /**
          * Whether there is no set search - effectively a search for the default search:
          * `deck:*`
          */
-        fun isSearchEmpty() = query.isBlank() && allFilters.all { it.isEmpty() }
+        fun isSearchEmpty() = query.isBlank() && !hasFiltersSet
     }
 
     companion object {
