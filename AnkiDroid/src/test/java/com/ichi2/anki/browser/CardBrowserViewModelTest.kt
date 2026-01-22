@@ -1193,6 +1193,9 @@ class CardBrowserViewModelTest : JvmTest() {
             )
         }
 
+    val CardBrowserViewModel.searchString: String?
+        get() = this.submittedSearchFlow.value.toSearchString()
+
     @Test
     fun `toggle is 'deselect' if only row is selected`() =
         runViewModelTest(notes = 1) {

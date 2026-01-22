@@ -27,6 +27,7 @@ import com.ichi2.anki.Flag
 import com.ichi2.anki.browser.SearchHistory
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.FilterState
+import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.DeckId
@@ -86,7 +87,7 @@ class CardBrowserSearchViewModel(
 
     val closeSearchViewFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1, replay = 1)
 
-    val submittedSearchFlow = MutableStateFlow<SubmittedSearch?>(null)
+    val submittedSearchFlow = MutableSharedFlow<SubmittedSearch?>(extraBufferCapacity = 1, replay = 1)
 
     val savedSearchesFlow = MutableStateFlow<List<SavedSearch>>(emptyList())
 
@@ -214,16 +215,26 @@ class CardBrowserSearchViewModel(
     /**
      * Clears state when the search screen is closed without saving
      */
-    fun resetSearchState() {
-        Timber.i("clearing temp search state")
-        advancedSearchFlow.value = false
-        basicSearchTextFlow.value = ""
-        advancedSearchTextFlow.value = ""
+    @NeedsTest("reset")
+    fun resetSearchState(submittedSearch: SubmittedSearch) =
+        viewModelScope.launch {
+            Timber.i("clearing temp search state")
+            advancedSearchFlow.value = false
+            basicSearchTextFlow.value = submittedSearch.query
+            advancedSearchTextFlow.value = submittedSearch.query
+            val deckData = withCol { decks.allNamesAndIds() }
+            filterStateFlow.value = FilterState.from(submittedSearch, deckData)
 
-        savedStateHandle.remove<Any>(STATE_ADVANCED_SEARCH_ENABLED)
-        savedStateHandle.remove<Any>(STATE_BASIC_SEARCH_TEXT)
-        savedStateHandle.remove<Any>(STATE_ADVANCED_SEARCH_TEXT)
-    }
+            savedStateHandle.remove<Any>(STATE_ADVANCED_SEARCH_ENABLED)
+            savedStateHandle.remove<Any>(STATE_BASIC_SEARCH_TEXT)
+            savedStateHandle.remove<Any>(STATE_ADVANCED_SEARCH_TEXT)
+        }
+
+    fun syncState(search: SubmittedSearch) =
+        viewModelScope.launch {
+            Timber.d("syncing search state")
+            submittedSearchFlow.emit(search)
+        }
 
     enum class UserMessage {
         SEARCH_SAVED,

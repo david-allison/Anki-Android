@@ -330,45 +330,34 @@ class CardBrowserViewModel(
     val lastDeckId: DeckId?
         get() = lastDeckIdRepository.lastDeckId
 
-    fun setSelectedDeck(deck: SelectableDeck) {
-        Timber.i("setting deck: %s", deck)
-
-        lastDeckIdRepository.lastDeckId =
-            when (deck) {
-                is SelectableDeck.AllDecks -> ALL_DECKS_ID
-                is SelectableDeck.Deck -> deck.deckId
-            }
-
-        val deckFilter =
-            when (deck) {
-                is SelectableDeck.AllDecks -> emptyList()
-                is SelectableDeck.Deck -> listOf(deck.toDeckNameId())
-            }
-
-        searchRequestFlow.value = searchRequestFlow.value.copyFilters { it.copy(decks = deckFilter) }
-    }
-
-    val searchRequestFlow = MutableStateFlow(SearchRequest(query = ""))
-
-    // TODO: replace with flowOfDeckSelection
-    val flowOfDeckId =
-        searchRequestFlow.map {
-            it.filters.decks
-                .firstOrNull()
-                ?.id
+    fun setSelectedDeck(deck: SelectableDeck) =
+        when (deck) {
+            is SelectableDeck.AllDecks -> setSelectedDeck(ALL_DECKS_ID)
+            is SelectableDeck.Deck -> setSelectedDeck(deck.deckId)
         }
 
+    fun setSelectedDeck(deckId: DeckId) {
+        Timber.i("setting deck: %d", deckId)
+        lastDeckIdRepository.lastDeckId = deckId
+
+        submittedSearchFlow.value =
+            submittedSearchFlow.value.copy(
+                deckIds = if (deckId == ALL_DECKS_ID) emptyList() else listOf(deckId),
+            )
+    }
+
+    val submittedSearchFlow = MutableStateFlow(SubmittedSearch(query = ""))
+
+    // TODO: replace with flowOfDeckSelection
+    val flowOfDeckId = submittedSearchFlow.map { it.deckIds.firstOrNull() ?: ALL_DECKS_ID }
+
     val deckId: DeckId?
-        get() =
-            searchRequestFlow.value.filters.decks
-                .firstOrNull()
-                ?.id
+        get() = submittedSearchFlow.value.deckIds.firstOrNull()
 
     val flowOfDeckSelection =
         flowOfDeckId.map { did ->
             when (did) {
                 ALL_DECKS_ID -> return@map SelectableDeck.AllDecks
-                null -> return@map SelectableDeck.AllDecks
                 else -> return@map SelectableDeck.Deck.fromId(did)
             }
         }
@@ -463,6 +452,7 @@ class CardBrowserViewModel(
 
         performSearchFlow
             .onEach {
+                Timber.d("performSearchFlow -> launching search")
                 launchSearchForCards()
             }.launchIn(viewModelScope)
 
@@ -1077,10 +1067,24 @@ class CardBrowserViewModel(
      */
     private suspend fun setFilterQuery(filterQuery: String) {
         this.flowOfFilterQuery.emit(filterQuery)
-        this.searchRequestFlow.value =
-            searchRequestFlow.value.copy(
+        this.submittedSearchFlow.value =
+            submittedSearchFlow.value.copy(
                 query = filterQuery,
             )
+        launchSearchForCards()
+    }
+
+    fun setQuery(
+        query: String,
+        forceRefresh: Boolean = true,
+    ) = viewModelScope.launch {
+        val newValue = submittedSearchFlow.value.copy(query = query)
+        if (!forceRefresh && withCol { submittedSearchFlow.value.buildSearchString() == newValue.buildSearchString() }) {
+            Timber.i("skipped duplicate search launch")
+            return@launch
+        }
+
+        submittedSearchFlow.value = newValue
         launchSearchForCards()
     }
 
@@ -1205,43 +1209,14 @@ class CardBrowserViewModel(
         searchQuery: SubmittedSearch,
         forceRefresh: Boolean,
     ) = viewModelScope.launch {
-        val searchString =
-            withCol { searchQuery.buildSearchString() } ?: run {
-                Timber.w("failed to build search string")
-                // TODO: display an error to the user
-                return@launch
-            }
-        launchSearchForCards(searchString, forceRefresh)
-    }
+        Timber.d("launching search [new syntax]: '%s'", searchQuery)
 
-    /**
-     * @param forceRefresh if `true`, perform a search even if the search query is unchanged
-     */
-    fun launchSearchForCards(
-        query: String,
-        forceRefresh: Boolean = true,
-    ) = launchSearchForCards(
-        searchRequestFlow.value.copy(query = query),
-        forceRefresh,
-    )
-
-    /**
-     * @param forceRefresh if `true`, perform a search even if the search query is unchanged
-     */
-    fun launchSearchForCards(
-        searchRequest: SearchRequest,
-        forceRefresh: Boolean,
-    ) = viewModelScope.launch {
-        Timber.d("launching search [new syntax]: '%s'", searchRequest)
-
-        context(_: Collection)
-        fun SearchRequest.asSearchString(): SearchString? = this.toSearchString().getOrNull()
-        if (!forceRefresh && withCol { searchRequestFlow.value.asSearchString() == searchRequest.asSearchString() }) {
+        if (!forceRefresh && withCol { submittedSearchFlow.value.buildSearchString() == searchQuery.buildSearchString() }) {
             Timber.d("skipping duplicate search: forceRefresh is false")
             return@launch
         }
 
-        searchRequestFlow.value = searchRequest
+        submittedSearchFlow.value = searchQuery
         launchSearchForCards()
     }
 
@@ -1259,6 +1234,12 @@ class CardBrowserViewModel(
         viewModelScope.launch {
             // update the UI while we're searching
             clearCardsList()
+
+            val query =
+                withCol { submittedSearchFlow.value.buildSearchString() } ?: run {
+                    Timber.w("invalid query provided")
+                    return@launch
+                }
 
             searchJob?.cancel()
             searchJob =
