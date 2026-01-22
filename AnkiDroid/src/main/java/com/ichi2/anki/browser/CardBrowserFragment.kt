@@ -342,7 +342,7 @@ class CardBrowserFragment :
     }
 
     private fun setupMenu() {
-        val menuHost: MenuHost = requireActivity()
+        val menuHost: MenuHost = if (useSearchView) searchBar!! else requireActivity()
 
         fun MenuItem.setupUndo() {
             isVisible = getColUnsafe().undoAvailable()
@@ -404,7 +404,7 @@ class CardBrowserFragment :
                                 vm.setSearchQueryExpanded(false)
                                 // SearchView doesn't support empty queries so we always reset the search when collapsing
                                 legacySearchView!!.setQuery("", false)
-                                vm.launchSearchForCards("")
+                                vm.setQuery("")
                                 return true
                             }
                         },
