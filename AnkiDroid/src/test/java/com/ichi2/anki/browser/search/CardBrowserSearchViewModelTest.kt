@@ -311,7 +311,8 @@ class CardBrowserSearchViewModelTest : RobolectricTest() {
             addSavedSearch(SavedSearch("A", "sample query"))
 
             submittedSearchFlow.test {
-                assertEquals(null, expectMostRecentItem())
+                // TODO
+                expectNoEvents()
                 submitSavedSearch(savedSearches.single())
                 assertEquals("sample query", expectMostRecentItem()?.toSearchString())
             }
