@@ -39,6 +39,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -116,28 +119,83 @@ class CardBrowserSearchViewModel(
 
     val userMessageFlow = MutableSharedFlow<UserMessage?>()
 
-    val filterStateFlow = MutableStateFlow(FilterState())
+    val isScreenOpenFlow = MutableStateFlow(false)
+
+    /** Wraps a [FilterState] so sync updates do not trigger a search */
+    // TODO: Make this generic?
+    sealed interface FilterUpdate {
+        data class User(
+            override val state: FilterState,
+        ) : FilterUpdate
+
+        data class System(
+            override val state: FilterState,
+        ) : FilterUpdate
+
+        val state: FilterState
+    }
+
+    private val filterStateUpdateFlow = MutableStateFlow<FilterUpdate>(FilterUpdate.System(FilterState()))
+    val filterStateFlow =
+        filterStateUpdateFlow
+            .map { it.state }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = filterStateUpdateFlow.value.state,
+            )
+
+    private val updateSearchFlow =
+        isScreenOpenFlow
+            .flatMapLatest { screenOpen ->
+                if (screenOpen) {
+                    emptyFlow()
+                } else {
+                    searchTextFlow.combine(filterStateUpdateFlow) { text, state ->
+                        if (state is FilterUpdate.System) {
+                            Timber.d("skipped updateSearchFlow: non-user change")
+                            return@combine null
+                        }
+                        buildSubmittedSearch(
+                            // various filters add a trailing space
+                            query = text.trim(),
+                            filters = state.state,
+                        )
+                    }
+                }
+            }.filterNotNull()
+
+    private fun updateFilterState(update: (FilterState) -> FilterState) {
+        filterStateUpdateFlow.value =
+            FilterUpdate.User(
+                update(filterStateUpdateFlow.value.state),
+            )
+    }
 
     fun setDecksFilter(decks: List<DeckNameId>) {
         Timber.i("set decks filter to [%s]", decks.map { it.id }.joinToString())
-        filterStateFlow.value =
-            filterStateFlow.value.copy(
-                decks = decks,
-            )
+        updateFilterState { it.copy(decks = decks) }
     }
 
     fun setTagsFilter(tags: List<String>) {
         Timber.i("set tags filter to %d tags", tags.size)
-        filterStateFlow.value =
-            filterStateFlow.value.copy(
-                tags = tags,
-            )
+        updateFilterState { it.copy(tags = tags) }
+    }
+
+    fun setCardStateFilter(value: List<CardState>) {
+        Timber.i("updated card state filter to %s", value)
+        updateFilterState { it.copy(cardStates = value) }
     }
 
     init {
         viewModelScope.launch {
             savedSearchesFlow.value = SavedSearches.loadFromConfig()
         }
+
+        updateSearchFlow
+            .onEach {
+                submitCurrentSearch(it)
+            }.launchIn(viewModelScope)
 
         searchHistoryFlow
             .onEach { history ->
@@ -190,6 +248,10 @@ class CardBrowserSearchViewModel(
      */
     fun onSearchTextChanged(searchText: String) {
         Timber.v("onSearchTextChanged '%s'", searchText)
+
+        // move from system back to 'user'
+        updateFilterState { it.copy() }
+
         if (advancedSearchFlow.value) {
             advancedSearchTextFlow.value = searchText
         } else {
@@ -197,30 +259,25 @@ class CardBrowserSearchViewModel(
         }
     }
 
-    fun submitCurrentSearch(submittedText: String = searchTextFlow.value) =
+    fun submitCurrentSearch(searchToSubmit: SubmittedSearch) =
         viewModelScope.launch {
             Timber.i("submitting search")
-            // searches with trailing and leading spaces are equivalent
-            val submittedText = submittedText.trim()
-
-            val searchToSubmit =
-                buildSubmittedSearch(
-                    query = submittedText,
-                    filters = filterStateFlow.value,
-                )
-
             val updatedEntries = searchHistoryManager.addRecent(searchToSubmit)
             searchHistoryFlow.value = SearchHistoryItems.Loading(updatedEntries)
             closeSearchViewFlow.emit(Unit)
             submittedSearchFlow.emit(searchToSubmit)
         }
 
+    fun submitCurrentSearch() {
+        isScreenOpenFlow.value = false
+    }
+
     fun selectSearchHistoryEntry(entry: SearchHistoryEntry) =
         viewModelScope.launch {
             Timber.i("selected search history entry")
             onSearchTextChanged(entry.query)
             val allDeckData = withCol { decks.allNamesAndIds() }
-            filterStateFlow.value = FilterState.from(entry, allDeckData)
+            filterStateUpdateFlow.value = FilterUpdate.User(FilterState.from(entry, allDeckData))
             submitCurrentSearch()
         }
 
@@ -275,7 +332,10 @@ class CardBrowserSearchViewModel(
             basicSearchTextFlow.value = submittedSearch.query
             advancedSearchTextFlow.value = submittedSearch.query
             val deckData = withCol { decks.allNamesAndIds() }
-            filterStateFlow.value = FilterState.from(submittedSearch, deckData)
+            filterStateUpdateFlow.value =
+                FilterUpdate.System(FilterState.from(submittedSearch, deckData))
+
+            isScreenOpenFlow.value = false
 
             savedStateHandle.remove<Any>(STATE_ADVANCED_SEARCH_ENABLED)
             savedStateHandle.remove<Any>(STATE_BASIC_SEARCH_TEXT)
@@ -286,7 +346,7 @@ class CardBrowserSearchViewModel(
         viewModelScope.launch {
             Timber.d("syncing search state")
             val deckData = withCol { decks.allNamesAndIds() }
-            filterStateFlow.emit(FilterState.from(search, deckData))
+            filterStateUpdateFlow.emit(FilterUpdate.System(FilterState.from(search, deckData)))
             submittedSearchFlow.emit(search)
         }
 

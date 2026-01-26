@@ -348,19 +348,10 @@ class CardBrowserViewModel(
 
     val submittedSearchFlow = MutableStateFlow(SubmittedSearch(query = ""))
 
-    // TODO: replace with flowOfDeckSelection
     val flowOfDeckId = submittedSearchFlow.map { it.deckIds.firstOrNull() ?: ALL_DECKS_ID }
 
     val deckId: DeckId?
         get() = submittedSearchFlow.value.deckIds.firstOrNull()
-
-    val flowOfDeckSelection =
-        flowOfDeckId.map { did ->
-            when (did) {
-                ALL_DECKS_ID -> return@map SelectableDeck.AllDecks
-                else -> return@map SelectableDeck.Deck.fromId(did)
-            }
-        }
 
     suspend fun queryCardInfoDestination(): CardInfoDestination? {
         val firstSelectedCard = selectedRows.firstOrNull()?.toCardId(cardsOrNotes) ?: return null
@@ -413,7 +404,7 @@ class CardBrowserViewModel(
      * A search should be triggered if these properties change
      */
     private val searchRequested =
-        flowOf(flowOfCardsOrNotes, flowOfDeckId)
+        flowOf(flowOfCardsOrNotes)
             .flattenMerge()
 
     /**

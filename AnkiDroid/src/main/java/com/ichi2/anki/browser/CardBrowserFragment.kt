@@ -96,7 +96,6 @@ import com.ichi2.anki.browser.search.buildSearchString
 import com.ichi2.anki.browser.search.formatChipDescription
 import com.ichi2.anki.browser.search.iconRes
 import com.ichi2.anki.browser.search.savedFilters
-import com.ichi2.anki.browser.search.toDeckNameIdList
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.dialogs.BrowserOptionsDialog
@@ -309,6 +308,7 @@ class CardBrowserFragment :
                 addTransitionListener { _, _, state ->
                     if (state == SearchView.TransitionState.SHOWING) {
                         getOrCreateSearchFragment(StandardSearchFragment.TAG, ::StandardSearchFragment)
+                        searchViewModel.isScreenOpenFlow.value = true
                         return@addTransitionListener
                     }
                     if (state == SearchView.TransitionState.SHOWN) {
@@ -857,12 +857,6 @@ class CardBrowserFragment :
             showDialogFragmentImpl(childFragmentManager, dialog)
         }
 
-        fun onDeckChanged(deck: SelectableDeck?) {
-            decksChip?.text = deck?.getFullDisplayName(requireContext())
-            decksChip?.hasCheckedBackground = (deck is SelectableDeck.Deck && deck.deckId != 0L)
-            searchViewModel.setDecksFilter(deck?.toDeckNameIdList() ?: return)
-        }
-
         fun advancedSearchChanged(inAdvancedSearch: Boolean) {
             toggleAdvancedSearch?.text = if (inAdvancedSearch) "Basic search" else "Advanced search"
 
@@ -924,6 +918,10 @@ class CardBrowserFragment :
 
         fun onSubmittedSearchChanged(search: SubmittedSearch) {
             Timber.d("syncing searchview state from chip updates")
+
+            decksChip?.text = "TODO: DECK"
+            decksChip?.hasCheckedBackground = search.deckIds.any()
+
             tagsChip?.text = formatChipDescription(search.tags, emptyValue = "Tags")
             tagsChip?.hasCheckedBackground = search.tags.any()
 
@@ -944,7 +942,6 @@ class CardBrowserFragment :
         activityViewModel.flowOfCardStateChanged.launchCollectionInLifecycleScope(::onCardsMarkedEvent)
         activityViewModel.flowOfToggleSelectionState.launchCollectionInLifecycleScope(::onToggleSelectionStateUpdated)
         viewModel.flowOfSearchForDecks.launchCollectionInLifecycleScope(::onSearchForDecks)
-        activityViewModel.flowOfDeckSelection.launchCollectionInLifecycleScope(::onDeckChanged)
         activityViewModel.flowOfScrollRequest.launchCollectionInLifecycleScope(::autoScrollTo)
         activityViewModel.flowOfCanSearch.launchCollectionInLifecycleScope(::onCanSaveChanged)
         searchViewModel.advancedSearchFlow.launchCollectionInLifecycleScope(::advancedSearchChanged)
