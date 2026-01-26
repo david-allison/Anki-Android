@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.R
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.SearchHistoryItems
@@ -137,15 +138,27 @@ class StandardSearchFragment :
             sheet.show(childFragmentManager, CardStateBottomSheetFragment.TAG)
         }
 
+        binding.flagsChip.setOnClickListener {
+            launchCatchingTask {
+                FlagsBottomSheetFragment.createInstance().show(childFragmentManager)
+            }
+        }
+
         viewModel.filterStateFlow.launchCollectionInLifecycleScope {
             binding.decksChip.hasCheckedBackground = it.decks.any()
             binding.tagsChip.hasCheckedBackground = it.tags.any()
             binding.cardStateChip.hasCheckedBackground = it.cardStates.any()
+            binding.flagsChip.hasCheckedBackground = it.flags.any()
 
             binding.decksChip.text = it.decks.firstOrNull()?.name ?: getString(R.string.card_browser_all_decks)
             binding.tagsChip.text = formatChipDescription(it.tags, emptyValue = "Tags")
             binding.cardStateChip.text = formatChipDescription(it.cardStates.map { it.label }, emptyValue = "Card state")
             binding.cardStateChip.chipIcon = ContextCompat.getDrawable(requireContext(), it.cardStates.firstOrNull().iconRes)
+
+            // TODO: reconsider 'no flag' as a value
+            binding.flagsChip.text =
+                formatChipDescription(it.flags, singleValue = TR.browsingFlag(), nonSingleValue = TR.browsingSidebarFlags())
+            binding.flagsChip.chipIcon = ContextCompat.getDrawable(requireContext(), it.flags.firstOrNull().iconRes)
         }
     }
 
@@ -315,4 +328,15 @@ fun formatChipDescription(
     0 -> emptyValue
     1 -> tags.single()
     else -> "${tags.first()} +${tags.size - 1}"
+}
+
+fun <T> formatChipDescription(
+    entries: List<T>,
+    singleValue: String,
+    nonSingleValue: String,
+    // TODO: i18n
+) = when (entries.size) {
+    0 -> nonSingleValue
+    1 -> singleValue
+    else -> "$singleValue +${entries.size - 1}"
 }

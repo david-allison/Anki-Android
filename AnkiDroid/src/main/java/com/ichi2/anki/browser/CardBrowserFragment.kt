@@ -90,6 +90,7 @@ import com.ichi2.anki.browser.search.AdvancedSearchFragment
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.UserMessage
 import com.ichi2.anki.browser.search.CardStateBottomSheetFragment
+import com.ichi2.anki.browser.search.FlagsBottomSheetFragment
 import com.ichi2.anki.browser.search.StandardSearchFragment
 import com.ichi2.anki.browser.search.SubmittedSearch
 import com.ichi2.anki.browser.search.buildSearchString
@@ -202,6 +203,7 @@ class CardBrowserFragment :
     private var tagsChip: Chip? = null
     private val useNewTaggingLogic get() = tagsChip != null
     private var cardStateChip: Chip? = null
+    private var flagsChip: Chip? = null
 
     // region legacy menu handling
     var mySearchesItem: MenuItem? = null
@@ -288,6 +290,14 @@ class CardBrowserFragment :
                 setOnClickListener {
                     val fragment = CardStateBottomSheetFragment()
                     fragment.show(childFragmentManager, CardStateBottomSheetFragment.TAG)
+                }
+            }
+        flagsChip =
+            view.findViewById<Chip>(R.id.flags_chip)?.apply {
+                setOnClickListener {
+                    launchCatchingTask {
+                        FlagsBottomSheetFragment.createInstance().show(childFragmentManager)
+                    }
                 }
             }
         searchBar =
@@ -740,6 +750,7 @@ class CardBrowserFragment :
             menu.findItem(R.id.action_search_by_tag)?.isVisible = false
             menu.findItem(R.id.action_show_marked)?.isVisible = false
             menu.findItem(R.id.action_show_suspended)?.isVisible = false
+            menu.findItem(R.id.action_search_by_flag)?.isVisible = false
         }
     }
 
@@ -928,6 +939,12 @@ class CardBrowserFragment :
             cardStateChip?.text = formatChipDescription(search.cardStates.map { it.label }, emptyValue = "Card state")
             cardStateChip?.chipIcon = ContextCompat.getDrawable(requireContext(), search.cardStates.firstOrNull().iconRes)
             cardStateChip?.hasCheckedBackground = search.cardStates.any()
+
+            // Flags: Use the icon/checked state to explain what the filter is.
+            flagsChip?.text =
+                formatChipDescription(search.flags, singleValue = TR.browsingFlag(), nonSingleValue = TR.browsingSidebarFlags())
+            flagsChip?.chipIcon = ContextCompat.getDrawable(requireContext(), search.flags.firstOrNull().iconRes)
+            flagsChip?.hasCheckedBackground = search.flags.any()
 
             searchViewModel.syncState(search)
         }

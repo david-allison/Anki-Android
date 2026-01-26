@@ -187,6 +187,11 @@ class CardBrowserSearchViewModel(
         updateFilterState { it.copy(cardStates = value) }
     }
 
+    fun setFlagsFilter(flags: List<Flag>) {
+        Timber.i("set flags filter to %s", flags)
+        updateFilterState { it.copy(flags = flags) }
+    }
+
     init {
         viewModelScope.launch {
             savedSearchesFlow.value = SavedSearches.loadFromConfig()
