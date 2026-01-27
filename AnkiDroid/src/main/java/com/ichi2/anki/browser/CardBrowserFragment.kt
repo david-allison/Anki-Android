@@ -17,7 +17,6 @@
 package com.ichi2.anki.browser
 
 import android.content.Context
-import android.content.DialogInterface
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Spannable
@@ -97,6 +96,7 @@ import com.ichi2.anki.browser.search.CardStateBottomSheetFragment
 import com.ichi2.anki.browser.search.FlagsBottomSheetFragment
 import com.ichi2.anki.browser.search.SearchRequest
 import com.ichi2.anki.browser.search.SearchString
+import com.ichi2.anki.browser.search.SortOrderBottomSheetFragment
 import com.ichi2.anki.browser.search.StandardSearchFragment
 import com.ichi2.anki.browser.search.formatChipDescription
 import com.ichi2.anki.browser.search.iconRes
@@ -104,7 +104,6 @@ import com.ichi2.anki.browser.search.savedFilters
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.dialogs.BrowserOptionsDialog
-import com.ichi2.anki.dialogs.CardBrowserOrderDialog
 import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.dialogs.DeckSelectionDialog.DeckSelectionListener
 import com.ichi2.anki.dialogs.SimpleMessageDialog
@@ -119,7 +118,6 @@ import com.ichi2.anki.libanki.undoAvailable
 import com.ichi2.anki.libanki.undoLabel
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.model.CardsOrNotes.CARDS
-import com.ichi2.anki.model.LegacySortType
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
@@ -1007,11 +1005,11 @@ class CardBrowserFragment :
             searchViewModel.syncState(search)
         }
 
-        fun reverseDirectionChanged(direction: ReverseDirection) {
-            sortChip?.scaleY = if (!direction.orderAsc) 1.0f else -1.0f
+        fun reverseDirectionChanged(reverse: ReverseDirection?) {
+            sortChip?.scaleY = if (reverse == false || reverse == null) 1.0f else -1.0f
         }
 
-        activityViewModel.reverseDirectionFlow.launchCollectionInLifecycleScope(::reverseDirectionChanged)
+        activityViewModel.flowOfReverseDirection.launchCollectionInLifecycleScope(::reverseDirectionChanged)
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
         activityViewModel.flowOfActiveColumns.launchCollectionInLifecycleScope(::onColumnsChanged)
@@ -1400,15 +1398,12 @@ class CardBrowserFragment :
             }
         }
 
-    fun changeDisplayOrder() {
-        showDialogFragment(
-            // TODO: move this into the ViewModel
-            CardBrowserOrderDialog.newInstance { dialog: DialogInterface, which: Int ->
-                dialog.dismiss()
-                activityViewModel.changeCardOrder(LegacySortType.fromCardBrowserLabelIndex(which))
-            },
-        )
-    }
+    fun changeDisplayOrder() =
+        launchCatchingTask {
+            SortOrderBottomSheetFragment
+                .createInstance(cardsOrNotes = activityViewModel.cardsOrNotes)
+                .show(childFragmentManager)
+        }
 
     fun updateFlagForSelectedRows(flag: Flag) =
         launchCatchingTask {
