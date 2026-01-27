@@ -55,6 +55,7 @@
     <string name="card_browser_cram_search" maxLength="28" comment = "Menu entry to start a search.">Search</string>
     <string name="card_browser_change_display_order_title">Choose display order</string>
     <string name="card_details_tags">Tags</string>
+    <string name="card_browser_order_no_sorting">No sorting (faster)</string>
     <string-array name="card_browser_order_labels">
         <item>No sorting (faster)</item>
         <item>By sort field</item>
@@ -114,4 +115,6 @@
     <string name="card_browser_order_subtitle_numeric_descending" comment="Sort direction subtitle for numeric columns when descending (largest value first)">High to low</string>
     <string name="card_browser_order_subtitle_date_ascending" comment="Sort direction subtitle for date columns when ascending (oldest entry first)">Oldest first</string>
     <string name="card_browser_order_subtitle_date_descending" comment="Sort direction subtitle for date columns when descending (newest entry first)">Newest first</string>
+
+    <string name="card_browser_order_section_unavailable" comment="Header: browser columns that cannot be sorted (e.g. Question)">Unavailable columns</string>
 </resources>
