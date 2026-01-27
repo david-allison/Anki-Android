@@ -55,7 +55,6 @@
     <string name="card_browser_cram_search" maxLength="28" comment = "Menu entry to start a search.">Search</string>
     <string name="card_browser_change_display_order_title">Choose display order</string>
     <string name="card_details_tags">Tags</string>
-    <string name="card_browser_order_no_sorting">No sorting (faster)</string>
     <string-array name="card_browser_order_labels">
         <item>No sorting (faster)</item>
         <item>By sort field</item>
@@ -109,12 +108,17 @@
     <string name="browser_find_replace_loading_fields">Retrieving fields names&#8230;</string>
 
     <!-- Sort Order -->
+
+    <string name="card_browser_order_no_sorting_title" comment="Title of the 'no sorting' row in the Choose Display Order bottom sheet">No sorting</string>
+    <string name="card_browser_order_no_sorting_subtitle" comment="Subtitle for the 'no sorting' row noting that no-sort is faster than sorted queries">Faster</string>
+    <string name="card_browser_order_subtitle_use_sort_field" comment="Subtitle for Question/Answer rows in Choose Display Order, explaining that the user should pick the Sort Field column instead">Card content can\'t be sorted. Use Sort Field</string>
+    <string name="card_browser_order_subtitle_cards_mode_only" comment="Subtitle for Difficulty/Stability/Retrievability rows in Choose Display Order, explaining that those columns are only sortable in Cards mode">Only available in cards mode</string>
+    <string name="card_browser_order_section_unavailable" comment="Header: browser columns that cannot be sorted (e.g. Question)">Unavailable columns</string>
+
     <string name="card_browser_order_subtitle_text_ascending" comment="Sort direction subtitle for text columns when ascending (A before Z)">A–Z</string>
     <string name="card_browser_order_subtitle_text_descending" comment="Sort direction subtitle for text columns when descending (Z before A)">Z–A</string>
     <string name="card_browser_order_subtitle_numeric_ascending" comment="Sort direction subtitle for numeric columns when ascending (smallest value first)">Low to high</string>
     <string name="card_browser_order_subtitle_numeric_descending" comment="Sort direction subtitle for numeric columns when descending (largest value first)">High to low</string>
     <string name="card_browser_order_subtitle_date_ascending" comment="Sort direction subtitle for date columns when ascending (oldest entry first)">Oldest first</string>
     <string name="card_browser_order_subtitle_date_descending" comment="Sort direction subtitle for date columns when descending (newest entry first)">Newest first</string>
-
-    <string name="card_browser_order_section_unavailable" comment="Header: browser columns that cannot be sorted (e.g. Question)">Unavailable columns</string>
 </resources>
