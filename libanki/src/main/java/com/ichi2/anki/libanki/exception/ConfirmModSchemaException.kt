@@ -16,8 +16,8 @@
 
 package com.ichi2.anki.libanki.exception
 
+import com.ichi2.anki.libanki.utils.NotInPyLib
 import timber.log.Timber
-import java.lang.Exception
 
 class ConfirmModSchemaException : Exception() {
     /**
@@ -27,3 +27,19 @@ class ConfirmModSchemaException : Exception() {
         Timber.v(this)
     }
 }
+
+/**
+ * Marks an operation which modifies the schema, requiring a one-way sync from the user
+ *
+ * See `Anki-Android:launchCatchingRequiringOneWaySync` for typical uses.
+ *
+ * A manual implementation should not be required:
+ * ```kotlin
+ * if (withCol { !schemaChanged() }) {
+ *     return
+ * }
+ * with (SchemaChangeConfirmed) { modifyCollection() }
+ * ```
+ */
+@NotInPyLib
+object SchemaChangeConfirmed

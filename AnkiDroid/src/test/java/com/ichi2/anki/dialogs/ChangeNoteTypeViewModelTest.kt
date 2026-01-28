@@ -28,6 +28,7 @@ import com.ichi2.anki.dialogs.ChangeNoteTypeViewModelTest.Launch.Regular
 import com.ichi2.anki.dialogs.SelectedIndex.NOTHING
 import com.ichi2.anki.libanki.NoteId
 import com.ichi2.anki.libanki.NotetypeJson
+import com.ichi2.anki.libanki.exception.SchemaChangeConfirmed
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.not
 import org.junit.Test
@@ -455,12 +456,14 @@ class ChangeNoteTypeViewModelTest : RobolectricTest() {
 
     private fun viewModelTest(
         noteTypeInput: Launch = Regular(),
-        block: suspend ChangeNoteTypeViewModel.() -> Unit,
+        block: suspend context(SchemaChangeConfirmed) ChangeNoteTypeViewModel.() -> Unit,
     ) = runTest {
         val noteIds = noteTypeInput.setup()
-        block(
-            buildViewModel(noteIds = noteIds),
-        )
+        with(SchemaChangeConfirmed) {
+            block(
+                buildViewModel(noteIds = noteIds),
+            )
+        }
     }
 
     private fun buildViewModel(noteIds: List<NoteId>) =

@@ -23,7 +23,9 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
 import com.ichi2.anki.dialogs.ConfirmationDialog
 import com.ichi2.anki.launchCatchingTask
+import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
+import com.ichi2.anki.libanki.exception.SchemaChangeConfirmed
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.utils.message
 import com.ichi2.utils.negativeButton
@@ -31,6 +33,36 @@ import com.ichi2.utils.positiveButton
 import com.ichi2.utils.show
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+
+/**
+ * [launchCatchingTask], showing a one-way sync dialog: [R.string.full_sync_confirmation]
+ *
+ * @param block A calling a backend method which performs a schema change, such as [Collection.changeNotetypeRaw]
+ */
+@Suppress("RedundantWith")
+fun AnkiActivity.launchCatchingRequiringOneWaySync(block: suspend context(SchemaChangeConfirmed) () -> Unit) =
+    launchCatchingTask {
+        if (withCol { !schemaChanged() }) {
+            // .also is used to ensure the activity is used as context
+            val confirmModSchemaDialog =
+                ConfirmationDialog().also { dialog ->
+                    dialog.setArgs(message = getString(R.string.full_sync_confirmation))
+                    dialog.setConfirm {
+                        launchCatchingTask {
+                            with(SchemaChangeConfirmed) {
+                                block()
+                            }
+                        }
+                    }
+                }
+            showDialogFragment(confirmModSchemaDialog)
+            return@launchCatchingTask
+        }
+
+        with(SchemaChangeConfirmed) {
+            block()
+        }
+    }
 
 /**
  * [launchCatchingTask], showing a one-way sync dialog: [R.string.full_sync_confirmation]

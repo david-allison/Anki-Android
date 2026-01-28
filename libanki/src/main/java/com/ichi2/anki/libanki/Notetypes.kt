@@ -49,6 +49,7 @@ import com.ichi2.anki.libanki.Utils.checksum
 import com.ichi2.anki.libanki.backend.BackendUtils
 import com.ichi2.anki.libanki.backend.BackendUtils.fromJsonBytes
 import com.ichi2.anki.libanki.backend.BackendUtils.toJsonBytes
+import com.ichi2.anki.libanki.exception.SchemaChangeConfirmed
 import com.ichi2.anki.libanki.utils.LibAnkiAlias
 import com.ichi2.anki.libanki.utils.NotInPyLib
 import com.ichi2.anki.libanki.utils.append
@@ -563,6 +564,7 @@ class Notetypes(
      * -1 indicates the original value will be discarded.
      */
     @LibAnkiAlias("change_notetype_of_notes")
+    context(_: SchemaChangeConfirmed)
     fun changeNotetypeOfNotes(input: ChangeNotetypeRequest): OpChanges {
         val opBytes = this.col.backend.changeNotetypeRaw(input.toByteArray())
         return OpChanges.parseFrom(opBytes)

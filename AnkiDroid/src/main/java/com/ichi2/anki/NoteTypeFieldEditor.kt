@@ -238,7 +238,7 @@ class NoteTypeFieldEditor : AnkiActivity(R.layout.note_type_field_editor) {
         fieldName ?: return
         // Name is valid, now field is added
         if (modSchemaCheck) {
-            getColUnsafe.modSchema()
+            getColUnsafe.modSchema(check = true)
         } else {
             getColUnsafe.modSchema(check = false)
         }

@@ -34,6 +34,7 @@ import com.ichi2.anki.libanki.NoteId
 import com.ichi2.anki.libanki.NoteTypeId
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
+import com.ichi2.anki.libanki.exception.SchemaChangeConfirmed
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.utils.InitStatus
 import com.ichi2.anki.utils.ViewModelDelayedInitializer
@@ -310,13 +311,12 @@ class ChangeNoteTypeViewModel(
      */
     @NeedsTest("one way sync")
     @NeedsTest("closeDialogFlow")
+    context(_: SchemaChangeConfirmed)
     fun executeChangeNoteTypeAsync() =
         viewModelScope.async {
             Timber.d("Changing note type from '%s' to '%s'", inputNoteType.name, outputNoteType.name)
             Timber.d("Field map: %s", fieldChangeMap)
             Timber.d("Card map: %s", templateChangeMap)
-
-            withCol { modSchema(check = true) }
 
             val changes =
                 changeNoteTypeOfNotes(
@@ -346,6 +346,7 @@ class ChangeNoteTypeViewModel(
      */
     // TODO: return the count of changed notes from OpChanges, which may differ from noteIds.size
     @CheckResult
+    context(_: SchemaChangeConfirmed)
     private suspend fun changeNoteTypeOfNotes(
         noteIds: List<NoteId>,
         sourceId: NoteTypeId,
