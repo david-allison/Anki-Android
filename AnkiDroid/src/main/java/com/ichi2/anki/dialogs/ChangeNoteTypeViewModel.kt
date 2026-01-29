@@ -311,7 +311,7 @@ class ChangeNoteTypeViewModel(
      */
     @NeedsTest("one way sync")
     @NeedsTest("closeDialogFlow")
-    context(_: SchemaChangeConfirmed)
+    context(unusedVar: SchemaChangeConfirmed)
     fun executeChangeNoteTypeAsync() =
         viewModelScope.async {
             Timber.d("Changing note type from '%s' to '%s'", inputNoteType.name, outputNoteType.name)
@@ -346,7 +346,7 @@ class ChangeNoteTypeViewModel(
      */
     // TODO: return the count of changed notes from OpChanges, which may differ from noteIds.size
     @CheckResult
-    context(_: SchemaChangeConfirmed)
+    context(unusedVar: SchemaChangeConfirmed)
     private suspend fun changeNoteTypeOfNotes(
         noteIds: List<NoteId>,
         sourceId: NoteTypeId,

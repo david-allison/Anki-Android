@@ -564,7 +564,7 @@ class Notetypes(
      * -1 indicates the original value will be discarded.
      */
     @LibAnkiAlias("change_notetype_of_notes")
-    context(_: SchemaChangeConfirmed)
+    context(unusedVar: SchemaChangeConfirmed)
     fun changeNotetypeOfNotes(input: ChangeNotetypeRequest): OpChanges {
         val opBytes = this.col.backend.changeNotetypeRaw(input.toByteArray())
         return OpChanges.parseFrom(opBytes)
