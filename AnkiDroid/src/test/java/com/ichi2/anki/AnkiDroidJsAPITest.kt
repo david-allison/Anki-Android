@@ -24,6 +24,8 @@ import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.libanki.CardType
 import com.ichi2.anki.libanki.testutils.ext.BASIC_NOTE_TYPE_NAME
 import com.ichi2.anki.libanki.testutils.ext.setFlag
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.TestScope
 import net.ankiweb.rsdroid.withoutUnicodeIsolation
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
@@ -32,6 +34,7 @@ import org.json.JSONObject
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
+import timber.log.Timber
 import kotlin.test.assertEquals
 
 @RunWith(AndroidJUnit4::class)
@@ -437,7 +440,15 @@ class AnkiDroidJsAPITest : RobolectricTest() {
             for (i in 0 until actualTags.length()) {
                 assertEquals(expectedTags[i], actualTags.getString(i))
             }
+            dumpJobs()
         }
+
+    fun TestScope.dumpJobs() {
+        val root = coroutineContext[Job]!!
+        root.children.forEach {
+            Timber.i("ACTIVE JOB: $it")
+        }
+    }
 
     companion object {
         fun jsApiContract(data: String = ""): ByteArray =

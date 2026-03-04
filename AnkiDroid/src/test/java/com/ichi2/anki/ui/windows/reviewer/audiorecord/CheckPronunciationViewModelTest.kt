@@ -27,6 +27,8 @@ import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import org.junit.Before
 import org.junit.Test
@@ -128,14 +130,14 @@ class CheckPronunciationViewModelTest : JvmTest() {
 
             // Launch collectors concurrently
             val iconJob =
-                launch {
+                launch(CoroutineName("iconJob")) {
                     viewModel.playIconFlow.test {
                         assertEquals(R.drawable.ic_replay, awaitItem())
                         assertEquals(R.drawable.ic_play, awaitItem())
                     }
                 }
             val progressJob =
-                launch {
+                launch(CoroutineName("progressJob")) {
                     viewModel.playbackProgressFlow.test {
                         awaitItem() // initial 0
                         assertEquals(1500, awaitItem()) // from progress job
@@ -147,8 +149,8 @@ class CheckPronunciationViewModelTest : JvmTest() {
             onCompletionCallback?.invoke()
 
             // Clean up
-            iconJob.cancel()
-            progressJob.cancel()
+            iconJob.cancelAndJoin()
+            progressJob.cancelAndJoin()
         }
 
     @Test

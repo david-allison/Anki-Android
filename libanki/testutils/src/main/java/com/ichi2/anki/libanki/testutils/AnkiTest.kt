@@ -37,6 +37,7 @@ import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
 import com.ichi2.anki.libanki.getNotetype
 import com.ichi2.anki.libanki.testutils.ext.addNote
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -352,10 +353,18 @@ interface AnkiTest {
         val dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
         setupTestDispatcher(dispatcher)
-        repeat(times) {
-            if (times != 1) Timber.d("------ Executing test $it/$times ------")
+        repeat(times) { iteration ->
+            if (times != 1) Timber.d("------ Executing test $iteration/$times ------")
             kotlinx.coroutines.test.runTest(context, dispatchTimeoutMs.milliseconds) {
-                runTestInner(testBody)
+                try {
+                    runTestInner(testBody)
+                } finally {
+                    if (iteration == 0) {
+                        coroutineContext[Job]!!.children.forEach {
+                            throw IllegalStateException("hung job: $it")
+                        }
+                    }
+                }
             }
         }
     }
