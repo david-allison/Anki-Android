@@ -285,6 +285,8 @@ class CardBrowserSearchViewModel(
     fun syncState(search: SubmittedSearch) =
         viewModelScope.launch {
             Timber.d("syncing search state")
+            val deckData = withCol { decks.allNamesAndIds() }
+            filterStateFlow.emit(FilterState.from(search, deckData))
             submittedSearchFlow.emit(search)
         }
 

@@ -24,6 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -131,12 +132,20 @@ class StandardSearchFragment :
             }
         }
 
+        binding.cardStateChip.setOnClickListener {
+            val sheet = CardStateBottomSheetFragment()
+            sheet.show(childFragmentManager, CardStateBottomSheetFragment.TAG)
+        }
+
         viewModel.filterStateFlow.launchCollectionInLifecycleScope {
             binding.decksChip.hasCheckedBackground = it.decks.any()
             binding.tagsChip.hasCheckedBackground = it.tags.any()
+            binding.cardStateChip.hasCheckedBackground = it.cardStates.any()
 
             binding.decksChip.text = it.decks.firstOrNull()?.name ?: getString(R.string.card_browser_all_decks)
             binding.tagsChip.text = formatChipDescription(it.tags, emptyValue = "Tags")
+            binding.cardStateChip.text = formatChipDescription(it.cardStates.map { it.label }, emptyValue = "Card state")
+            binding.cardStateChip.chipIcon = ContextCompat.getDrawable(requireContext(), it.cardStates.firstOrNull().iconRes)
         }
     }
 
