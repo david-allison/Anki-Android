@@ -125,6 +125,7 @@ import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.attachFastScroller
 import com.ichi2.anki.ui.internationalization.toSentenceCase
 import com.ichi2.anki.undoAndShowSnackbar
+import com.ichi2.anki.utils.ext.addPrepareMenuProvider
 import com.ichi2.anki.utils.ext.getCurrentDialogFragment
 import com.ichi2.anki.utils.ext.hasCheckedBackground
 import com.ichi2.anki.utils.ext.ifNotZero
@@ -342,7 +343,7 @@ class CardBrowserFragment :
     }
 
     private fun setupMenu() {
-        val menuHost: MenuHost = if (useSearchView) searchBar!! else requireActivity()
+        val menuHost: MenuHost = requireCardBrowserActivity()
 
         fun MenuItem.setupUndo() {
             isVisible = getColUnsafe().undoAvailable()
@@ -385,43 +386,45 @@ class CardBrowserFragment :
                     Timber.d("onCreateMenu()")
                     menuInflater.inflate(R.menu.card_browser, menu)
                     menu.findItem(R.id.action_search_by_flag).subMenu?.setupFlags()
-                    searchItem = menu.findItem(R.id.action_search)
-                    searchItem!!.setOnActionExpandListener(
-                        object : MenuItem.OnActionExpandListener {
-                            override fun onMenuItemActionExpand(item: MenuItem): Boolean {
-                                vm.setSearchQueryExpanded(true)
-                                return true
-                            }
 
-                            override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
-                                if (item.actionView == searchView) {
-                                    if (isKeyboardVisible(searchView)) {
-                                        Timber.d("keyboard is visible, hiding it")
-                                        hideKeyboard()
-                                        return false
-                                    }
+                    if (!useSearchView) {
+                        searchItem = menu.findItem(R.id.action_search)
+                        searchItem!!.setOnActionExpandListener(
+                            object : MenuItem.OnActionExpandListener {
+                                override fun onMenuItemActionExpand(item: MenuItem): Boolean {
+                                    vm.setSearchQueryExpanded(true)
+                                    return true
                                 }
-                                vm.setSearchQueryExpanded(false)
-                                // SearchView doesn't support empty queries so we always reset the search when collapsing
-                                legacySearchView!!.setQuery("", false)
-                                vm.setQuery("")
-                                return true
-                            }
-                        },
-                    )
-                    legacySearchView =
-                        (searchItem!!.actionView as CardBrowserSearchView).apply {
-                            queryHint = resources.getString(R.string.card_browser_search_hint)
-                            setMaxWidth(Integer.MAX_VALUE)
-                            setOnQueryTextListener(
-                                object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
-                                    override fun onQueryTextChange(newText: String): Boolean {
-                                        if (this@apply.ignoreValueChange) {
+
+                                override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
+                                    if (item.actionView == searchView) {
+                                        if (isKeyboardVisible(searchView)) {
+                                            Timber.d("keyboard is visible, hiding it")
+                                            hideKeyboard()
+                                            return false
+                                        }
+                                    }
+                                    vm.setSearchQueryExpanded(false)
+                                    // SearchView doesn't support empty queries so we always reset the search when collapsing
+                                    legacySearchView!!.setQuery("", false)
+                                    vm.setQuery("")
+                                    return true
+                                }
+                            },
+                        )
+                        legacySearchView =
+                            (searchItem!!.actionView as CardBrowserSearchView).apply {
+                                queryHint = resources.getString(R.string.card_browser_search_hint)
+                                setMaxWidth(Integer.MAX_VALUE)
+                                setOnQueryTextListener(
+                                    object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
+                                        override fun onQueryTextChange(newText: String): Boolean {
+                                            if (this@apply.ignoreValueChange) {
+                                                return true
+                                            }
+                                            vm.updateQueryText(newText)
                                             return true
                                         }
-                                        vm.updateQueryText(newText)
-                                        return true
-                                    }
 
                                     override fun onQueryTextSubmit(query: String): Boolean {
                                         vm.launchSearchForCards(query)
@@ -718,6 +721,14 @@ class CardBrowserFragment :
             },
             viewLifecycleOwner,
         )
+
+        menuHost.addPrepareMenuProvider { menu ->
+            if (!useSearchView) return@addPrepareMenuProvider
+            menu.findItem(R.id.action_search)?.isVisible = false
+            menu.findItem(R.id.action_list_my_searches)?.isVisible = false
+            menu.findItem(R.id.action_save_search)?.isVisible = false
+            menu.findItem(R.id.action_search_by_tag)?.isVisible = false
+        }
     }
 
     override fun onDestroyView() {

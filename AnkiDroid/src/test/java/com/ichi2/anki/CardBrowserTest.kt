@@ -149,6 +149,7 @@ class CardBrowserTest : RobolectricTest() {
     override fun setUp() {
         super.setUp()
         setCardBrowserFragmented(false)
+        setUsingSearchView(false)
     }
 
     @Test
@@ -1577,6 +1578,38 @@ class CardBrowserTest : RobolectricTest() {
         }
 
     @Test
+    fun `options menu test - new ui - standard`() =
+        withOptionsMenu(
+            OptionsMenuType(
+                fragmented = false,
+                mutliselect = false,
+                newUi = true,
+            ),
+        ) {
+            val expectedMenuItems =
+                listOf(
+                    R.id.action_add_note_from_card_browser to true,
+                    R.id.action_search to false,
+                    R.id.action_save_search to false,
+                    R.id.action_list_my_searches to false,
+                    R.id.action_sort_by_size to true,
+                    R.id.action_show_marked to true,
+                    R.id.action_show_suspended to true,
+                    R.id.action_search_by_tag to false,
+                    R.id.action_search_by_flag to true,
+                    // true due to 'add note'
+                    R.id.action_undo to true,
+                    R.id.action_preview_many to true,
+                    R.id.action_select_all to true,
+                    R.id.action_open_options to true,
+                    R.id.action_create_filtered_deck to true,
+                    R.id.action_find_replace to false,
+                )
+
+            assertMenusEqual(expectedMenuItems, menu)
+        }
+
+    @Test
     @Ignore("TODO")
     fun `options menu test - mutliselect`() =
         withOptionsMenu(
@@ -1792,6 +1825,7 @@ class CardBrowserTest : RobolectricTest() {
     private fun withBrowser(
         noteCount: Int = 0,
         fragmented: Boolean = false,
+        newUi: Boolean = false,
         block: suspend CardBrowser.() -> Unit,
     ) = runTest {
         suspend fun run(block: suspend () -> Unit) {
@@ -1799,6 +1833,7 @@ class CardBrowserTest : RobolectricTest() {
         }
 
         setCardBrowserFragmented(fragmented)
+        setUsingSearchView(newUi)
 
         run {
             getBrowserWithNotes(noteCount).apply {
@@ -1816,18 +1851,21 @@ class CardBrowserTest : RobolectricTest() {
     data class OptionsMenuType(
         val fragmented: Boolean,
         val mutliselect: Boolean,
+        val newUi: Boolean = false,
     )
 
     fun withOptionsMenu(
         type: OptionsMenuType,
         block: suspend CardBrowser.() -> Unit,
-    ) = withBrowser(noteCount = 1, fragmented = type.fragmented) {
+    ) = withBrowser(noteCount = 1, fragmented = type.fragmented, newUi = type.newUi) {
         if (type.mutliselect) selectAll()
         block()
     }
 }
 
 fun setCardBrowserFragmented(value: Boolean) = Prefs.putBoolean(R.string.dev_card_browser_fragmented, value)
+
+fun setUsingSearchView(value: Boolean) = Prefs.putBoolean(R.string.dev_card_browser_search_view, value)
 
 private fun CardBrowser.rerenderAllCards() {
     cardBrowserFragment.cardsAdapter.notifyDataSetChanged()
@@ -1935,4 +1973,5 @@ suspend fun CardBrowser.selectAll() {
     advanceRobolectricLooper()
 }
 
-val CardBrowser.menu get() = shadowOf(this).optionsMenu!!
+val CardBrowser.menu: Menu
+    get() = if (this.useSearchView) cardBrowserFragment.searchBar!!.menu else shadowOf(this).optionsMenu!!
