@@ -728,6 +728,7 @@ class CardBrowserFragment :
             menu.findItem(R.id.action_list_my_searches)?.isVisible = false
             menu.findItem(R.id.action_save_search)?.isVisible = false
             menu.findItem(R.id.action_search_by_tag)?.isVisible = false
+            menu.findItem(R.id.action_show_marked)?.isVisible = false
         }
     }
 
