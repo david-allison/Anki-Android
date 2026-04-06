@@ -564,7 +564,7 @@ data class ProgressContext(
                 formatAmount = { (current, max) ->
                     val curStr = Formatter.formatShortFileSize(context, current)
                     val maxStr = Formatter.formatShortFileSize(context, max)
-                    "$curStr/$maxStr"
+                    context.getString(R.string.progress_amount_bytes, curStr, maxStr)
                 },
             )
     }
