@@ -26,7 +26,6 @@ import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.system.Os
 import android.webkit.CookieManager
 import androidx.annotation.VisibleForTesting
@@ -58,6 +57,7 @@ import com.ichi2.anki.servicelayer.ThrowableFilterService
 import com.ichi2.anki.services.AlarmManagerService
 import com.ichi2.anki.services.NotificationService
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.storage.SdCard
 import com.ichi2.anki.ui.dialogs.ActivityAgnosticDialogs
 import com.ichi2.utils.AdaptionUtil
 import com.ichi2.utils.ExceptionUtil
@@ -298,7 +298,7 @@ open class AnkiDroidApp :
             Timber.e(e, "Could not initialize AnkiDroid directory")
             try {
                 val defaultDir = CollectionHelper.getDefaultAnkiDroidDirectory(this)
-                if (isSdCardMounted && CollectionHelper.getCurrentAnkiDroidDirectory(this) == defaultDir) {
+                if (SdCard.isMounted && CollectionHelper.getCurrentAnkiDroidDirectory(this) == defaultDir) {
                     // Don't send report if the user is using a custom directory as SD cards trip up here a lot
                     sendExceptionReport(e, "AnkiDroidApp.onCreate")
                 }
@@ -468,8 +468,6 @@ open class AnkiDroidApp :
 
         val appResources: Resources
             get() = instance.resources
-        val isSdCardMounted: Boolean
-            get() = Environment.MEDIA_MOUNTED == Environment.getExternalStorageState()
 
         fun getMarketIntent(context: Context): Intent {
             val uri =

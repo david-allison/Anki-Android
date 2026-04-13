@@ -25,6 +25,7 @@ import com.ichi2.anki.dialogs.utils.message
 import com.ichi2.anki.dialogs.utils.title
 import com.ichi2.anki.exception.StorageAccessException
 import com.ichi2.anki.preferences.sharedPrefs
+import com.ichi2.anki.storage.SdCard
 import com.ichi2.testutils.TestException
 import com.ichi2.testutils.withNoWritePermission
 import io.mockk.every
@@ -81,10 +82,10 @@ class DeckPickerNoExternalFilesDirTest : RobolectricTest() {
             withNoWritePermission {
                 CollectionHelper.ankiDroidDirectoryOverride = tempFolder.newFolder()
 
-                mockkObject(CollectionHelper, CollectionManager, AnkiDroidApp)
+                mockkObject(CollectionHelper, CollectionManager, SdCard)
                 every { CollectionHelper.isCurrentAnkiDroidDirAccessible(any()) } returns false
                 every { CollectionManager.getColUnsafe() } throws TestException("")
-                every { AnkiDroidApp.isSdCardMounted } returns true
+                every { SdCard.isMounted } returns true
 
                 setIntroductionSlidesShown(true)
 

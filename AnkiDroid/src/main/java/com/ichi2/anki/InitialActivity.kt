@@ -33,6 +33,7 @@ import com.ichi2.anki.exception.StorageAccessException
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService.setPreferencesUpToDate
 import com.ichi2.anki.servicelayer.ScopedStorageService.isLegacyStorage
+import com.ichi2.anki.storage.SdCard
 import com.ichi2.anki.ui.windows.permissions.InternetPermissionFragment
 import com.ichi2.anki.ui.windows.permissions.NotificationsPermissionFragment
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment
@@ -85,7 +86,7 @@ object InitialActivity {
                 StartupFailure.DBError(e)
             }
 
-        if (!AnkiDroidApp.isSdCardMounted) {
+        if (!SdCard.isMounted) {
             return StartupFailure.SDCardNotMounted
         } else if (!initializeAnkiDroidDirectory()) {
             return StartupFailure.DirectoryNotAccessible

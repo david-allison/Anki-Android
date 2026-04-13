@@ -38,6 +38,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.analytics.UsageAnalytics
 import com.ichi2.anki.compat.CompatHelper.Companion.registerReceiverCompat
 import com.ichi2.anki.preferences.sharedPrefs
+import com.ichi2.anki.storage.SdCard
 import timber.log.Timber
 import kotlin.math.sqrt
 
@@ -110,8 +111,7 @@ class AnkiDroidWidgetSmall : AnalyticsWidgetProvider() {
         private fun buildUpdate(context: Context): RemoteViews {
             Timber.d("updating small widget UI")
             val updateViews = RemoteViews(context.packageName, widgetSmallLayout)
-            val mounted = AnkiDroidApp.isSdCardMounted
-            if (!mounted) {
+            if (!SdCard.isMounted) {
                 updateViews.setViewVisibility(R.id.widget_due, View.INVISIBLE)
                 updateViews.setViewVisibility(R.id.widget_eta, View.INVISIBLE)
                 updateViews.setViewVisibility(R.id.ankidroid_widget_small_finish_layout, View.GONE)
