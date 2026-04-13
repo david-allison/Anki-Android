@@ -17,11 +17,9 @@ package com.ichi2.widget
 import android.app.PendingIntent
 import android.app.Service
 import android.appwidget.AppWidgetManager
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.res.Configuration
 import android.os.Build
 import android.os.IBinder
@@ -30,13 +28,10 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.annotation.LayoutRes
 import androidx.core.app.PendingIntentCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.IntentHandler
 import com.ichi2.anki.R
 import com.ichi2.anki.analytics.UsageAnalytics
-import com.ichi2.anki.compat.CompatHelper.Companion.registerReceiverCompat
 import com.ichi2.anki.preferences.sharedPrefs
 import com.ichi2.anki.storage.SdCard
 import timber.log.Timber
@@ -115,35 +110,7 @@ class AnkiDroidWidgetSmall : AnalyticsWidgetProvider() {
                 updateViews.setViewVisibility(R.id.widget_due, View.INVISIBLE)
                 updateViews.setViewVisibility(R.id.widget_eta, View.INVISIBLE)
                 updateViews.setViewVisibility(R.id.ankidroid_widget_small_finish_layout, View.GONE)
-                if (mountReceiver == null) {
-                    mountReceiver =
-                        object : BroadcastReceiver() {
-                            override fun onReceive(
-                                @Suppress("LocalVariableName") context_doNotUse: Context,
-                                intent: Intent,
-                            ) {
-                                // baseContext() is null, applicationContext() throws a NPE,
-                                // context may not have the locale override from AnkiDroidApp
-                                val action = intent.action
-                                if (action != null && action == Intent.ACTION_MEDIA_MOUNTED) {
-                                    Timber.d("mountReceiver - Action = Media Mounted")
-                                    if (remounted) {
-                                        WidgetStatus.updateInBackground(AnkiDroidApp.instance)
-                                        remounted = false
-                                        if (mountReceiver != null) {
-                                            AnkiDroidApp.instance.unregisterReceiver(mountReceiver)
-                                        }
-                                    } else {
-                                        remounted = true
-                                    }
-                                }
-                            }
-                        }
-                    val iFilter = IntentFilter()
-                    iFilter.addAction(Intent.ACTION_MEDIA_MOUNTED)
-                    iFilter.addDataScheme("file")
-                    AnkiDroidApp.instance.registerReceiverCompat(mountReceiver, iFilter, ContextCompat.RECEIVER_EXPORTED)
-                }
+                sdCardMountListener.register()
             } else {
                 // Compute the total number of cards due.
                 val (dueCardsCount, eta) = WidgetStatus.fetchSmall(context)
@@ -199,8 +166,32 @@ class AnkiDroidWidgetSmall : AnalyticsWidgetProvider() {
     }
 
     companion object {
-        private var mountReceiver: BroadcastReceiver? = null
-        private var remounted = false
+        // Companion so it outlives individual UpdateService instances and avoids
+        // re-registering on every widget update.
+        //
+        // Never explicitly disposed; cleanup happens when the system kills the widget process.
+        private val sdCardMountListener =
+            object : SdCard.MountListener() {
+                // TODO: This skips the first mount event and only acts on the second
+                //  If only one event fires, the widget silently never updates.
+                //  see 892c9446a9d6dc4d5890e70fd121f019b555afd4
+                private var remounted = false
+
+                override fun onEvent(
+                    event: SdCard.Event,
+                    context: Context,
+                ) {
+                    if (event != SdCard.Event.Mount) return
+                    Timber.d("mountReceiver - Action = Media Mounted")
+                    if (remounted) {
+                        WidgetStatus.updateInBackground(context)
+                        remounted = false
+                        unregister()
+                    } else {
+                        remounted = true
+                    }
+                }
+            }
 
         private fun updateWidgetDimensions(
             context: Context,
