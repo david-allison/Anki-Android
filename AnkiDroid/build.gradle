@@ -278,12 +278,6 @@ android {
         coreLibraryDesugaringEnabled = true
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
-    }
-
     packagingOptions {
         resources {
             excludes += ['META-INF/DEPENDENCIES']

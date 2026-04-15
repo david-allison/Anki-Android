@@ -5,12 +5,6 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_17
-    }
-}
-
 configure<LibraryExtension> {
     namespace = "com.ichi2.anki.compat"
     testFixtures.enable = true

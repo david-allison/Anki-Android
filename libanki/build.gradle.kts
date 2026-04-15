@@ -7,12 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_17
-    }
-}
-
 configure<LibraryExtension> {
     namespace = "com.ichi2.anki.libanki"
     testFixtures.enable = true

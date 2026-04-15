@@ -5,12 +5,6 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_17
-    }
-}
-
 configure<LibraryExtension> {
     // this cannot conflict with com.ichi2.anki
     // but we can define files in 'com.ichi2.anki' inside 'common'

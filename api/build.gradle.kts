@@ -16,7 +16,6 @@ kotlin {
         // enable explicit api mode for additional checks related to the public api
         // see https://kotlinlang.org/docs/whatsnew14.html#explicit-api-mode-for-library-authors
         freeCompilerArgs.add("-Xexplicit-api=strict")
-        jvmTarget = JvmTarget.JVM_11
     }
 }
 
