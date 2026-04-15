@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LibraryExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -11,9 +12,15 @@ version = "2.0.0"
 
 kotlin {
     explicitApi()
+    compilerOptions {
+        // enable explicit api mode for additional checks related to the public api
+        // see https://kotlinlang.org/docs/whatsnew14.html#explicit-api-mode-for-library-authors
+        freeCompilerArgs.add("-Xexplicit-api=strict")
+        jvmTarget = JvmTarget.JVM_11
+    }
 }
 
-android {
+configure<LibraryExtension> {
     namespace = "com.ichi2.anki.api"
     compileSdk =
         libs.versions.compileSdk
@@ -54,14 +61,6 @@ android {
         // API remains on VERSION_11 for compatibility
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlin {
-        compilerOptions {
-            // enable explicit api mode for additional checks related to the public api
-            // see https://kotlinlang.org/docs/whatsnew14.html#explicit-api-mode-for-library-authors
-            freeCompilerArgs.add("-Xexplicit-api=strict")
-            jvmTarget = JvmTarget.JVM_11
-        }
     }
 
     publishing {

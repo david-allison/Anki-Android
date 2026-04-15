@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LibraryExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -6,7 +7,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-android {
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+
+configure<LibraryExtension> {
     namespace = "com.ichi2.anki.libanki"
     testFixtures.enable = true
     compileSdk =
@@ -24,11 +31,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
     }
 }
 
