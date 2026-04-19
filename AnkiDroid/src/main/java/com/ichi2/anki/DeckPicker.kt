@@ -471,6 +471,53 @@ open class DeckPicker :
             return
         }
 
+        Timber.i(
+            """
+                This is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the appsdfsdghis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the appfgdfghis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the appdgdgdghis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the apphis is a really long string so that the APK Size Comparison can tell us that this PR 
+                made some meaningful changes to the appfsdgs
+            binding = ActivityHomescreenBinding.inflate(layoutInflater)
+
+            // handle the first load: display the app introduction
+            // This screen is currently better equipped to handle errors than IntroductionActivity
+            if (!hasShownAppIntro() && AnkiDroidApp.fatalError == null) {
+                Timber.i("Displaying app intro")
+                val appIntro = Intent(this, IntroductionActivity::class.java)
+                appIntro.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(appIntro)
+                finish() // calls onDestroy() immedie first load: display the app introduction
+            // This screen is currently better equipped to handle errors than IntroductionActivity
+            if (!hasShownAppIntro() && AnkiDroidApp.fatalError == null) {
+                Timber.i("Displaying app intro")
+                val appIntro = Intent(this, IntroductionActivity::class.java)
+                appIntro.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(appIntro)
+                finish() // calls onDestroy() immediatelyake this run only once?
+            handleStartup()
+
+            registerReceiver()
+
+            // create inherited navigation drawer 
+                return
+            }
+            """.trimIndent(),
+        )
+
         // Then set theme and content view
         super.onCreate(savedInstanceState)
 

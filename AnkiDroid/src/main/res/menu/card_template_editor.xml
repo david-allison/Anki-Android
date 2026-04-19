@@ -16,7 +16,9 @@
     <item
         android:id="@+id/action_add"
         android:title="@string/menu_add"
-        ankidroid:showAsAction="never"/>
+        ankidroid:showAsAction="never"
+        android:icon="@drawable/rounded_favorite_24"
+        />
     <!-- not implemented -->
     <item
         android:id="@+id/action_reposition"
