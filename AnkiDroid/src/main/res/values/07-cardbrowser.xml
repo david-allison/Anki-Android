@@ -106,4 +106,12 @@
     <string name="save_changes_message">Please save your changes first</string>
 
     <string name="browser_find_replace_loading_fields">Retrieving fields names&#8230;</string>
+
+    <!-- Sort Order -->
+    <string name="card_browser_order_subtitle_text_ascending" comment="Sort direction subtitle for text columns when ascending (A before Z)">A–Z</string>
+    <string name="card_browser_order_subtitle_text_descending" comment="Sort direction subtitle for text columns when descending (Z before A)">Z–A</string>
+    <string name="card_browser_order_subtitle_numeric_ascending" comment="Sort direction subtitle for numeric columns when ascending (smallest value first)">Low to high</string>
+    <string name="card_browser_order_subtitle_numeric_descending" comment="Sort direction subtitle for numeric columns when descending (largest value first)">High to low</string>
+    <string name="card_browser_order_subtitle_date_ascending" comment="Sort direction subtitle for date columns when ascending (oldest entry first)">Oldest first</string>
+    <string name="card_browser_order_subtitle_date_descending" comment="Sort direction subtitle for date columns when descending (newest entry first)">Newest first</string>
 </resources>
