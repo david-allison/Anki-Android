@@ -1009,6 +1009,22 @@ class CardBrowserFragment :
             sortChip?.scaleY = if (reverse == false || reverse == null) 1.0f else -1.0f
         }
 
+        /** Displays a snackbar: Sort by Card Type · A-Z*/
+        fun onSortTypeChanged(notification: SortChangeNotification) {
+            val (title, subtitle) =
+                when (notification) {
+                    is SortChangeNotification.NoOrdering ->
+                        getString(R.string.card_browser_order_no_sorting_title) to null
+                    is SortChangeNotification.CollectionOrdering -> {
+                        val subtitleRes = notification.type.humanReadableExplanation(descending = notification.reverse)
+                        getString(R.string.card_browser_order_snackbar_sort_by, notification.columnLabel) to
+                            subtitleRes?.let(::getString)
+                    }
+                }
+            val text = if (subtitle != null) "$title · $subtitle" else title
+            showSnackbar(text, Snackbar.LENGTH_SHORT)
+        }
+
         activityViewModel.flowOfReverseDirection.launchCollectionInLifecycleScope(::reverseDirectionChanged)
         activityViewModel.flowOfIsTruncated.launchCollectionInLifecycleScope(::onIsTruncatedChanged)
         activityViewModel.flowOfSelectedRows.launchCollectionInLifecycleScope(::onSelectedRowsChanged)
@@ -1028,6 +1044,7 @@ class CardBrowserFragment :
         searchViewModel.submittedSearchFlow.filterNotNull().launchCollectionInLifecycleScope(::onSearchSubmitted)
         searchViewModel.userMessageFlow.filterNotNull().launchCollectionInLifecycleScope(::onUserMessage)
         activityViewModel.searchRequestFlow.launchCollectionInLifecycleScope(::onSearchRequestUpdated)
+        activityViewModel.flowOfSortTypeChanged.launchCollectionInLifecycleScope(::onSortTypeChanged)
     }
 
     private fun setupFragmentResultListeners() {
