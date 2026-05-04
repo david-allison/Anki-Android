@@ -26,7 +26,15 @@ on:
   push:
     branches:
       - main
+  # On PRs, only run this when structural changes occur, to be sure 'main' can still store baselines
   pull_request:
+    paths:
+      - '.github/workflows/screenshot_*.yml'
+      - 'gradle/libs.versions.toml'
+      - 'AnkiDroid/build.gradle'
+      - 'AnkiDroid/build.gradle.kts' # future-proof
+      - '**/ScreenshotTest.kt'
+      - 'tools/compare-screenshot-test.sh'
 
 permissions: {}
 
