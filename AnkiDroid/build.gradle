@@ -151,7 +151,7 @@ android {
                     buildConfigField "Boolean", "ENABLE_LEAK_CANARY", "true"
                 }
             } else {
-                testCoverageEnabled true
+                testCoverageEnabled = true
             }
 
             // make the icon red if in debug mode
