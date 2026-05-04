@@ -21,6 +21,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.provideRoborazziContext
 import org.junit.experimental.categories.Category
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.RuntimeEnvironment
 import java.io.File
 
 interface ScreenshotTestCategory
@@ -31,6 +32,11 @@ interface ScreenshotTestCategory
 @Category(ScreenshotTestCategory::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 abstract class ScreenshotTest : RobolectricTest() {
+    /** Pixel-class phone in portrait, light theme. */
+    protected fun setPhoneQualifiers() {
+        RuntimeEnvironment.setQualifiers("w411dp-h914dp-notnight-420dpi")
+    }
+
     /**
      * Captures a screenshot to `build/outputs/roborazzi/<TestClass>/<name>.png`.
      *
