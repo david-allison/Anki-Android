@@ -18,6 +18,8 @@ package com.ichi2.anki.compat
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BlendMode
+import android.graphics.Paint
 import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.Environment
@@ -91,6 +93,10 @@ open class CompatV29 : CompatV26() {
     ): Boolean {
         val defaultMode = if (defaultValue) 2 else 0
         return Settings.Secure.getInt(context.contentResolver, "navigation_mode", defaultMode) == 2
+    }
+
+    override fun setDstOutBlend(paint: Paint) {
+        paint.blendMode = BlendMode.DST_OUT
     }
 
     companion object {
