@@ -102,8 +102,6 @@ import com.ichi2.anki.ui.internationalization.toSentenceCase
 import com.ichi2.anki.utils.ext.getCurrentDialogFragment
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.testutils.IntentAssert
-import com.ichi2.testutils.common.Flaky
-import com.ichi2.testutils.common.OS
 import com.ichi2.testutils.ext.menu
 import com.ichi2.testutils.getSharedPrefs
 import com.ichi2.testutils.withSplitPaneUiAsync
@@ -225,7 +223,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(os = OS.WINDOWS, "Index 0 out of bounds for length 0")
     fun browserIsInMultiSelectModeWhenSelectingOne() {
         val browser = browserWithMultipleNotes
         selectOneOfManyCards(browser)
@@ -397,8 +394,6 @@ class CardBrowserTest : RobolectricTest() {
         }
 
     @Test
-    @Ignore("Fails locally as well on macOS, not just CI. Blocks testing.")
-    @Flaky(os = OS.ALL, message = "Fails mostly on Mac and occasionally Windows")
     fun flagsAreShownInBigDecksTest() =
         runTest {
             val numberOfNotes = 75
@@ -505,7 +500,6 @@ class CardBrowserTest : RobolectricTest() {
         }
 
     @Test
-    @Flaky(os = OS.WINDOWS, "IllegalStateException: Card '1596783600440' not found")
     fun previewWorksAfterSort() =
         runTest {
             // #7286
@@ -1040,7 +1034,6 @@ class CardBrowserTest : RobolectricTest() {
         }
 
     @Test
-    @Ignore("flaky")
     fun checkCardsNotesMode() =
         runTest {
             val cardBrowser = getBrowserWithNotes(3, true)
