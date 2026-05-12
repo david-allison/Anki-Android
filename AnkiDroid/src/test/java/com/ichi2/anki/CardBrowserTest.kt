@@ -1435,8 +1435,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text only for the field in the selected note`() {
         val note0 = createFindReplaceTestNote("A", "kart", "kilogram")
         val note1 = createFindReplaceTestNote("B", "pink", "chicken")
@@ -1456,8 +1454,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text based on regular expression`() {
         val note0 = createFindReplaceTestNote("A", "kart", "ki1logram")
         val note1 = createFindReplaceTestNote("B", "pink", "chicken")
@@ -1477,8 +1473,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text in all notes if 'Only in selected notes' is unchecked`() {
         val note0 = createFindReplaceTestNote("A", "kart", "kilogram")
         val note1 = createFindReplaceTestNote("B", "pink", "chicken")
@@ -1506,8 +1500,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text in all fields of selected note if 'All fields' is selected`() {
         val note0 = createFindReplaceTestNote("A", "kart", "kilogram")
         val note1 = createFindReplaceTestNote("B", "pink", "chicken")
@@ -1528,8 +1520,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text of tags as expected if 'Tags' is selected`() {
         val note0 = createFindReplaceTestNote("A", "kart", "kilogram")
         val note1 = createFindReplaceTestNote("A", "pink", "chicken")
@@ -1550,8 +1540,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL)
-    @Ignore("flaking locally as well now; see 19021")
     fun `FindReplace - replaces text as expected when set to match case`() {
         val note0 = createFindReplaceTestNote("A", "kart", "kilogram")
         val note1 = createFindReplaceTestNote("B", "krate", "chicKen")
@@ -1921,7 +1909,7 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     /** Simulates the user using the dialog **/
-    private fun CardBrowser.createFindReplaceRequest(
+    private suspend fun CardBrowser.createFindReplaceRequest(
         field: String,
         search: String,
         replacement: String,
@@ -1941,6 +1929,9 @@ class CardBrowserTest : RobolectricTest() {
                 ARG_REGEX to regex,
             ),
         )
+        // registerFindReplaceHandler runs a launchCatchingTask inside withProgress
+        advanceCoroutines()
+        advanceRobolectricLooper()
     }
 
     private fun CardBrowser.openFindAndReplace() {

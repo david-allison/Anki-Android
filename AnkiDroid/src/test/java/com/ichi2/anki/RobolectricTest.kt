@@ -60,7 +60,9 @@ import com.ichi2.testutils.common.IgnoreFlakyTestsInCIRule
 import com.ichi2.testutils.filter
 import com.ichi2.testutils.grantPermissions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -270,6 +272,10 @@ open class RobolectricTest :
         // Robolectric needs a manual advance in PAUSED looper mode
         fun advanceRobolectricLooper() {
             Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
+        }
+
+        suspend fun advanceCoroutines() {
+            currentCoroutineContext()[TestCoroutineScheduler]?.advanceUntilIdle()
         }
 
         @JvmStatic // Using protected members which are not @JvmStatic in the superclass companion is unsupported yet
