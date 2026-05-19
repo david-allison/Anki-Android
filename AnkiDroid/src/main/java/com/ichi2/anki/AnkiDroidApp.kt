@@ -51,6 +51,7 @@ import com.ichi2.anki.logging.FragmentLifecycleLogger
 import com.ichi2.anki.logging.LogType
 import com.ichi2.anki.logging.ProductionCrashReportingTree
 import com.ichi2.anki.logging.RobolectricDebugTree
+import com.ichi2.anki.model.FieldFilters.NoSuggestFilter
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.preferences.SharedPreferencesProvider
 import com.ichi2.anki.preferences.sharedPrefs
@@ -267,8 +268,20 @@ open class AnkiDroidApp :
 
         activityAgnosticDialogs = ActivityAgnosticDialogs.register(this)
         TtsVoices.launchBuildLocalesJob()
+        applyCustomFieldFilters()
+    }
+
+    /**
+     * Applies AnkiDroid-specific implementations of field filters
+     *
+     * @see com.ichi2.anki.model.FieldFilter
+     * @see com.ichi2.anki.model.FieldFilters
+     */
+    private fun applyCustomFieldFilters() {
         // enable {{tts-voices:}} field filter
         TtsVoicesFieldFilter.ensureApplied()
+        // enable {{nosuggest:type:}} field filter (issue #10352)
+        NoSuggestFilter.ensureApplied()
     }
 
     /**
