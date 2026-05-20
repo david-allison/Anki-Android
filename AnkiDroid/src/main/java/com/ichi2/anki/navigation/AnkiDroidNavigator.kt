@@ -9,6 +9,8 @@ import com.ichi2.anki.common.destinations.BrowserDestination
 import com.ichi2.anki.common.destinations.CsvImporterDestination
 import com.ichi2.anki.common.destinations.Destination
 import com.ichi2.anki.common.destinations.Navigator
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.noteeditor.toIntent
 import com.ichi2.anki.pages.toIntent
 
 /** AnkiDroid's [Navigator] implementation. */
@@ -21,7 +23,8 @@ object AnkiDroidNavigator : Navigator {
 
     override fun toIntent(destination: Destination): Intent =
         when (destination) {
-            is BrowserDestination -> destination.toIntent(navContext)
+            is BrowserDestination -> destination.toIntent(appContext)
+            is NoteEditorDestination -> destination.toIntent(appContext)
             is CsvImporterDestination -> destination.toIntent(navContext)
         }
 }
