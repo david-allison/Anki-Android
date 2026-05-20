@@ -36,6 +36,7 @@ import com.ichi2.anki.InitialActivity
 import com.ichi2.anki.OnErrorListener
 import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.common.destinations.BrowserDestination
+import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.configureRenderingMode
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.CardId
@@ -47,7 +48,6 @@ import com.ichi2.anki.libanki.sched.DeckNode
 import com.ichi2.anki.libanki.undoAvailable
 import com.ichi2.anki.libanki.undoLabel
 import com.ichi2.anki.libanki.utils.extend
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
 import com.ichi2.anki.notetype.ManageNoteTypesDestination
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.pages.DeckOptionsDestination
@@ -303,7 +303,7 @@ class DeckPickerViewModel :
         if (deckId != null && setAsCurrent) {
             withCol { decks.select(deckId) }
         }
-        flowOfDestination.emit(NoteEditorLauncher.AddNote(deckId))
+        flowOfNavigate.emit(NoteEditorDestination.AddNote(deckId))
     }
 
     val flowOfShowContextMenu = MutableSharedFlow<DeckId>(extraBufferCapacity = 1)

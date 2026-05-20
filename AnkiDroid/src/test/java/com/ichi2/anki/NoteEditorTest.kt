@@ -212,7 +212,7 @@ class NoteEditorTest : RobolectricTest() {
     @Test
     fun verifyStartupAndCloseWithNoCollectionDoesNotCrash() {
         enableNullCollection()
-        val intent = NoteEditorLauncher.AddNote().toIntent(targetContext)
+        val intent = NoteEditorDestination.AddNote().toIntent()
         ActivityScenario.launchActivityForResult<NoteEditorActivity>(intent).use { scenario ->
             scenario.onNoteEditor { noteEditor ->
                 noteEditor.requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -225,7 +225,7 @@ class NoteEditorTest : RobolectricTest() {
 
     @Test
     fun testHandleMultimediaActionsDisplaysBottomSheet() {
-        val intent = NoteEditorLauncher.AddNote().toIntent(targetContext)
+        val intent = NoteEditorDestination.AddNote().toIntent()
         ActivityScenario.launchActivityForResult<NoteEditorActivity>(intent).use { scenario ->
             scenario.onNoteEditor { noteEditor ->
                 noteEditor.showMultimediaBottomSheet()
@@ -495,7 +495,7 @@ class NoteEditorTest : RobolectricTest() {
         val activity =
             startActivityNormallyOpenCollectionWithIntent(
                 NoteEditorActivity::class.java,
-                NoteEditorLauncher.AddNote(testDeckId1).toIntent(targetContext),
+                NoteEditorDestination.AddNote(testDeckId1).toIntent(),
             )
         val editor = activity.getNoteEditorFragment()
         val deckNameView = editor.view?.findViewById<TextView>(R.id.note_deck_name)
@@ -825,7 +825,7 @@ class NoteEditorTest : RobolectricTest() {
         val bundle =
             when (from) {
                 REVIEWER -> NoteEditorLauncher.AddNoteFromReviewer().toBundle()
-                DECK_LIST -> NoteEditorLauncher.AddNote().toBundle()
+                DECK_LIST -> NoteEditorFragment.addNoteArgs()
             }
         return openNoteEditorWithArgs(bundle)
     }
@@ -846,7 +846,7 @@ class NoteEditorTest : RobolectricTest() {
         val bundle =
             when (from) {
                 REVIEWER -> NoteEditorLauncher.EditSelection(listOf(n.firstCard().id), DEFAULT).toBundle()
-                DECK_LIST -> NoteEditorLauncher.AddNote().toBundle()
+                DECK_LIST -> NoteEditorFragment.addNoteArgs()
             }
         return openNoteEditorWithArgs(bundle)
     }

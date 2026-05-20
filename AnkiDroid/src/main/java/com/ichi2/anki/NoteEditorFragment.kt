@@ -80,6 +80,8 @@ import com.ichi2.anki.common.android.animationEnabled
 import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.crashreporting.CrashReportService
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.HashUtil
 import com.ichi2.anki.common.utils.android.digit
@@ -1533,7 +1535,7 @@ class NoteEditorFragment :
         }
 
     private fun addNewNote() {
-        launchNoteEditor(NoteEditorLauncher.AddNote(deckId))
+        requestAddLauncher.navigate(NoteEditorDestination.AddNote(deckId))
     }
 
     fun copyNote() {
