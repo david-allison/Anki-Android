@@ -17,10 +17,14 @@
 package com.ichi2.anki
 
 import android.os.Bundle
+import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import com.google.android.material.tabs.TabLayout
+import com.ichi2.anki.NoteEditorActivity.Companion.FRAGMENT_ARGS_EXTRA
+import com.ichi2.anki.NoteEditorActivity.Companion.FRAGMENT_NAME_EXTRA
+import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.android.input.ShortcutGroup
 import com.ichi2.anki.android.input.ShortcutGroupProvider
 import com.ichi2.anki.databinding.ActivityNoteEditorBinding
