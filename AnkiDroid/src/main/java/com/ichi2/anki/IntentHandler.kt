@@ -29,10 +29,8 @@ import androidx.core.content.IntentCompat
 import androidx.work.WorkManager
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.coroutines.applicationScope
-import com.ichi2.anki.common.destinations.DeferredNavigation
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.destinations.navigate
-import com.ichi2.anki.common.destinations.toIntent
 import com.ichi2.anki.common.permissions.hasLegacyStorageAccessPermission
 import com.ichi2.anki.common.permissions.isExternalStorageManagerCompat
 import com.ichi2.anki.common.utils.android.showThemedToast
@@ -273,15 +271,12 @@ class IntentHandler : AbstractIntentHandler() {
 
     private fun handleSharedText(data: Intent) {
         Timber.i("Handling shared text content for note creation")
-        val dataExtras = data.extras
-        if (dataExtras != null) {
-            navigate(NoteEditorDestination.PassArguments.from(data, dataExtras))
-        } else {
-            // Fallback if no extras, though this shouldn't happen for ACTION_SEND
-            val noteEditorIntent = with(DeferredNavigation) { NoteEditorDestination.AddNote().toIntent() }
-            noteEditorIntent.setDataAndType(data.data, data.type)
-            startActivity(noteEditorIntent)
-        }
+        val destination =
+            data.extras
+                ?.let { NoteEditorDestination.PassArguments.from(data, it) }
+                // Fallback if no extras, though this shouldn't happen for ACTION_SEND
+                ?: NoteEditorDestination.AddNote()
+        navigate(destination)
     }
 
     private fun deleteDownloadedDeck(sharedDeckUri: Uri?) {
