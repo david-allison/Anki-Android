@@ -30,6 +30,7 @@ import com.ichi2.anki.asyncIO
 import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.destinations.BrowserDestination
+import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
@@ -273,9 +274,8 @@ class ReviewerViewModel(
 
     private suspend fun emitEditNoteDestination() {
         val cardId = currentCard.await().id
-        val destination = NoteEditorLauncher.EditNoteFromPreviewer(cardId)
         Timber.i("Opening 'edit note' for card %d", cardId)
-        destinationFlow.emit(destination)
+        navigateFlow.emit(NoteEditorDestination.EditNoteFromPreviewer(cardId))
     }
 
     private suspend fun emitAddNoteDestination() {
