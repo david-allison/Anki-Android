@@ -78,7 +78,7 @@ import com.ichi2.anki.model.LegacySortType.NO_SORTING
 import com.ichi2.anki.model.LegacySortType.SORT_FIELD
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.model.SortType
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
+import com.ichi2.anki.noteeditor.toIntent
 import com.ichi2.anki.servicelayer.NoteService
 import com.ichi2.anki.setFlagFilterSync
 import com.ichi2.anki.settings.Prefs
