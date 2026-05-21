@@ -21,12 +21,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
-import com.ichi2.anim.ActivityTransitionAnimation
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.NoteEditorActivity
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.browser.CardBrowserViewModel
+import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.utils.Destination
@@ -120,7 +120,7 @@ sealed interface NoteEditorLauncher : Destination {
      * @property animation The animation direction to use when transitioning.
      */
     data class AddNoteFromReviewer(
-        val animation: ActivityTransitionAnimation.Direction? = null,
+        val animation: TransitionDirection? = null,
     ) : NoteEditorLauncher {
         override fun toBundle(): Bundle =
             Bundle().apply {
@@ -152,7 +152,7 @@ sealed interface NoteEditorLauncher : Destination {
      */
     data class EditSelection(
         val cardIds: List<CardId>,
-        val animation: ActivityTransitionAnimation.Direction,
+        val animation: TransitionDirection,
         val inCardBrowserActivity: Boolean = false,
     ) : NoteEditorLauncher {
         override fun toBundle(): Bundle =
