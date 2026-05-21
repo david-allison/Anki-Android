@@ -1539,11 +1539,7 @@ class NoteEditorFragment :
     }
 
     fun copyNote() {
-        launchNoteEditor(NoteEditorLauncher.CopyNote(deckId, fieldsText, selectedTags))
-    }
-
-    private fun launchNoteEditor(arguments: NoteEditorLauncher) {
-        requestAddLauncher.launch(arguments.toIntent(requireContext()))
+        requestAddLauncher.navigate(NoteEditorDestination.CopyNote(deckId, fieldsText, selectedTags))
     }
 
     // ----------------------------------------------------------------------------
