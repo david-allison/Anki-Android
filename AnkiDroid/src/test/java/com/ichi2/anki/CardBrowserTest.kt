@@ -26,12 +26,14 @@ import android.widget.SpinnerAdapter
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.core.view.children
 import androidx.core.view.get
 import androidx.core.view.size
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
+import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
@@ -488,6 +490,26 @@ class CardBrowserTest : RobolectricTest() {
         } finally {
             unmockkStatic(::isRunningAsUnitTest)
             unmockkObject(IntentHandler)
+        }
+    }
+
+    /**
+     * Sending the `anki://x-callback-url/browser?search=` deep link searches in [CardBrowser].
+     */
+    @Test
+    fun browserDeepLinkOpensCardBrowserWithSearch() {
+        ensureCollectionLoadIsSynchronous()
+        addBasicNote("dog", "barks")
+        addBasicNote("cat", "meows")
+
+        val deepLink = Intent(Intent.ACTION_VIEW, "anki://x-callback-url/browser?search=dog".toUri())
+
+        ActivityScenario.launch<CardBrowser>(deepLink).use { scenario ->
+            advanceRobolectricLooper()
+            scenario.onActivity { browser ->
+                assertThat("the deep link's search is applied", browser.viewModel.searchTerms, equalTo("dog"))
+                assertThat("only the matching note is shown", browser.viewModel.rowCount, equalTo(1))
+            }
         }
     }
 
