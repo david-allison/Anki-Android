@@ -109,6 +109,7 @@ class IntentHandler : AbstractIntentHandler() {
                 }
             LaunchType.SYNC -> runIfStoragePermissions { handleSyncIntent(reloadIntent, action) }
             LaunchType.REVIEW -> runIfStoragePermissions { handleReviewIntent(reloadIntent, intent) }
+            LaunchType.OPEN_BROWSER -> runIfStoragePermissions { handleBrowserIntent(intent) }
             LaunchType.DEFAULT_START_APP_IF_NEW -> {
                 Timber.d("onCreate() performing default action")
                 launchDeckPickerIfNoOtherTasks(reloadIntent)
@@ -150,6 +151,23 @@ class IntentHandler : AbstractIntentHandler() {
             Timber.i("No Storage Permission, cancelling intent '%s'", action)
             launchDeckPickerIfNoOtherTasks(reloadIntent)
         }
+    }
+
+    /**
+     * Opens [CardBrowser] in response to `anki://x-callback-url/browser`, under [DeckPicker].
+     */
+    private fun handleBrowserIntent(intent: Intent) {
+        Timber.i("Handling intent to open the Card Browser")
+        val browserIntent =
+            Intent(this, CardBrowser::class.java).apply {
+                action = Intent.ACTION_VIEW
+                data = intent.data
+            }
+        TaskStackBuilder
+            .create(this)
+            .addNextIntentWithParentStack(browserIntent)
+            .startActivities()
+        finish()
     }
 
     private fun handleReviewIntent(
@@ -328,6 +346,9 @@ class IntentHandler : AbstractIntentHandler() {
 
         SYNC,
         REVIEW,
+
+        /** `anki://x-callback-url/browser` deep link */
+        OPEN_BROWSER,
         COPY_DEBUG_INFO,
     }
 
@@ -366,11 +387,22 @@ class IntentHandler : AbstractIntentHandler() {
             return granted
         }
 
+        /** Whether this is the `anki://x-callback-url/browser` deep link that opens the [CardBrowser]. */
+        private fun Intent.isBrowserDeepLink(): Boolean {
+            val data = data ?: return false
+            return action == Intent.ACTION_VIEW &&
+                data.scheme == "anki" &&
+                data.host == "x-callback-url" &&
+                data.path == "/browser"
+        }
+
         @VisibleForTesting
         @CheckResult
         fun getLaunchType(intent: Intent): LaunchType {
             val action = intent.action
-            return if (action == Intent.ACTION_SEND || (Intent.ACTION_VIEW == action && isValidViewIntent(intent))) {
+            return if (intent.isBrowserDeepLink()) {
+                LaunchType.OPEN_BROWSER
+            } else if (action == Intent.ACTION_SEND || (Intent.ACTION_VIEW == action && isValidViewIntent(intent))) {
                 val mimeType = intent.resolveMimeType()
                 when {
                     mimeType?.startsWith("image/") == true -> LaunchType.IMAGE_IMPORT
@@ -418,6 +450,7 @@ class IntentHandler : AbstractIntentHandler() {
                 LaunchType.TEXT_IMPORT,
                 LaunchType.IMAGE_IMPORT,
                 LaunchType.SHARED_TEXT,
+                LaunchType.OPEN_BROWSER,
                 -> true
                 LaunchType.COPY_DEBUG_INFO -> false
             }

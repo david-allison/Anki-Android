@@ -51,7 +51,7 @@ class CardBrowserDeepLinkTest : InstrumentedTest() {
 
     /**
      * Waits for an activity of type [T] to resume (the end of the deep-link chain), runs [block]
-     * against it on the main thread, then finishes it. Fails if [T] does not resume in time.
+     * against it on the main thread, then finishes its task. Fails if [T] does not resume in time.
      */
     private inline fun <reified T : Activity> waitForActivity(
         timeout: Duration = 10.seconds,
@@ -71,7 +71,7 @@ class CardBrowserDeepLinkTest : InstrumentedTest() {
         try {
             instrumentation.runOnMainSync { resolved.block() }
         } finally {
-            instrumentation.runOnMainSync { resolved.finish() }
+            instrumentation.runOnMainSync { resolved.finishAffinity() }
         }
     }
 }
