@@ -30,6 +30,7 @@ import com.ichi2.anki.asyncIO
 import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.destinations.BrowserDestination
+import com.ichi2.anki.common.destinations.StatisticsDestination
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
@@ -47,7 +48,6 @@ import com.ichi2.anki.pages.CardInfoDestination
 import com.ichi2.anki.pages.DeckOptionsDestination
 import com.ichi2.anki.pages.DeckOptionsEntry
 import com.ichi2.anki.pages.PostRequestUri
-import com.ichi2.anki.pages.StatisticsDestination
 import com.ichi2.anki.preferences.reviewer.ViewerAction
 import com.ichi2.anki.previewer.CardViewerViewModel
 import com.ichi2.anki.previewer.TypeAnswer
@@ -762,7 +762,7 @@ class ReviewerViewModel(
                     ViewerAction.USER_ACTION_9 -> userAction(9)
                     ViewerAction.SUSPEND_MENU -> suspendCard()
                     ViewerAction.BURY_MENU -> buryCard()
-                    ViewerAction.STATISTICS -> destinationFlow.emit(StatisticsDestination())
+                    ViewerAction.STATISTICS -> navigateFlow.emit(StatisticsDestination)
                     ViewerAction.BROWSE -> emitBrowseDestination()
                     ViewerAction.PLAY_MEDIA -> replayMedia()
                     ViewerAction.FLAG_MENU -> {}

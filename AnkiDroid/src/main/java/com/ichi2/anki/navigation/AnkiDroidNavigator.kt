@@ -9,6 +9,7 @@ import com.ichi2.anki.common.destinations.BrowserDestination
 import com.ichi2.anki.common.destinations.CsvImporterDestination
 import com.ichi2.anki.common.destinations.Destination
 import com.ichi2.anki.common.destinations.Navigator
+import com.ichi2.anki.common.destinations.StatisticsDestination
 import com.ichi2.anki.pages.toIntent
 
 /** AnkiDroid's [Navigator] implementation. */
@@ -23,6 +24,7 @@ object AnkiDroidNavigator : Navigator {
         when (destination) {
             is BrowserDestination -> destination.toIntent(navContext)
             is CsvImporterDestination -> destination.toIntent(navContext)
+            is StatisticsDestination -> destination.toIntent(navContext)
         }
 }
 
