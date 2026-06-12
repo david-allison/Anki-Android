@@ -82,6 +82,7 @@ import com.ichi2.anki.InitialActivity.StartupFailure.DirectoryNotAccessible
 import com.ichi2.anki.InitialActivity.StartupFailure.DiskFull
 import com.ichi2.anki.InitialActivity.StartupFailure.FutureAnkidroidVersion
 import com.ichi2.anki.InitialActivity.StartupFailure.SDCardNotMounted
+import com.ichi2.anki.InitialActivity.StartupFailure.StorageUndecided
 import com.ichi2.anki.IntentHandler.Companion.intentToReviewDeckFromShortcuts
 import com.ichi2.anki.account.AccountActivity
 import com.ichi2.anki.analytics.UsageAnalytics
@@ -1022,6 +1023,11 @@ open class DeckPicker :
             is StartupFailure.InitializationError -> FatalErrorDialog.build(this, failure).show()
             is DiskFull -> displayNoStorageError()
             is DBError -> displayDatabaseFailure(CustomExceptionData.fromException(failure.exception))
+            is StorageUndecided -> {
+                Timber.i("Displaying storage setup required")
+                // TODO: #19552 - replace with the storage setup flow.
+                showDatabaseErrorDialog(DatabaseErrorDialogType.DIALOG_LOAD_FAILED)
+            }
         }
     }
 
