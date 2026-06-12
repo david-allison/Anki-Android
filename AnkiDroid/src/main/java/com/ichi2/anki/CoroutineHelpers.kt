@@ -48,9 +48,11 @@ import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.dialogs.DatabaseErrorDialog
 import com.ichi2.anki.dialogs.DatabaseErrorDialog.DatabaseErrorDialogType
 import com.ichi2.anki.exception.StorageAccessException
+import com.ichi2.anki.exception.StorageNotConfiguredException
 import com.ichi2.anki.libanki.exception.InvalidSearchException
 import com.ichi2.anki.pages.DeckOptionsDestination
 import com.ichi2.anki.snackbar.showSnackbar
+import com.ichi2.anki.startup.redirectToMainEntryPoint
 import com.ichi2.anki.utils.openUrl
 import com.ichi2.utils.create
 import com.ichi2.utils.message
@@ -201,6 +203,12 @@ suspend fun <T> FragmentActivity.runCatching(
             is BackendInterruptedException -> {
                 Timber.w(exc, errorMessage)
                 exc.localizedMessage?.let { showSnackbar(it) }
+            }
+            is StorageNotConfiguredException -> {
+                // expected before first-run setup completes: no crash report
+                // the activity raced or outlived its 'ensureStorageReady' check
+                Timber.w(exc, errorMessage)
+                if (!isFinishing) redirectToMainEntryPoint()
             }
             is BackendNetworkException, is BackendSyncException, is StorageAccessException, is BackendCardTypeException -> {
                 // these exceptions do not generate worthwhile crash reports
