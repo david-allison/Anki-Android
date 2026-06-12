@@ -103,6 +103,7 @@ import com.ichi2.anki.previewer.TemplatePreviewerFragment
 import com.ichi2.anki.previewer.TemplatePreviewerPage
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
+import com.ichi2.anki.startup.ensureStorageReady
 import com.ichi2.anki.ui.ResizablePaneManager
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.dismissAllDialogFragments
@@ -196,6 +197,9 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
             return
         }
         super.onCreate(savedInstanceState)
+        if (!ensureStorageReady()) {
+            return
+        }
         // Load the args either from the intent or savedInstanceState bundle
         if (savedInstanceState == null) {
             // get note type id
