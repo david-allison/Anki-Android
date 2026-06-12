@@ -106,7 +106,7 @@ import com.ichi2.anki.servicelayer.NoteService.toggleMark
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.settings.enums.DayTheme
 import com.ichi2.anki.snackbar.showSnackbar
-import com.ichi2.anki.startup.ensureStoragePermissions
+import com.ichi2.anki.startup.ensureStorageReady
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.ext.cardStatsNoCardClean
@@ -221,7 +221,7 @@ open class Reviewer :
             return
         }
         super.onCreate(savedInstanceState)
-        if (!ensureStoragePermissions()) {
+        if (!ensureStorageReady()) {
             return
         }
         colorPalette = findViewById(R.id.whiteboard_editor)
