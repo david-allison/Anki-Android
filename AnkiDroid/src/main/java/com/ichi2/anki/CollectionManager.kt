@@ -31,7 +31,6 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CollectionManager.withOpenColOrNull
 import com.ichi2.anki.CollectionManager.withQueue
 import com.ichi2.anki.backend.createDatabaseUsingRustBackend
-import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.common.utils.android.Threads
 import com.ichi2.anki.common.utils.android.isRobolectric
 import com.ichi2.anki.exception.StorageNotConfiguredException
@@ -303,8 +302,8 @@ object CollectionManager {
     }
 
     fun getCollectionDirectory() =
-        // Allow execution if appContext is not initialized
-        CollectionHelper.getCurrentAnkiDroidDirectoryOptionalContext(AnkiDroidApp.sharedPrefs()) { appContext }
+        // does not require appContext to be initialized
+        CollectionHelper.getCurrentAnkiDroidDirectory(AnkiDroidApp.sharedPrefs())
 
     /** Ensures the AnkiDroid directory is created, then returns the path to the
      * folder and the name of the collection file inside it. */

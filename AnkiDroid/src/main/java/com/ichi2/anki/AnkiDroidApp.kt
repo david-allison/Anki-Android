@@ -55,6 +55,8 @@ import com.ichi2.anki.services.AlarmManagerService
 import com.ichi2.anki.services.NotificationService
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.settings.PrefsRepository
+import com.ichi2.anki.startup.ensureCollectionPathSet
+import com.ichi2.anki.startup.getDefaultAnkiDroidDirectory
 import com.ichi2.anki.ui.dialogs.ActivityAgnosticDialogs
 import com.ichi2.utils.AdaptionUtil
 import com.ichi2.utils.ExceptionUtil
@@ -250,6 +252,7 @@ open class AnkiDroidApp :
             //  is not considered to be a fatal error, unless the directory itself is not writable.
             val ankiDroidDir =
                 try {
+                    ensureCollectionPathSet(this)
                     CollectionHelper.getCurrentAnkiDroidDirectory(this)
                 } catch (e: SystemStorageException) {
                     fatalInitializationError = FatalInitializationError.StorageError(e)
@@ -266,7 +269,7 @@ open class AnkiDroidApp :
             } catch (e: StorageAccessException) {
                 Timber.e(e, "Could not initialize AnkiDroid directory")
                 try {
-                    val defaultDir = CollectionHelper.getDefaultAnkiDroidDirectory(this)
+                    val defaultDir = getDefaultAnkiDroidDirectory(this)
                     if (SdCard.isMounted && CollectionHelper.getCurrentAnkiDroidDirectory(this) == defaultDir) {
                         // Don't send report if the user is using a custom directory as SD cards trip up here a lot
                         sendExceptionReport(e, "AnkiDroidApp.onCreate")
