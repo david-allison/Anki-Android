@@ -39,10 +39,10 @@ import com.ichi2.anki.databinding.DialogAddEditReminderBinding
 import com.ichi2.anki.dialogs.ConfirmationDialog
 import com.ichi2.anki.dialogs.registerDeckSelectedHandler
 import com.ichi2.anki.dialogs.startDeckSelection
-import com.ichi2.anki.isDefaultDeckEmpty
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.Consts
 import com.ichi2.anki.libanki.DeckId
+import com.ichi2.anki.libanki.isDefaultDeckEmpty
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.reviewreminders.AddEditReminderDialog.Companion.getInstance
 import com.ichi2.anki.settings.Prefs

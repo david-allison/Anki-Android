@@ -14,12 +14,9 @@
  *  this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.ichi2.anki
+package com.ichi2.anki.libanki
 
 import com.ichi2.anki.CollectionManager.withCol
-import com.ichi2.anki.libanki.Collection
-import com.ichi2.anki.libanki.Consts
-import com.ichi2.anki.libanki.DeckId
 
 /**
  * Checks if a given deck, including its subdecks if specified, is empty.

@@ -41,8 +41,8 @@ import com.ichi2.anki.dialogs.DeckSelectionDialog
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.dialogs.registerDeckSelectedHandler
 import com.ichi2.anki.dialogs.startDeckSelection
-import com.ichi2.anki.isCollectionEmpty
-import com.ichi2.anki.isDefaultDeckEmpty
+import com.ichi2.anki.libanki.isCollectionEmpty
+import com.ichi2.anki.libanki.isDefaultDeckEmpty
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
