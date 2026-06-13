@@ -18,11 +18,11 @@ package com.ichi2.anki.pages
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import com.ichi2.anki.R
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.withoutUnicodeIsolation
-import com.ichi2.anki.ui.internationalization.toSentenceCase
+import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.Destination
 
 data class CardInfoDestination(
@@ -33,11 +33,13 @@ data class CardInfoDestination(
         // title contains FSI and PDI character types
         val simplifiedTitle = withoutUnicodeIsolation(title)
         val sentenceStrings =
-            listOf(
-                simplifiedTitle.toSentenceCase(context, R.string.sentence_card_stats_current_card_study),
-                simplifiedTitle.toSentenceCase(context, R.string.sentence_card_stats_current_card_browse),
-                simplifiedTitle.toSentenceCase(context, R.string.sentence_card_stats_previous_card_study),
-            )
+            with(context) {
+                listOf(
+                    TR.sentenceCase.cardStatsCurrentCardStudy(simplifiedTitle),
+                    TR.sentenceCase.cardStatsCurrentCardBrowse(simplifiedTitle),
+                    TR.sentenceCase.cardStatsPreviousCardStudy(simplifiedTitle),
+                )
+            }
         val cardInfoTitle = sentenceStrings.firstOrNull { it != simplifiedTitle } ?: title
         val arguments =
             Bundle().apply {

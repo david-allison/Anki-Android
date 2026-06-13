@@ -56,6 +56,24 @@ class SentenceCaseTest : RobolectricTest() {
                     assertThat(TR.sentenceCase.changeDeck, equalTo("Change deck"))
                     assertThat(TR.sentenceCase.toggleMark, equalTo("Toggle mark"))
                     assertThat(TR.sentenceCase.selectImage, equalTo("Select image"))
+                    assertThat(TR.sentenceCase.selectiveStudy, equalTo("Selective study"))
+                    assertThat(TR.sentenceCase.chooseTags, equalTo("Choose tags"))
+                    assertThat(TR.sentenceCase.repositionNewCards, equalTo("Reposition new cards"))
+                    assertThat(TR.sentenceCase.allFields, equalTo("All fields"))
+                    assertThat(TR.sentenceCase.tagMissing, equalTo("Tag missing"))
+                    assertThat(TR.sentenceCase.checkMediaDeleteUnused, equalTo("Delete unused"))
+
+                    // input-taking accessors: a Title Case input only maps to the sentence form
+                    // if the correct sentence-case resource is wired
+                    assertThat(TR.sentenceCase.gestureToggleWhiteboard("Toggle Whiteboard"), equalTo("Toggle whiteboard"))
+                    assertThat(TR.sentenceCase.gestureFlagRed("Toggle Red Flag"), equalTo("Toggle red flag"))
+                    assertThat(TR.sentenceCase.gestureFlagOrange("Toggle Orange Flag"), equalTo("Toggle orange flag"))
+                    assertThat(TR.sentenceCase.gestureFlagGreen("Toggle Green Flag"), equalTo("Toggle green flag"))
+                    assertThat(TR.sentenceCase.gestureFlagBlue("Toggle Blue Flag"), equalTo("Toggle blue flag"))
+                    assertThat(TR.sentenceCase.gestureFlagPink("Toggle Pink Flag"), equalTo("Toggle pink flag"))
+                    assertThat(TR.sentenceCase.gestureFlagTurquoise("Toggle Turquoise Flag"), equalTo("Toggle turquoise flag"))
+                    assertThat(TR.sentenceCase.gestureFlagPurple("Toggle Purple Flag"), equalTo("Toggle purple flag"))
+                    assertThat(TR.sentenceCase.gestureFlagRemove("Remove Flag"), equalTo("Remove flag"))
                 }
             }.close()
 
@@ -94,6 +112,10 @@ class SentenceCaseTest : RobolectricTest() {
                     assertThat(TR.sentenceCase.copyDebugInfo, equalTo("Copy debug info"))
                     assertThat(TR.sentenceCase.addField, equalTo("Add field"))
                     assertThat(TR.sentenceCase.allDecks, equalTo("All decks"))
+                    assertThat(TR.sentenceCase.cardStatsCurrentCardStudy("Current Card (Study)"), equalTo("Current card (study)"))
+                    assertThat(TR.sentenceCase.cardStatsCurrentCardBrowse("Current Card (Browse)"), equalTo("Current card (browse)"))
+                    assertThat(TR.sentenceCase.cardStatsPreviousCardStudy("Previous Card (Study)"), equalTo("Previous card (study)"))
+                    assertThat(TR.sentenceCase.gradeNow, equalTo("Grade now"))
 
                     assertThat("syncMediaLogTitle", TR.syncMediaLogTitle(), equalTo("Media Sync Log"))
                     assertThat(TR.sentenceCase.mediaSyncLog, equalTo("Media sync log"))
