@@ -12,6 +12,7 @@ configure<LibraryExtension> {
 
 dependencies {
     implementation(project(":common"))
+    implementation(project(":compat"))
 
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.appcompat)
