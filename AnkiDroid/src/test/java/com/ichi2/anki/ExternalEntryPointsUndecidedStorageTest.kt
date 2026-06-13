@@ -10,7 +10,8 @@ import android.content.ContentProvider
 import android.content.Intent
 import android.os.Build
 import androidx.core.net.toUri
-import com.ichi2.anki.storage.StorageDecision
+import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.testutils.ExternalEntryPoints.EntryPoint
 import com.ichi2.testutils.grantPermissions
 import org.junit.After
@@ -25,7 +26,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.fail
 
 /**
- * Handles the [CollectionHelper.storageDecision] returning [StorageDecision.Undecided].
+ * Handles the [com.ichi2.anki.common.storage.CollectionHelper.storageDecision] returning [StorageDecision.Undecided].
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 class ExternalEntryPointsUndecidedStorageTest : RobolectricTest() {

@@ -31,6 +31,8 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CollectionManager.withOpenColOrNull
 import com.ichi2.anki.CollectionManager.withQueue
 import com.ichi2.anki.backend.createDatabaseUsingRustBackend
+import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.common.utils.android.Threads
 import com.ichi2.anki.common.utils.android.isRobolectric
 import com.ichi2.anki.exception.StorageNotConfiguredException
@@ -39,7 +41,6 @@ import com.ichi2.anki.libanki.CollectionFiles
 import com.ichi2.anki.libanki.LibAnki
 import com.ichi2.anki.libanki.Storage.collection
 import com.ichi2.anki.libanki.importCollectionPackage
-import com.ichi2.anki.storage.StorageDecision
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -140,7 +141,7 @@ object CollectionManager {
      * sure the collection won't be closed or modified by another thread. This guarantee
      * does not hold if legacy code calls [getColUnsafe].
      *
-     * @throws StorageNotConfiguredException If [CollectionHelper.storageDecision] is undecided
+     * @throws StorageNotConfiguredException If [com.ichi2.anki.common.storage.CollectionHelper.storageDecision] is undecided
      * (user has not selected a storage location).
      */
     suspend fun <T> withCol(
@@ -264,7 +265,7 @@ object CollectionManager {
      * Automatically called by [withCol]. Can be called directly to ensure collection
      * is loaded at a certain point in time, or to ensure no errors occur.
      *
-     * @throws StorageNotConfiguredException If [CollectionHelper.storageDecision] is undecided
+     * @throws StorageNotConfiguredException If [com.ichi2.anki.common.storage.CollectionHelper.storageDecision] is undecided
      * (user has not selected a storage location).
      */
     suspend fun ensureOpen() {
@@ -276,7 +277,7 @@ object CollectionManager {
     /**
      * See [ensureOpen]. This must only be run inside the queue.
      *
-     * @throws StorageNotConfiguredException If [CollectionHelper.storageDecision] is not
+     * @throws StorageNotConfiguredException If [com.ichi2.anki.common.storage.CollectionHelper.storageDecision] is not
      * [StorageDecision.Decided] (user has not selected a storage location).
      */
     private fun ensureOpenInner() {

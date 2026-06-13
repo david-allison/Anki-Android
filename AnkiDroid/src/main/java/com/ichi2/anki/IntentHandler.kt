@@ -31,6 +31,8 @@ import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.coroutines.applicationScope
 import com.ichi2.anki.common.permissions.hasLegacyStorageAccessPermission
 import com.ichi2.anki.common.permissions.isExternalStorageManagerCompat
+import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.trimToLength
 import com.ichi2.anki.dialogs.DialogHandler.Companion.storeMessage
@@ -41,7 +43,6 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.noteeditor.NoteEditorLauncher
 import com.ichi2.anki.servicelayer.ScopedStorageService
 import com.ichi2.anki.settings.Prefs
-import com.ichi2.anki.storage.StorageDecision
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.MimeTypeUtils
 import com.ichi2.anki.worker.SyncWorker
@@ -138,7 +139,7 @@ class IntentHandler : AbstractIntentHandler() {
      *  * AnkiDroid is using a legacy directory to store user data but has access to it since storage permission
      * has been granted (as long as AnkiDroid targeted API < 30, requested legacy storage, and has not been uninstalled since)
      *
-     * The user must also have [decided][CollectionHelper.storageDecision] where data is stored;
+     * The user must also have [decided][com.ichi2.anki.common.storage.CollectionHelper.storageDecision] where data is stored;
      * otherwise they are routed to the [DeckPicker].
      */
     @NeedsTest("clicking a file in 'Files' to import")

@@ -2,7 +2,8 @@
 
 package com.ichi2.anki
 
-import com.ichi2.anki.storage.StorageDecision
+import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.testutils.ActivityList
 import com.ichi2.testutils.ActivityList.ActivityLaunchParam
 import com.ichi2.testutils.skipTest
@@ -13,7 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
 /**
- * All activities start crash-free when [CollectionHelper.storageDecision] returns
+ * All activities start crash-free when [com.ichi2.anki.common.storage.CollectionHelper.storageDecision] returns
  * [StorageDecision.Undecided].
  *
  * Unlike [ExternalEntryPointsUndecidedStorageTest], this covers activities reachable without

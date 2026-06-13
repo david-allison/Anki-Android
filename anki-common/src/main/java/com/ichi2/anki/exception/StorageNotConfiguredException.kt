@@ -4,7 +4,7 @@ package com.ichi2.anki.exception
 
 /**
  * Thrown when the collection is accessed before the user has chosen where it should be stored
- * (the [storage decision][com.ichi2.anki.storage.StorageDecision] is `Undecided`).
+ * (the [storage decision][com.ichi2.anki.common.storage.StorageDecision] is `Undecided`).
  *
  * Use `StorageAccessException` if a known path is unusable.
  */
