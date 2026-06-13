@@ -8,6 +8,7 @@ import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
 import com.ichi2.anki.CollectionHelper.PREF_COLLECTION_PATH
 import com.ichi2.anki.CollectionHelper.getCurrentAnkiDroidDirectory
+import com.ichi2.anki.common.android.ApplicationContextInitializer
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.isInstrumentationTest
 import com.ichi2.anki.exception.StorageAccessException
@@ -120,13 +121,24 @@ object CollectionHelper {
     var ankiDroidDirectoryOverride: File? = null
 
     /**
-     * Whether the user has chosen where the collection is stored.
+     * Whether the user has chosen where the collection is stored: [StorageDecision.Decided] once
+     * [PREF_COLLECTION_PATH] is set (or a [ankiDroidDirectoryOverride] is active), which mirrors
+     * when [getCurrentAnkiDroidDirectory] can return a directory rather than throwing.
      *
-     * TODO: real implementation based on whether [PREF_COLLECTION_PATH] is set.
-     *  TODO: What is a user revokes full storage?
-     *  This currently returns [StorageDecision.Decided], so callers that gate on it are no-ops.
+     * Until the dedicated first-run setup flow exists, the path is set during startup by
+     * [ensureCollectionPathSet][com.ichi2.anki.startup.ensureCollectionPathSet], so this is
+     * [StorageDecision.Decided] by the time the collection is opened.
+     *
+     * TODO: What if a user revokes full storage?
      */
-    fun storageDecision(): StorageDecision = storageDecisionTestOverride ?: StorageDecision.Decided
+    fun storageDecision(): StorageDecision {
+        storageDecisionTestOverride?.let { return it }
+        if (ankiDroidDirectoryOverride != null) return StorageDecision.Decided
+        // appContext is unset before AnkiDroidApp.onCreate (e.g. EmptyApplication tests); the
+        // collection is not opened in that state, so assume the path has been chosen.
+        val preferences = ApplicationContextInitializer.instanceOrNull?.sharedPrefs() ?: return StorageDecision.Decided
+        return if (preferences.contains(PREF_COLLECTION_PATH)) StorageDecision.Decided else StorageDecision.Undecided
+    }
 
     /**
      * @return the absolute path to the AnkiDroid directory.
