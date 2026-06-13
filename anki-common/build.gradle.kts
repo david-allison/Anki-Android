@@ -15,6 +15,7 @@ configure<LibraryExtension> {
 
 dependencies {
     implementation(project(":common"))
+    implementation(project(":common:android"))
     implementation(project(":libanki"))
 
     implementation(libs.androidx.activity)

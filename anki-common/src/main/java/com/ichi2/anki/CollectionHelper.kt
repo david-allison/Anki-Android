@@ -1,19 +1,17 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>
+/*
+ * // SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 package com.ichi2.anki
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
-import com.ichi2.anki.CollectionHelper.PREF_COLLECTION_PATH
-import com.ichi2.anki.CollectionHelper.getCurrentAnkiDroidDirectory
 import com.ichi2.anki.common.android.ApplicationContextInitializer
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.isInstrumentationTest
 import com.ichi2.anki.exception.StorageAccessException
 import com.ichi2.anki.exception.StorageNotConfiguredException
-import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.CollectionFiles
 import com.ichi2.anki.storage.StorageDecision
 import timber.log.Timber
@@ -25,7 +23,7 @@ object CollectionHelper {
      * The preference key for the path to the current AnkiDroid directory
      *
      * This directory contains all AnkiDroid data and media for a given collection
-     * Except the Android preferences, cached files and [MetaDB]
+     * Except the Android preferences, cached files and `MetaDB`
      *
      * This can be changed by the Preferences screen
      * to allow a user to access a second collection via the same AnkiDroid app instance.
@@ -55,7 +53,7 @@ object CollectionHelper {
      * the collection.media sub-directory.
      *
      * @param dir  Directory to initialize
-     * @throws StorageAccessException If no write access to directory
+     * @throws com.ichi2.anki.exception.StorageAccessException If no write access to directory
      */
     @Synchronized
     @Throws(StorageAccessException::class)
@@ -94,7 +92,7 @@ object CollectionHelper {
 
     /**
      * @return Returns an array of [File]s reflecting the directories that AnkiDroid can access without storage permissions
-     * @see android.content.Context.getExternalFilesDirs
+     * @see Context.getExternalFilesDirs
      */
     fun getAppSpecificExternalDirectories(context: Context): List<File> = context.getExternalFilesDirs(null)?.filterNotNull() ?: listOf()
 
@@ -111,7 +109,7 @@ object CollectionHelper {
     fun getAppSpecificInternalAnkiDroidDirectory(context: Context): String = context.filesDir.absolutePath
 
     /**
-     * @return the path to the actual [Collection] file
+     * @return the path to the actual [com.ichi2.anki.libanki.Collection] file
      *
      * @throws UnsupportedOperationException if the collection is in-memory
      */
@@ -121,13 +119,13 @@ object CollectionHelper {
     var ankiDroidDirectoryOverride: File? = null
 
     /**
-     * Whether the user has chosen where the collection is stored: [StorageDecision.Decided] once
+     * Whether the user has chosen where the collection is stored: [com.ichi2.anki.storage.StorageDecision.Decided] once
      * [PREF_COLLECTION_PATH] is set (or a [ankiDroidDirectoryOverride] is active), which mirrors
      * when [getCurrentAnkiDroidDirectory] can return a directory rather than throwing.
      *
      * Until the dedicated first-run setup flow exists, the path is set during startup by
      * [ensureCollectionPathSet][com.ichi2.anki.startup.ensureCollectionPathSet], so this is
-     * [StorageDecision.Decided] by the time the collection is opened.
+     * [com.ichi2.anki.storage.StorageDecision.Decided] by the time the collection is opened.
      *
      * TODO: What if a user revokes full storage?
      */
@@ -143,7 +141,7 @@ object CollectionHelper {
     /**
      * @return the absolute path to the AnkiDroid directory.
      *
-     * @throws StorageNotConfiguredException if the user has not yet decided where the collection
+     * @throws com.ichi2.anki.exception.StorageNotConfiguredException if the user has not yet decided where the collection
      * is stored ([PREF_COLLECTION_PATH] is unset): set during startup by
      * [ensureCollectionPathSet][com.ichi2.anki.startup.ensureCollectionPathSet]
      */
@@ -157,7 +155,7 @@ object CollectionHelper {
     /**
      * @return the absolute path to the AnkiDroid directory.
      *
-     * @throws StorageNotConfiguredException if the user has not yet decided where the collection
+     * @throws com.ichi2.anki.exception.StorageNotConfiguredException if the user has not yet decided where the collection
      * is stored ([PREF_COLLECTION_PATH] is unset): set during startup by
      * [ensureCollectionPathSet][com.ichi2.anki.startup.ensureCollectionPathSet]
      */
