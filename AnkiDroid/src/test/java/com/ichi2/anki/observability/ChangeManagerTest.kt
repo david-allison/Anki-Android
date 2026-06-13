@@ -36,6 +36,7 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.javaType
 import kotlin.reflect.jvm.isAccessible
 
+// TODO: move this to anki-common once dependencies are handled
 // this cannot yet use `EmptyApplication` - `CrashReportService` dependency
 @RunWith(AndroidJUnit4::class)
 class ChangeManagerExceptionHandlingTest : JvmTest() {
