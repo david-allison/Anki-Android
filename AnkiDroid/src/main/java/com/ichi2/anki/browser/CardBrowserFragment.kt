@@ -106,6 +106,7 @@ import com.ichi2.anki.browser.search.iconRes
 import com.ichi2.anki.browser.search.savedFilters
 import com.ichi2.anki.common.ALL_DECKS_ID
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.dialogs.BrowserOptionsDialog
 import com.ichi2.anki.dialogs.CardBrowserOrderDialog
 import com.ichi2.anki.dialogs.ChangeNoteTypeDialog
@@ -130,7 +131,7 @@ import com.ichi2.anki.libanki.undoLabel
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.model.CardsOrNotes.CARDS
 import com.ichi2.anki.model.SelectableDeck
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
+import com.ichi2.anki.noteeditor.toIntent
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.previewer.PreviewerFragment
@@ -1763,8 +1764,12 @@ class CardBrowserFragment :
         RowSelection(rowId = this, topOffset = calculateTopOffset(activityViewModel.getPositionOfId(this)!!))
 
     @VisibleForTesting
-    val addNoteLauncher: NoteEditorLauncher
-        get() = NoteEditorLauncher.AddNoteFromCardBrowser(activityViewModel)
+    val addNoteLauncher: NoteEditorDestination
+        get() =
+            NoteEditorDestination.AddNoteFromCardBrowser(
+                searchTerms = activityViewModel.searchTerms,
+                lastDeckId = activityViewModel.lastDeckId,
+            )
 
     private fun addNote() {
         onAddNoteActivityResult.launch(addNoteLauncher.toIntent(requireContext()))

@@ -7,6 +7,9 @@ import android.os.Bundle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.destinations.DeferredNavigation
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.destinations.toBundle
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
 import com.ichi2.anki.noteeditor.NoteEditorMultimediaController.Companion.STATE_KEY_IMAGE_CACHE
 import org.hamcrest.MatcherAssert.assertThat
@@ -59,6 +62,6 @@ class NoteEditorMultimediaControllerTest : RobolectricTest() {
 
     private fun openNoteEditor(): NoteEditorFragment {
         ensureCollectionLoadIsSynchronous()
-        return openNoteEditorWithArgs(NoteEditorLauncher.AddNote().toBundle())
+        return openNoteEditorWithArgs(with(DeferredNavigation) { NoteEditorDestination.AddNote().toBundle() })
     }
 }

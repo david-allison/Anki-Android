@@ -23,8 +23,8 @@ object AnkiDroidNavigator : Navigator {
 
     override fun toIntent(destination: Destination): Intent =
         when (destination) {
-            is BrowserDestination -> destination.toIntent(appContext)
-            is NoteEditorDestination -> destination.toIntent(appContext)
+            is BrowserDestination -> destination.toIntent(navContext)
+            is NoteEditorDestination -> destination.toIntent(navContext)
             is CsvImporterDestination -> destination.toIntent(navContext)
         }
 }
