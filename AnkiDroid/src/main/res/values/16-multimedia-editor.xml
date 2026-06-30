@@ -9,7 +9,6 @@
     <string name="multimedia_editor_popup_image">Add image</string>
     <string name="multimedia_editor_popup_audio_clip">Add audio clip</string>
     <string name="multimedia_editor_popup_video_clip">Add video clip</string>
-    <string name="multimedia_editor_popup_audio">Record audio</string>
     <string name="multimedia_editor_popup_cloze">Cloze deletion</string>
 
     <!-- Field editing general -->

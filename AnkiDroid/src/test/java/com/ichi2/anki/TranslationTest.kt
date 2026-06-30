@@ -175,7 +175,6 @@ class TranslationTest : RobolectricTest() {
                 //                               // TR.schedulingGeneral()
                 "Add", // R.string.import_message_add, R.string.menu_add
                 // TR.actionsAdd()
-                "Add tag", // R.string.add_tag | TR.editingTagsAdd()
                 "Advanced", // R.string.pref_cat_advanced | TR.deckConfigAdvancedTitle()
                 "Again", // R.string.ease_button_again
                 // TR.browsingAgainToday()
@@ -220,7 +219,6 @@ class TranslationTest : RobolectricTest() {
                 // TR.statisticsDueDate()
                 // TR.browsingSidebarDueToday()
                 "Easy", // R.string.ease_button_easy | TR.studyingEasy()
-                "Editing", // R.string.pref_cat_editing | TR.preferencesEditing()
                 "Empty", // R.string.empty_cram_label | TR.studyingEmpty()
                 "Error", // R.string.import_title_error, R.string.pref__etc__summary__error
                 // R.string.pref__widget_text__error, R.string.vague_error
@@ -244,7 +242,6 @@ class TranslationTest : RobolectricTest() {
                 "Language", // R.string.language | TR.preferencesLanguage()
                 "Later", // R.string.button_backup_later | TR.schedulingUpdateLaterButton()
                 "Learn More", // R.string.scoped_storage_learn_more | TR.schedulingUpdateMoreInfoButton()
-                "Learn ahead limit", // R.string.learn_cutoff | TR.preferencesLearnAheadLimit()
                 "Light", // R.string.day_theme_light | TR.preferencesThemeLight()
                 "Media", // R.string.media
                 // TR.editingMedia()
@@ -271,12 +268,10 @@ class TranslationTest : RobolectricTest() {
                 // TR.actionsPreview()
                 // TR.cardTemplatesPreviewBox()
                 "Question", // R.string.card_side_question | TR.browsingQuestion()
-                "Record audio", // R.string.multimedia_editor_popup_audio | TR.editingRecordAudio()
                 "Redo", // R.string.redo | TR.undoRedo()
                 "Rename", // R.string.rename | TR.actionsRename()
                 "Reposition", // R.string.card_editor_reposition_card, R.string.card_template_reposition_template
                 // TR.actionsReposition()
-                "Reschedule", // R.string.card_editor_reschedule_card | TR.browsingReschedule()
                 "Reviews", // R.string.pref_controls_reviews_tab
                 // TR.schedulingReviews()
                 // TR.cardStatsReviewCount()
@@ -285,7 +280,6 @@ class TranslationTest : RobolectricTest() {
                 "Save", // R.string.save
                 // TR.actionsSave()
                 // TR.deckConfigSaveButton()
-                "Scheduling", // R.string.pref_cat_scheduling | TR.preferencesScheduling()
                 "Search", // R.string.card_browser_cram_search, R.string.card_browser_search_hint
                 // R.string.deck_conf_cram_search
                 // TR.actionsSearch()
@@ -303,7 +297,6 @@ class TranslationTest : RobolectricTest() {
                 // TR.editingTags()
                 // TR.browsingSidebarTags()
                 "Theme", // R.string.app_theme | TR.preferencesTheme()
-                "Timebox time limit", // R.string.time_limit | TR.preferencesTimeboxTimeLimit()
                 "Undo", // R.string.undo | TR.undoUndo()
             )
 

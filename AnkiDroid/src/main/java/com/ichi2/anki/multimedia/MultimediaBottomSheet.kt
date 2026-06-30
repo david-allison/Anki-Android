@@ -23,6 +23,7 @@ import android.widget.LinearLayout
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.databinding.FragmentBottomsheetMultimediaBinding
@@ -48,6 +49,8 @@ class MultimediaBottomSheet : BottomSheetDialogFragment(R.layout.fragment_bottom
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.multimediaActionRecordingLabel.text = TR.editingRecordAudio()
 
         /** setup a click on the listener to emit [MultimediaViewModel.multimediaAction] */
         fun setupListener(

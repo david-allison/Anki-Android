@@ -40,6 +40,12 @@ class HeaderFragment : SettingsFragment() {
         requirePreference<HeaderPreference>(R.string.pref_appearance_screen_key)
             .title = TR.preferencesAppearance()
 
+        requirePreference<HeaderPreference>(R.string.pref_reviewing_screen_key).summary =
+            HeaderPreference.buildHeaderSummary(
+                TR.preferencesScheduling(),
+                getString(R.string.pref_keep_screen_on),
+            )
+
         requirePreference<HeaderPreference>(R.string.pref_sync_screen_key).summary =
             HeaderPreference.buildHeaderSummary(
                 TR.sentenceCase.ankiWebAccount,

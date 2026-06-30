@@ -27,7 +27,7 @@
     android:title="@string/pref_cat_reviewing"
     android:key="@string/pref_reviewing_screen_key"
     tools:context=".preferences.ReviewingSettingsFragment">
-    <PreferenceCategory android:title="@string/pref_cat_scheduling" >
+    <PreferenceCategory android:key="@string/pref_scheduling_category_key" >
         <com.ichi2.preferences.SliderPreference
             android:key="@string/day_offset_preference"
             android:valueFrom="0"
@@ -37,13 +37,11 @@
             app:summaryFormat="@plurals/day_offset_summ"/>
         <com.ichi2.preferences.IncrementerNumberRangePreferenceCompat
             android:key="@string/learn_cutoff_preference"
-            android:title="@string/learn_cutoff"
             app:max="999"
             app:min="0"
             app:summaryFormat="@plurals/pref_summ_minutes"/>
         <com.ichi2.preferences.IncrementerNumberRangePreferenceCompat
             android:key="@string/time_limit_preference"
-            android:title="@string/time_limit"
             app:max="999"
             app:min="0"
             app:summaryFormat="@plurals/pref_summ_minutes"/>

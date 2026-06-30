@@ -100,10 +100,10 @@
             android:layout_height="match_parent" />
 
         <TextView
+            android:id="@+id/multimedia_action_recording_label"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
-            android:text="@string/multimedia_editor_popup_audio"
             app:iconPadding="12dp" />
     </LinearLayout>
 

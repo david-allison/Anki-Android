@@ -17,7 +17,9 @@ package com.ichi2.anki.preferences
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.preference.PreferenceCategory
 import anki.config.copy
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -41,12 +43,15 @@ class ReviewingSettingsFragment : SettingsFragment() {
         get() = "prefs.reviewing"
 
     override fun initSubscreen() {
+        requirePreference<PreferenceCategory>(R.string.pref_scheduling_category_key).title = TR.preferencesScheduling()
+
         // Learn ahead limit
         // Represents the collections pref "collapseTime": i.e.
         // if there are no card to review now, but there are learning cards remaining for today, we show those learning cards if they are due before LEARN_CUTOFF minutes
         // Note that "collapseTime" is in second while LEARN_CUTOFF is in minute.
         @NeedsTest("#16645, changing the learn ahead limit shows expected cards in review queue")
         requirePreference<NumberRangePreferenceCompat>(R.string.learn_cutoff_preference).apply {
+            title = TR.preferencesLearnAheadLimit()
             launchCatchingTask { setValue(CollectionPreferences.getLearnAheadLimit().toInt(DurationUnit.MINUTES)) }
             setOnPreferenceChangeListener { newValue ->
                 launchCatchingTask { CollectionPreferences.setLearnAheadLimit(newValue.toDuration(DurationUnit.MINUTES)) }
@@ -57,6 +62,7 @@ class ReviewingSettingsFragment : SettingsFragment() {
         // the duration of a review timebox in minute. Each TIME_LIMIT minutes, a message appear suggesting to halt and giving the number of card reviewed
         // Note that "timeLim" is in seconds while TIME_LIMIT is in minutes.
         requirePreference<NumberRangePreferenceCompat>(R.string.time_limit_preference).apply {
+            title = TR.preferencesTimeboxTimeLimit()
             launchCatchingTask { setValue(CollectionPreferences.getTimeboxTimeLimit().toInt(DurationUnit.MINUTES)) }
             setOnPreferenceChangeListener { newValue ->
                 launchCatchingTask { CollectionPreferences.setTimeboxTimeLimit(newValue.toDuration(DurationUnit.MINUTES)) }
