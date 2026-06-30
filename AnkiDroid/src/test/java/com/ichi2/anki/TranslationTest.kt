@@ -175,7 +175,6 @@ class TranslationTest : RobolectricTest() {
                 //                               // TR.schedulingGeneral()
                 "Add", // R.string.import_message_add, R.string.menu_add
                 // TR.actionsAdd()
-                "Add tag", // R.string.add_tag | TR.editingTagsAdd()
                 "Advanced", // R.string.pref_cat_advanced | TR.deckConfigAdvancedTitle()
                 "Again", // R.string.ease_button_again
                 // TR.browsingAgainToday()

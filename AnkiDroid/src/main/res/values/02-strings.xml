@@ -25,7 +25,6 @@
     <string name="paste_from_clipboard" maxLength="28">Paste from clipboard</string>
 
     <string name="add_new_filter_tags">Add/filter tags</string>
-    <string name="add_tag" maxLength="28">Add tag</string>
     <string name="check_all_tags" maxLength="28">Check/uncheck all tags</string>
     <string name="filter_tags" maxLength="28">Filter tags</string>
     <string name="no_tags">You haven’t added any tags yet</string>

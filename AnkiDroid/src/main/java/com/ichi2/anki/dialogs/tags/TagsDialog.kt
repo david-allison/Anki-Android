@@ -313,7 +313,10 @@ class TagsDialog : AnalyticsDialogFragment {
         val titleRes = if (type == DialogType.EDIT_TAGS) R.string.card_details_tags else R.string.studyoptions_limit_select_tags
         toolbar.setTitle(titleRes)
 
-        val toolbarAddItem = toolbar.menu.findItem(R.id.tags_dialog_action_add)
+        val toolbarAddItem =
+            toolbar.menu.findItem(R.id.tags_dialog_action_add).apply {
+                title = TR.editingTagsAdd()
+            }
         val drawable = ContextCompat.getDrawable(requireContext(), R.drawable.ic_add)
         drawable?.setTint(requireContext().getColor(R.color.white))
         toolbarAddItem.icon = drawable
@@ -379,7 +382,7 @@ class TagsDialog : AnalyticsDialogFragment {
             AlertDialog
                 .Builder(requireActivity())
                 .show {
-                    title(text = getString(R.string.add_tag))
+                    title(text = TR.editingTagsAdd())
                     positiveButton(R.string.menu_add)
                     negativeButton(R.string.dialog_cancel)
                     setView(R.layout.dialog_generic_text_input)
