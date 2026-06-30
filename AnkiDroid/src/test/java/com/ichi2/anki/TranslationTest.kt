@@ -269,7 +269,6 @@ class TranslationTest : RobolectricTest() {
                 // TR.actionsPreview()
                 // TR.cardTemplatesPreviewBox()
                 "Question", // R.string.card_side_question | TR.browsingQuestion()
-                "Record audio", // R.string.multimedia_editor_popup_audio | TR.editingRecordAudio()
                 "Redo", // R.string.redo | TR.undoRedo()
                 "Rename", // R.string.rename | TR.actionsRename()
                 "Reposition", // R.string.card_editor_reposition_card, R.string.card_template_reposition_template
