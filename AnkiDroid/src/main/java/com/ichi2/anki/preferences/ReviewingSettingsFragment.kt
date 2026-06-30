@@ -18,6 +18,7 @@ package com.ichi2.anki.preferences
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import anki.config.copy
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -47,6 +48,7 @@ class ReviewingSettingsFragment : SettingsFragment() {
         // Note that "collapseTime" is in second while LEARN_CUTOFF is in minute.
         @NeedsTest("#16645, changing the learn ahead limit shows expected cards in review queue")
         requirePreference<NumberRangePreferenceCompat>(R.string.learn_cutoff_preference).apply {
+            title = TR.preferencesLearnAheadLimit()
             launchCatchingTask { setValue(CollectionPreferences.getLearnAheadLimit().toInt(DurationUnit.MINUTES)) }
             setOnPreferenceChangeListener { newValue ->
                 launchCatchingTask { CollectionPreferences.setLearnAheadLimit(newValue.toDuration(DurationUnit.MINUTES)) }

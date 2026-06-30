@@ -243,7 +243,6 @@ class TranslationTest : RobolectricTest() {
                 "Language", // R.string.language | TR.preferencesLanguage()
                 "Later", // R.string.button_backup_later | TR.schedulingUpdateLaterButton()
                 "Learn More", // R.string.scoped_storage_learn_more | TR.schedulingUpdateMoreInfoButton()
-                "Learn ahead limit", // R.string.learn_cutoff | TR.preferencesLearnAheadLimit()
                 "Light", // R.string.day_theme_light | TR.preferencesThemeLight()
                 "Media", // R.string.media
                 // TR.editingMedia()

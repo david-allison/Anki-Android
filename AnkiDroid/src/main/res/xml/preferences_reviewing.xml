@@ -37,7 +37,6 @@
             app:summaryFormat="@plurals/day_offset_summ"/>
         <com.ichi2.preferences.IncrementerNumberRangePreferenceCompat
             android:key="@string/learn_cutoff_preference"
-            android:title="@string/learn_cutoff"
             app:max="999"
             app:min="0"
             app:summaryFormat="@plurals/pref_summ_minutes"/>
