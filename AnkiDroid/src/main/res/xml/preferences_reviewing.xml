@@ -42,7 +42,6 @@
             app:summaryFormat="@plurals/pref_summ_minutes"/>
         <com.ichi2.preferences.IncrementerNumberRangePreferenceCompat
             android:key="@string/time_limit_preference"
-            android:title="@string/time_limit"
             app:max="999"
             app:min="0"
             app:summaryFormat="@plurals/pref_summ_minutes"/>

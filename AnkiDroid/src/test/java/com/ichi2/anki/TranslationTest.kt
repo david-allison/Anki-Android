@@ -298,7 +298,6 @@ class TranslationTest : RobolectricTest() {
                 // TR.editingTags()
                 // TR.browsingSidebarTags()
                 "Theme", // R.string.app_theme | TR.preferencesTheme()
-                "Timebox time limit", // R.string.time_limit | TR.preferencesTimeboxTimeLimit()
                 "Undo", // R.string.undo | TR.undoUndo()
             )
 
