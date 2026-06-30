@@ -59,6 +59,7 @@ class CustomButtonsSettingsFragment : SettingsFragment() {
         findPreference<ListPreference>(getString(R.string.custom_button_mark_card_key))?.title = TR.sentenceCase.markNote
         findPreference<ListPreference>(getString(R.string.custom_button_previous_card_info_key))?.title = TR.sentenceCase.previousCardInfo
         findPreference<ListPreference>(getString(R.string.custom_button_delete_key))?.title = TR.sentenceCase.deleteNote
+        findPreference<ListPreference>(getString(R.string.custom_button_schedule_card_key))?.title = TR.browsingReschedule()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)

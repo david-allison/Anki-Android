@@ -127,7 +127,6 @@
     <string name="note_editor_copy_note" maxLength="28">Copy note</string>
     <string name="card_editor_reposition_card" comment="reposition a card in the new queue" maxLength="28">Reposition</string>
     <string name="card_editor_reset_card" maxLength="28">Reset progress</string>
-    <string name="card_editor_reschedule_card" comment="Action to reschedule a card" maxLength="28">Reschedule</string>
     <string name="card_editor_preview_card" comment="Button offering to preview some card(s)" maxLength="28">Preview</string>
     <string name="copy_as_markdown" comment="Copies text to the clipboard as Markdown" maxLength="28">Copy as Markdown</string>
     <string name="preview_progress_bar_text" comment="What card we are on out of how many in card previewer progress bar">%1$d of %2$d</string>

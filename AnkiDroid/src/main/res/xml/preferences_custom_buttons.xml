@@ -53,7 +53,6 @@ TODO: Add a unit test
             android:entries="@array/custom_button_labels"
             android:entryValues="@array/custom_button_values"
             android:key="@string/custom_button_schedule_card_key"
-            android:title="@string/card_editor_reschedule_card"
             app:useSimpleSummaryProvider="true"/>
         <ListPreference
             android:defaultValue="2"
