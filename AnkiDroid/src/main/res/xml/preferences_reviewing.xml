@@ -27,7 +27,7 @@
     android:title="@string/pref_cat_reviewing"
     android:key="@string/pref_reviewing_screen_key"
     tools:context=".preferences.ReviewingSettingsFragment">
-    <PreferenceCategory android:title="@string/pref_cat_scheduling" >
+    <PreferenceCategory android:key="@string/pref_scheduling_category_key" >
         <com.ichi2.preferences.SliderPreference
             android:key="@string/day_offset_preference"
             android:valueFrom="0"

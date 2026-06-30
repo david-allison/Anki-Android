@@ -17,6 +17,7 @@ package com.ichi2.anki.preferences
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.preference.PreferenceCategory
 import anki.config.copy
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
@@ -42,6 +43,8 @@ class ReviewingSettingsFragment : SettingsFragment() {
         get() = "prefs.reviewing"
 
     override fun initSubscreen() {
+        requirePreference<PreferenceCategory>(R.string.pref_scheduling_category_key).title = TR.preferencesScheduling()
+
         // Learn ahead limit
         // Represents the collections pref "collapseTime": i.e.
         // if there are no card to review now, but there are learning cards remaining for today, we show those learning cards if they are due before LEARN_CUTOFF minutes
