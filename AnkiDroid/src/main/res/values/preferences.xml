@@ -58,6 +58,7 @@
     <string name="show_answer_feedback_key">showAnswerFeedback</string>
     <string name="pref_review_category_key">reviewCategory</string>
     <string name="pref_scheduling_category_key">schedulingCategory</string>
+    <string name="pref_editing_category_key">editingCategory</string>
     <!-- App bar buttons -->
     <string name="pref_app_bar_buttons_screen_key">appBarButtonsScreen</string>
     <string name="reset_custom_buttons_key">reset_custom_buttons</string>

@@ -219,7 +219,6 @@ class TranslationTest : RobolectricTest() {
                 // TR.statisticsDueDate()
                 // TR.browsingSidebarDueToday()
                 "Easy", // R.string.ease_button_easy | TR.studyingEasy()
-                "Editing", // R.string.pref_cat_editing | TR.preferencesEditing()
                 "Empty", // R.string.empty_cram_label | TR.studyingEmpty()
                 "Error", // R.string.import_title_error, R.string.pref__etc__summary__error
                 // R.string.pref__widget_text__error, R.string.vague_error

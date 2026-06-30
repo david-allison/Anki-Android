@@ -6,6 +6,7 @@ package com.ichi2.anki.preferences
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.preference.ListPreference
+import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
 import anki.config.ConfigKey
 import com.ichi2.anki.CollectionManager
@@ -28,6 +29,8 @@ class GeneralSettingsFragment : SettingsFragment() {
         get() = "prefs.general"
 
     override fun initSubscreen() {
+        requirePreference<PreferenceCategory>(R.string.pref_editing_category_key).title = TR.preferencesEditing()
+
         // Build languages
         initializeLanguagePref()
 
