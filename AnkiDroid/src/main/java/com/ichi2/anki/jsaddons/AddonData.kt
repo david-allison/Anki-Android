@@ -3,10 +3,12 @@
 
 package com.ichi2.anki.jsaddons
 
+import com.ichi2.anki.AnkiDroidJsAPIConstants.ApiCompatibility
 import com.ichi2.anki.AnkiDroidJsAPIConstants.CURRENT_JS_API_VERSION
+import com.ichi2.anki.AnkiDroidJsAPIConstants.MINIMUM_JS_API_VERSION
+import com.ichi2.anki.AnkiDroidJsAPIConstants.checkApiVersion
 import com.ichi2.anki.jsaddons.AddonsConst.ANKIDROID_JS_ADDON_KEYWORDS
 import com.ichi2.anki.jsaddons.AddonsConst.NOTE_EDITOR_ADDON
-import com.ichi2.anki.jsaddons.AddonsConst.REVIEWER_ADDON
 import com.ichi2.anki.jsaddons.NpmUtils.validateName
 import com.ichi2.anki.web.HttpFetcher
 import kotlinx.serialization.Serializable
@@ -27,6 +29,10 @@ import kotlin.jvm.Throws
  * @param name name of npm package, it unique for each package listed on npm
  * @param addonTitle  for showing in AnkiDroid
  * @param icon only required for note editor (single character recommended)
+ * @param ankidroidJsApi the JS API version the addon was developed against: a single
+ *   version (a fact), deliberately not a compatibility range (a prediction). AnkiDroid
+ *   owns the supported range and can widen it retroactively without addons republishing;
+ *   see [checkApiVersion]
  * @param description commonly absent from real package.json files; absence never invalidates the addon
  * @param author commonly absent from real package.json files; absence never invalidates the addon
  * @param license commonly absent from real package.json files; absence never invalidates the addon
@@ -124,12 +130,8 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
         errorList.add("Invalid addon package: package name failed validation")
     }
 
-    if (addonData.addonType != REVIEWER_ADDON && addonData.addonType != NOTE_EDITOR_ADDON) {
-        errorList.add(
-            "Invalid addon package: ${addonData.addonType} is not valid addon type, " +
-                "package.json must have 'addonType' fields of 'reviewer' or 'note-editor'",
-        )
-    }
+    // an unrecognized addonType is tolerated rather than rejected: an addon built for a
+    // newer AnkiDroid (e.g. a future 'background' type) is listed as unsupported instead
 
     // if addon type is note editor then it must have icon
     if (addonData.addonType == NOTE_EDITOR_ADDON && addonData.icon.isNullOrBlank()) {
@@ -142,12 +144,21 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
         errorList.add("Invalid addon package: package.json does not have 'ankidroid-js-addon' in ${addonData.keywords} keywords")
     }
 
-    // Check supplied api and current api
-    if (addonData.ankidroidJsApi != CURRENT_JS_API_VERSION) {
-        errorList.add(
-            "Invalid addon package: supplied js api version ${addonData.ankidroidJsApi} must " +
-                "be equal to current js api version $CURRENT_JS_API_VERSION",
-        )
+    // Check the supplied api version against the range AnkiDroid supports
+    when (checkApiVersion(addonData.ankidroidJsApi)) {
+        ApiCompatibility.SUPPORTED -> {}
+        ApiCompatibility.ADDON_TOO_OLD ->
+            errorList.add(
+                "Invalid addon package: js api version ${addonData.ankidroidJsApi} is older than " +
+                    "the minimum supported version $MINIMUM_JS_API_VERSION: the addon needs updating",
+            )
+        ApiCompatibility.REQUIRES_NEWER_APP ->
+            errorList.add(
+                "Invalid addon package: js api version ${addonData.ankidroidJsApi} is newer than " +
+                    "the current version $CURRENT_JS_API_VERSION: AnkiDroid needs updating",
+            )
+        ApiCompatibility.INVALID ->
+            errorList.add("Invalid addon package: js api version ${addonData.ankidroidJsApi} is not a valid version")
     }
 
     // there are errors in package.json so return the errors list

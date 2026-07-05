@@ -17,6 +17,7 @@
 
 package com.ichi2.anki
 
+import com.github.zafarkhaja.semver.Version
 import com.ichi2.anki.cardviewer.ViewerCommand
 
 object AnkiDroidJsAPIConstants {
@@ -36,6 +37,44 @@ object AnkiDroidJsAPIConstants {
     // js api developer contact
     const val CURRENT_JS_API_VERSION = "0.0.3"
     const val MINIMUM_JS_API_VERSION = "0.0.3"
+
+    /** Whether code built against a given JS API version can run on this AnkiDroid */
+    enum class ApiCompatibility {
+        SUPPORTED,
+
+        /** older than [MINIMUM_JS_API_VERSION]: the addon needs updating */
+        ADDON_TOO_OLD,
+
+        /** newer than [CURRENT_JS_API_VERSION]: AnkiDroid needs updating */
+        REQUIRES_NEWER_APP,
+
+        /** not a parseable semantic version */
+        INVALID,
+    }
+
+    /**
+     * Checks a supplied JS API version against the range this AnkiDroid supports:
+     * [MINIMUM_JS_API_VERSION]..[CURRENT_JS_API_VERSION]
+     *
+     * Addons supply the single version they were developed against rather than a range:
+     * keeping the supported range on the app side lets a future AnkiDroid widen it
+     * without every published addon needing an update
+     *
+     * Matches the policy of AnkiDroidJsAPI.requireApiVersion
+     */
+    fun checkApiVersion(supplied: String): ApiCompatibility {
+        val suppliedVersion =
+            try {
+                Version.parse(supplied)
+            } catch (_: Exception) {
+                return ApiCompatibility.INVALID
+            }
+        return when {
+            suppliedVersion.isHigherThan(Version.parse(CURRENT_JS_API_VERSION)) -> ApiCompatibility.REQUIRES_NEWER_APP
+            suppliedVersion.isLowerThan(Version.parse(MINIMUM_JS_API_VERSION)) -> ApiCompatibility.ADDON_TOO_OLD
+            else -> ApiCompatibility.SUPPORTED
+        }
+    }
 
     val flagCommands =
         mapOf(

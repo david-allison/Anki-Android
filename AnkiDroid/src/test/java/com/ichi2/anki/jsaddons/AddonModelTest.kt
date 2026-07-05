@@ -24,6 +24,7 @@ import com.ichi2.anki.jsaddons.AddonsConst.REVIEWER_ADDON
 import com.ichi2.utils.FileOperation
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertTrue
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.StringEndsWith.endsWith
 import org.junit.Before
@@ -159,10 +160,36 @@ class AddonModelTest : RobolectricTest() {
     }
 
     @Test // exercises the checks after the required-fields guard: their errors must be returned
-    fun invalidAddonTypeReturnsErrorTest() {
-        val result = getAddonModelFromAddonData(addonData(addonType = "invalid-type"))
+    fun invalidPackageNameReturnsErrorTest() {
+        val result = getAddonModelFromAddonData(addonData(name = "NOT!a!valid!npm!name"))
         val errors = assertIs<AddonValidationResult.Invalid>(result, "model is not built from an invalid manifest").errors
-        assertFalse("invalid 'addonType' is reported as an error", errors.isEmpty())
+        assertFalse("invalid 'name' is reported as an error", errors.isEmpty())
+    }
+
+    @Test // a future addonType (e.g. 'background') must be listed as unsupported, not rejected
+    fun unknownAddonTypeIsValidTest() {
+        val result = getAddonModelFromAddonData(addonData(addonType = "background"))
+        assertIs<AddonValidationResult.Valid>(result, "an unknown addonType does not invalidate the addon")
+    }
+
+    @Test
+    fun olderApiVersionRequiresAddonUpdateTest() {
+        val result = getAddonModelFromAddonData(addonData(ankidroidJsApi = "0.0.2"))
+        val errors = assertIs<AddonValidationResult.Invalid>(result, "an api version below the minimum is invalid").errors
+        assertTrue("error asks for an addon update: $errors", errors.any { it.contains("the addon needs updating") })
+    }
+
+    @Test
+    fun newerApiVersionRequiresAnkiDroidUpdateTest() {
+        val result = getAddonModelFromAddonData(addonData(ankidroidJsApi = "9.9.9"))
+        val errors = assertIs<AddonValidationResult.Invalid>(result, "an api version above the current one is invalid").errors
+        assertTrue("error asks for an AnkiDroid update: $errors", errors.any { it.contains("AnkiDroid needs updating") })
+    }
+
+    @Test
+    fun garbageApiVersionReturnsErrorTest() {
+        val result = getAddonModelFromAddonData(addonData(ankidroidJsApi = "not-a-version"))
+        assertIs<AddonValidationResult.Invalid>(result, "an unparseable js api version invalidates the addon")
     }
 
     @Test
