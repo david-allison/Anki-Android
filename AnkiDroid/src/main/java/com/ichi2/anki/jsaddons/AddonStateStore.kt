@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2026 David Allison <davidallisongithub@gmail.com>
+
+package com.ichi2.anki.jsaddons
+
+import android.content.Context
+import androidx.core.content.edit
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+
+/**
+ * Host-owned state of installed addons: one JSON object per addon, keyed by the addon's
+ * immutable npm name, in a dedicated per-profile SharedPreferences file.
+ *
+ * `enabled` is one key of the object; future per-addon facts (granted permissions,
+ * settings values) become further keys of the same object. State is read and written as a
+ * [JsonObject] rather than a typed model so that **keys written by a newer AnkiDroid
+ * survive writes from an older one**.
+ *
+ * Addons default to disabled: absent state is valid state, so extending the state never
+ * needs a migration.
+ */
+class AddonStateStore(
+    context: Context,
+) {
+    // ProfileContextWrapper prefixes named SharedPreferences files per profile,
+    // so addon state is isolated between profiles
+    private val prefs = context.getSharedPreferences("addons", Context.MODE_PRIVATE)
+
+    private fun getState(addonName: String): JsonObject {
+        val stored = prefs.getString(addonName, null) ?: return JsonObject(emptyMap())
+        return try {
+            Json.parseToJsonElement(stored) as? JsonObject ?: JsonObject(emptyMap())
+        } catch (_: SerializationException) {
+            // corrupt state is treated as absent: the addon reverts to disabled
+            JsonObject(emptyMap())
+        }
+    }
+
+    private fun setState(
+        addonName: String,
+        state: JsonObject,
+    ) = prefs.edit { putString(addonName, state.toString()) }
+
+    fun isEnabled(addonName: String): Boolean = (getState(addonName)[KEY_ENABLED] as? JsonPrimitive)?.booleanOrNull ?: false
+
+    fun setEnabled(
+        addonName: String,
+        enabled: Boolean,
+    ) = setState(addonName, JsonObject(getState(addonName) + (KEY_ENABLED to JsonPrimitive(enabled))))
+
+    /** Forgets all state of [addonName]: for use when the addon is uninstalled */
+    fun remove(addonName: String) = prefs.edit { remove(addonName) }
+
+    companion object {
+        private const val KEY_ENABLED = "enabled"
+    }
+}
