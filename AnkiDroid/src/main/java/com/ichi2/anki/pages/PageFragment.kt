@@ -27,6 +27,9 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.ichi2.anki.R
+import com.ichi2.anki.jsaddons.AddonPageHost
+import com.ichi2.anki.jsaddons.AddonPages
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.workarounds.OnWebViewRecreatedListener
 import com.ichi2.anki.workarounds.SafeWebViewLayout
 import com.ichi2.themes.Themes
@@ -99,6 +102,22 @@ abstract class PageFragment(
         }
     }
 
+    /**
+     * Injects enabled addons targeting this page (see [AddonPageHost]).
+     *
+     * WIP, developer-only: only runs when the JS addons dev option is on and the page maps to
+     * an addon-hostable id. Addons run sandboxed and cannot see this page's DOM directly.
+     */
+    private fun setupAddonHost(pageWebViewClient: PageWebViewClient) {
+        if (!Prefs.devAddonsEnabled) return
+        val pageId = AddonPages.fromPagePath(pagePath) ?: return
+        val context = requireContext()
+        webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(context), AddonPageHost.bridgeName)
+        pageWebViewClient.onPageFinishedCallbacks.add { webView ->
+            AddonPageHost.bootstrapScript(context, pageId)?.let { webView.evaluateJavascript(it, null) }
+        }
+    }
+
     @CallSuper
     override fun onViewCreated(
         view: View,
@@ -138,6 +157,7 @@ abstract class PageFragment(
             setWebViewClient(pageWebViewClient)
             setWebChromeClient(PageChromeClient())
             setupBridgeCommand(pageWebViewClient)
+            setupAddonHost(pageWebViewClient)
             onWebViewCreated()
         }
         val nightMode = if (Themes.isNightTheme) "#night" else ""
