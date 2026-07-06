@@ -120,6 +120,33 @@ class AddonStateStoreTest : RobolectricTest() {
     }
 
     @Test
+    fun permissionsDefaultToNoneTest() {
+        assertEquals(emptySet<String>(), store.getGrantedPermissions("some-addon"))
+        assertFalse(store.isGranted("some-addon", AddonPermission.Dangerous.NAVIGATE))
+    }
+
+    @Test
+    fun grantAndRevokeRoundTripTest() {
+        store.grant("some-addon", AddonPermission.Dangerous.NAVIGATE)
+        store.grant("some-addon", AddonPermission.Dangerous.NETWORK)
+        assertTrue(store.isGranted("some-addon", AddonPermission.Dangerous.NAVIGATE))
+        assertTrue(store.isGranted("some-addon", AddonPermission.Dangerous.NETWORK))
+
+        store.revoke("some-addon", AddonPermission.Dangerous.NAVIGATE)
+        assertFalse(store.isGranted("some-addon", AddonPermission.Dangerous.NAVIGATE))
+        assertTrue("revoking one leaves the others", store.isGranted("some-addon", AddonPermission.Dangerous.NETWORK))
+    }
+
+    @Test
+    fun grantsSurviveSettingWritesTest() {
+        store.grant("some-addon", AddonPermission.Dangerous.NAVIGATE)
+        store.setSettingValue("some-addon", "n", JsonPrimitive(5))
+        store.setEnabled("some-addon", true)
+
+        assertTrue("grants are independent of settings and enabled", store.isGranted("some-addon", AddonPermission.Dangerous.NAVIGATE))
+    }
+
+    @Test
     fun corruptStateIsTreatedAsAbsentTest() {
         rawPrefs.edit { putString("some-addon", "{ not json") }
 

@@ -7,10 +7,12 @@ import android.content.Context
 import androidx.core.content.edit
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * Host-owned state of installed addons: one JSON object per addon, keyed by the addon's
@@ -85,11 +87,40 @@ class AddonStateStore(
         values: JsonObject,
     ) = setState(addonName, JsonObject(getState(addonName) + (KEY_SETTINGS to values)))
 
+    /** The permission ids granted to [addonName] (see [AddonPermission.id]) */
+    fun getGrantedPermissions(addonName: String): Set<String> =
+        (getState(addonName)[KEY_GRANTED] as? JsonArray)
+            .orEmpty()
+            .mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+            .toSet()
+
+    fun isGranted(
+        addonName: String,
+        permission: AddonPermission,
+    ): Boolean = permission.id in getGrantedPermissions(addonName)
+
+    /** Replaces the granted permission set of [addonName] wholesale */
+    fun setGrantedPermissions(
+        addonName: String,
+        granted: Set<String>,
+    ) = setState(addonName, JsonObject(getState(addonName) + (KEY_GRANTED to JsonArray(granted.map { JsonPrimitive(it) }))))
+
+    fun grant(
+        addonName: String,
+        permission: AddonPermission,
+    ) = setGrantedPermissions(addonName, getGrantedPermissions(addonName) + permission.id)
+
+    fun revoke(
+        addonName: String,
+        permission: AddonPermission,
+    ) = setGrantedPermissions(addonName, getGrantedPermissions(addonName) - permission.id)
+
     /** Forgets all state of [addonName]: for use when the addon is uninstalled */
     fun remove(addonName: String) = prefs.edit { remove(addonName) }
 
     companion object {
         private const val KEY_ENABLED = "enabled"
         private const val KEY_SETTINGS = "settings"
+        private const val KEY_GRANTED = "granted"
     }
 }
