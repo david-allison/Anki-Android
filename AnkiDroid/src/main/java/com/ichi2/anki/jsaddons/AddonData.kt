@@ -55,6 +55,7 @@ class AddonData(
     val license: String? = null,
     val homepage: String? = null,
     val dist: DistInfo? = null,
+    val settings: List<AddonSettingDefinition>? = null,
 )
 
 @Serializable
@@ -161,6 +162,9 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
             errorList.add("Invalid addon package: js api version ${addonData.ankidroidJsApi} is not a valid version")
     }
 
+    // structural validation of the declarative settings schema, if one is declared
+    addonData.settings?.let { errorList.addAll(validateSettingsSchema(it)) }
+
     // there are errors in package.json so return the errors list
     if (errorList.isNotEmpty()) {
         return AddonValidationResult.Invalid(errorList)
@@ -184,6 +188,7 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
             license = addonData.license.orEmpty(),
             homepage = addonData.homepage,
             dist = addonData.dist,
+            settings = addonData.settings.orEmpty(),
         )
 
     return AddonValidationResult.Valid(addonModel)

@@ -25,6 +25,8 @@ import com.ichi2.utils.FileOperation
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.StringEndsWith.endsWith
 import org.junit.Before
@@ -121,6 +123,7 @@ class AddonModelTest : RobolectricTest() {
         license: String? = "MIT",
         homepage: String? = "https://example.com",
         dist: DistInfo? = DistInfo("https://example.com/addon.tgz"),
+        settings: List<AddonSettingDefinition>? = null,
     ): AddonData =
         AddonData(
             name,
@@ -136,6 +139,7 @@ class AddonModelTest : RobolectricTest() {
             license,
             homepage,
             dist,
+            settings,
         )
 
     @Test // the validator must report errors, never throw
@@ -198,6 +202,76 @@ class AddonModelTest : RobolectricTest() {
         // tarball does not contain it, so a locally installed addon must still validate
         val result = getAddonModelFromAddonData(addonData(dist = null))
         assertIs<AddonValidationResult.Valid>(result, "model is built from a manifest without 'dist'")
+    }
+
+    @Test
+    fun validSettingsSchemaIsCarriedOnTheModelTest() {
+        val schema =
+            listOf(
+                AddonSettingDefinition(type = "heading", title = "Appearance"),
+                AddonSettingDefinition(type = "toggle", key = "enabled", title = "Show bar"),
+                AddonSettingDefinition(
+                    type = "enum",
+                    key = "position",
+                    title = "Position",
+                    choices = listOf(AddonSettingChoice("top", "Top"), AddonSettingChoice("bottom", "Bottom")),
+                ),
+                AddonSettingDefinition(type = "number", key = "height", title = "Height", min = 1.0, max = 24.0),
+            )
+
+        val result = getAddonModelFromAddonData(addonData(settings = schema))
+
+        val model = assertIs<AddonValidationResult.Valid>(result, "a valid settings schema validates").addonModel
+        assertEquals(schema, model.settings)
+    }
+
+    @Test
+    fun settingsSchemaWithDuplicateKeysReturnsErrorTest() {
+        val schema =
+            listOf(
+                AddonSettingDefinition(type = "toggle", key = "same", title = "A"),
+                AddonSettingDefinition(type = "text", key = "same", title = "B"),
+            )
+
+        val result = getAddonModelFromAddonData(addonData(settings = schema))
+
+        val errors = assertIs<AddonValidationResult.Invalid>(result, "duplicate keys are structural breakage").errors
+        assertFalse(errors.isEmpty())
+    }
+
+    @Test
+    fun settingsSchemaWithMissingKeyReturnsErrorTest() {
+        val schema = listOf(AddonSettingDefinition(type = "toggle", title = "No key"))
+
+        val result = getAddonModelFromAddonData(addonData(settings = schema))
+
+        assertIs<AddonValidationResult.Invalid>(result, "a value-bearing setting without a key is invalid")
+    }
+
+    @Test // a future AnkiDroid may define new setting types; they must not invalidate the addon
+    fun unknownSettingTypeIsValidTest() {
+        val schema = listOf(AddonSettingDefinition(type = "hologram", key = "x", title = "From the future"))
+
+        val result = getAddonModelFromAddonData(addonData(settings = schema))
+
+        assertIs<AddonValidationResult.Valid>(result, "an unknown setting type does not invalidate the addon")
+    }
+
+    @Test
+    fun resolveSettingsValuesOverlaysDefaultsTest() {
+        val schema =
+            listOf(
+                AddonSettingDefinition(type = "number", key = "delaySeconds", title = "Delay", default = JsonPrimitive(10)),
+                AddonSettingDefinition(type = "toggle", key = "vibrate", title = "Vibrate", default = JsonPrimitive(false)),
+                AddonSettingDefinition(type = "text", key = "noDefault", title = "No default"),
+            )
+        val model = assertIs<AddonValidationResult.Valid>(getAddonModelFromAddonData(addonData(settings = schema))).addonModel
+
+        val resolved = resolveSettingsValues(model, JsonObject(mapOf("vibrate" to JsonPrimitive(true))))
+
+        assertEquals(JsonPrimitive(10), resolved["delaySeconds"]) // default
+        assertEquals(JsonPrimitive(true), resolved["vibrate"]) // stored value wins
+        assertEquals(null, resolved["noDefault"]) // absent everywhere
     }
 
     @Test

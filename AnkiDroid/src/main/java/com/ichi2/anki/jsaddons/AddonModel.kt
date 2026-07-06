@@ -18,4 +18,6 @@ data class AddonModel(
     val homepage: String,
     /** Tarball location from the npm registry API; null for locally installed addons */
     val dist: DistInfo?,
+    /** The declarative settings schema; empty if the addon declares none */
+    val settings: List<AddonSettingDefinition> = emptyList(),
 )
