@@ -6,7 +6,9 @@
 > [prior-art.md](prior-art.md) — how Obsidian, Joplin, Logseq, VS Code,
 > WebExtensions and Anki desktop solve this, with implementation details;
 > [addon-survey.md](addon-survey.md) — the top AnkiWeb addons, how they build
-> their UI and hook into the app today, and whether they'd port to this model.
+> their UI and hook into the app today, and whether they'd port to this model;
+> [status.md](status.md) — what has been **built** on this branch so far, per
+> commit; [rfc.md](rfc.md) — a draft cross-platform RFC for upstream.
 
 ## Goal
 
