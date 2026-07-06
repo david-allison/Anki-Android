@@ -1,0 +1,17 @@
+{
+    "name": "ankidroid-sample-session-progress",
+    "addonTitle": "Session progress bar",
+    "version": "1.0.0",
+    "description": "A thin bar at the top of the study screen which fills as you review, towards a session goal of 50 cards.",
+    "main": "index.js",
+    "ankidroidJsApi": "0.0.3",
+    "addonType": "reviewer",
+    "homepage": "https://github.com/ankidroid/Anki-Android",
+    "keywords": [
+        "ankidroid-js-addon"
+    ],
+    "license": "GPL-3.0-or-later",
+    "author": {
+        "name": "AnkiDroid"
+    }
+}

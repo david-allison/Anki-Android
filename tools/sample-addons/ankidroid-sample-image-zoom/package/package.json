@@ -1,0 +1,17 @@
+{
+    "name": "ankidroid-sample-image-zoom",
+    "addonTitle": "Image zoom",
+    "version": "1.0.0",
+    "description": "Tap an image on a card to view it fullscreen; tap again to dismiss.",
+    "main": "index.js",
+    "ankidroidJsApi": "0.0.3",
+    "addonType": "reviewer",
+    "homepage": "https://github.com/ankidroid/Anki-Android",
+    "keywords": [
+        "ankidroid-js-addon"
+    ],
+    "license": "GPL-3.0-or-later",
+    "author": {
+        "name": "AnkiDroid"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "name": "ankidroid-sample-card-timer",
+    "addonTitle": "Card timer",
+    "version": "1.0.0",
+    "description": "Shows a small elapsed-time badge for the current card; stops when the answer is shown.",
+    "main": "index.js",
+    "ankidroidJsApi": "0.0.3",
+    "addonType": "reviewer",
+    "homepage": "https://github.com/ankidroid/Anki-Android",
+    "keywords": [
+        "ankidroid-js-addon"
+    ],
+    "license": "GPL-3.0-or-later",
+    "author": {
+        "name": "AnkiDroid"
+    }
+}

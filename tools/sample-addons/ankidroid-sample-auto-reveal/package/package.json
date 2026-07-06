@@ -1,0 +1,17 @@
+{
+    "name": "ankidroid-sample-auto-reveal",
+    "addonTitle": "Auto-reveal answer",
+    "version": "1.0.0",
+    "description": "Reveals the answer automatically after 10 seconds on the question side.",
+    "main": "index.js",
+    "ankidroidJsApi": "0.0.3",
+    "addonType": "reviewer",
+    "homepage": "https://github.com/ankidroid/Anki-Android",
+    "keywords": [
+        "ankidroid-js-addon"
+    ],
+    "license": "GPL-3.0-or-later",
+    "author": {
+        "name": "AnkiDroid"
+    }
+}
