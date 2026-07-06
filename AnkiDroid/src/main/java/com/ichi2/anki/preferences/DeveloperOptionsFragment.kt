@@ -13,11 +13,13 @@ import com.ichi2.anki.BuildConfig
 import com.ichi2.anki.CollectionHelper
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
+import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.analytics.UsageAnalytics
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.dialogs.TtsVoicesDialogFragment
+import com.ichi2.anki.jsaddons.AddonsBrowserFragment
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
@@ -116,6 +118,12 @@ class DeveloperOptionsFragment : SettingsFragment() {
         requirePreference<Preference>(R.string.dev_open_tts_voices).setOnPreferenceClickListener {
             showDialogFragment(TtsVoicesDialogFragment())
             false
+        }
+
+        // Browser for the WIP JS addons system
+        requirePreference<Preference>(R.string.dev_open_addons_browser_key).setOnPreferenceClickListener {
+            startActivity(SingleFragmentActivity.getIntent(requireContext(), AddonsBrowserFragment::class))
+            true
         }
 
         val numberOfNotesPreference =

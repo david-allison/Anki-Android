@@ -124,5 +124,15 @@
             android:summary="Replaces the navigation drawer with a bottom nav bar"
             android:key="@string/dev_bottom_nav_key"
             android:defaultValue="false"/>
+        <SwitchPreferenceCompat
+            android:title="JS addons"
+            android:summary="Enables addon scripts in the new study screen"
+            android:key="@string/dev_addons_key"
+            android:defaultValue="false"/>
+        <Preference
+            android:title="Addons browser"
+            android:summary="Install, enable and remove JS addons"
+            android:key="@string/dev_open_addons_browser_key"
+            android:dependency="@string/dev_addons_key"/>
     </com.ichi2.anki.preferences.ExtendedPreferenceCategory>
 </PreferenceScreen>
