@@ -26,13 +26,16 @@ import org.intellij.lang.annotations.Language
  *
  * @param extraJsAssets paths of additional Javascript assets
  * in the `android_assets` folder to be included
+ * @param extraInlineScripts verbatim script bodies to be inlined after [extraJsAssets] and
+ * before [extraScriptUrls]. Used to bootstrap addon scripts (e.g. baking in their settings)
  * @param extraScriptUrls URLs of additional scripts to be included verbatim, after all
- * [extraJsAssets]. Served via `shouldInterceptRequest`, e.g. addon scripts under `/_addons/`
+ * [extraInlineScripts]. Served via `shouldInterceptRequest`, e.g. addon scripts under `/_addons/`
  */
 @Language("HTML")
 fun stdHtml(
     context: Context = appContext,
     extraJsAssets: List<String> = emptyList(),
+    extraInlineScripts: List<String> = emptyList(),
     extraScriptUrls: List<String> = emptyList(),
     nightMode: Boolean = false,
 ): String {
@@ -57,6 +60,9 @@ fun stdHtml(
         jsAssets.joinToString("\n") {
             """<script src="file:///android_asset/$it"></script>"""
         } +
+            extraInlineScripts.joinToString("") {
+                "\n<script>\n$it\n</script>"
+            } +
             extraScriptUrls.joinToString("") {
                 "\n" + """<script src="$it"></script>"""
             }

@@ -1,8 +1,8 @@
 {
     "name": "ankidroid-sample-auto-reveal",
     "addonTitle": "Auto-reveal answer",
-    "version": "1.0.0",
-    "description": "Reveals the answer automatically after 10 seconds on the question side.",
+    "version": "1.1.0",
+    "description": "Reveals the answer automatically after a configurable delay on the question side.",
     "main": "index.js",
     "ankidroidJsApi": "0.0.3",
     "addonType": "reviewer",
@@ -13,5 +13,22 @@
     "license": "GPL-3.0-or-later",
     "author": {
         "name": "AnkiDroid"
-    }
+    },
+    "settings": [
+        {
+            "type": "number",
+            "key": "delaySeconds",
+            "title": "Reveal delay (seconds)",
+            "description": "How long to wait on the question side before revealing the answer.",
+            "default": 10,
+            "min": 1,
+            "max": 120
+        },
+        {
+            "type": "toggle",
+            "key": "enabled",
+            "title": "Enabled",
+            "default": true
+        }
+    ]
 }
