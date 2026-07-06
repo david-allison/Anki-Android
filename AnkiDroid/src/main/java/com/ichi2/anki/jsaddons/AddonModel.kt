@@ -29,6 +29,8 @@ data class AddonModel(
      * for addons predating the field. Unknown page ids are tolerated.
      */
     val pages: List<String>? = null,
+    /** The capabilities the addon requests; see [AddonPermission] */
+    val permissions: List<AddonPermission> = emptyList(),
 ) {
     /** Whether this addon runs on [pageId]; uses [pages] if declared, else falls back to [addonType] */
     fun targetsPage(pageId: String): Boolean =

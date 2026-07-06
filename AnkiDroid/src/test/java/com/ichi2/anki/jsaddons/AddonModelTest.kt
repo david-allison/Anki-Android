@@ -126,6 +126,7 @@ class AddonModelTest : RobolectricTest() {
         settings: List<AddonSettingDefinition>? = null,
         settingsPage: String? = null,
         pages: List<String>? = null,
+        permissions: List<String>? = null,
     ): AddonData =
         AddonData(
             name,
@@ -144,6 +145,7 @@ class AddonModelTest : RobolectricTest() {
             settings,
             settingsPage,
             pages = pages,
+            permissions = permissions,
         )
 
     @Test // the validator must report errors, never throw
@@ -250,6 +252,20 @@ class AddonModelTest : RobolectricTest() {
         val result = getAddonModelFromAddonData(addonData(settings = schema))
 
         assertIs<AddonValidationResult.Invalid>(result, "a value-bearing setting without a key is invalid")
+    }
+
+    @Test
+    fun permissionsAreParsedOntoTheModelTest() {
+        val raw = listOf("decks:write", "network", "notes:read", "future:capability")
+        val model = assertIs<AddonValidationResult.Valid>(getAddonModelFromAddonData(addonData(permissions = raw))).addonModel
+
+        assertEquals(4, model.permissions.size)
+        assertTrue(
+            model.permissions.contains(AddonPermission.Scoped(AddonPermission.Scoped.Entity.DECKS, AddonPermission.Scoped.Access.WRITE)),
+        )
+        assertTrue(model.permissions.contains(AddonPermission.Dangerous.NETWORK))
+        // an unknown capability parses (tolerated), it just cannot be granted
+        assertTrue(model.permissions.contains(AddonPermission.Unknown("future:capability")))
     }
 
     @Test
