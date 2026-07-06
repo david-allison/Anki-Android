@@ -58,6 +58,7 @@ class AddonData(
     val settings: List<AddonSettingDefinition>? = null,
     val settingsPage: String? = null,
     val background: String? = null,
+    val pages: List<String>? = null,
 )
 
 @Serializable
@@ -193,6 +194,7 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
             settings = addonData.settings.orEmpty(),
             settingsPage = addonData.settingsPage,
             background = addonData.background,
+            pages = addonData.pages,
         )
 
     return AddonValidationResult.Valid(addonModel)

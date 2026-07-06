@@ -125,6 +125,7 @@ class AddonModelTest : RobolectricTest() {
         dist: DistInfo? = DistInfo("https://example.com/addon.tgz"),
         settings: List<AddonSettingDefinition>? = null,
         settingsPage: String? = null,
+        pages: List<String>? = null,
     ): AddonData =
         AddonData(
             name,
@@ -142,6 +143,7 @@ class AddonModelTest : RobolectricTest() {
             dist,
             settings,
             settingsPage,
+            pages = pages,
         )
 
     @Test // the validator must report errors, never throw
@@ -248,6 +250,23 @@ class AddonModelTest : RobolectricTest() {
         val result = getAddonModelFromAddonData(addonData(settings = schema))
 
         assertIs<AddonValidationResult.Invalid>(result, "a value-bearing setting without a key is invalid")
+    }
+
+    @Test
+    fun targetsPageFallsBackToAddonTypeTest() {
+        // an addon predating 'pages' (reviewer type) targets the reviewer only
+        val model = assertIs<AddonValidationResult.Valid>(getAddonModelFromAddonData(addonData(addonType = "reviewer"))).addonModel
+        assertTrue("a reviewer addon targets the reviewer", model.targetsPage(AddonPages.REVIEWER))
+        assertFalse("and no other page", model.targetsPage(AddonPages.STATISTICS))
+    }
+
+    @Test
+    fun targetsPageUsesDeclaredPagesTest() {
+        val pages = listOf(AddonPages.STATISTICS, AddonPages.DECK_OPTIONS)
+        val model = assertIs<AddonValidationResult.Valid>(getAddonModelFromAddonData(addonData(pages = pages))).addonModel
+        assertTrue(model.targetsPage(AddonPages.STATISTICS))
+        assertTrue(model.targetsPage(AddonPages.DECK_OPTIONS))
+        assertFalse("declared pages override the addonType fallback", model.targetsPage(AddonPages.REVIEWER))
     }
 
     @Test
