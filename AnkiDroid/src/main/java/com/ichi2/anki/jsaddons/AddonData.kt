@@ -56,6 +56,7 @@ class AddonData(
     val homepage: String? = null,
     val dist: DistInfo? = null,
     val settings: List<AddonSettingDefinition>? = null,
+    val settingsPage: String? = null,
 )
 
 @Serializable
@@ -189,6 +190,7 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
             homepage = addonData.homepage,
             dist = addonData.dist,
             settings = addonData.settings.orEmpty(),
+            settingsPage = addonData.settingsPage,
         )
 
     return AddonValidationResult.Valid(addonModel)

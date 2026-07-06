@@ -124,6 +124,7 @@ class AddonModelTest : RobolectricTest() {
         homepage: String? = "https://example.com",
         dist: DistInfo? = DistInfo("https://example.com/addon.tgz"),
         settings: List<AddonSettingDefinition>? = null,
+        settingsPage: String? = null,
     ): AddonData =
         AddonData(
             name,
@@ -140,6 +141,7 @@ class AddonModelTest : RobolectricTest() {
             homepage,
             dist,
             settings,
+            settingsPage,
         )
 
     @Test // the validator must report errors, never throw
@@ -246,6 +248,13 @@ class AddonModelTest : RobolectricTest() {
         val result = getAddonModelFromAddonData(addonData(settings = schema))
 
         assertIs<AddonValidationResult.Invalid>(result, "a value-bearing setting without a key is invalid")
+    }
+
+    @Test
+    fun settingsPageIsCarriedOnTheModelTest() {
+        val result = getAddonModelFromAddonData(addonData(settingsPage = "settings.html"))
+        val model = assertIs<AddonValidationResult.Valid>(result).addonModel
+        assertEquals("settings.html", model.settingsPage)
     }
 
     @Test // a future AnkiDroid may define new setting types; they must not invalidate the addon

@@ -1,15 +1,16 @@
 # Sample JS addons
 
-Four small, useful reviewer addons exercising the WIP JS addons system
+Small, useful reviewer addons exercising the WIP JS addons system
 (see `docs/addons/README.md`). Each follows the npm package layout the
 installer expects: the addon's content lives under `package/`.
 
 | Addon | What it does | What it exercises |
 |---|---|---|
 | `ankidroid-sample-session-progress` | Thin progress bar at the top, filling as you review towards a session goal | State that survives across cards; `_showQuestion` wrapping |
-| `ankidroid-sample-auto-reveal` | Reveals the answer after 10 seconds on the question side | Timers; triggering a native action (`ankidroid://show-answer`) |
+| `ankidroid-sample-auto-reveal` | Reveals the answer after a configurable delay on the question side | Declarative settings schema read at runtime (`ankidroid.addonSettings`); native action (`ankidroid://show-answer`) |
 | `ankidroid-sample-image-zoom` | Tap an image on a card to view it fullscreen; tap again to dismiss | DOM injection/overlays; event delegation over swapped card content |
 | `ankidroid-sample-card-timer` | A small elapsed-time badge for the current card | Periodic updates; question/answer lifecycle; theme variables |
+| `ankidroid-sample-custom-panel` | Colour-picks an answer-button accent via a custom settings page | A sandboxed `settingsPage` talking to the host via `ankidroidAddon.getSettings/setSettings` |
 
 ## Build
 

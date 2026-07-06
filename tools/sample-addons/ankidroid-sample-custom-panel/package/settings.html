@@ -1,0 +1,22 @@
+<!-- Custom settings panel: runs sandboxed, talks to the host via ankidroidAddon. -->
+<style>
+    body { font-family: sans-serif; padding: 24px; }
+    label { display: block; margin-bottom: 8px; }
+</style>
+<label for="accent">Accent colour</label>
+<input id="accent" type="color" value="#4caf50" />
+<p id="status"></p>
+<script>
+    const input = document.getElementById("accent");
+    const status = document.getElementById("status");
+
+    async function load() {
+        const settings = await ankidroidAddon.getSettings();
+        if (settings.accent) input.value = settings.accent;
+    }
+    input.addEventListener("change", async () => {
+        await ankidroidAddon.setSettings({ accent: input.value });
+        status.textContent = "Saved " + input.value;
+    });
+    load();
+</script>

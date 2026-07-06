@@ -22,6 +22,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import com.ichi2.anki.R
+import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.utils.show
 import kotlinx.serialization.json.Json
@@ -62,6 +63,19 @@ class AddonSettingsFragment : Fragment(R.layout.fragment_addon_settings) {
         view.findViewById<MaterialToolbar>(R.id.toolbar).apply {
             title = addon?.addonTitle ?: addonName
             setNavigationOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
+            // an addon with a custom settings page can offer it alongside the generated UI
+            if (addon?.settingsPage != null) {
+                menu.add("Custom settings").setOnMenuItemClickListener {
+                    startActivity(
+                        SingleFragmentActivity.getIntent(
+                            requireContext(),
+                            AddonSettingsPanelFragment::class,
+                            AddonSettingsPanelFragment.arguments(addonName),
+                        ),
+                    )
+                    true
+                }
+            }
             menu.add("Edit JSON").setOnMenuItemClickListener {
                 showJsonEditor()
                 true

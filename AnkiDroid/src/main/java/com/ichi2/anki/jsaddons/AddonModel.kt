@@ -20,4 +20,6 @@ data class AddonModel(
     val dist: DistInfo?,
     /** The declarative settings schema; empty if the addon declares none */
     val settings: List<AddonSettingDefinition> = emptyList(),
+    /** Path within the addon of an HTML custom settings page, or null; see [AddonSettingsFragment] */
+    val settingsPage: String? = null,
 )
