@@ -33,14 +33,26 @@ unit-tested (~68 tests in `AnkiDroid/src/test/java/com/ichi2/anki/jsaddons/`).
   by `SingleFragmentActivity`; list / enable-disable / delete / install-from-file /
   open-settings.
 
-### Reviewer injection
+### Page injection — all pages, sandboxed (`AddonPageHost`)
 
-- **Script injection** (`AddonReviewerScripts.kt`, `ViewerResourceHandler`,
-  `PreviewerHelpers.stdHtml`): enabled reviewer addons' scripts are added to the new
-  study screen. **Two mechanisms built**; mechanism 1 is wired:
-  1. `<script src>` under `/_addons/<name>/<main>` (desktop's scheme), served by the
-     WebView resource interception with a path-traversal guard.
-  2. `addonScriptsForEvaluation` — raw text (+ `sourceURL`) for `evaluateJavascript`.
+- **One mechanism for every WebView page** (`AddonPageHost.kt`), following the Joplin
+  model: each enabled addon targeting a page runs in **its own
+  `sandbox="allow-scripts"` iframe** (opaque origin) and reaches the host page only
+  through a `postMessage` relay to a curated API — never the page DOM directly. The
+  trusted page-scope relay performs effects on the addon's behalf and calls the Kotlin
+  `AddonPageBridge` for settings/log.
+  - Relay API: `settings` (baked in), `log`, `setSetting`, `navigate` (allowlisted to
+    the `ankidroid://` scheme), `injectStyle`, `addElement`/`setElementStyle`/
+    `setElementHtml`/`removeElement`, `onEvent` (page lifecycle: `question`/`answer`),
+    `onDomEvent` (delegated host-page events, e.g. image clicks).
+- **Targeting** (`AddonPages`, `AddonModel.targetsPage`): a manifest `pages` list; an
+  addon predating it falls back to `addonType`. Unknown page ids are tolerated.
+- **Wired into**: the reviewer (`ReviewerFragment`, via `stdHtml` + the bridge) and the
+  shared SvelteKit pages (`PageFragment`: deck options, statistics, card info, congrats,
+  change-notetype, import) via the existing page-finished injection point. One host,
+  every page.
+- **Trade-off** (the Joplin model's cost): addons no longer touch the page DOM
+  directly; all page effects go through the relay. The five samples were migrated to it.
 
 ### Settings (Phase 2)
 
@@ -54,10 +66,9 @@ unit-tested (~68 tests in `AnkiDroid/src/test/java/com/ichi2/anki/jsaddons/`).
   1. native widgets generated from the schema;
   2. a raw JSON editor over the stored values (the schema-less fallback, mirroring
      Anki desktop's config editor).
-- **Runtime access for scripts** (`AddonSettingsBridge.kt`): each enabled reviewer
-  addon's resolved settings are baked into the page; `ankidroid.addonSettings(name)`
-  reads synchronously, `ankidroid.setAddonSetting(...)` writes back via a reviewer
-  POST route. Scoped per addon.
+- **Runtime access for scripts**: each addon's resolved settings are baked into its
+  iframe as `ankidroid.settings`; `ankidroid.setSetting(key, value)` writes back through
+  the `AddonPageHost` relay. Scoped per addon.
 
 ### Sandboxed UI + background (Phase 3, minus permissions)
 
@@ -90,11 +101,18 @@ and a manifest-validity test.
   [rfc.md](rfc.md). What's built renders settings *natively* on AnkiDroid; the shared
   web renderer needs the upstream RFC to land first.
 - **Native-screen mount points** (deck list / browser / editor filters and panels
-  from [addon-survey.md](addon-survey.md)) — reviewer-only for now.
+  from [addon-survey.md](addon-survey.md)) — the sandboxed host covers only WebView
+  pages; the fully-native Android screens (deck picker, card browser, note editor) have
+  no addon surface yet.
+- **A rich relay API** — the page relay exposes a deliberately small DOM surface
+  (`addElement`/`setElementStyle`/`injectStyle`/`onEvent`/`onDomEvent`/`navigate`).
+  Real addons will want more (richer events, per-widget mount points); the surface is
+  meant to grow under review, not to be complete.
 
 ## How to try it
 
 1. Developer options → **JS addons** (enable) → **Addons browser**.
 2. `tools/sample-addons/build-tarballs.sh`, then **Install from file** → pick a
    `.tgz` from `tools/sample-addons/out/`.
-3. Toggle the addon on; tap it to configure; open the **new study screen**.
+3. Toggle the addon on; tap it to configure; open the **new study screen** (or, for an
+   addon that declares a `pages` list, the page it targets — deck options, statistics, …).
