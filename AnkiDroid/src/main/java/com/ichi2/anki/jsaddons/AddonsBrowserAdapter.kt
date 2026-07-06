@@ -27,6 +27,7 @@ data class AddonListItem(
 class AddonsBrowserAdapter(
     private val onToggled: (AddonListItem, Boolean) -> Unit,
     private val onDeleteRequested: (AddonListItem) -> Unit,
+    private val onConfigureRequested: (AddonListItem) -> Unit,
 ) : ListAdapter<AddonListItem, AddonsBrowserAdapter.ViewHolder>(diffCallback) {
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -57,6 +58,9 @@ class AddonsBrowserAdapter(
             toggle.isEnabled = item.isValid
             toggle.setOnCheckedChangeListener { _, isChecked -> onToggled(item, isChecked) }
             delete.setOnClickListener { onDeleteRequested(item) }
+            // valid addons open a settings screen; the manifest may declare a schema, and
+            // the raw JSON editor is always available
+            itemView.setOnClickListener { if (item.isValid) onConfigureRequested(item) }
         }
     }
 

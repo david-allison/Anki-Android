@@ -75,6 +75,16 @@ class AddonStateStore(
         value: JsonElement,
     ) = setSettingsValues(addonName, JsonObject(mapOf(key to value)))
 
+    /**
+     * Replaces the settings of [addonName] wholesale with [values], for the raw JSON editor
+     * where the edited text is the source of truth. Non-settings state (e.g. `enabled`) is
+     * preserved.
+     */
+    fun replaceSettingsValues(
+        addonName: String,
+        values: JsonObject,
+    ) = setState(addonName, JsonObject(getState(addonName) + (KEY_SETTINGS to values)))
+
     /** Forgets all state of [addonName]: for use when the addon is uninstalled */
     fun remove(addonName: String) = prefs.edit { remove(addonName) }
 

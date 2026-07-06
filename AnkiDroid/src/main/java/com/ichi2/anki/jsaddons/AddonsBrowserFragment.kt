@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.R
+import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.utils.show
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
             AddonsBrowserAdapter(
                 onToggled = ::onAddonToggled,
                 onDeleteRequested = ::onDeleteRequested,
+                onConfigureRequested = ::onConfigureRequested,
             )
         view.findViewById<RecyclerView>(R.id.addons_list).adapter = adapter
 
@@ -121,6 +123,16 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
     ) {
         Timber.i("Addon '%s' toggled to %b", addon.name, isEnabled)
         stateStore.setEnabled(addon.name, isEnabled)
+    }
+
+    private fun onConfigureRequested(addon: AddonListItem) {
+        startActivity(
+            SingleFragmentActivity.getIntent(
+                requireContext(),
+                AddonSettingsFragment::class,
+                AddonSettingsFragment.arguments(addon.name),
+            ),
+        )
     }
 
     private fun onDeleteRequested(addon: AddonListItem) {
