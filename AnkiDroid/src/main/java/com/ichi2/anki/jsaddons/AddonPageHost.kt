@@ -7,16 +7,20 @@ import android.content.Context
 import android.webkit.JavascriptInterface
 import com.ichi2.anki.settings.Prefs
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.intellij.lang.annotations.Language
 import timber.log.Timber
 
-/** An addon prepared for injection into a page: its name, script body and resolved settings */
+/** An addon prepared for injection into a page: its name, script, settings and granted permissions */
 data class PageAddon(
     val name: String,
     val script: String,
     val settings: JsonObject,
+    val granted: Set<String>,
 )
 
 /**
@@ -73,7 +77,12 @@ object AddonPageHost {
             val scriptFile =
                 storage.resolveWebExport("${AddonStorage.WEB_EXPORTS_PREFIX}${addon.name}/${addon.main}")
                     ?: return@mapNotNull null
-            PageAddon(addon.name, scriptFile.readText(), resolveSettingsValues(addon, stateStore.getSettingsValues(addon.name)))
+            PageAddon(
+                name = addon.name,
+                script = scriptFile.readText(),
+                settings = resolveSettingsValues(addon, stateStore.getSettingsValues(addon.name)),
+                granted = stateStore.getGrantedPermissions(addon.name),
+            )
         }
     }
 
@@ -133,11 +142,20 @@ object AddonPageHost {
                 """.trimIndent()
             }
 
+        val grantsMap =
+            buildJsonObject {
+                for (addon in addons) put(addon.name, JsonArray(addon.granted.map { JsonPrimitive(it) }))
+            }
+
         // language=JS
         return """
             (() => {
                 if (globalThis.__ankidroidPageHost) return;
                 const bridge = globalThis.$bridgeName;
+                // granted permissions per addon, baked in from host state: the sandboxed
+                // iframe cannot forge these - it only reaches the relay via postMessage
+                const grants = $grantsMap;
+                const has = (name, id) => (grants[name] || []).includes(id);
                 const frames = new Map(); // window -> addon name
                 const elements = new Map(); // id -> element
                 const domHandlers = new Map(); // "type" -> [{selector, window}]
@@ -165,8 +183,13 @@ object AddonPageHost {
                         switch (msg.method) {
                             case "log": bridge && bridge.log(name, String(a0)); break;
                             case "setSetting": bridge && bridge.setSetting(name, a0, JSON.stringify(a1)); break;
-                            // only the app's own scheme, which the page's WebViewClient controls
-                            case "navigate": if (typeof a0 === "string" && a0.startsWith("ankidroid://")) window.location.href = a0; break;
+                            case "navigate": {
+                                // gated by the 'navigate' capability; and only the app's own
+                                // scheme, which the page's WebViewClient controls
+                                if (!has(name, "navigate")) { bridge && bridge.log(name, "denied: navigate permission not granted"); break; }
+                                if (typeof a0 === "string" && a0.startsWith("ankidroid://")) window.location.href = a0;
+                                break;
+                            }
                             case "injectStyle": {
                                 const style = document.createElement("style");
                                 style.id = a1; style.textContent = a0; document.head.appendChild(style);
@@ -236,6 +259,8 @@ object AddonPageHost {
                     pageId: ${jsString(pageId)},
                     addonName: $name,
                     settings: ${addon.settings},
+                    permissions: ${JsonArray(addon.granted.map { JsonPrimitive(it) })},
+                    hasPermission: (id) => ${JsonArray(addon.granted.map { JsonPrimitive(it) })}.includes(id),
                     log: (msg) => call("log", [msg]),
                     setSetting: (key, value) => call("setSetting", [key, value]),
                     navigate: (url) => call("navigate", [url]),

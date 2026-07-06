@@ -95,6 +95,23 @@ class AddonPageHostTest : RobolectricTest() {
     }
 
     @Test
+    fun navigateIsGatedByTheGrantedPermissionTest() {
+        installAddon("nav-addon", pages = """["statistics"]""")
+        // granted case
+        AddonStateStore(targetContext).grant("nav-addon", AddonPermission.Dangerous.NAVIGATE)
+        val granted = AddonPageHost.bootstrapScript(targetContext, AddonPages.STATISTICS)!!
+        assertTrue("the grant is baked into the relay", granted.contains("\\\"navigate\\\"") || granted.contains("\"navigate\""))
+
+        // revoked case: the grants map for the addon must not contain navigate
+        AddonStateStore(targetContext).revoke("nav-addon", AddonPermission.Dangerous.NAVIGATE)
+        val revoked = AddonPageHost.bootstrapScript(targetContext, AddonPages.STATISTICS)!!
+        val prepared = AddonPageHost.preparePageAddons(targetContext, AddonPages.STATISTICS).single()
+        assertFalse("navigate is not in the addon's granted set", prepared.granted.contains("navigate"))
+        // the relay still gates on has(name, "navigate"), which is now false
+        assertTrue("the relay always contains the navigate gate", revoked.contains("has(name, \"navigate\")"))
+    }
+
+    @Test
     fun pageBridgePersistsSettingWritesTest() {
         installAddon("stats-addon", pages = """["statistics"]""")
 

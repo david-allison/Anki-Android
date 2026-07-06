@@ -60,3 +60,22 @@ have nothing to gate yet — the relay exposes no collection access. So those ca
 strings parse and surface and store, but gate nothing until a collection API exists. I'm
 building the *permission plumbing* end-to-end with `navigate` as the one live example, so
 adding a gated collection call later is a one-line `requirePermission(...)`.
+
+**Where enforcement lives (the subtle bit).** The threat model is: the sandboxed **iframe
+is untrusted**; the **page relay and Kotlin are trusted**. The iframe can only `postMessage`.
+So enforcement can live in *either* trusted layer:
+
+- `navigate` performs its effect in the page relay (`window.location.href`), so it's gated
+  *there* — the relay checks a `grants` map that is **baked in from host state**, not sent by
+  the addon, so the addon cannot forge a grant. This is client-side JS but still across the
+  sandbox trust boundary, which is what matters.
+- State-touching methods that reach Kotlin (`setSetting`, and any future collection call)
+  are gated *server-side* in `AddonPageBridge`, re-reading `AddonStateStore.isGranted` — never
+  trusting even the trusted page relay for the things that touch real data.
+
+The addon also gets `ankidroid.permissions` and `ankidroid.hasPermission(id)` for
+feature-detection, so it can behave gracefully when a capability was revoked.
+
+**Live consequence:** the auto-reveal sample calls `navigate("ankidroid://show-answer")`, so
+it now declares `"permissions": ["navigate"]`. If the user revokes it, auto-reveal silently
+stops — exactly the behaviour we want, and the first end-to-end proof the gate works.
