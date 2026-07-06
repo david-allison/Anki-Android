@@ -22,4 +22,6 @@ data class AddonModel(
     val settings: List<AddonSettingDefinition> = emptyList(),
     /** Path within the addon of an HTML custom settings page, or null; see [AddonSettingsFragment] */
     val settingsPage: String? = null,
+    /** Path within the addon of a background script, or null; see [AddonBackgroundHost] */
+    val background: String? = null,
 )

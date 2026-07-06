@@ -20,14 +20,29 @@ import android.content.Context
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.ichi2.anki.jsaddons.AddonBackgroundHost
 import com.ichi2.widget.WidgetStatus
 import timber.log.Timber
 
 class AppLifecycleObserver(
     private val context: Context,
 ) : DefaultLifecycleObserver {
+    // runs enabled addons' background scripts only while the app is foregrounded
+    private val addonBackgroundHost by lazy { AddonBackgroundHost(context) }
+
+    override fun onStart(owner: LifecycleOwner) {
+        super.onStart(owner)
+        try {
+            addonBackgroundHost.start()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to start the addon background host")
+        }
+    }
+
     override fun onStop(owner: LifecycleOwner) {
         super.onStop(owner)
+
+        addonBackgroundHost.stop()
 
         if (owner.lifecycle.currentState != Lifecycle.State.DESTROYED && CollectionManager.isOpenUnsafe()) {
             try {
