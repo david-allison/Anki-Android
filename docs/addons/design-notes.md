@@ -79,3 +79,33 @@ feature-detection, so it can behave gracefully when a capability was revoked.
 **Live consequence:** the auto-reveal sample calls `navigate("ankidroid://show-answer")`, so
 it now declares `"permissions": ["navigate"]`. If the user revokes it, auto-reveal silently
 stops — exactly the behaviour we want, and the first end-to-end proof the gate works.
+
+---
+
+## 2. Distribution
+
+**The problem.** Only local `.tgz` install exists. Users can't discover or update addons.
+
+**Why this is a guess.** The registry is genuinely undecided at the ecosystem level: AnkiWeb
+(desktop-only today), AnkiHub (the new steward), or an Obsidian/Logseq-style curated index +
+GitHub releases. I can't pick that — so I build the *mechanism* and make the registry URL a
+single injectable seam.
+
+**The shape I chose**, because it reuses what's already in the repo: a JSON **index** at a
+URL, an array of addon manifests each carrying `dist.tarball` (the npm-registry shape the
+dormant `getAddonModelListFromJson` already parses). `AddonRegistry` wraps it with a sealed
+`Success/Failure` result and never throws — a registry being down must degrade to "can't
+reach registry", not a crash. Invalid entries in the index are skipped, not fatal (one bad
+addon shouldn't hide the rest), reusing the same tolerance as local listing.
+
+**Install + update**, next: downloading a `dist.tarball` to a temp file and handing it to the
+existing atomic `installFromTarball` — so registry install and file install share one
+code path and one set of guarantees. "Update available" is a plain semver compare of the
+installed version against the registry version; no auto-update (Obsidian, Joplin and
+WebExtensions all ban addon self-update, and so should we — updates go through the same
+surfaced-permissions install).
+
+**Deferred:** signing/verification of downloads, a revocation list (krmanik's `remove.txt`
+idea), and the actual registry contents. The URL is a placeholder
+(`ankidroid.org/addons/index.json`) that does not exist yet — intentionally, so nothing here
+implies a committed registry location.
