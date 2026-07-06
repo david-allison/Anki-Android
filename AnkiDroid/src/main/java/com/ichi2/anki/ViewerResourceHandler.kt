@@ -20,6 +20,8 @@ import android.content.Context
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.jsaddons.AddonStorage
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.utils.AssetHelper.guessMimeType
 import timber.log.Timber
 import java.io.ByteArrayInputStream
@@ -36,6 +38,7 @@ class ViewerResourceHandler(
 ) {
     private val assetManager = context.assets
     private val mediaDir = CollectionHelper.getMediaDirectory(context)
+    private val addonStorage by lazy { AddonStorage(context) }
 
     fun shouldInterceptRequest(request: WebResourceRequest): WebResourceResponse? {
         val url = request.url
@@ -58,6 +61,12 @@ class ViewerResourceHandler(
                         ).pathString
                 val inputStream = assetManager.open(mathjaxAssetPath)
                 return WebResourceResponse(guessMimeType(path), null, inputStream)
+            }
+
+            if (path.startsWith(AddonStorage.WEB_EXPORTS_PREFIX)) {
+                if (!Prefs.devAddonsEnabled) return null
+                val addonFile = addonStorage.resolveWebExport(path) ?: return null
+                return WebResourceResponse(guessMimeType(path), null, FileInputStream(addonFile))
             }
 
             val file = File(mediaDir, path)

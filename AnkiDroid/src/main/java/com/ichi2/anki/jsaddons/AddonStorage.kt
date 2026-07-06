@@ -64,6 +64,26 @@ class AddonStorage(
     fun deleteAddon(addonName: String): Boolean = BackupManager.removeDir(getAddonDir(addonName))
 
     /**
+     * Resolves a `/_addons/<name>/<path>` URL path to a file inside that addon's
+     * `package/` directory, for serving addon files to a WebView.
+     *
+     * @return the file, or null if [path] does not resolve to an existing file inside the
+     *   addons directory: a path traversal guard, as [path] comes from the WebView
+     */
+    fun resolveWebExport(path: String): File? {
+        val relative = path.removePrefix(WEB_EXPORTS_PREFIX)
+        if (relative == path) return null // not under the addons prefix
+        val addonName = relative.substringBefore('/', missingDelimiterValue = "")
+        val fileInPackage = relative.substringAfter('/', missingDelimiterValue = "")
+        if (addonName.isEmpty() || fileInPackage.isEmpty()) return null
+
+        val file = File(File(getAddonDir(addonName), "package"), fileInPackage)
+        if (!file.canonicalPath.startsWith(addonsDir.canonicalPath + File.separator)) return null
+        if (!file.isFile) return null
+        return file
+    }
+
+    /**
      * Installs an addon from an npm `.tgz` tarball.
      *
      * The install is atomic: the tarball is extracted into a hidden staging directory and
@@ -97,6 +117,11 @@ class AddonStorage(
         } finally {
             stagingDir.deleteRecursively()
         }
+    }
+
+    companion object {
+        /** URL path prefix under which addon files are served to WebViews (mirrors desktop's `/_addons/`) */
+        const val WEB_EXPORTS_PREFIX = "/_addons/"
     }
 }
 

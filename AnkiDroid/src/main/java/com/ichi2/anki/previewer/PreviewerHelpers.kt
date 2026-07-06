@@ -26,11 +26,14 @@ import org.intellij.lang.annotations.Language
  *
  * @param extraJsAssets paths of additional Javascript assets
  * in the `android_assets` folder to be included
+ * @param extraScriptUrls URLs of additional scripts to be included verbatim, after all
+ * [extraJsAssets]. Served via `shouldInterceptRequest`, e.g. addon scripts under `/_addons/`
  */
 @Language("HTML")
 fun stdHtml(
     context: Context = appContext,
     extraJsAssets: List<String> = emptyList(),
+    extraScriptUrls: List<String> = emptyList(),
     nightMode: Boolean = false,
 ): String {
     val languageDirectionality = if (LanguageUtils.appLanguageIsRTL()) "rtl" else "ltr"
@@ -53,7 +56,10 @@ fun stdHtml(
     val jsTxt =
         jsAssets.joinToString("\n") {
             """<script src="file:///android_asset/$it"></script>"""
-        }
+        } +
+            extraScriptUrls.joinToString("") {
+                "\n" + """<script src="$it"></script>"""
+            }
 
     return """
         <!DOCTYPE html>

@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.util.zip.GZIPOutputStream
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 @RunWith(AndroidJUnit4::class)
 class AddonStorageTest : RobolectricTest() {
@@ -126,6 +127,29 @@ class AddonStorageTest : RobolectricTest() {
         assertFalse("a file from the previous install must not survive", leftover.exists())
         assertEquals(1, storage.getInstalledAddons().size)
         assertNoStagingLeftovers()
+    }
+
+    @Test
+    fun resolveWebExportServesAddonFilesTest() {
+        installAddon("test-addon", validManifest)
+        val script = File(storage.getAddonDir("test-addon"), "package/index.js").apply { writeText("// js") }
+
+        val resolved = storage.resolveWebExport("/_addons/test-addon/index.js")
+
+        assertEquals(script.canonicalPath, resolved?.canonicalPath)
+    }
+
+    @Test
+    fun resolveWebExportRejectsPathTraversalTest() {
+        installAddon("test-addon", validManifest)
+        // a file outside the addons directory which must not be reachable
+        val secret = File(storage.getAddonsDir().parentFile, "secret.txt").apply { writeText("secret") }
+
+        assertNull(storage.resolveWebExport("/_addons/test-addon/../../../${secret.name}"))
+        assertNull(storage.resolveWebExport("/_addons/../${secret.name}"))
+        assertNull(storage.resolveWebExport("/collection.media/foo.js"))
+        assertNull(storage.resolveWebExport("/_addons/test-addon/missing.js"))
+        assertNull(storage.resolveWebExport("/_addons/test-addon/"))
     }
 
     /** Builds an npm-style tarball: file contents keyed by path, nested under `package/` */

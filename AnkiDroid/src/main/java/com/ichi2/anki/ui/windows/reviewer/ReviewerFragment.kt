@@ -51,6 +51,7 @@ import com.ichi2.anki.dialogs.showDeckOptionsSelectionDialog
 import com.ichi2.anki.dialogs.tags.TagsDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
+import com.ichi2.anki.jsaddons.AddonReviewerScripts
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.preferences.reviewer.ViewerAction
 import com.ichi2.anki.previewer.CardViewerActivity
@@ -125,6 +126,7 @@ class ReviewerFragment :
         stdHtml(
             context = requireContext(),
             extraJsAssets = listOf("scripts/ankidroid-reviewer.js"),
+            extraScriptUrls = AddonReviewerScripts.addonScriptUrls(requireContext()),
             nightMode = Themes.isNightTheme,
         )
 

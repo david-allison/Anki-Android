@@ -413,8 +413,8 @@ open class PrefsRepository(
         get() = getBoolean(R.string.dev_bottom_nav_key, false)
 
     /** Whether the WIP JS addons system (browser + reviewer script injection) is enabled */
-    val devAddonsEnabled: Boolean
-        get() = getBoolean(R.string.dev_addons_key, false)
+    @set:VisibleForTesting
+    var devAddonsEnabled: Boolean by booleanPref(R.string.dev_addons_key, false)
 
     @set:VisibleForTesting
     var devUsingCardBrowserSearchView: Boolean by booleanPref(R.string.dev_card_browser_search_view, false)
