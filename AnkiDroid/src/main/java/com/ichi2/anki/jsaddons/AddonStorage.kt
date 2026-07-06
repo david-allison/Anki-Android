@@ -6,6 +6,7 @@ package com.ichi2.anki.jsaddons
 import android.content.Context
 import com.ichi2.anki.BackupManager
 import com.ichi2.anki.CollectionHelper
+import timber.log.Timber
 import java.io.File
 
 /**
@@ -26,7 +27,7 @@ import java.io.File
  * ```
  */
 class AddonStorage(
-    context: Context,
+    private val context: Context,
 ) {
     private val addonsDir = File(CollectionHelper.getCurrentAnkiDroidDirectory(context), "addons")
 
@@ -42,22 +43,61 @@ class AddonStorage(
     fun getAddonDir(addonName: String): File = File(getAddonsDir(), addonName)
 
     /** The manifest of a single addon, e.g. `AnkiDroid/addons/some-addon/package/package.json` */
-    fun getManifestFile(addonName: String): File = File(getAddonDir(addonName), "package/package.json")
+    fun getManifestFile(addonName: String): File = manifestIn(getAddonDir(addonName))
+
+    /** The manifest inside [addonDir]: npm tarballs nest their content under `package/` */
+    private fun manifestIn(addonDir: File): File = File(addonDir, "package/package.json")
 
     /**
      * Every addon in the addons directory, whether its manifest is valid or not.
      *
-     * Plain files in the addons directory are ignored: a future AnkiDroid may keep
-     * bookkeeping files next to the addon directories
+     * Plain and hidden files in the addons directory are ignored: staging directories are
+     * hidden, and a future AnkiDroid may keep bookkeeping files next to the addons
      */
     fun getInstalledAddons(): List<InstalledAddon> =
         getAddonsDir()
-            .listFiles { file -> file.isDirectory }
+            .listFiles { file -> file.isDirectory && !file.isHidden }
             .orEmpty()
-            .map { dir -> InstalledAddon(dir.name, getAddonModelFromJson(getManifestFile(dir.name))) }
+            .map { dir -> InstalledAddon(dir.name, getAddonModelFromJson(manifestIn(dir))) }
 
     /** Removes the addon directory of [addonName] and everything in it */
     fun deleteAddon(addonName: String): Boolean = BackupManager.removeDir(getAddonDir(addonName))
+
+    /**
+     * Installs an addon from an npm `.tgz` tarball.
+     *
+     * The install is atomic: the tarball is extracted into a hidden staging directory and
+     * only moved into place after its manifest validates, so a corrupt tarball can never
+     * leave a broken addon behind. An existing installation of the same addon is replaced.
+     *
+     * @return [AddonValidationResult.Valid] with the installed addon's model, or
+     *   [AddonValidationResult.Invalid] with the reasons the tarball was rejected
+     */
+    fun installFromTarball(tarball: File): AddonValidationResult {
+        val stagingDir = File(getAddonsDir(), ".staging-${System.currentTimeMillis()}")
+        try {
+            try {
+                TgzPackageExtract(context).extractTarGzipToAddonFolder(tarball, stagingDir)
+            } catch (e: Exception) {
+                Timber.w(e, "Addon extraction failed")
+                return AddonValidationResult.Invalid(listOf("Unable to extract addon: $e"))
+            }
+
+            val result = getAddonModelFromJson(manifestIn(stagingDir))
+            if (result !is AddonValidationResult.Valid) return result
+
+            val targetDir = getAddonDir(result.addonModel.name)
+            if (targetDir.exists() && !targetDir.deleteRecursively()) {
+                return AddonValidationResult.Invalid(listOf("Unable to replace the existing addon in $targetDir"))
+            }
+            if (!stagingDir.renameTo(targetDir)) {
+                return AddonValidationResult.Invalid(listOf("Unable to move the addon into $targetDir"))
+            }
+            return result
+        } finally {
+            stagingDir.deleteRecursively()
+        }
+    }
 }
 
 /** An entry of the addons directory: its [directoryName] and the outcome of validating its manifest */

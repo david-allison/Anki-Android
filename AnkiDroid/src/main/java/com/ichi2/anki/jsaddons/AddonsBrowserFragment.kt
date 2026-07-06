@@ -3,9 +3,11 @@
 
 package com.ichi2.anki.jsaddons
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -21,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 
 /**
  * Developer-only browser for the installed JS addons: list, enable/disable and delete.
@@ -71,9 +74,45 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
         refreshAddonsList()
     }
 
-    /** Replaced with a file picker flow in the install-from-file commit */
+    private val installFromFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                installFromUri(uri)
+            }
+        }
+
     private fun onInstallFromFileRequested() {
-        showThemedToast(requireContext(), "Not implemented", true)
+        installFromFileLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "application/octet-stream"))
+    }
+
+    private fun installFromUri(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    val tempTarball = File.createTempFile("addon", ".tgz", requireContext().cacheDir)
+                    try {
+                        requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                            tempTarball.outputStream().use { output -> input.copyTo(output) }
+                        } ?: return@withContext AddonValidationResult.Invalid(listOf("Unable to read the selected file"))
+                        storage.installFromTarball(tempTarball)
+                    } finally {
+                        tempTarball.delete()
+                    }
+                }
+            when (result) {
+                is AddonValidationResult.Valid -> {
+                    Timber.i("Installed addon '%s'", result.addonModel.name)
+                    showThemedToast(requireContext(), "Installed '${result.addonModel.addonTitle}'", true)
+                    refreshAddonsList()
+                }
+                is AddonValidationResult.Invalid ->
+                    AlertDialog.Builder(requireContext()).show {
+                        setTitle("Invalid addon")
+                        setMessage(result.errors.joinToString("\n"))
+                        setPositiveButton(R.string.dialog_ok) { _, _ -> }
+                    }
+            }
+        }
     }
 
     private fun onAddonToggled(
