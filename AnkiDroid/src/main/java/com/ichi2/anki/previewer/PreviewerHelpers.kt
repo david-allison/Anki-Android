@@ -26,17 +26,14 @@ import org.intellij.lang.annotations.Language
  *
  * @param extraJsAssets paths of additional Javascript assets
  * in the `android_assets` folder to be included
- * @param extraInlineScripts verbatim script bodies to be inlined after [extraJsAssets] and
- * before [extraScriptUrls]. Used to bootstrap addon scripts (e.g. baking in their settings)
- * @param extraScriptUrls URLs of additional scripts to be included verbatim, after all
- * [extraInlineScripts]. Served via `shouldInterceptRequest`, e.g. addon scripts under `/_addons/`
+ * @param extraInlineScripts verbatim script bodies to be inlined after [extraJsAssets],
+ * e.g. the addon page host bootstrap (see [com.ichi2.anki.jsaddons.AddonPageHost])
  */
 @Language("HTML")
 fun stdHtml(
     context: Context = appContext,
     extraJsAssets: List<String> = emptyList(),
     extraInlineScripts: List<String> = emptyList(),
-    extraScriptUrls: List<String> = emptyList(),
     nightMode: Boolean = false,
 ): String {
     val languageDirectionality = if (LanguageUtils.appLanguageIsRTL()) "rtl" else "ltr"
@@ -62,9 +59,6 @@ fun stdHtml(
         } +
             extraInlineScripts.joinToString("") {
                 "\n<script>\n$it\n</script>"
-            } +
-            extraScriptUrls.joinToString("") {
-                "\n" + """<script src="$it"></script>"""
             }
 
     return """

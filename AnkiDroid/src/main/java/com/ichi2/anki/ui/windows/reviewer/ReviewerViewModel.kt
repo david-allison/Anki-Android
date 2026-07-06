@@ -16,7 +16,6 @@ import com.ichi2.anki.Flag
 import com.ichi2.anki.Reviewer
 import com.ichi2.anki.asyncIO
 import com.ichi2.anki.cardviewer.SingleCardSide
-import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.destinations.BrowserDestination
 import com.ichi2.anki.common.destinations.CardInfoDestination
@@ -24,7 +23,6 @@ import com.ichi2.anki.common.destinations.CardInfoDestination.EntryPoint
 import com.ichi2.anki.common.destinations.DeckOptionsDestination
 import com.ichi2.anki.common.destinations.DeckOptionsEntry
 import com.ichi2.anki.common.destinations.StatisticsDestination
-import com.ichi2.anki.jsaddons.AddonSettingsBridge
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
@@ -446,7 +444,6 @@ class ReviewerViewModel(
                 isInputFocused = false
                 return byteArrayOf()
             }
-            AddonSettingsBridge.POST_SET -> return AddonSettingsBridge.handleSet(appContext, bytes)
         }
         return when (uri.backendMethodName) {
             "getSchedulingStatesWithContext" -> getSchedulingStatesWithContext()

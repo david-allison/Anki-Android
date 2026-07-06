@@ -165,6 +165,8 @@ object AddonPageHost {
                         switch (msg.method) {
                             case "log": bridge && bridge.log(name, String(a0)); break;
                             case "setSetting": bridge && bridge.setSetting(name, a0, JSON.stringify(a1)); break;
+                            // only the app's own scheme, which the page's WebViewClient controls
+                            case "navigate": if (typeof a0 === "string" && a0.startsWith("ankidroid://")) window.location.href = a0; break;
                             case "injectStyle": {
                                 const style = document.createElement("style");
                                 style.id = a1; style.textContent = a0; document.head.appendChild(style);
@@ -236,6 +238,7 @@ object AddonPageHost {
                     settings: ${addon.settings},
                     log: (msg) => call("log", [msg]),
                     setSetting: (key, value) => call("setSetting", [key, value]),
+                    navigate: (url) => call("navigate", [url]),
                     injectStyle: (css) => { const id = newId(); call("injectStyle", [css, id]); return id; },
                     addElement: (position, html) => { const id = newId(); call("addElement", [position, html, id]); return id; },
                     setElementStyle: (id, prop, value) => call("setElementStyle", [id, prop, value]),

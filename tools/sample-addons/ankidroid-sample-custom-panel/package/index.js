@@ -1,25 +1,9 @@
 /* Applies the accent colour chosen in the custom settings panel to the answer buttons. */
 (() => {
     "use strict";
-    const ADDON = "ankidroid-sample-custom-panel";
-
-    function apply() {
-        const accent = globalThis.ankidroid?.addonSettings?.(ADDON)?.accent;
-        if (!accent) return;
-        document.documentElement.style.setProperty("--accent-override", accent);
-        for (const button of document.querySelectorAll("button")) {
-            button.style.borderBottom = `3px solid ${accent}`;
-        }
+    const accent = ankidroid.settings.accent;
+    if (accent) {
+        // the relay injects the style into the host page on our behalf
+        ankidroid.injectStyle(`button { border-bottom: 3px solid ${accent} !important; }`);
     }
-
-    const origShowQuestion = globalThis._showQuestion;
-    globalThis._showQuestion = function (...args) {
-        origShowQuestion.apply(this, args);
-        apply();
-    };
-    const origShowAnswer = globalThis._showAnswer;
-    globalThis._showAnswer = function (...args) {
-        origShowAnswer.apply(this, args);
-        apply();
-    };
 })();

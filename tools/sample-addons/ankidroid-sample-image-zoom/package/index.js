@@ -1,25 +1,23 @@
 /* Image zoom: tap a card image to view it fullscreen, tap again to dismiss. */
 (() => {
     "use strict";
+    let overlayId = null;
 
-    const overlay = document.createElement("div");
-    overlay.style.cssText =
-        "position:fixed;inset:0;z-index:9998;display:none;align-items:center;" +
-        "justify-content:center;background:rgba(0,0,0,.85);";
-    const zoomed = document.createElement("img");
-    zoomed.style.cssText = "max-width:95vw;max-height:95vh;object-fit:contain;";
-    overlay.appendChild(zoomed);
-    overlay.addEventListener("click", () => {
-        overlay.style.display = "none";
-        zoomed.src = "";
+    // delegated on the host page: fires for clicks on any image inside #qa
+    ankidroid.onDomEvent("#qa img", "click", target => {
+        if (!target.src || overlayId) return;
+        overlayId = ankidroid.addElement(
+            "body-end",
+            "<div class='addon-zoom-overlay' style='position:fixed;inset:0;z-index:9998;display:flex;" +
+                "align-items:center;justify-content:center;background:rgba(0,0,0,.85)'>" +
+                `<img src='${target.src}' style='max-width:95vw;max-height:95vh;object-fit:contain'></div>`,
+        );
     });
-    document.body.appendChild(overlay);
 
-    // delegated: card content inside #qa is swapped for every card
-    document.addEventListener("click", event => {
-        const image = event.target?.closest?.("#qa img");
-        if (!image || !image.src) return;
-        zoomed.src = image.src;
-        overlay.style.display = "flex";
+    ankidroid.onDomEvent(".addon-zoom-overlay", "click", () => {
+        if (overlayId) {
+            ankidroid.removeElement(overlayId);
+            overlayId = null;
+        }
     });
 })();

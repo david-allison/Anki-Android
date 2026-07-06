@@ -51,8 +51,8 @@ import com.ichi2.anki.dialogs.showDeckOptionsSelectionDialog
 import com.ichi2.anki.dialogs.tags.TagsDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
-import com.ichi2.anki.jsaddons.AddonReviewerScripts
-import com.ichi2.anki.jsaddons.AddonSettingsBridge
+import com.ichi2.anki.jsaddons.AddonPageHost
+import com.ichi2.anki.jsaddons.AddonPages
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.preferences.reviewer.ViewerAction
 import com.ichi2.anki.previewer.CardViewerActivity
@@ -123,14 +123,19 @@ class ReviewerFragment :
 
     private lateinit var tagsDialogFactory: TagsDialogFactory
 
-    override fun onLoadInitialHtml(): String =
-        stdHtml(
+    override fun onLoadInitialHtml(): String {
+        // register the addon bridge here, before the HTML is loaded below, so the injected
+        // page host can reach it. Addons run sandboxed via AddonPageHost, like every other page
+        if (Prefs.devAddonsEnabled) {
+            webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(requireContext()), AddonPageHost.bridgeName)
+        }
+        return stdHtml(
             context = requireContext(),
             extraJsAssets = listOf("scripts/ankidroid-reviewer.js"),
-            extraInlineScripts = listOfNotNull(AddonSettingsBridge.bootstrapScript(requireContext())),
-            extraScriptUrls = AddonReviewerScripts.addonScriptUrls(requireContext()),
+            extraInlineScripts = listOfNotNull(AddonPageHost.bootstrapScript(requireContext(), AddonPages.REVIEWER)),
             nightMode = Themes.isNightTheme,
         )
+    }
 
     override fun onStart() {
         super.onStart()
