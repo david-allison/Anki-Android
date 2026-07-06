@@ -8,8 +8,11 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
+import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,6 +76,47 @@ class AddonStateStoreTest : RobolectricTest() {
         assertTrue(store.isEnabled("some-addon"))
         val stored = rawPrefs.getString("some-addon", null)!!
         assertTrue("keys from a newer AnkiDroid are preserved: $stored", stored.contains("\"futureKey\":\"futureValue\""))
+    }
+
+    @Test
+    fun settingsDefaultToEmptyTest() {
+        assertEquals(JsonObject(emptyMap()), store.getSettingsValues("some-addon"))
+    }
+
+    @Test
+    fun settingValuesRoundTripTest() {
+        store.setSettingValue("some-addon", "delaySeconds", JsonPrimitive(5))
+        store.setSettingValue("some-addon", "position", JsonPrimitive("top"))
+
+        val values = store.getSettingsValues("some-addon")
+
+        assertEquals(JsonPrimitive(5), values["delaySeconds"])
+        assertEquals(JsonPrimitive("top"), values["position"])
+    }
+
+    @Test
+    fun settingWritesPreserveOtherSettingKeysTest() {
+        // a newer AnkiDroid (or newer addon schema) may have stored keys we don't know
+        rawPrefs.edit {
+            putString("some-addon", """{"enabled":true,"settings":{"futureSetting":"kept"}}""")
+        }
+
+        store.setSettingValue("some-addon", "delaySeconds", JsonPrimitive(5))
+
+        val values = store.getSettingsValues("some-addon")
+        assertEquals(JsonPrimitive("kept"), values["futureSetting"])
+        assertEquals(JsonPrimitive(5), values["delaySeconds"])
+        assertTrue("the enabled flag is untouched by setting writes", store.isEnabled("some-addon"))
+    }
+
+    @Test
+    fun settingsSurviveEnabledToggleTest() {
+        store.setSettingValue("some-addon", "delaySeconds", JsonPrimitive(5))
+
+        store.setEnabled("some-addon", true)
+        store.setEnabled("some-addon", false)
+
+        assertEquals(JsonPrimitive(5), store.getSettingsValues("some-addon")["delaySeconds"])
     }
 
     @Test

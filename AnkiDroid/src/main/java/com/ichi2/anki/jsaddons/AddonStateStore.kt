@@ -7,6 +7,7 @@ import android.content.Context
 import androidx.core.content.edit
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -52,10 +53,33 @@ class AddonStateStore(
         enabled: Boolean,
     ) = setState(addonName, JsonObject(getState(addonName) + (KEY_ENABLED to JsonPrimitive(enabled))))
 
+    /** The stored settings values of [addonName]; defaults are resolved by the caller */
+    fun getSettingsValues(addonName: String): JsonObject = (getState(addonName)[KEY_SETTINGS] as? JsonObject) ?: JsonObject(emptyMap())
+
+    /**
+     * Merges [values] into the stored settings of [addonName]: existing keys not present
+     * in [values] are preserved, including keys this AnkiDroid does not know about
+     */
+    fun setSettingsValues(
+        addonName: String,
+        values: JsonObject,
+    ) {
+        val state = getState(addonName)
+        val merged = JsonObject(getSettingsValues(addonName) + values)
+        setState(addonName, JsonObject(state + (KEY_SETTINGS to merged)))
+    }
+
+    fun setSettingValue(
+        addonName: String,
+        key: String,
+        value: JsonElement,
+    ) = setSettingsValues(addonName, JsonObject(mapOf(key to value)))
+
     /** Forgets all state of [addonName]: for use when the addon is uninstalled */
     fun remove(addonName: String) = prefs.edit { remove(addonName) }
 
     companion object {
         private const val KEY_ENABLED = "enabled"
+        private const val KEY_SETTINGS = "settings"
     }
 }
