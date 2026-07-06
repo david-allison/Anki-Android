@@ -19,12 +19,20 @@ sealed interface AddonPermission {
     /** The string as it appears in the manifest, e.g. `"decks:write"` */
     val id: String
 
+    /** A short human-readable summary of what granting this capability allows */
+    val description: String
+
     /** A general read/write capability over a collection entity */
     data class Scoped(
         val entity: Entity,
         val access: Access,
     ) : AddonPermission {
         override val id: String get() = "${entity.id}:${access.id}"
+        override val description: String
+            get() {
+                val verb = if (access == Access.READ) "Read your" else "Modify your"
+                return "$verb ${entity.id}"
+            }
 
         enum class Entity(
             val id: String,
@@ -46,21 +54,24 @@ sealed interface AddonPermission {
     /** A dangerous capability granted on its own, not part of the read/write matrix */
     enum class Dangerous(
         override val id: String,
+        override val description: String,
     ) : AddonPermission {
         /** Navigate the page to the app's own `ankidroid://` scheme */
-        NAVIGATE("navigate"),
+        NAVIGATE("navigate", "Trigger app actions from the current screen"),
 
         /** Make outbound network requests */
-        NETWORK("network"),
+        NETWORK("network", "Connect to the internet"),
 
         /** Read or write the clipboard */
-        CLIPBOARD("clipboard"),
+        CLIPBOARD("clipboard", "Read or change the clipboard"),
     }
 
     /** A permission string this AnkiDroid does not recognise; parses but grants nothing */
     data class Unknown(
         override val id: String,
-    ) : AddonPermission
+    ) : AddonPermission {
+        override val description: String get() = "Unrecognised capability '$id' (cannot be granted)"
+    }
 
     companion object {
         /** Parses a manifest permission string; never throws (unknown → [Unknown]). */

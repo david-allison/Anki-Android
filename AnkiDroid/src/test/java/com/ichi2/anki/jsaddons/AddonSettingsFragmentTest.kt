@@ -11,6 +11,7 @@ import com.ichi2.anki.AnkiDroidJsAPIConstants.CURRENT_JS_API_VERSION
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -37,6 +38,21 @@ class AddonSettingsFragmentTest : RobolectricTest() {
                 { "type": "heading", "title": "Options" },
                 { "type": "toggle", "key": "vibrate", "title": "Vibrate", "default": false }
               ]
+            }
+            """.trimIndent(),
+        )
+    }
+
+    private fun installAddonWithPermission(name: String = "perm-addon") {
+        val manifest = storage().getManifestFile(name)
+        manifest.parentFile!!.mkdirs()
+        manifest.writeText(
+            """
+            {
+              "name": "$name", "addonTitle": "Perm addon", "version": "1.0.0", "main": "index.js",
+              "ankidroidJsApi": "$CURRENT_JS_API_VERSION", "addonType": "reviewer",
+              "homepage": "https://example.com", "keywords": ["ankidroid-js-addon"],
+              "permissions": ["navigate"]
             }
             """.trimIndent(),
         )
@@ -101,5 +117,30 @@ class AddonSettingsFragmentTest : RobolectricTest() {
                     assertEquals("the 'no settings' placeholder is shown", android.view.View.VISIBLE, placeholder.visibility)
                 }
             }
+    }
+
+    @Test
+    fun revokingAPermissionSwitchPersistsTest() {
+        installAddonWithPermission()
+        AddonStateStore(targetContext).grant("perm-addon", AddonPermission.Dangerous.NAVIGATE)
+
+        FragmentScenario
+            .launch(
+                fragmentClass = AddonSettingsFragment::class.java,
+                fragmentArgs = AddonSettingsFragment.arguments("perm-addon"),
+                themeResId = R.style.Theme_Light,
+            ).use { scenario ->
+                scenario.onFragment { fragment ->
+                    val container = fragment.requireView().findViewById<LinearLayout>(R.id.settings_container)
+                    // the permission switch starts granted, then we turn it off
+                    val toggle = collectSwitches(container).single { it.isChecked }
+                    toggle.isChecked = false
+                }
+            }
+
+        assertFalse(
+            "revoking the switch clears the grant",
+            AddonStateStore(targetContext).isGranted("perm-addon", AddonPermission.Dangerous.NAVIGATE),
+        )
     }
 }

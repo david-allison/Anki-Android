@@ -97,6 +97,39 @@ class AddonSettingsFragment : Fragment(R.layout.fragment_addon_settings) {
         for (setting in schema) {
             buildRow(setting, values)?.let(container::addView)
         }
+        renderPermissions(container)
+    }
+
+    /** A permissions section: a switch per declared, grantable permission (grant/revoke) */
+    private fun renderPermissions(container: LinearLayout) {
+        val grantable = addon?.permissions?.filterNot { it is AddonPermission.Unknown }.orEmpty()
+        if (grantable.isEmpty()) return
+        container.addView(headingView("Permissions"))
+        val granted = stateStore.getGrantedPermissions(addonName)
+        for (permission in grantable) {
+            val row = verticalRow()
+            row.addView(
+                LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(TextView(requireContext()).apply { text = permission.description })
+                    addView(
+                        TextView(requireContext()).apply {
+                            text = permission.id
+                            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                        },
+                    )
+                },
+            )
+            row.addView(
+                MaterialSwitch(requireContext()).apply {
+                    isChecked = permission.id in granted
+                    setOnCheckedChangeListener { _, checked ->
+                        if (checked) stateStore.grant(addonName, permission) else stateStore.revoke(addonName, permission)
+                    }
+                },
+            )
+            container.addView(row)
+        }
     }
 
     private fun buildRow(

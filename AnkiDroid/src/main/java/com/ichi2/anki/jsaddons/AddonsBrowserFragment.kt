@@ -105,7 +105,7 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
                 is AddonValidationResult.Valid -> {
                     Timber.i("Installed addon '%s'", result.addonModel.name)
                     showThemedToast(requireContext(), "Installed '${result.addonModel.addonTitle}'", true)
-                    refreshAddonsList()
+                    surfacePermissionsThenRefresh(result.addonModel)
                 }
                 is AddonValidationResult.Invalid ->
                     AlertDialog.Builder(requireContext()).show {
@@ -114,6 +114,31 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
                         setPositiveButton(R.string.dialog_ok) { _, _ -> }
                     }
             }
+        }
+    }
+
+    /**
+     * Shows the addon's declared permissions after install and grants them on accept.
+     *
+     * Only the recognised (non-[AddonPermission.Unknown]) permissions can be granted.
+     * Declining installs the addon but grants nothing; the user can grant later from the
+     * settings screen. This is the install-time half of the model; runtime request-on-use
+     * is a later refinement (see `docs/addons/design-notes.md` §1).
+     */
+    private fun surfacePermissionsThenRefresh(addon: AddonModel) {
+        val grantable = addon.permissions.filterNot { it is AddonPermission.Unknown }
+        if (grantable.isEmpty()) {
+            refreshAddonsList()
+            return
+        }
+        AlertDialog.Builder(requireContext()).show {
+            setTitle("'${addon.addonTitle}' requests")
+            setMessage(grantable.joinToString("\n") { "• ${it.description}" })
+            setPositiveButton("Grant") { _, _ ->
+                stateStore.setGrantedPermissions(addon.name, grantable.map { it.id }.toSet())
+                refreshAddonsList()
+            }
+            setNegativeButton("Not now") { _, _ -> refreshAddonsList() }
         }
     }
 
