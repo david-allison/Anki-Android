@@ -23,7 +23,7 @@ class SampleAddonsTest {
                 .listFiles { file -> file.isDirectory && file.name != "out" }
                 .orEmpty()
                 .sortedBy { it.name }
-        assertEquals(5, sampleDirs.size)
+        assertEquals(6, sampleDirs.size)
 
         for (dir in sampleDirs) {
             val result = getAddonModelFromJson(File(dir, "package/package.json"))

@@ -1,0 +1,25 @@
+{
+    "name": "ankidroid-sample-menu-greeter",
+    "addonTitle": "Menu greeter",
+    "version": "1.0.0",
+    "description": "Adds a deck-picker menu item; clicking it logs a greeting from the addon's background context.",
+    "main": "index.js",
+    "background": "background.js",
+    "ankidroidJsApi": "0.0.3",
+    "addonType": "reviewer",
+    "homepage": "https://github.com/ankidroid/Anki-Android",
+    "keywords": [
+        "ankidroid-js-addon"
+    ],
+    "license": "GPL-3.0-or-later",
+    "author": {
+        "name": "AnkiDroid"
+    },
+    "menus": [
+        {
+            "screen": "deck-picker",
+            "id": "greet",
+            "title": "Greet from addon"
+        }
+    ]
+}

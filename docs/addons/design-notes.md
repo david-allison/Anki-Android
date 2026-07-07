@@ -138,3 +138,40 @@ JSON. This is a deliberate divergence, noted so nobody "fixes" it into a proto l
 serves the `addon-settings` route. That's one `when` branch in `handlePostRequest` — trivial
 — but pointless until the upstream route asset exists. So the contract is built and tested;
 the wiring waits on upstream, exactly as [rfc.md](rfc.md)'s open question #2 describes.
+
+---
+
+## 4. Native-screen surfaces
+
+**The problem.** [AddonPageHost](README.md) covers WebView pages. But the deck picker, card
+browser and note editor are **native Android UI** — there's no page to inject a sandboxed
+iframe into. Yet these are exactly where several top AnkiWeb addons live
+([addon-survey.md](addon-survey.md): FSRS Helper's menu suite, Fastbar, browser columns).
+
+**My guess: declarative contributions, not code injection.** An addon can't run code *in* a
+native screen (there's no sandbox there, and letting it would be the opposite of the whole
+security direction). So the only safe surface is **declarative**: the addon *declares* menu
+items in its manifest (`menus: [{screen, id, title}]`), the host renders them as real native
+`MenuItem`s (no addon code runs to draw them), and a click is **dispatched to the addon's
+sandboxed background context** — where its code *does* run safely — via
+`ankidroid.onMenuClick(cb)`. So the pattern is: *native declares, sandbox handles*.
+
+**Why menus first.** Of the native surfaces, a menu item is the smallest, safest, most
+universal contribution — it's just a label + a callback, no layout, no live DOM. Richer
+native surfaces (browser columns, editor buttons) each need their own bespoke contribution
+type and are much larger; a menu proves the *native-declares/sandbox-handles* pattern with
+the least surface. The dispatch path (`AddonMenus.populate` → `AddonBackgroundHost.current
+.fireMenuClick` → the addon's `onMenuClick`) is the reusable spine the others would follow.
+
+**The `current` static.** Dispatching a menu click needs to reach the running background
+host, which is owned by `AppLifecycleObserver`, not the clicked screen. I used a
+companion `AddonBackgroundHost.current` set on start/cleared on stop. It's a little ugly
+(global mutable state), but the lifetimes are strict (foreground-only, one instance) and it
+avoids threading a host reference through every native screen. Flagged as a WIP seam, not a
+pattern to love.
+
+**Wired into:** DeckPicker's `onCreateOptionsMenu`, one `AddonMenus.populate(...)` line. Any
+other native screen adds addon menu support with the same single call. A menu-contributing
+addon pairs `menus` with a `background` script (that's where the click is handled), which is
+the honest constraint: to *do* something from a native click, the addon needs a running
+sandbox, and the background context is it.
