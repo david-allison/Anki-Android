@@ -88,13 +88,23 @@ unit-tested (~68 tests in `AnkiDroid/src/test/java/com/ichi2/anki/jsaddons/`).
 auto-reveal, image zoom, card timer, custom-panel colour picker) + a build script
 and a manifest-validity test.
 
-## Not built (deliberately)
+### Permissions + collection API (best-guess of the #20695 gate)
 
-- **Permissions enforcement** — blocked on
-  [#20695](https://github.com/ankidroid/Anki-Android/issues/20695) (the capability
-  scopes and developer-contract decision). No addon capability is gated yet beyond
-  the global dev flag; a reviewer addon's script currently has the same reach as card
-  template JS. This is the gate before anything ships to users.
+- **Capability model** (`AddonPermission`): manifest `permissions` list →
+  `decks|notes|cards|media` × `read|write` plus dangerous singletons
+  (`navigate`/`network`/`clipboard`); unknown tolerated. Granted per-addon in the state
+  store; surfaced at install (grant-on-accept), revocable in settings.
+- **Runtime gating**: `navigate` gated in the trusted relay (grants baked in, unforgeable
+  by the iframe); collection calls gated **server-side** in `AddonCollectionApi`.
+- **Collection API** (`AddonCollectionApi`, gated + async): `ankidroid.decks/notes/cards/
+  media.*` — list/create decks, find/read notes & cards, edit tags, suspend/flag cards,
+  add/check media. Each is one permission; the async bridge is iframe → relay → Kotlin.
+- The best guess at [#20695](https://github.com/ankidroid/Anki-Android/issues/20695);
+  reasoning in [design-notes.md](design-notes.md) §1. **Not resolved**: the card-vs-addon
+  boundary — card template JS shares the page scope and could name a granted addon (same
+  limitation as the existing JS API), so this still isn't a shippable security story.
+
+## Not built (deliberately)
 - **Network / registry install** — only local `.tgz` install exists; the npm/registry
   path stays dormant (distribution is an ecosystem decision).
 - **The cross-platform Svelte settings page** — the endgame in

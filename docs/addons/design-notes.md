@@ -55,11 +55,14 @@ iframe). `navigate` needs `navigate`; `setSetting` is always allowed (an addon o
 settings); DOM helpers need nothing today (they can't exfiltrate). The relay is the right
 place because it already mediates every addon→host call.
 
-**What I'm punting on, deliberately:** actual collection read/write APIs (`decks:read` etc.)
-have nothing to gate yet — the relay exposes no collection access. So those capability
-strings parse and surface and store, but gate nothing until a collection API exists. I'm
-building the *permission plumbing* end-to-end with `navigate` as the one live example, so
-adding a gated collection call later is a one-line `requirePermission(...)`.
+**Update — the scoped capabilities are now live.** They started as plumbing that gated
+nothing; `AddonCollectionApi` now exposes a real, permission-gated collection API to addons:
+`decks`/`notes`/`cards`/`media` with `read`/`write`, every method mapped to exactly one
+capability and enforced server-side. The addon calls e.g. `await ankidroid.notes.find(query)`
+over an async request/response bridge (iframe → trusted relay → Kotlin coroutine → back). So
+`decks:read` now gates `decks.all`, `notes:write` gates `notes.addTags`, and so on — the
+capability strings finally protect something. `AddonPermission.Unknown` still gates nothing
+(it can't be granted); that remains the forward-compat escape hatch.
 
 **Where enforcement lives (the subtle bit).** The threat model is: the sandboxed **iframe
 is untrusted**; the **page relay and Kotlin are trusted**. The iframe can only `postMessage`.
