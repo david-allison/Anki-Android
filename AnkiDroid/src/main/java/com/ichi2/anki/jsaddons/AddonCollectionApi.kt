@@ -46,6 +46,7 @@ object AddonCollectionApi {
             "decks.add" -> AddonPermission.Scoped(Entity.DECKS, Access.WRITE)
             "notes.find", "notes.info" -> AddonPermission.Scoped(Entity.NOTES, Access.READ)
             "notes.addTags", "notes.removeTags" -> AddonPermission.Scoped(Entity.NOTES, Access.WRITE)
+            "cards.find", "cards.info" -> AddonPermission.Scoped(Entity.CARDS, Access.READ)
             else -> null
         }
 
@@ -125,6 +126,19 @@ object AddonCollectionApi {
             "notes.removeTags" ->
                 withCol { tags.bulkRemove(args.longs("noteIds"), args.strings("tags").joinToString(" ")) }
                     .let { buildJsonObject { put("count", it.count) } }
+            "cards.find" ->
+                withCol { findCards(args.str("query")) }.let { ids ->
+                    buildJsonArray { for (id in ids) add(kotlinx.serialization.json.JsonPrimitive(id)) }
+                }
+            "cards.info" ->
+                withCol { getCard(args.str("cardId").toLong()) }.let { card ->
+                    buildJsonObject {
+                        put("cardId", card.id)
+                        put("noteId", card.nid)
+                        put("deckId", card.did)
+                        put("queue", card.queue.code)
+                    }
+                }
             else -> throw IllegalArgumentException("unhandled method: $method")
         }
 

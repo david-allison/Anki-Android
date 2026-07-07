@@ -104,6 +104,20 @@ class AddonCollectionApiTest : RobolectricTest() {
         }
 
     @Test
+    fun cardsReadFindsAndReadsCardsTest() =
+        runTest {
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.CARDS, AddonPermission.Scoped.Access.READ))
+            val note = addBasicNote("Q", "A")
+            val cardId = note.cardIds(col).first()
+
+            val found = call("addon", "cards.find", """{"query":"Q"}""")["value"] as JsonArray
+            assertTrue(found.map { it.jsonPrimitive.long }.contains(cardId), "the card is found")
+
+            val info = call("addon", "cards.info", """{"cardId":"$cardId"}""")["value"]!!.jsonObject
+            assertEquals(note.id, info["noteId"]!!.jsonPrimitive.long)
+        }
+
+    @Test
     fun notesWriteAddsAndRemovesTagsTest() =
         runTest {
             grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.NOTES, AddonPermission.Scoped.Access.WRITE))

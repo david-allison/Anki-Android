@@ -345,6 +345,10 @@ object AddonPageHost {
                         addTags: (noteIds, tags) => query("notes.addTags", { noteIds, tags }),
                         removeTags: (noteIds, tags) => query("notes.removeTags", { noteIds, tags }),
                     },
+                    cards: {
+                        find: (search) => query("cards.find", { query: search }),
+                        info: (cardId) => query("cards.info", { cardId: String(cardId) }),
+                    },
                 };
             })();
             </script>
