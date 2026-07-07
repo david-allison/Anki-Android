@@ -109,3 +109,32 @@ surfaced-permissions install).
 idea), and the actual registry contents. The URL is a placeholder
 (`ankidroid.org/addons/index.json`) that does not exist yet — intentionally, so nothing here
 implies a committed registry location.
+
+---
+
+## 3. The cross-platform settings renderer (the contract half)
+
+**The problem.** [rfc.md](rfc.md) argues the endgame is *one* SvelteKit `addon-settings`
+page, rendered identically on desktop, AnkiDroid and AnkiMobile from the manifest schema.
+That page lives in `ankitects/anki`, which isn't this repo — so I can't build the renderer.
+
+**What I *can* build, and did:** the AnkiDroid half of the contract the page depends on. The
+shared page would talk to each host the way every other Anki web page does — a localhost POST
+to a named method — so the contract is just **two methods**:
+
+- `getAddonSettings {addon} → {schema, values}` — the page renders `schema` (the manifest's
+  settings definitions, serialized) filled from `values` (stored overlaid on defaults).
+- `setAddonSettings {addon, values} → {}` — persists.
+
+`AddonSettingsHost` implements both against `AddonStateStore`, and its test *is* the
+executable spec: get returns schema+resolved-values, set round-trips. Desktop and AnkiMobile
+implement the same two methods against their own stores (`meta.json`, etc.).
+
+**Why JSON, not protobuf.** Anki's page↔host RPC is usually protobuf, but addon settings are
+inherently open-shape JSON (arbitrary keys, unknown-key preservation), so the envelope is
+JSON. This is a deliberate divergence, noted so nobody "fixes" it into a proto later.
+
+**The seam left open:** wiring `AddonSettingsHost.handle(...)` into a `PageFragment` that
+serves the `addon-settings` route. That's one `when` branch in `handlePostRequest` — trivial
+— but pointless until the upstream route asset exists. So the contract is built and tested;
+the wiring waits on upstream, exactly as [rfc.md](rfc.md)'s open question #2 describes.
