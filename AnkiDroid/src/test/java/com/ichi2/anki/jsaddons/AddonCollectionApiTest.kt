@@ -88,4 +88,18 @@ class AddonCollectionApiTest : RobolectricTest() {
             assertTrue(id > 0, "a deck id is returned")
             assertEquals("Created By Addon", col.decks.name(id))
         }
+
+    @Test
+    fun notesReadFindsAndReadsNotesTest() =
+        runTest {
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.NOTES, AddonPermission.Scoped.Access.READ))
+            val note = addBasicNote("Front text", "Back text")
+
+            val found = call("addon", "notes.find", """{"query":"Front text"}""")["value"] as JsonArray
+            assertTrue(found.map { it.jsonPrimitive.long }.contains(note.id), "the note is found")
+
+            val info = call("addon", "notes.info", """{"noteId":"${note.id}"}""")["value"]!!.jsonObject
+            val fields = (info["fields"] as JsonArray).map { it.jsonPrimitive.content }
+            assertTrue(fields.contains("Front text"), "the note's fields are readable")
+        }
 }

@@ -339,6 +339,10 @@ object AddonPageHost {
                         current: () => query("decks.current"),
                         add: (name) => query("decks.add", { name }),
                     },
+                    notes: {
+                        find: (search) => query("notes.find", { query: search }),
+                        info: (noteId) => query("notes.info", { noteId: String(noteId) }),
+                    },
                 };
             })();
             </script>
