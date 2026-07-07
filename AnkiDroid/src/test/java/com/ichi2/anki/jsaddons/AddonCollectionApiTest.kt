@@ -12,8 +12,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -68,5 +70,22 @@ class AddonCollectionApiTest : RobolectricTest() {
 
             val current = call("addon", "decks.current")["value"]!!.jsonObject
             assertTrue(current["name"]!!.jsonPrimitive.content.isNotEmpty(), "the current deck has a name")
+        }
+
+    @Test
+    fun decksWriteCreatesADeckWhenGrantedTest() =
+        runTest {
+            val decksWrite = AddonPermission.Scoped(AddonPermission.Scoped.Entity.DECKS, AddonPermission.Scoped.Access.WRITE)
+            // read alone must not allow a write
+            grant("addon", decksRead)
+            assertFalse(
+                call("addon", "decks.add", """{"name":"Nope"}""")["ok"]!!.jsonPrimitive.booleanOrNull!!,
+                "read does not grant write",
+            )
+
+            grant("addon", decksWrite)
+            val id = call("addon", "decks.add", """{"name":"Created By Addon"}""")["value"]!!.jsonObject["id"]!!.jsonPrimitive.long
+            assertTrue(id > 0, "a deck id is returned")
+            assertEquals("Created By Addon", col.decks.name(id))
         }
 }

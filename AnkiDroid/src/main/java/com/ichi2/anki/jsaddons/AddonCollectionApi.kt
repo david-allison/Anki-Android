@@ -8,10 +8,13 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.jsaddons.AddonPermission.Scoped.Access
 import com.ichi2.anki.jsaddons.AddonPermission.Scoped.Entity
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import timber.log.Timber
 
@@ -40,6 +43,7 @@ object AddonCollectionApi {
     fun requiredPermission(method: String): AddonPermission? =
         when (method) {
             "decks.all", "decks.current" -> AddonPermission.Scoped(Entity.DECKS, Access.READ)
+            "decks.add" -> AddonPermission.Scoped(Entity.DECKS, Access.WRITE)
             else -> null
         }
 
@@ -97,8 +101,24 @@ object AddonCollectionApi {
                         put("name", deck.getString("name"))
                     }
                 }
+            "decks.add" ->
+                withCol { decks.addNormalDeckWithName(args.str("name")) }.let { op ->
+                    buildJsonObject { put("id", op.id) }
+                }
             else -> throw IllegalArgumentException("unhandled method: $method")
         }
+
+    private fun JsonObject.str(key: String): String =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            ?: throw IllegalArgumentException("missing string argument '$key'")
+
+    private fun JsonObject.longs(key: String): List<Long> =
+        (this[key] as? JsonArray)?.map { it.jsonPrimitive.long }
+            ?: throw IllegalArgumentException("missing id-array argument '$key'")
+
+    private fun JsonObject.strings(key: String): List<String> =
+        (this[key] as? JsonArray)?.map { it.jsonPrimitive.content }
+            ?: throw IllegalArgumentException("missing string-array argument '$key'")
 
     private fun success(value: JsonElement): String =
         buildJsonObject {

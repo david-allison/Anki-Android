@@ -337,6 +337,7 @@ object AddonPageHost {
                     decks: {
                         all: () => query("decks.all"),
                         current: () => query("decks.current"),
+                        add: (name) => query("decks.add", { name }),
                     },
                 };
             })();
