@@ -6,6 +6,7 @@ package com.ichi2.anki.jsaddons
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.utils.FileOperation
+import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,4 +33,39 @@ class AddonRegistryTest : RobolectricTest() {
 
         assertIs<AddonRegistry.FetchResult.Failure>(result)
     }
+
+    @Test
+    fun computesAvailableUpdatesTest() {
+        val available =
+            listOf(
+                model("addon-a", "2.0.0"), // installed 1.0.0 -> update
+                model("addon-b", "1.0.0"), // installed 1.0.0 -> no update
+                model("addon-c", "1.5.0"), // not installed -> ignored
+                model("addon-d", "not-a-version"), // unparseable -> skipped, not an update
+            )
+        val installed = mapOf("addon-a" to "1.0.0", "addon-b" to "1.0.0", "addon-d" to "1.0.0")
+
+        val updates = computeAvailableUpdates(available, installed)
+
+        assertEquals(listOf(AddonUpdate("addon-a", "1.0.0", "2.0.0")), updates)
+    }
+
+    private fun model(
+        name: String,
+        version: String,
+    ) = AddonModel(
+        name = name,
+        addonTitle = name,
+        icon = "",
+        version = version,
+        description = "",
+        main = "index.js",
+        ankidroidJsApi = "0.0.3",
+        addonType = "reviewer",
+        keywords = listOf("ankidroid-js-addon"),
+        author = emptyMap(),
+        license = "",
+        homepage = "https://example.com",
+        dist = DistInfo("https://example.com/$name.tgz"),
+    )
 }

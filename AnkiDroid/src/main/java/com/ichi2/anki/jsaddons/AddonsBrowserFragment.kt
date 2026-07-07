@@ -61,6 +61,12 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
                         inflater: android.view.MenuInflater,
                     ) {
                         menu
+                            .add(TR.addonsGetAddons())
+                            .setOnMenuItemClickListener {
+                                onGetAddonsRequested()
+                                true
+                            }.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+                        menu
                             .add(TR.addonsInstallFromFile())
                             .setOnMenuItemClickListener {
                                 onInstallFromFileRequested()
@@ -82,6 +88,47 @@ class AddonsBrowserFragment : Fragment(R.layout.fragment_addons_browser) {
                 installFromUri(uri)
             }
         }
+
+    /** Fetches the registry index, lets the user pick an addon, and installs it. */
+    private fun onGetAddonsRequested() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { AddonRegistry().fetchAvailableAddons() }
+            when (result) {
+                is AddonRegistry.FetchResult.Failure ->
+                    showThemedToast(requireContext(), result.message, false)
+                is AddonRegistry.FetchResult.Success -> {
+                    if (result.addons.isEmpty()) {
+                        showThemedToast(requireContext(), "No addons available", true)
+                        return@launch
+                    }
+                    val labels = result.addons.map { "${it.addonTitle} ${it.version}" }.toTypedArray()
+                    AlertDialog.Builder(requireContext()).show {
+                        setTitle(TR.addonsGetAddons())
+                        setItems(labels) { _, index -> installFromRegistry(result.addons[index]) }
+                        setNegativeButton(R.string.dialog_cancel) { _, _ -> }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun installFromRegistry(addon: AddonModel) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { AddonRegistry().install(addon, storage) }
+            when (result) {
+                is AddonValidationResult.Valid -> {
+                    showThemedToast(requireContext(), "Installed '${result.addonModel.addonTitle}'", true)
+                    surfacePermissionsThenRefresh(result.addonModel)
+                }
+                is AddonValidationResult.Invalid ->
+                    AlertDialog.Builder(requireContext()).show {
+                        setTitle("Install failed")
+                        setMessage(result.errors.joinToString("\n"))
+                        setPositiveButton(R.string.dialog_ok) { _, _ -> }
+                    }
+            }
+        }
+    }
 
     private fun onInstallFromFileRequested() {
         installFromFileLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "application/octet-stream"))
