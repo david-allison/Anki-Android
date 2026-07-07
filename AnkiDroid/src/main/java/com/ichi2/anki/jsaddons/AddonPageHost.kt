@@ -6,6 +6,9 @@ package com.ichi2.anki.jsaddons
 import android.content.Context
 import android.webkit.JavascriptInterface
 import com.ichi2.anki.settings.Prefs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -99,9 +102,16 @@ object AddonPageHost {
         return pageHostScript(pageId, addons)
     }
 
-    /** The Kotlin side of the page bridge, called by the host page (never the sandboxed iframe). */
+    /**
+     * The Kotlin side of the page bridge, called by the host page (never the sandboxed iframe).
+     *
+     * @param scope runs async [query] work; defaults suit tests that don't exercise queries
+     * @param evalJs evaluates JS back in the page, to resolve a [query]'s promise
+     */
     class AddonPageBridge(
         private val context: Context,
+        private val scope: CoroutineScope = MainScope(),
+        private val evalJs: (String) -> Unit = {},
     ) {
         @JavascriptInterface
         fun log(
@@ -115,6 +125,24 @@ object AddonPageHost {
             key: String,
             valueJson: String,
         ) = AddonStateStore(context).setSettingValue(addon, key, Json.parseToJsonElement(valueJson))
+
+        /**
+         * Runs a gated collection [method] for [addon] and resolves the promise keyed by [qkey].
+         * Fire-and-forget: the result comes back asynchronously through [evalJs].
+         */
+        @JavascriptInterface
+        fun query(
+            addon: String,
+            qkey: String,
+            method: String,
+            argsJson: String,
+        ) {
+            scope.launch {
+                val envelope = AddonCollectionApi.handle(context, addon, method, argsJson)
+                val key = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(qkey))
+                evalJs("window.__ankidroidResolveQuery($key, $envelope)")
+            }
+        }
     }
 
     /** Generates the full page bootstrap: relay host + one sandboxed iframe per addon. */
@@ -159,6 +187,15 @@ object AddonPageHost {
                 const frames = new Map(); // window -> addon name
                 const elements = new Map(); // id -> element
                 const domHandlers = new Map(); // "type" -> [{selector, window}]
+                const pendingQueries = new Map(); // qkey -> {win, qid}
+
+                // resolves a collection query, called from Kotlin (AddonPageBridge.query)
+                window.__ankidroidResolveQuery = (qkey, envelope) => {
+                    const p = pendingQueries.get(qkey);
+                    if (!p) return;
+                    pendingQueries.delete(qkey);
+                    p.win.postMessage({ __ak: "queryResult", qid: p.qid, envelope }, "*");
+                };
 
                 const host = {
                     register(frame, name) { frame.addEventListener("load", () => frames.set(frame.contentWindow, name)); },
@@ -183,6 +220,13 @@ object AddonPageHost {
                         switch (msg.method) {
                             case "log": bridge && bridge.log(name, String(a0)); break;
                             case "setSetting": bridge && bridge.setSetting(name, a0, JSON.stringify(a1)); break;
+                            case "query": {
+                                // a0=qid, a1=method, a2=args; qkey namespaces the query per addon
+                                const qkey = name + "#" + a0;
+                                pendingQueries.set(qkey, { win: event.source, qid: a0 });
+                                if (bridge) bridge.query(name, qkey, a1, JSON.stringify(a2 || {}));
+                                break;
+                            }
                             case "navigate": {
                                 // gated by the 'navigate' capability; and only the app's own
                                 // scheme, which the page's WebViewClient controls
@@ -246,15 +290,32 @@ object AddonPageHost {
             <script>
             (() => {
                 let nextId = 1;
+                let nextQ = 1;
                 const eventSubs = {}; // type -> [cb]
                 const domSubs = []; // {selector, type, cb}
+                const pendingQ = new Map(); // qid -> {resolve, reject}
                 function call(method, args) { parent.postMessage({ __ak: "call", method, args }, "*"); }
                 window.addEventListener("message", (e) => {
                     const m = e.data || {};
                     if (m.__ak === "event") (eventSubs[m.type] || []).forEach((cb) => cb(m.detail));
                     else if (m.__ak === "domEvent") domSubs.filter((s) => s.selector === m.selector && s.type === m.type).forEach((s) => s.cb(m.target));
+                    else if (m.__ak === "queryResult") {
+                        const p = pendingQ.get(m.qid);
+                        if (!p) return;
+                        pendingQ.delete(m.qid);
+                        if (m.envelope && m.envelope.ok) p.resolve(m.envelope.value);
+                        else p.reject(new Error((m.envelope && m.envelope.error) || "collection error"));
+                    }
                 });
                 function newId() { return $name + "-" + (nextId++); }
+                // a gated collection call; resolves the returned value or rejects with the error
+                function query(method, args) {
+                    return new Promise((resolve, reject) => {
+                        const qid = "q" + (nextQ++);
+                        pendingQ.set(qid, { resolve, reject });
+                        call("query", [qid, method, args || {}]);
+                    });
+                }
                 globalThis.ankidroid = {
                     pageId: ${jsString(pageId)},
                     addonName: $name,
@@ -271,6 +332,12 @@ object AddonPageHost {
                     removeElement: (id) => call("removeElement", [id]),
                     onEvent: (type, cb) => { (eventSubs[type] = eventSubs[type] || []).push(cb); },
                     onDomEvent: (selector, type, cb) => { domSubs.push({ selector, type, cb }); call("subscribeDomEvent", [selector, type]); },
+                    query: query,
+                    // gated collection API; each namespace requires the matching permission
+                    decks: {
+                        all: () => query("decks.all"),
+                        current: () => query("decks.current"),
+                    },
                 };
             })();
             </script>

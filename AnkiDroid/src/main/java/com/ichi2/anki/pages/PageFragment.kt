@@ -24,6 +24,7 @@ import androidx.annotation.CallSuper
 import androidx.annotation.LayoutRes
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.ichi2.anki.R
@@ -112,7 +113,13 @@ abstract class PageFragment(
         if (!Prefs.devAddonsEnabled) return
         val pageId = AddonPages.fromPagePath(pagePath) ?: return
         val context = requireContext()
-        webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(context), AddonPageHost.BRIDGE_NAME)
+        val bridge =
+            AddonPageHost.AddonPageBridge(
+                context = context,
+                scope = viewLifecycleOwner.lifecycleScope,
+                evalJs = { js -> webViewLayout.post { webViewLayout.evaluateJavascript(js, null) } },
+            )
+        webViewLayout.addJavascriptInterface(bridge, AddonPageHost.BRIDGE_NAME)
         pageWebViewClient.onPageFinishedCallbacks.add { webView ->
             AddonPageHost.bootstrapScript(context, pageId)?.let { webView.evaluateJavascript(it, null) }
         }
