@@ -102,4 +102,17 @@ class AddonCollectionApiTest : RobolectricTest() {
             val fields = (info["fields"] as JsonArray).map { it.jsonPrimitive.content }
             assertTrue(fields.contains("Front text"), "the note's fields are readable")
         }
+
+    @Test
+    fun notesWriteAddsAndRemovesTagsTest() =
+        runTest {
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.NOTES, AddonPermission.Scoped.Access.WRITE))
+            val note = addBasicNote("F", "B")
+
+            call("addon", "notes.addTags", """{"noteIds":[${note.id}],"tags":["addon-tag"]}""")
+            assertTrue(col.getNote(note.id).tags.contains("addon-tag"), "the tag was added")
+
+            call("addon", "notes.removeTags", """{"noteIds":[${note.id}],"tags":["addon-tag"]}""")
+            assertFalse(col.getNote(note.id).tags.contains("addon-tag"), "the tag was removed")
+        }
 }

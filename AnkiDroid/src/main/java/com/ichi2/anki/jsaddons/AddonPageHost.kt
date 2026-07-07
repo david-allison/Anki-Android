@@ -342,6 +342,8 @@ object AddonPageHost {
                     notes: {
                         find: (search) => query("notes.find", { query: search }),
                         info: (noteId) => query("notes.info", { noteId: String(noteId) }),
+                        addTags: (noteIds, tags) => query("notes.addTags", { noteIds, tags }),
+                        removeTags: (noteIds, tags) => query("notes.removeTags", { noteIds, tags }),
                     },
                 };
             })();
