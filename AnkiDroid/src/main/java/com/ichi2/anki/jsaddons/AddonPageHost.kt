@@ -50,7 +50,7 @@ data class PageAddon(
  */
 object AddonPageHost {
     /** The `@JavascriptInterface` name the host page (not the sandboxed iframe) calls */
-    const val bridgeName = "AndroidAddonPage"
+    const val BRIDGE_NAME = "AndroidAddonPage"
 
     /** The enabled, valid addons that target [pageId] (empty unless the dev flag is on) */
     fun addonsForPage(
@@ -151,7 +151,7 @@ object AddonPageHost {
         return """
             (() => {
                 if (globalThis.__ankidroidPageHost) return;
-                const bridge = globalThis.$bridgeName;
+                const bridge = globalThis.$BRIDGE_NAME;
                 // granted permissions per addon, baked in from host state: the sandboxed
                 // iframe cannot forge these - it only reaches the relay via postMessage
                 const grants = $grantsMap;

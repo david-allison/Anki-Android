@@ -42,7 +42,7 @@ class AddonPanelHostTest {
     fun bridgeIsCalledFromTheHostPageNotTheIframeTest() {
         val html = AddonPanelHost.hostPageHtml("<h1>hi</h1>")
         // the iframe reaches the host only via postMessage; only the host calls the bridge
-        assertTrue(html.contains("${AddonPanelHost.bridgeName}.getSettings()"))
+        assertTrue(html.contains("${AddonPanelHost.BRIDGE_NAME}.getSettings()"))
         assertTrue(html.contains("event.source !== frame.contentWindow"))
     }
 }

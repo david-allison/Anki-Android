@@ -13,7 +13,7 @@ import org.intellij.lang.annotations.Language
  * The addon's own HTML runs inside a `sandbox="allow-scripts"` iframe, which has an
  * **opaque origin**: it can run scripts but cannot reach the parent page, the app, cookies,
  * or make same-origin requests. Its only channel out is `postMessage` to the parent host
- * page, which relays a small, fixed API to the Kotlin [bridgeName] interface:
+ * page, which relays a small, fixed API to the Kotlin [BRIDGE_NAME] interface:
  *
  * - `ankidroidAddon.getSettings()` → the addon's stored settings values
  * - `ankidroidAddon.setSettings(obj)` → persist them
@@ -22,7 +22,7 @@ import org.intellij.lang.annotations.Language
  */
 object AddonPanelHost {
     /** The `@JavascriptInterface` name the host page (not the sandboxed iframe) calls */
-    const val bridgeName = "AndroidAddonPanel"
+    const val BRIDGE_NAME = "AndroidAddonPanel"
 
     /**
      * The host page HTML.
@@ -57,9 +57,9 @@ object AddonPanelHost {
                         let result = null;
                         try {
                             if (method === "getSettings") {
-                                result = JSON.parse($bridgeName.getSettings());
+                                result = JSON.parse($BRIDGE_NAME.getSettings());
                             } else if (method === "setSettings") {
-                                $bridgeName.setSettings(JSON.stringify(arg));
+                                $BRIDGE_NAME.setSettings(JSON.stringify(arg));
                             }
                         } catch (e) {
                             console.log("addon panel bridge error:", e);

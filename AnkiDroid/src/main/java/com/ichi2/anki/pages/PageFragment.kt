@@ -112,7 +112,7 @@ abstract class PageFragment(
         if (!Prefs.devAddonsEnabled) return
         val pageId = AddonPages.fromPagePath(pagePath) ?: return
         val context = requireContext()
-        webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(context), AddonPageHost.bridgeName)
+        webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(context), AddonPageHost.BRIDGE_NAME)
         pageWebViewClient.onPageFinishedCallbacks.add { webView ->
             AddonPageHost.bootstrapScript(context, pageId)?.let { webView.evaluateJavascript(it, null) }
         }

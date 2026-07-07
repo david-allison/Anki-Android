@@ -127,7 +127,7 @@ class ReviewerFragment :
         // register the addon bridge here, before the HTML is loaded below, so the injected
         // page host can reach it. Addons run sandboxed via AddonPageHost, like every other page
         if (Prefs.devAddonsEnabled) {
-            webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(requireContext()), AddonPageHost.bridgeName)
+            webViewLayout.addJavascriptInterface(AddonPageHost.AddonPageBridge(requireContext()), AddonPageHost.BRIDGE_NAME)
         }
         return stdHtml(
             context = requireContext(),

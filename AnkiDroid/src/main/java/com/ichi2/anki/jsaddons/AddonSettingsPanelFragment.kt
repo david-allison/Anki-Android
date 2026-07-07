@@ -53,7 +53,7 @@ class AddonSettingsPanelFragment : Fragment(R.layout.fragment_addon_settings_pan
         }
 
         webView.settings.javaScriptEnabled = true
-        webView.addJavascriptInterface(PanelBridge(), AddonPanelHost.bridgeName)
+        webView.addJavascriptInterface(PanelBridge(), AddonPanelHost.BRIDGE_NAME)
         // a non-app base URL: the host page is not same-origin with anything in the app
         webView.loadDataWithBaseURL(
             "https://addon-settings.invalid/",
