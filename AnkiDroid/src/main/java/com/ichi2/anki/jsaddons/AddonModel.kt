@@ -31,6 +31,8 @@ data class AddonModel(
     val pages: List<String>? = null,
     /** The capabilities the addon requests; see [AddonPermission] */
     val permissions: List<AddonPermission> = emptyList(),
+    /** Menu items the addon contributes to native screens; see [AddonMenuContribution] */
+    val menus: List<AddonMenuDeclaration> = emptyList(),
 ) {
     /** Whether this addon runs on [pageId]; uses [pages] if declared, else falls back to [addonType] */
     fun targetsPage(pageId: String): Boolean =

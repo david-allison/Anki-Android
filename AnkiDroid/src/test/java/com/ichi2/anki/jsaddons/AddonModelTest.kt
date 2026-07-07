@@ -127,6 +127,7 @@ class AddonModelTest : RobolectricTest() {
         settingsPage: String? = null,
         pages: List<String>? = null,
         permissions: List<String>? = null,
+        menus: List<AddonMenuDeclaration>? = null,
     ): AddonData =
         AddonData(
             name,
@@ -146,6 +147,7 @@ class AddonModelTest : RobolectricTest() {
             settingsPage,
             pages = pages,
             permissions = permissions,
+            menus = menus,
         )
 
     @Test // the validator must report errors, never throw
@@ -252,6 +254,21 @@ class AddonModelTest : RobolectricTest() {
         val result = getAddonModelFromAddonData(addonData(settings = schema))
 
         assertIs<AddonValidationResult.Invalid>(result, "a value-bearing setting without a key is invalid")
+    }
+
+    @Test
+    fun menuContributionsDropIncompleteDeclarationsTest() {
+        val declarations =
+            listOf(
+                AddonMenuDeclaration(screen = "deck-picker", id = "sync-all", title = "Sync all"),
+                AddonMenuDeclaration(screen = "deck-picker", id = null, title = "No id"), // dropped
+                AddonMenuDeclaration(screen = null, id = "x", title = "No screen"), // dropped
+            )
+        val model = assertIs<AddonValidationResult.Valid>(getAddonModelFromAddonData(addonData(menus = declarations))).addonModel
+
+        val contributions = model.menuContributions()
+        assertEquals(1, contributions.size)
+        assertEquals(AddonMenuContribution("valid-ankidroid-js-addon-test", "deck-picker", "sync-all", "Sync all"), contributions.single())
     }
 
     @Test

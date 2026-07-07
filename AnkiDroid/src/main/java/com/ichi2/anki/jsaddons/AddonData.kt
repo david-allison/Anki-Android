@@ -60,6 +60,7 @@ class AddonData(
     val background: String? = null,
     val pages: List<String>? = null,
     val permissions: List<String>? = null,
+    val menus: List<AddonMenuDeclaration>? = null,
 )
 
 @Serializable
@@ -197,6 +198,7 @@ fun getAddonModelFromAddonData(addonData: AddonData): AddonValidationResult {
             background = addonData.background,
             pages = addonData.pages,
             permissions = AddonPermission.parseAll(addonData.permissions),
+            menus = addonData.menus.orEmpty(),
         )
 
     return AddonValidationResult.Valid(addonModel)
