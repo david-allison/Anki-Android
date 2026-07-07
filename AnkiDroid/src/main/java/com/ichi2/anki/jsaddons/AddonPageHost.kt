@@ -55,6 +55,20 @@ object AddonPageHost {
     /** The `@JavascriptInterface` name the host page (not the sandboxed iframe) calls */
     const val BRIDGE_NAME = "AndroidAddonPage"
 
+    /**
+     * JS that broadcasts a host event to every addon on the page, delivered to their
+     * `ankidroid.onEvent(type, cb)` handlers. Evaluate it in the page after a lifecycle
+     * moment the addons should react to (e.g. a card being answered). No-op if no host is
+     * present (no addons / dev flag off).
+     */
+    fun fireEventScript(
+        type: String,
+        detail: JsonObject,
+    ): String {
+        val typeJs = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(type))
+        return "window.__ankidroidPageHost && window.__ankidroidPageHost.fireEvent($typeJs, $detail)"
+    }
+
     /** The enabled, valid addons that target [pageId] (empty unless the dev flag is on) */
     fun addonsForPage(
         context: Context,

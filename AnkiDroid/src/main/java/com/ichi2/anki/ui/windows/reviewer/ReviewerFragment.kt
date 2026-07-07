@@ -90,6 +90,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -142,6 +145,23 @@ class ReviewerFragment :
             nightMode = Themes.isNightTheme,
         )
     }
+
+    /**
+     * Fires reviewer lifecycle events to addons via [AddonPageHost] (question/answer come from
+     * the injected page host; richer events like `answered` with the rating come from here).
+     * See `docs/addons/desktop-hooks.md` for the desktop hooks these mirror.
+     */
+    private fun setupAddonEvents() {
+        if (!Prefs.devAddonsEnabled) return
+        viewModel.answerFeedbackFlow.collectIn(lifecycleScope) { rating ->
+            fireAddonEvent("answered", buildJsonObject { put("rating", rating.number) })
+        }
+    }
+
+    private fun fireAddonEvent(
+        type: String,
+        detail: JsonObject,
+    ) = webViewLayout.post { webViewLayout.evaluateJavascript(AddonPageHost.fireEventScript(type, detail), null) }
 
     override fun onStart() {
         super.onStart()
@@ -229,6 +249,8 @@ class ReviewerFragment :
         }
 
         binding.webViewContainer.setFrameStyle()
+
+        setupAddonEvents()
 
         if (Prefs.showAnswerFeedback) {
             viewModel.answerFeedbackFlow.collectIn(lifecycleScope) { ease ->
