@@ -348,6 +348,9 @@ object AddonPageHost {
                     cards: {
                         find: (search) => query("cards.find", { query: search }),
                         info: (cardId) => query("cards.info", { cardId: String(cardId) }),
+                        suspend: (cardIds) => query("cards.suspend", { cardIds }),
+                        unsuspend: (cardIds) => query("cards.unsuspend", { cardIds }),
+                        setFlag: (cardIds, flag) => query("cards.setFlag", { cardIds, flag: String(flag) }),
                     },
                 };
             })();

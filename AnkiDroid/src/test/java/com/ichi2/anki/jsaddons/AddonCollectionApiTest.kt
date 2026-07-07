@@ -5,6 +5,7 @@ package com.ichi2.anki.jsaddons
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.libanki.QueueType
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -115,6 +116,20 @@ class AddonCollectionApiTest : RobolectricTest() {
 
             val info = call("addon", "cards.info", """{"cardId":"$cardId"}""")["value"]!!.jsonObject
             assertEquals(note.id, info["noteId"]!!.jsonPrimitive.long)
+        }
+
+    @Test
+    fun cardsWriteSuspendsAndFlagsTest() =
+        runTest {
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.CARDS, AddonPermission.Scoped.Access.WRITE))
+            val note = addBasicNote("Q", "A")
+            val cardId = note.cardIds(col).first()
+
+            call("addon", "cards.suspend", """{"cardIds":[$cardId]}""")
+            assertEquals(QueueType.Suspended, col.getCard(cardId).queue)
+
+            call("addon", "cards.setFlag", """{"cardIds":[$cardId],"flag":"2"}""")
+            assertEquals(2, col.getCard(cardId).userFlag())
         }
 
     @Test

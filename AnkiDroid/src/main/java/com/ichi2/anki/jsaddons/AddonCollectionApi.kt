@@ -47,6 +47,7 @@ object AddonCollectionApi {
             "notes.find", "notes.info" -> AddonPermission.Scoped(Entity.NOTES, Access.READ)
             "notes.addTags", "notes.removeTags" -> AddonPermission.Scoped(Entity.NOTES, Access.WRITE)
             "cards.find", "cards.info" -> AddonPermission.Scoped(Entity.CARDS, Access.READ)
+            "cards.suspend", "cards.unsuspend", "cards.setFlag" -> AddonPermission.Scoped(Entity.CARDS, Access.WRITE)
             else -> null
         }
 
@@ -139,6 +140,13 @@ object AddonCollectionApi {
                         put("queue", card.queue.code)
                     }
                 }
+            "cards.suspend" ->
+                withCol { sched.suspendCards(args.longs("cardIds")) }.let { buildJsonObject { put("count", it.count) } }
+            "cards.unsuspend" ->
+                withCol { sched.unsuspendCards(args.longs("cardIds")) }.let { buildJsonObject { put("ok", true) } }
+            "cards.setFlag" ->
+                withCol { setUserFlagForCards(args.longs("cardIds"), args.int("flag")) }
+                    .let { buildJsonObject { put("count", it.count) } }
             else -> throw IllegalArgumentException("unhandled method: $method")
         }
 
@@ -153,6 +161,10 @@ object AddonCollectionApi {
     private fun JsonObject.strings(key: String): List<String> =
         (this[key] as? JsonArray)?.map { it.jsonPrimitive.content }
             ?: throw IllegalArgumentException("missing string-array argument '$key'")
+
+    private fun JsonObject.int(key: String): Int =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull()
+            ?: throw IllegalArgumentException("missing int argument '$key'")
 
     private fun success(value: JsonElement): String =
         buildJsonObject {
