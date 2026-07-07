@@ -352,6 +352,10 @@ object AddonPageHost {
                         unsuspend: (cardIds) => query("cards.unsuspend", { cardIds }),
                         setFlag: (cardIds, flag) => query("cards.setFlag", { cardIds, flag: String(flag) }),
                     },
+                    media: {
+                        have: (filename) => query("media.have", { filename }),
+                        addFile: (filename, base64Data) => query("media.addFile", { filename, data: base64Data }),
+                    },
                 };
             })();
             </script>

@@ -48,6 +48,8 @@ object AddonCollectionApi {
             "notes.addTags", "notes.removeTags" -> AddonPermission.Scoped(Entity.NOTES, Access.WRITE)
             "cards.find", "cards.info" -> AddonPermission.Scoped(Entity.CARDS, Access.READ)
             "cards.suspend", "cards.unsuspend", "cards.setFlag" -> AddonPermission.Scoped(Entity.CARDS, Access.WRITE)
+            "media.have" -> AddonPermission.Scoped(Entity.MEDIA, Access.READ)
+            "media.addFile" -> AddonPermission.Scoped(Entity.MEDIA, Access.WRITE)
             else -> null
         }
 
@@ -147,6 +149,20 @@ object AddonCollectionApi {
             "cards.setFlag" ->
                 withCol { setUserFlagForCards(args.longs("cardIds"), args.int("flag")) }
                     .let { buildJsonObject { put("count", it.count) } }
+            "media.have" ->
+                withCol { media.have(args.str("filename")) }.let { buildJsonObject { put("have", it) } }
+            "media.addFile" -> {
+                // the addon supplies base64 bytes; write to a temp file and let media name it
+                val bytes = android.util.Base64.decode(args.str("data"), android.util.Base64.DEFAULT)
+                val temp = java.io.File.createTempFile("addon-media", "-" + args.str("filename"))
+                try {
+                    temp.writeBytes(bytes)
+                    val stored = withCol { media.addFile(temp) }
+                    buildJsonObject { put("filename", stored) }
+                } finally {
+                    temp.delete()
+                }
+            }
             else -> throw IllegalArgumentException("unhandled method: $method")
         }
 

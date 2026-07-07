@@ -133,6 +133,20 @@ class AddonCollectionApiTest : RobolectricTest() {
         }
 
     @Test
+    fun mediaAddAndHaveTest() =
+        runTest {
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.MEDIA, AddonPermission.Scoped.Access.READ))
+            grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.MEDIA, AddonPermission.Scoped.Access.WRITE))
+            val base64 = android.util.Base64.encodeToString("hello".toByteArray(), android.util.Base64.DEFAULT)
+
+            val stored = call("addon", "media.addFile", """{"filename":"addon.txt","data":"$base64"}""")["value"]!!.jsonObject
+            val filename = stored["filename"]!!.jsonPrimitive.content
+
+            val have = call("addon", "media.have", """{"filename":"$filename"}""")["value"]!!.jsonObject
+            assertTrue(have["have"]!!.jsonPrimitive.content.toBoolean(), "the stored media file is reported present")
+        }
+
+    @Test
     fun notesWriteAddsAndRemovesTagsTest() =
         runTest {
             grant("addon", AddonPermission.Scoped(AddonPermission.Scoped.Entity.NOTES, AddonPermission.Scoped.Access.WRITE))
