@@ -59,6 +59,7 @@ class AddonBackgroundHost(
                     null,
                 )
             }
+        current = this
     }
 
     /** Tears the host down; safe to call when not started. */
@@ -68,7 +69,22 @@ class AddonBackgroundHost(
             it.destroy()
         }
         webView = null
+        if (current === this) current = null
     }
+
+    /**
+     * Delivers a native menu click to [addonName]'s background script, where it is handled by
+     * `ankidroid.onMenuClick`. A no-op if the addon has no running background context.
+     */
+    fun fireMenuClick(
+        addonName: String,
+        menuId: String,
+    ) {
+        val js = "window.__ankidroidFireMenu(${jsString(addonName)}, ${jsString(menuId)})"
+        webView?.evaluateJavascript(js, null)
+    }
+
+    private fun jsString(value: String): String = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(value))
 
     /** The Kotlin side of the background bridge, called by the host page (not the iframes). */
     class BackgroundBridge(
@@ -90,6 +106,13 @@ class AddonBackgroundHost(
 
     companion object {
         const val BRIDGE_NAME = "AndroidAddonBackground"
+
+        /**
+         * The currently-running host, if any, so native screens can dispatch menu clicks
+         * without owning a reference. Set while foregrounded with background addons enabled.
+         */
+        var current: AddonBackgroundHost? = null
+            private set
 
         /** The enabled, valid addons that declare a background entry (empty unless the dev flag is on) */
         fun enabledBackgroundAddons(context: Context): List<AddonModel> {
@@ -131,7 +154,7 @@ class AddonBackgroundHost(
                         Json
                             .encodeToString(JsonPrimitive.serializer(), JsonPrimitive(clientShim(addon) + addon.script))
                             .replace("</", "<\\/")
-                    """<iframe sandbox="allow-scripts" srcdoc-data='$srcdoc'></iframe>"""
+                    """<iframe sandbox="allow-scripts" data-addon='${jsAttr(addon.name)}' srcdoc-data='$srcdoc'></iframe>"""
                 }
             // language=HTML
             return """
@@ -139,9 +162,17 @@ class AddonBackgroundHost(
                 <html><body>
                 $frames
                 <script>
+                    const frames = new Map(); // addon name -> iframe window, for delivering menu clicks
                     for (const frame of document.querySelectorAll("iframe[srcdoc-data]")) {
+                        const name = frame.getAttribute("data-addon");
+                        frame.addEventListener("load", () => frames.set(name, frame.contentWindow));
                         frame.srcdoc = JSON.parse(frame.getAttribute("srcdoc-data"));
                     }
+                    // called from Kotlin (AddonBackgroundHost.fireMenuClick) to notify an addon
+                    window.__ankidroidFireMenu = (name, menuId) => {
+                        const w = frames.get(name);
+                        if (w) w.postMessage({ __ak: "menu", menuId }, "*");
+                    };
                     window.addEventListener("message", (event) => {
                         const { addon, method, args } = event.data || {};
                         try {
@@ -163,14 +194,23 @@ class AddonBackgroundHost(
             val name = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(addon.name))
             return """
                 <script>
-                globalThis.ankidroid = {
-                    addonName: $name,
-                    settings: ${addon.settings},
-                    log: (message) => parent.postMessage({ addon: $name, method: "log", args: [message] }, "*"),
-                    setSetting: (key, value) => parent.postMessage({ addon: $name, method: "setSetting", args: [key, value] }, "*"),
-                };
+                (() => {
+                    const menuSubs = [];
+                    window.addEventListener("message", (e) => {
+                        if (e.data && e.data.__ak === "menu") menuSubs.forEach((cb) => cb(e.data.menuId));
+                    });
+                    globalThis.ankidroid = {
+                        addonName: $name,
+                        settings: ${addon.settings},
+                        log: (message) => parent.postMessage({ addon: $name, method: "log", args: [message] }, "*"),
+                        setSetting: (key, value) => parent.postMessage({ addon: $name, method: "setSetting", args: [key, value] }, "*"),
+                        onMenuClick: (cb) => menuSubs.push(cb),
+                    };
+                })();
                 </script>
                 """.trimIndent()
         }
+
+        private fun jsAttr(value: String): String = value.replace("'", "&#39;")
     }
 }
