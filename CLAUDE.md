@@ -1,3 +1,5 @@
+@AGENTS.md
+
 ## Refactoring Scope
 - Constrain scope tightly: do not modify unrelated files, themes, or settings 'while you're in there'.
 
