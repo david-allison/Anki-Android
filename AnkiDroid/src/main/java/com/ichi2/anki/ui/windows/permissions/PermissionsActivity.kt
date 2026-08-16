@@ -16,6 +16,8 @@ import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.databinding.ActivityPermissionsBinding
+import com.ichi2.anki.exception.SystemStorageException
+import com.ichi2.anki.startup.ensureCollectionPathSet
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.HAS_ALL_PERMISSIONS_KEY
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.PERMISSIONS_FRAGMENT_RESULT_KEY
 import com.ichi2.anki.utils.ext.setFragmentResultListener
@@ -36,7 +38,7 @@ import timber.log.Timber
  * To request optional permissions from the user, prefer [PermissionsBottomSheet].
  */
 class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
-    private val binding by viewBinding(ActivityPermissionsBinding::bind)
+    val binding by viewBinding(ActivityPermissionsBinding::bind)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (showedActivityFailedScreen(savedInstanceState)) {
@@ -46,7 +48,7 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
         enableEdgeToEdge()
         setViewBinding(binding)
 
-        binding.continueButton.setOnClickListener { finish() }
+        binding.continueButton.setOnClickListener { decideStorageAndFinish() }
 
         // #20881: Activity should not be launchd without extras
         val permissionSet = IntentCompat.getParcelableExtra(intent, EXTRA_PERMISSIONS_SET, PermissionSet::class.java)
@@ -75,6 +77,24 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
 
     fun setContinueButtonEnabled(isEnabled: Boolean) {
         binding.continueButton.isEnabled = isEnabled
+    }
+
+    /**
+     * Records the storage decision and closes the screen: the granted permissions
+     * determine the default collection path.
+     *
+     * No-op for an existing collection path.
+     *
+     * @see ensureCollectionPathSet
+     */
+    private fun decideStorageAndFinish() {
+        try {
+            ensureCollectionPathSet(this)
+        } catch (e: SystemStorageException) {
+            // don't block closing the screen: DeckPicker startup reports this failure
+            Timber.w(e, "unable to choose a default collection path")
+        }
+        finish()
     }
 
     companion object {

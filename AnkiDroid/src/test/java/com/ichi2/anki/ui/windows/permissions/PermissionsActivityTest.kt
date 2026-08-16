@@ -18,14 +18,17 @@ package com.ichi2.anki.ui.windows.permissions
 import android.content.Context
 import android.content.Intent
 import androidx.appcompat.widget.AppCompatButton
+import androidx.core.content.edit
 import androidx.fragment.app.commitNow
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ActivityScenario.ActivityAction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.testutils.HamcrestUtils.containsInAnyOrder
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
@@ -51,6 +54,20 @@ class PermissionsActivityTest : RobolectricTest() {
             activity.setContinueButtonEnabled(true)
             activity.findViewById<AppCompatButton>(R.id.continue_button).performClick()
             assertThat("activity is finishing", activity.isFinishing)
+        }
+    }
+
+    @Test // #13574: completing the screen must record the storage decision
+    fun `continuing decides the collection path`() {
+        AnkiDroidApp.sharedPrefs().edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        testActivity { activity ->
+            activity.setContinueButtonEnabled(true)
+            activity.binding.continueButton.performClick()
+            assertThat("activity is finishing", activity.isFinishing)
+            assertThat(
+                "a collection path was decided",
+                AnkiDroidApp.sharedPrefs().contains(CollectionHelper.PREF_COLLECTION_PATH),
+            )
         }
     }
 
