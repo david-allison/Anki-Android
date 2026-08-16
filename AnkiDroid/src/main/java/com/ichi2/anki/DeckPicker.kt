@@ -1088,9 +1088,8 @@ open class DeckPicker :
             is DiskFull -> displayNoStorageError()
             is DBError -> displayDatabaseFailure(CustomExceptionData.fromException(failure.exception))
             is StorageUndecided -> {
-                // unreachable: Undecided requires PREF_COLLECTION_PATH to be unset, which only
-                // happens if ensureCollectionPathSet failed at startup; getStartupFailureType
-                // then returns InitializationError (fatalError) before checking the decision
+                // only expected if choosing a default collection path failed
+                // after the permission checks passed (SystemStorageException)
                 // TODO: #19552 - replace with the storage setup flow
                 Timber.w("storage setup flow (#19552) not implemented; showing load-failure options")
                 CrashReportService.sendExceptionReport(

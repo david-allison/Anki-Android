@@ -43,8 +43,8 @@ class StoragePolicyTest {
             listOf(
                 Case(StoragePermissionSet.LEGACY_ACCESS, granted = false, persists = AnkiDroidFolder.PUBLIC),
                 Case(StoragePermissionSet.LEGACY_ACCESS, granted = true, persists = AnkiDroidFolder.PUBLIC),
-                // TODO: 13574 - not granted: null (deferred to the permission screen)
-                Case(StoragePermissionSet.EXTERNAL_MANAGER, granted = false, persists = AnkiDroidFolder.PUBLIC),
+                // #13574: deferred to the permission screen
+                Case(StoragePermissionSet.EXTERNAL_MANAGER, granted = false, persists = null),
                 Case(StoragePermissionSet.EXTERNAL_MANAGER, granted = true, persists = AnkiDroidFolder.PUBLIC),
                 Case(StoragePermissionSet.APP_PRIVATE, granted = false, persists = AnkiDroidFolder.APP_PRIVATE),
                 Case(StoragePermissionSet.APP_PRIVATE, granted = true, persists = AnkiDroidFolder.APP_PRIVATE),

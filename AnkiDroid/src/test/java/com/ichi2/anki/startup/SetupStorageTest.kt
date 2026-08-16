@@ -21,6 +21,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -122,15 +123,15 @@ class SetupStorageTest : RobolectricTest() {
         assertEquals(publicCollectionPath, collectionPath)
     }
 
-    // TODO: 13574 - the decision is deferred to the user: the screen may be skipped
+    // #13574: the user may skip the screen, so the decision is theirs
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
-    fun `full build - public storage is persisted before 'All files access' is granted`() {
+    fun `full build - the decision is deferred before 'All files access' is granted`() {
         prefs.edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
 
         withManageExternalStorageInManifest { ensureCollectionPathSet(targetContext) }
 
-        assertEquals(publicCollectionPath, collectionPath)
+        assertNull(collectionPath, "the storage decision should be deferred to the user")
     }
 
     @Test
