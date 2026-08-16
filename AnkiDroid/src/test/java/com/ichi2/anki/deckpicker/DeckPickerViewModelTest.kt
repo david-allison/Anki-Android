@@ -17,17 +17,23 @@
 package com.ichi2.anki.deckpicker
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import androidx.annotation.CheckResult
+import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.card_rendering.EmptyCardsReport
 import anki.card_rendering.emptyCardsReport
 import app.cash.turbine.test
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.libanki.Consts
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.emptyCids
+import com.ichi2.anki.startup.ensureCollectionPathSet
 import com.ichi2.testutils.ensureOpsExecuted
 import org.hamcrest.CoreMatchers.not
 import org.hamcrest.MatcherAssert.assertThat
@@ -147,6 +153,52 @@ class DeckPickerViewModelTest : RobolectricTest() {
             assertThat("col undo status", col.undoStatus().undo, equalTo("Empty"))
         }
     }
+
+    @Test // #13574: the storage decision may be deferred until permissions are granted
+    fun `startup decides a collection path once permissions are granted`() {
+        targetContext.sharedPrefs().edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+
+        viewModel.handleStartup(environment(hasPermissions = true))
+
+        assertThat(
+            "a collection path was decided",
+            targetContext.sharedPrefs().contains(CollectionHelper.PREF_COLLECTION_PATH),
+        )
+        assertEquals(DeckPickerViewModel.StartupResponse.Success, viewModel.flowOfStartupResponse.value)
+    }
+
+    @Test // #13574: the storage decision must not be made before the user grants or skips
+    fun `startup requests permissions without deciding a collection path`() {
+        targetContext.sharedPrefs().edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+
+        viewModel.handleStartup(environment(hasPermissions = false))
+
+        assertEquals(
+            DeckPickerViewModel.StartupResponse.RequestPermissions(PermissionSet.EXTERNAL_MANAGER),
+            viewModel.flowOfStartupResponse.value,
+        )
+        assertThat(
+            "no collection path is decided before permissions are granted",
+            !targetContext.sharedPrefs().contains(CollectionHelper.PREF_COLLECTION_PATH),
+        )
+    }
+
+    private fun environment(hasPermissions: Boolean) =
+        object : DeckPickerViewModel.AnkiDroidEnvironment {
+            override fun hasRequiredPermissions() = hasPermissions
+
+            override val requiredPermissions = PermissionSet.EXTERNAL_MANAGER
+
+            override val preferences: SharedPreferences
+                get() = targetContext.sharedPrefs()
+
+            override fun decideStorageIfUndecided() {
+                check(hasPermissions) { "the storage decision requires granted permissions" }
+                ensureCollectionPathSet(targetContext)
+            }
+
+            override fun initializeAnkiDroidFolder(): Boolean = CollectionHelper.isCurrentAnkiDroidDirAccessible(targetContext)
+        }
 
     /**
      * Creates a note with 3 cards, all empty
