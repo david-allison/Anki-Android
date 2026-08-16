@@ -15,9 +15,13 @@
  */
 package com.ichi2.anki.ui.windows.permissions
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.Bundle
 import androidx.appcompat.widget.AppCompatButton
+import androidx.core.content.edit
 import androidx.fragment.app.commitNow
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ActivityScenario.ActivityAction
@@ -28,11 +32,17 @@ import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.StoragePermissionSet
+import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.testutils.HamcrestUtils.containsInAnyOrder
+import com.ichi2.testutils.publicCollectionPath
+import com.ichi2.testutils.withAllFilesAccess
+import com.ichi2.testutils.withManageExternalStorageInManifest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -55,6 +65,42 @@ class PermissionsActivityTest : RobolectricTest() {
             assertThat("activity is finishing", activity.isFinishing)
         }
     }
+
+    @Test // #13574: completing the screen must record the storage decision
+    @Config(sdk = [Build.VERSION_CODES.R])
+    @SuppressLint("NewApi") // EXTERNAL_MANAGER requires R, guaranteed by @Config
+    fun `continuing decides the collection path`() {
+        targetContext.sharedPrefs().edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        withManageExternalStorageInManifest {
+            withAllFilesAccess {
+                testActivity(StoragePermissionSet.EXTERNAL_MANAGER) { activity ->
+                    activity.setContinueButtonEnabled(true)
+                    activity.findViewById<AppCompatButton>(R.id.continue_button).performClick()
+                    assertThat("activity is finishing", activity.isFinishing)
+                }
+            }
+        }
+        assertEquals(publicCollectionPath, collectionPath)
+    }
+
+    @Test // #13574: PermissionsStartingAt30Fragment completes the screen once 'All files access' is granted
+    @Config(sdk = [Build.VERSION_CODES.R])
+    @SuppressLint("NewApi") // EXTERNAL_MANAGER requires R, guaranteed by @Config
+    fun `completing without Continue decides the collection path`() {
+        targetContext.sharedPrefs().edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        withManageExternalStorageInManifest {
+            withAllFilesAccess {
+                testActivity(StoragePermissionSet.EXTERNAL_MANAGER) { activity ->
+                    activity.supportFragmentManager.setFragmentResult(PermissionsActivity.RESULT_COMPLETE, Bundle())
+                    assertThat("activity is finishing", activity.isFinishing)
+                }
+            }
+        }
+        assertEquals(publicCollectionPath, collectionPath)
+    }
+
+    private val collectionPath: String?
+        get() = targetContext.sharedPrefs().getString(CollectionHelper.PREF_COLLECTION_PATH, null)
 
     @Test
     fun `error toast is shown if EXTRA_PERMISSIONS_SET is missing`() {

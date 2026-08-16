@@ -16,6 +16,8 @@ import com.ichi2.anki.R
 import com.ichi2.anki.StoragePermissionSet
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.databinding.ActivityPermissionsBinding
+import com.ichi2.anki.exception.SystemStorageException
+import com.ichi2.anki.startup.ensureCollectionPathSet
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.HAS_ALL_PERMISSIONS_KEY
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.PERMISSIONS_FRAGMENT_RESULT_KEY
 import com.ichi2.anki.utils.ext.setFragmentResultListener
@@ -46,7 +48,7 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
         enableEdgeToEdge()
         setViewBinding(binding)
 
-        binding.continueButton.setOnClickListener { finish() }
+        binding.continueButton.setOnClickListener { decideStorageAndFinish() }
 
         // #20881: Activity should not be launchd without extras
         val permissionSet = IntentCompat.getParcelableExtra(intent, EXTRA_PERMISSIONS_SET, StoragePermissionSet::class.java)
@@ -62,6 +64,7 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
             val hasAllPermissions = bundle.getBoolean(HAS_ALL_PERMISSIONS_KEY)
             setContinueButtonEnabled(hasAllPermissions)
         }
+        setFragmentResultListener(RESULT_COMPLETE) { _, _ -> decideStorageAndFinish() }
 
         supportFragmentManager.commit {
             replace(R.id.fragment_container, permissionsFragment)
@@ -74,8 +77,33 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
         binding.continueButton.isEnabled = isEnabled
     }
 
+    /**
+     * Records the storage decision and closes the screen: the granted permissions
+     * determine the default collection path.
+     *
+     * Called on 'Continue', or when the fragment reports [RESULT_COMPLETE].
+     * No-op for an existing collection path.
+     *
+     * @see ensureCollectionPathSet
+     */
+    private fun decideStorageAndFinish() {
+        try {
+            ensureCollectionPathSet(this)
+        } catch (e: SystemStorageException) {
+            // don't block closing the screen: DeckPicker startup reports this failure
+            Timber.w(e, "unable to choose a default collection path")
+        }
+        finish()
+    }
+
     companion object {
         const val EXTRA_PERMISSIONS_SET = "permissionsSet"
+
+        /**
+         * Fragment result request key: all of the fragment's permissions are granted, so the
+         * screen completes without 'Continue'. Public so that child fragments can set it.
+         */
+        const val RESULT_COMPLETE = "result_complete"
 
         fun getIntent(
             context: Context,
