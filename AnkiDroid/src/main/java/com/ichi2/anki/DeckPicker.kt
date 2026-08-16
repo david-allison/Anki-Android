@@ -1053,6 +1053,8 @@ open class DeckPicker :
                 override val preferences: SharedPreferences
                     get() = context.sharedPrefs()
 
+                override fun decideStorageIfUndecided() = InitialActivity.decideStorageIfUndecided(context)
+
                 override fun initializeAnkiDroidFolder(): Boolean = CollectionHelper.isCurrentAnkiDroidDirAccessible(context)
             }
 
