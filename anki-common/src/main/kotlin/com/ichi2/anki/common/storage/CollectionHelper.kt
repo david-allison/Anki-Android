@@ -140,9 +140,8 @@ object CollectionHelper {
      * [PREF_COLLECTION_PATH] is set (or a [ankiDroidDirectoryOverride] is active), which mirrors
      * when [getCurrentAnkiDroidDirectory] can return a directory rather than throwing.
      *
-     * The user is not asked yet: until the dedicated setup flow exists (#19552), the 'decision'
-     * is made on their behalf during startup by `ensureCollectionPathSet` (app module), so this
-     * is [StorageDecision.Decided] by the time the collection is opened.
+     * `ensureCollectionPathSet` persists the default folder if it is accessible.
+     * On a non-`play` build, the user decides on the permissions screen.
      *
      * @param preferences the preferences the collection path will be read from: pass the same
      * (profile) context's preferences as the [getCurrentAnkiDroidDirectory] call being gated

@@ -2,19 +2,32 @@
 
 package com.ichi2.anki.startup
 
+import android.os.Build
+import android.os.Environment
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.permissions.isExternalStorageManagerCompat
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.exception.StorageNotConfiguredException
 import com.ichi2.anki.exception.SystemStorageException
+import com.ichi2.testutils.grantWritePermissions
+import com.ichi2.testutils.revokeWritePermissions
+import com.ichi2.utils.Permissions
+import io.mockk.every
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
+import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -84,6 +97,63 @@ class SetupStorageTest : RobolectricTest() {
         ensureCollectionPathSet(targetContext)
 
         assertTrue(!collectionPath.isNullOrEmpty(), "a default collection path should be set")
+    }
+
+    @Test // #13574: full builds cannot access ~/AnkiDroid until 'All files access' is granted
+    fun `ensureCollectionPathSet defers the decision when public storage is inaccessible`() {
+        prefs.edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        mockkObject(Permissions)
+        every { Permissions.canManageExternalStorage(any()) } returns true
+        try {
+            ensureCollectionPathSet(targetContext)
+
+            assertNull(collectionPath, "the storage decision should be deferred to the user")
+        } finally {
+            unmockkObject(Permissions)
+        }
+    }
+
+    @Test // #13574
+    fun `ensureCollectionPathSet decides public storage once access is granted`() {
+        prefs.edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        mockkObject(Permissions)
+        every { Permissions.canManageExternalStorage(any()) } returns true
+        mockkStatic("com.ichi2.anki.common.permissions.StoragePermissionsKt")
+        every { isExternalStorageManagerCompat() } returns true
+        try {
+            ensureCollectionPathSet(targetContext)
+
+            val publicDirectory = File(Environment.getExternalStorageDirectory(), "AnkiDroid").absolutePath
+            assertEquals(publicDirectory, collectionPath)
+        } finally {
+            unmockkObject(Permissions)
+            unmockkStatic("com.ichi2.anki.common.permissions.StoragePermissionsKt")
+        }
+    }
+
+    @Test // #13574: on Android 10 and below, ~/AnkiDroid requires READ/WRITE_EXTERNAL_STORAGE
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun `ensureCollectionPathSet defers the decision on legacy Android without storage permissions`() {
+        prefs.edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+
+        ensureCollectionPathSet(targetContext)
+
+        assertNull(collectionPath, "the storage decision should be deferred to the user")
+    }
+
+    @Test // #13574
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun `ensureCollectionPathSet decides public storage on legacy Android with storage permissions`() {
+        prefs.edit { remove(CollectionHelper.PREF_COLLECTION_PATH) }
+        grantWritePermissions()
+        try {
+            ensureCollectionPathSet(targetContext)
+
+            val publicDirectory = File(Environment.getExternalStorageDirectory(), "AnkiDroid").absolutePath
+            assertEquals(publicDirectory, collectionPath)
+        } finally {
+            revokeWritePermissions()
+        }
     }
 
     @Test
