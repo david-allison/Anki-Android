@@ -12,6 +12,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -30,6 +32,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.CheckResult
 import androidx.annotation.DrawableRes
@@ -42,7 +46,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
+import androidx.core.view.WindowInsetsCompat.Type.navigationBars
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.isGone
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import anki.frontend.SetSchedulingStatesRequest
 import anki.scheduler.CardAnswer.Rating
@@ -115,7 +126,6 @@ import com.ichi2.anki.utils.ext.flag
 import com.ichi2.anki.utils.ext.getLongOrNull
 import com.ichi2.anki.utils.ext.setUserFlagForCards
 import com.ichi2.anki.utils.ext.showDialogFragment
-import com.ichi2.anki.utils.navBarNeedsScrim
 import com.ichi2.anki.utils.remainingTime
 import com.ichi2.themes.Themes
 import com.ichi2.themes.Themes.currentTheme
@@ -234,9 +244,7 @@ open class Reviewer :
         toolbar = findViewById(R.id.toolbar)
         micToolBarLayer = findViewById(R.id.mic_tool_bar_layer)
         processor = BindingMap(sharedPrefs(), ViewerCommand.entries, this)
-        if (sharedPrefs().getString("answerButtonPosition", "bottom") == "bottom" && !navBarNeedsScrim) {
-            setNavigationBarColor(R.attr.showAnswerColor)
-        }
+        setupEdgeToEdge()
         if (!sharedPrefs().getBoolean("showDeckTitle", false)) {
             // avoid showing "AnkiDroid"
             supportActionBar?.title = ""
@@ -362,7 +370,140 @@ open class Reviewer :
             FullScreenMode.BUTTONS_AND_MENU -> R.layout.activity_reviewer
         }
 
-    public override fun fitsSystemWindows(): Boolean = !fullscreenMode.isFullScreenReview()
+    // insets are handled manually: see setupEdgeToEdge()
+    public override fun fitsSystemWindows(): Boolean = false
+
+    /**
+     * Enables edge-to-edge and applies insets so no content is occluded by the system bars.
+     *
+     * In immersive review ([FullScreenMode.isFullScreenReview]), [setFullScreen] hides the
+     * system bars and the fullscreen layouts position the overlaid controls with
+     * `fitsSystemWindows` when the bars are transiently shown, so only bar styles are applied.
+     */
+    private fun setupEdgeToEdge() {
+        // the status bar sits over the app bar, which is dark in every theme except E-Ink
+        val statusBarStyle =
+            SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) {
+                Themes.currentTheme != DayTheme.EINK
+            }
+        if (fullscreenMode.isFullScreenReview()) {
+            // default navigationBarStyle: a transiently shown bar overlays the card, so the
+            // default translucent scrim is kept behind it
+            enableEdgeToEdge(statusBarStyle = statusBarStyle)
+            return
+        }
+
+        val answerButtonsPosition =
+            sharedPrefs().getString(getString(R.string.answer_buttons_position_preference), "bottom")
+        val answerButtonsAtBottom = answerButtonsPosition == "bottom"
+        enableEdgeToEdge(
+            statusBarStyle = statusBarStyle,
+            navigationBarStyle =
+                if (answerButtonsAtBottom) {
+                    // the navigation bar sits over the answer area, which is showAnswerColor:
+                    // dark in every theme
+                    SystemBarStyle.dark(Color.TRANSPARENT)
+                } else {
+                    // the navigation bar sits over an empty window-background strip below the
+                    // card. The dark scrim is only used below API 26, where light navigation
+                    // icons are unsupported (androidx.activity.EdgeToEdge.DefaultDarkScrim)
+                    SystemBarStyle.auto(Color.TRANSPARENT, Color.argb(0x80, 0x1b, 0x1b, 0x1b)) {
+                        Themes.isNightTheme
+                    }
+                },
+        )
+
+        // systemBars (not just statusBars) so a landscape 3-button navigation bar,
+        // which is a side inset, is also cleared
+        fun WindowInsetsCompat.bars() = getInsets(systemBars() or displayCutout())
+
+        /** Pads the sides of [view] past the insets, preserving [basePadding] from XML */
+        fun clearSides(
+            view: View,
+            basePadding: Int = 0,
+        ) {
+            ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+                val bars = insets.bars()
+                v.updatePadding(left = basePadding + bars.left, right = basePadding + bars.right)
+                insets
+            }
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.toolbar_container)) { container, insets ->
+            val bars = insets.bars()
+            container.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+            if (answerButtonsAtBottom && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // SystemBarStyle.dark suits the bottom bar over the answer area, but a side
+                // navigation bar sits over the window background: let the system draw its own
+                // contrasting scrim there
+                val nav = insets.getInsets(navigationBars())
+                window.isNavigationBarContrastEnforced = nav.left > 0 || nav.right > 0
+            }
+            insets
+        }
+        clearSides(findViewById(R.id.top_bar), basePadding = resources.getDimensionPixelSize(R.dimen.side_margin))
+        clearSides(micToolBarLayer)
+
+        // the card and its overlays reach the bottom of the screen when the answer buttons
+        // are shown above them
+        for (viewId in intArrayOf(R.id.flashcard, R.id.touch_layer, R.id.whiteboard)) {
+            ViewCompat.setOnApplyWindowInsetsListener(findViewById(viewId)) { card, insets ->
+                val bars = insets.bars()
+                card.updatePadding(
+                    left = bars.left,
+                    right = bars.right,
+                    bottom = if (answerButtonsPosition == "top") bars.bottom else 0,
+                )
+                insets
+            }
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(colorPalette) { palette, insets ->
+            val bars = insets.bars()
+            palette.updatePadding(
+                left = bars.left,
+                right = bars.right,
+                // for "top"/"none" the palette is parked at the parent's bottom edge:
+                // see updateWhiteboardEditorPosition()
+                bottom = if (answerButtonsAtBottom) 0 else bars.bottom,
+            )
+            insets
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.bottom_area_layout)) { bottomArea, insets ->
+            val bars = insets.bars()
+            bottomArea.updatePadding(
+                left = bars.left,
+                right = bars.right,
+                // "none": the type-answer field is the bottom-most element; keep it clear of
+                // the navigation bar and the keyboard
+                bottom =
+                    if (answerButtonsPosition == "none") {
+                        insets.getInsets(systemBars() or displayCutout() or ime()).bottom
+                    } else {
+                        0
+                    },
+            )
+            insets
+        }
+
+        val answerArea = findViewById<View>(R.id.answer_options_layout)
+        if (answerButtonsAtBottom) {
+            // extends the answer area's color underneath the navigation bar, replacing the
+            // pre-edge-to-edge setNavigationBarColor(R.attr.showAnswerColor)
+            answerArea.setBackgroundColor(MaterialColors.getColor(this, R.attr.showAnswerColor, 0))
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(answerArea) { area, insets ->
+            // registering this listener also disables android:fitsSystemWindows, which is
+            // only wanted in the fullscreen layouts
+            if (answerButtonsAtBottom) {
+                // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
+                // buttons and the type-answer field above them must clear the keyboard
+                area.updatePadding(bottom = insets.getInsets(systemBars() or displayCutout() or ime()).bottom)
+            }
+            insets
+        }
+    }
 
     override fun onCollectionLoaded(col: Collection) {
         super.onCollectionLoaded(col)
