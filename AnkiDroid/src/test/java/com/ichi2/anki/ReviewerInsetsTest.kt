@@ -2,6 +2,7 @@
 
 package com.ichi2.anki
 
+import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
@@ -359,6 +360,41 @@ class ReviewerInsetsTest : RobolectricTest() {
             reviewer.dispatchInsets(barsVisible = false)
             advanceRobolectricLooper()
             assertThat("the toolbar fades back out", reviewer.toolbarContainer.visibility, equalTo(View.GONE))
+        }
+    }
+
+    @Test
+    fun `taps on the answer area's inset band press the button above it`() =
+        withReviewer { reviewer ->
+            reviewer.dispatchInsets(navBarBottom = 48.dp)
+            advanceRobolectricLooper()
+
+            assertThat("the card starts on the question side", reviewer.isDisplayingAnswer, equalTo(false))
+            // tap the showAnswerColor band painted below 'Show answer'
+            reviewer.answerArea.tapBottomBand(x = reviewer.answerArea.width / 2f)
+            advanceRobolectricLooper()
+            assertThat(
+                "a tap on the band below 'Show answer' flips the card",
+                reviewer.isDisplayingAnswer,
+                equalTo(true),
+            )
+
+            // the ease buttons replace the flip button; the band under 'Good' answers Good
+            reviewer.answerArea.tapBottomBand(x = reviewer.answerArea.width * 5 / 8f)
+            advanceRobolectricLooper()
+            assertThat(
+                "a tap on the band below an ease button answers the card",
+                reviewer.isDisplayingAnswer,
+                equalTo(false),
+            )
+        }
+
+    private fun View.tapBottomBand(x: Float) {
+        val y = height - 1f
+        for (action in intArrayOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
+            val event = MotionEvent.obtain(0, 0, action, x, y, 0)
+            dispatchTouchEvent(event)
+            event.recycle()
         }
     }
 

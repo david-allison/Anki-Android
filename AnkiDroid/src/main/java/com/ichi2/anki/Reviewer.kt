@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -26,7 +27,9 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.SubMenu
+import android.view.TouchDelegate
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -553,9 +556,56 @@ open class Reviewer :
             area.updatePadding(left = bars.left, right = bars.right, bottom = bottomInset)
             insets
         }
+        if (answerButtonsAtBottom) {
+            extendAnswerButtonsIntoInsets(answerArea as ViewGroup)
+        }
 
         if (fullscreenMode.isFullScreenReview()) {
             syncControlsWithSystemBars()
+        }
+    }
+
+    /**
+     * The inset bands painted around the answer buttons - the showAnswerColor strip running
+     * to the bottom of the screen, and any side-inset strip beside an outer button - press
+     * the button they adjoin, so the painted area acts as the button it appears to be.
+     */
+    private fun extendAnswerButtonsIntoInsets(answerArea: ViewGroup) {
+        val buttons =
+            intArrayOf(
+                R.id.flashcard_layout_flip,
+                R.id.flashcard_layout_ease1,
+                R.id.flashcard_layout_ease2,
+                R.id.flashcard_layout_ease3,
+                R.id.flashcard_layout_ease4,
+            ).map { answerArea.findViewById<View>(it) }
+        var delegates = emptyList<TouchDelegate>()
+        // buttons handle their own touches first: only band touches, which no child claims,
+        // fall through to the area's delegate
+        answerArea.touchDelegate =
+            object : TouchDelegate(Rect(), answerArea) {
+                override fun onTouchEvent(event: MotionEvent): Boolean {
+                    var handled = false
+                    for (delegate in delegates) {
+                        val copy = MotionEvent.obtain(event)
+                        handled = delegate.onTouchEvent(copy) || handled
+                        copy.recycle()
+                    }
+                    return handled
+                }
+            }
+        answerArea.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            delegates =
+                buttons.filter { it.isShown }.map { button ->
+                    val rect = Rect()
+                    button.getDrawingRect(rect)
+                    answerArea.offsetDescendantRectToMyCoords(button, rect)
+                    // a button laid out against a padded edge claims the band beyond it
+                    if (rect.left <= answerArea.paddingLeft) rect.left = 0
+                    if (rect.right >= answerArea.width - answerArea.paddingRight) rect.right = answerArea.width
+                    rect.bottom = answerArea.height
+                    TouchDelegate(rect, button)
+                }
         }
     }
 
