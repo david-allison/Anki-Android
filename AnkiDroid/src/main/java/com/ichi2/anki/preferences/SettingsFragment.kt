@@ -10,6 +10,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.XmlRes
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.updatePadding
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
@@ -18,6 +21,7 @@ import com.ichi2.anki.analytics.AnalyticsConstants
 import com.ichi2.anki.analytics.AnkiDroidUsageAnalytics
 import com.ichi2.anki.common.analytics.Analytics
 import com.ichi2.anki.databinding.FragmentSettingsBinding
+import com.ichi2.anki.utils.doOnApplyWindowInsets
 import com.ichi2.preferences.DialogFragmentProvider
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
@@ -83,6 +87,13 @@ abstract class SettingsFragment :
         binding.toolbar.apply {
             setTitle(title)
             setNavigationOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
+        }
+        // Once PreferencesActivity is edge-to-edge, fitsSystemWindows in the layout handles the
+        // app bar; the list container holds the preference list, or the search results, clear of
+        // the navigation bar and any display cutout
+        binding.listContainer.doOnApplyWindowInsets { listContainer, insets, _ ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            listContainer.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
         }
     }
 

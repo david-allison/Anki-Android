@@ -19,6 +19,9 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.widget.ActionMenuView
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -27,6 +30,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.R
 import com.ichi2.anki.databinding.FragmentPreferencesReviewerMenuBinding
 import com.ichi2.anki.snackbar.showSnackbar
+import com.ichi2.anki.utils.doOnApplyWindowInsets
 import com.ichi2.anki.utils.ext.sharedPrefs
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
@@ -44,12 +48,25 @@ class ReviewerMenuSettingsFragment :
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+        setupInsets()
         repository = ReviewerMenuRepository(sharedPrefs())
         setupRecyclerView()
         binding.toolbar.setNavigationOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
         binding.reviewerMenuView.setOnMenuItemClickListener(this@ReviewerMenuSettingsFragment)
+    }
+
+    /** Keeps the toolbar and the menu list clear of the system bars once PreferencesActivity is edge-to-edge */
+    private fun setupInsets() {
+        binding.toolbar.doOnApplyWindowInsets { toolbar, insets, _ ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            toolbar.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+        }
+        binding.recyclerView.doOnApplyWindowInsets { recyclerView, insets, _ ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            recyclerView.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
+        }
     }
 
     private fun setupRecyclerView() {
