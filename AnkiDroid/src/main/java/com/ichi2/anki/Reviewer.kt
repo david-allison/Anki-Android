@@ -27,6 +27,7 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.SubMenu
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -54,6 +55,7 @@ import androidx.core.view.WindowInsetsCompat.Type.navigationBars
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isGone
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import anki.frontend.SetSchedulingStatesRequest
@@ -387,6 +389,7 @@ open class Reviewer :
         val answerButtonsPosition =
             sharedPrefs().getString(getString(R.string.answer_buttons_position_preference), "bottom")
         val answerButtonsAtBottom = answerButtonsPosition == "bottom"
+        val immersive = fullscreenMode.isFullScreenReview()
         enableEdgeToEdge(
             // the status bar sits over the app bar, which is dark in every theme except E-Ink
             statusBarStyle =
@@ -394,17 +397,26 @@ open class Reviewer :
                     Themes.currentTheme != DayTheme.EINK
                 },
             navigationBarStyle =
-                if (answerButtonsAtBottom) {
-                    // the navigation bar sits over the answer area, which is showAnswerColor:
-                    // dark in every theme
-                    SystemBarStyle.dark(Color.TRANSPARENT)
-                } else {
-                    // the navigation bar sits over an empty window-background strip below the
-                    // card. The dark scrim is only used below API 26, where light navigation
-                    // icons are unsupported (androidx.activity.EdgeToEdge.DefaultDarkScrim)
-                    SystemBarStyle.auto(Color.TRANSPARENT, Color.argb(0x80, 0x1b, 0x1b, 0x1b)) {
-                        Themes.isNightTheme
-                    }
+                when {
+                    immersive ->
+                        // a transiently revealed bar is a system overlay, distinct from the
+                        // answer area beside it: keep a translucent scrim behind it
+                        // (the androidx.activity.EdgeToEdge default scrims)
+                        SystemBarStyle.auto(
+                            Color.argb(0xe6, 0xff, 0xff, 0xff),
+                            Color.argb(0x80, 0x1b, 0x1b, 0x1b),
+                        ) { Themes.isNightTheme }
+                    answerButtonsAtBottom ->
+                        // the navigation bar sits over the answer area, which is
+                        // showAnswerColor: dark in every theme
+                        SystemBarStyle.dark(Color.TRANSPARENT)
+                    else ->
+                        // the navigation bar sits over an empty window-background strip below
+                        // the card. The dark scrim is only used below API 26, where light
+                        // navigation icons are unsupported (EdgeToEdge.DefaultDarkScrim)
+                        SystemBarStyle.auto(Color.TRANSPARENT, Color.argb(0x80, 0x1b, 0x1b, 0x1b)) {
+                            Themes.isNightTheme
+                        }
                 },
         )
 
@@ -415,7 +427,7 @@ open class Reviewer :
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.toolbar_container)) { container, insets ->
             val bars = insets.bars()
             container.updatePadding(left = bars.left, top = bars.top, right = bars.right)
-            if (answerButtonsAtBottom && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (!immersive && answerButtonsAtBottom && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // SystemBarStyle.dark suits the bottom bar over the answer area, but a side
                 // navigation bar sits over the window background: let the system draw its own
                 // contrasting scrim there
@@ -521,20 +533,29 @@ open class Reviewer :
         }
         ViewCompat.setOnApplyWindowInsetsListener(answerArea) { area, insets ->
             val bars = insets.bars()
+            // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
+            // buttons and the type-answer field above them must clear the keyboard.
+            // In immersive review the hidden bars report zero insets, so the buttons sit
+            // flush with the bottom edge of the screen
+            val bottomInset =
+                if (answerButtonsAtBottom) {
+                    insets.getInsets(systemBars() or displayCutout() or ime()).bottom
+                } else {
+                    0
+                }
             area.updatePadding(
                 left = bars.left,
                 right = bars.right,
-                // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
-                // buttons and the type-answer field above them must clear the keyboard.
-                // In immersive review the hidden bars report zero insets, so the buttons sit
-                // flush with the bottom edge of the screen
-                bottom =
-                    if (answerButtonsAtBottom) {
-                        insets.getInsets(systemBars() or displayCutout() or ime()).bottom
-                    } else {
-                        0
-                    },
+                // normal review: the inset is painted showAnswerColor by the background,
+                // visually extending the answer area underneath the navigation bar
+                bottom = if (immersive) 0 else bottomInset,
             )
+            if (immersive) {
+                // immersive review: a transiently revealed bar is a system overlay, not an
+                // extension of the answer area: lift with an unpainted margin so the two
+                // do not blend into a single strip
+                area.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = bottomInset }
+            }
             insets
         }
 

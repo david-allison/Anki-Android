@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat.Type.displayCutout
 import androidx.core.view.WindowInsetsCompat.Type.ime
 import androidx.core.view.WindowInsetsCompat.Type.navigationBars
 import androidx.core.view.WindowInsetsCompat.Type.statusBars
+import androidx.core.view.marginBottom
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.reviewer.FullScreenMode
@@ -177,9 +178,16 @@ class ReviewerInsetsTest : RobolectricTest() {
             reviewer.dispatchInsets(navBarBottom = 48.dp)
 
             assertThat(
-                "the answer area rests above the revealed navigation bar",
-                reviewer.answerArea.paddingBottom,
+                "the answer area rests above the revealed navigation bar, via an unpainted " +
+                    "margin: the transient bar keeps its own scrim rather than blending into " +
+                    "a showAnswerColor strip",
+                reviewer.answerArea.marginBottom,
                 equalTo(48.dp.toPx(targetContext)),
+            )
+            assertThat(
+                "the answer area's background is not painted underneath the transient bar",
+                reviewer.answerArea.paddingBottom,
+                equalTo(0),
             )
             assertThat(
                 "no spurious top inset on the answer area (previously applied by fitsSystemWindows)",
