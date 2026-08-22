@@ -162,9 +162,12 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                 WindowInsetsCompat
                     .Builder()
                     .setInsets(displayCutout(), insetsOf(top = cutoutHeight))
+                    .setVisible(statusBars() or navigationBars(), false)
                     .build()
             }
         ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
+        // let the overlaid controls finish fading out with the bars
+        advanceRobolectricLooper()
 
         val decor = window.decorView as ViewGroup
         val cutoutOverlay =
@@ -194,9 +197,12 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                     .Builder()
                     .setInsets(statusBars(), insetsOf(top = statusBarHeight))
                     .setInsets(navigationBars(), insetsOf(bottom = navBarHeight))
+                    .setVisible(statusBars() or navigationBars(), true)
                     .build()
             }
         ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
+        // let the overlaid controls finish fading in with the bars
+        advanceRobolectricLooper()
 
         val decor = window.decorView as ViewGroup
         val statusBarOverlay =
