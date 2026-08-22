@@ -447,9 +447,11 @@ open class Reviewer :
         ViewCompat.setOnApplyWindowInsetsListener(topBar) { v, insets ->
             val bars = insets.bars()
             v.updatePadding(
-                left = topBarSidePadding + bars.left,
+                // the side margin keeps the counts off the screen edge: an inset already
+                // does that, so the larger of the two wins rather than both stacking
+                left = maxOf(topBarSidePadding, bars.left),
                 top = if (topBarAtWindowTop) topBarBaseTopPadding + bars.top else v.paddingTop,
-                right = topBarSidePadding + bars.right,
+                right = maxOf(topBarSidePadding, bars.right),
             )
             insets
         }

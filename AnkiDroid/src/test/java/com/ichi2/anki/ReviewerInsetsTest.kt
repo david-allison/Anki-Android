@@ -75,16 +75,30 @@ class ReviewerInsetsTest : RobolectricTest() {
                 equalTo(48.dp.toPx(targetContext)),
             )
 
-            val sideMargin = targetContext.resources.getDimensionPixelSize(R.dimen.side_margin)
             assertThat(
-                "the counts bar keeps its own side padding in addition to the cutout inset",
+                "a cutout wider than the counts bar's side margin absorbs it: the inset " +
+                    "alone clears the cutout, with no extra margin added",
                 reviewer.countsBar.paddingLeft,
-                equalTo(sideMargin + 32.dp.toPx(targetContext)),
+                equalTo(32.dp.toPx(targetContext)),
             )
             assertThat(
-                "the counts bar keeps its own side padding in addition to the navigation bar inset",
+                "a navigation bar wider than the side margin absorbs it too",
                 reviewer.countsBar.paddingRight,
-                equalTo(sideMargin + 48.dp.toPx(targetContext)),
+                equalTo(48.dp.toPx(targetContext)),
+            )
+
+            // an inset smaller than the side margin does not shrink it
+            val sideMargin = targetContext.resources.getDimensionPixelSize(R.dimen.side_margin)
+            reviewer.dispatchInsets(navBarRight = 4.dp)
+            assertThat(
+                "the side margin is kept where no inset exceeds it",
+                reviewer.countsBar.paddingLeft,
+                equalTo(sideMargin),
+            )
+            assertThat(
+                "a small side inset is absorbed by the side margin",
+                reviewer.countsBar.paddingRight,
+                equalTo(sideMargin),
             )
         }
 
