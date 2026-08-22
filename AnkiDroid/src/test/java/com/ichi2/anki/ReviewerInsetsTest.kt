@@ -2,6 +2,8 @@
 
 package com.ichi2.anki
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.edit
@@ -19,9 +21,12 @@ import com.ichi2.testutils.insetsOf
 import com.ichi2.utils.Dp
 import com.ichi2.utils.dp
 import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.nullValue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows
 
 /**
  * Edge-to-edge inset handling for the legacy [Reviewer].
@@ -386,6 +391,32 @@ class ReviewerInsetsTest : RobolectricTest() {
                 "a tap on the band below an ease button answers the card",
                 reviewer.isDisplayingAnswer,
                 equalTo(false),
+            )
+        }
+
+    @Test
+    fun `the card's rendered background paints its inset strips`() =
+        withReviewer { reviewer ->
+            // the query is issued once a card side has rendered
+            reviewer.onPageFinished(reviewer.webView!!)
+            assertThat(
+                "onPageFinished queries the rendered card's background color",
+                Shadows.shadowOf(reviewer.webView).lastEvaluatedJavascript ?: "",
+                containsString("backgroundColor"),
+            )
+
+            reviewer.paintInsetsWithCardBackground("\"rgb(255, 0, 0)\"")
+            assertThat(
+                "an opaque card background extends into the card's inset strips",
+                (reviewer.cardContainer.background as ColorDrawable).color,
+                equalTo(Color.RED),
+            )
+
+            reviewer.paintInsetsWithCardBackground("\"rgba(0, 0, 0, 0)\"")
+            assertThat(
+                "a transparent card background keeps the window background",
+                reviewer.cardContainer.background,
+                nullValue(),
             )
         }
 

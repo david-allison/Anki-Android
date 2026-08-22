@@ -49,6 +49,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type.displayCutout
@@ -1473,11 +1474,42 @@ open class Reviewer :
 
     override fun onPageFinished(view: WebView) {
         super.onPageFinished(view)
+        // the card's `.card` styling applies to <body>: sample the rendered background so
+        // its color can extend into the card's inset strips
+        view.evaluateJavascript("getComputedStyle(document.body).backgroundColor") { color ->
+            paintInsetsWithCardBackground(color)
+        }
         onFlagChanged()
         onMarkChanged()
         if (!displayAnswer) {
             runStateMutationHook()
         }
+    }
+
+    /**
+     * Extends the rendered card's background color into the card's inset strips - beside a
+     * camera cutout or side navigation bar, and any other edge the card is held clear of -
+     * where the container's padding would otherwise show the window background against the
+     * card, like the strip beside the card in landscape. The counts bar and answer area
+     * already extend their backgrounds this way. A card without an opaque background keeps
+     * the window background.
+     */
+    @VisibleForTesting
+    internal fun paintInsetsWithCardBackground(cssColor: String?) {
+        if (isDestroyed) return
+        findViewById<View>(R.id.flashcard).background = parseCssComputedColor(cssColor)?.toDrawable()
+    }
+
+    /**
+     * Parses a CSS computed color - `rgb(r, g, b)`, or `rgba(r, g, b, a)` when not fully
+     * opaque - as serialized by getComputedStyle. Returns null for a non-opaque color: the
+     * page composites it over other content, which a flat strip cannot reproduce.
+     */
+    private fun parseCssComputedColor(cssColor: String?): Int? {
+        val match = CSS_COMPUTED_COLOR.find(cssColor ?: "") ?: return null
+        val (r, g, b) = match.destructured
+        if ((match.groupValues[4].toFloatOrNull() ?: 1f) < 1f) return null
+        return Color.rgb(r.toInt(), g.toInt(), b.toInt())
     }
 
     override suspend fun updateCurrentCard() {
@@ -2050,6 +2082,9 @@ open class Reviewer :
 
         private const val REQUEST_AUDIO_PERMISSION = 0
         private const val ANIMATION_DURATION = 200
+
+        /** getComputedStyle serialization: `rgb(r, g, b)`, or `rgba(r, g, b, a)` when not opaque */
+        private val CSS_COMPUTED_COLOR = Regex("""rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)""")
 
         /** Default (500ms) time for action snackbars, such as undo, bury and suspend */
         const val ACTION_SNACKBAR_TIME = 500
