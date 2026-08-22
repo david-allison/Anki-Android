@@ -222,6 +222,23 @@ class ReviewerInsetsTest : RobolectricTest() {
     }
 
     @Test
+    fun `immersive review - hidden bars - the answer area keeps clear of the gesture area`() {
+        FullScreenMode.setPreference(targetContext.sharedPrefs(), FullScreenMode.BUTTONS_ONLY)
+        withReviewer { reviewer ->
+            // gesture navigation: the bars are hidden, but their region (the gesture area,
+            // by the display's rounded corners) is still reported by the stable insets
+            reviewer.dispatchInsets(navBarStableBottom = 48.dp, barsVisible = false)
+
+            assertThat(
+                "the answer area floats a navigation bar's height above the screen edge, " +
+                    "as it did pre-edge-to-edge under SYSTEM_UI_FLAG_LAYOUT_STABLE",
+                reviewer.answerArea.marginBottom,
+                equalTo(48.dp.toPx(targetContext)),
+            )
+        }
+    }
+
+    @Test
     fun `immersive review - the answer area's background spans a side cutout like the counts bar`() {
         FullScreenMode.setPreference(targetContext.sharedPrefs(), FullScreenMode.BUTTONS_ONLY)
         withReviewer { reviewer ->
@@ -333,10 +350,17 @@ class ReviewerInsetsTest : RobolectricTest() {
     private val Reviewer.answerArea: View
         get() = findViewById(R.id.answer_options_layout)
 
-    /** Dispatches realistic system-bar insets, which Robolectric otherwise reports as zero. */
+    /**
+     * Dispatches realistic system-bar insets, which Robolectric otherwise reports as zero.
+     *
+     * The 'stable' insets ([WindowInsetsCompat.getInsetsIgnoringVisibility]) report the bars'
+     * regions whether or not they are currently visible: [navBarStableBottom] stays reported
+     * while immersive mode hides the bars themselves.
+     */
     private fun Reviewer.dispatchInsets(
         navBarBottom: Dp = 0.dp,
         navBarRight: Dp = 0.dp,
+        navBarStableBottom: Dp = navBarBottom,
         cutoutLeft: Dp = 0.dp,
         cutoutTop: Dp = 0.dp,
         imeBottom: Dp = 0.dp,
@@ -347,8 +371,13 @@ class ReviewerInsetsTest : RobolectricTest() {
                 WindowInsetsCompat
                     .Builder()
                     .setInsets(statusBars(), insetsOf(top = if (barsVisible) 24.dp else 0.dp))
+                    .setInsetsIgnoringVisibility(statusBars(), insetsOf(top = 24.dp))
                     .setInsets(navigationBars(), insetsOf(right = navBarRight, bottom = navBarBottom))
-                    .setInsets(displayCutout(), insetsOf(left = cutoutLeft, top = cutoutTop))
+                    .setInsetsIgnoringVisibility(
+                        navigationBars(),
+                        insetsOf(right = navBarRight, bottom = navBarStableBottom),
+                    ).setInsets(displayCutout(), insetsOf(left = cutoutLeft, top = cutoutTop))
+                    .setInsetsIgnoringVisibility(displayCutout(), insetsOf(left = cutoutLeft, top = cutoutTop))
                     .setInsets(ime(), insetsOf(bottom = imeBottom))
                     .setVisible(statusBars() or navigationBars(), barsVisible)
                     .build()

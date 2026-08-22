@@ -533,28 +533,33 @@ open class Reviewer :
         }
         ViewCompat.setOnApplyWindowInsetsListener(answerArea) { area, insets ->
             val bars = insets.bars()
-            // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
-            // buttons and the type-answer field above them must clear the keyboard.
-            // In immersive review the hidden bars report zero insets, so the buttons sit
-            // flush with the bottom edge of the screen
-            val bottomInset =
-                if (answerButtonsAtBottom) {
-                    insets.getInsets(systemBars() or displayCutout() or ime()).bottom
-                } else {
-                    0
-                }
             area.updatePadding(
                 left = bars.left,
                 right = bars.right,
                 // normal review: the inset is painted showAnswerColor by the background,
-                // visually extending the answer area underneath the navigation bar
-                bottom = if (immersive) 0 else bottomInset,
+                // visually extending the answer area underneath the navigation bar.
+                // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
+                // buttons and the type-answer field above them must clear the keyboard
+                bottom =
+                    if (!immersive && answerButtonsAtBottom) {
+                        insets.getInsets(systemBars() or displayCutout() or ime()).bottom
+                    } else {
+                        0
+                    },
             )
-            if (immersive) {
-                // immersive review: a transiently revealed bar is a system overlay, not an
-                // extension of the answer area: lift with an unpainted margin so the two
-                // do not blend into a single strip
-                area.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = bottomInset }
+            if (immersive && answerButtonsAtBottom) {
+                // Stable insets: the buttons stay clear of the navigation bar's region even
+                // while the bars are hidden - the gesture area is still active, by the
+                // display's rounded corners - keeping the pre-#9332 LAYOUT_STABLE placement,
+                // and unmoving when the bars are transiently revealed into that gap.
+                // The margin is unpainted: a revealed bar is a system overlay with its own
+                // scrim, distinct from the answer area
+                val stableBottom =
+                    maxOf(
+                        insets.getInsetsIgnoringVisibility(systemBars() or displayCutout()).bottom,
+                        insets.getInsets(ime()).bottom,
+                    )
+                area.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = stableBottom }
             }
             insets
         }

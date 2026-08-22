@@ -168,7 +168,8 @@ class ReviewerScreenshotTest : ScreenshotTest() {
 
     /**
      * Immersive mode with the bars hidden: their insets are zero, but the camera cutout still
-     * insets the content. A translucent band marks where the camera sits.
+     * insets the content, and the stable insets still report the navigation bar's region (the
+     * gesture area). A translucent band marks where the camera sits.
      */
     private fun Reviewer.simulateHiddenBarsWithCutout() {
         val cutoutHeight = 32.dp
@@ -177,6 +178,7 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                 WindowInsetsCompat
                     .Builder()
                     .setInsets(displayCutout(), insetsOf(top = cutoutHeight))
+                    .setInsetsIgnoringVisibility(navigationBars(), insetsOf(bottom = 48.dp))
                     .setVisible(statusBars() or navigationBars(), false)
                     .build()
             }
@@ -207,6 +209,7 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                 WindowInsetsCompat
                     .Builder()
                     .setInsets(displayCutout(), insetsOf(left = cutoutWidth))
+                    .setInsetsIgnoringVisibility(navigationBars(), insetsOf(bottom = 48.dp))
                     .setVisible(statusBars() or navigationBars(), false)
                     .build()
             }
