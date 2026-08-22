@@ -12,6 +12,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.annotation.XmlRes
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
@@ -232,6 +233,11 @@ class PreferencesFragment :
 class PreferencesActivity :
     SingleFragmentActivity(),
     SearchPreferenceResultListener {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+    }
+
     override fun onSearchResultClicked(result: SearchPreferenceResult) {
         val fragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG)
         if (fragment is SearchPreferenceResultListener) {
