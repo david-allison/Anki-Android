@@ -117,6 +117,8 @@ class AllActivitiesScreenshotTest : ScreenshotTest() {
                     ManageNotetypes::class.java,
                     // PreferencesScreenshotTest
                     PreferencesActivity::class.java,
+                    // ReviewerScreenshotTest
+                    Reviewer::class.java,
                     // SharedDecksScreenshotTest
                     SharedDecksActivity::class.java,
                     // StudyOptionsScreenshotTest
