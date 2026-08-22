@@ -3,7 +3,16 @@
 
 package com.ichi2.anki.reviewreminders
 
+import android.app.Activity
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.annotation.IdRes
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.navigationBars
+import androidx.core.view.WindowInsetsCompat.Type.statusBars
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.test.core.app.ActivityScenario
@@ -19,6 +28,8 @@ import com.ichi2.anki.reviewreminders.ScheduleRemindersFragment.FragmentHost
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import com.ichi2.anki.withDeckPicker
 import com.ichi2.testutils.BackupManagerTestUtilities
+import com.ichi2.testutils.insetsOf
+import com.ichi2.utils.dp
 import org.junit.Test
 
 /**
@@ -129,6 +140,49 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
                 )
             }
         }
+    }
+
+    @Test
+    fun `standalone activity host with system bars`() {
+        val intent = ScheduleRemindersFragment.getIntent(targetContext, ReviewReminderScope.Global)
+        ActivityScenario.launch<ConfigAwareSingleFragmentActivity>(intent).use { scenario ->
+            advanceRobolectricLooper()
+            scenario.onActivity { activity ->
+                activity.simulateSystemBars()
+                captureScreen("standaloneActivityHost_systemBars")
+            }
+        }
+    }
+
+    /**
+     * Robolectric reports zero system-bar insets by default. Inject realistic ones so the
+     * fragment's edge-to-edge layout responds as it would on a real device, and overlay
+     * translucent bands where the bars would sit to show whether content clears them.
+     *
+     * The insets are dispatched at `android.R.id.content`: this window has not opted into
+     * edge-to-edge, so insets dispatched at the decor are consumed before reaching the views.
+     */
+    private fun Activity.simulateSystemBars() {
+        val statusBarHeight = 24.dp
+        val navBarHeight = 48.dp
+        val insets =
+            with(targetContext) {
+                WindowInsetsCompat
+                    .Builder()
+                    .setInsets(statusBars(), insetsOf(top = statusBarHeight))
+                    .setInsets(navigationBars(), insetsOf(bottom = navBarHeight))
+                    .build()
+            }
+        ViewCompat.dispatchApplyWindowInsets(findViewById(android.R.id.content), insets)
+
+        val decor = window.decorView as ViewGroup
+        listOf(
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, statusBarHeight.toPx(targetContext), Gravity.TOP),
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, navBarHeight.toPx(targetContext), Gravity.BOTTOM),
+        ).forEach { params ->
+            decor.addView(View(this).apply { setBackgroundColor(0x80000000.toInt()) }, params)
+        }
+        advanceRobolectricLooper()
     }
 
     private fun commitScheduleRemindersAndCapture(
