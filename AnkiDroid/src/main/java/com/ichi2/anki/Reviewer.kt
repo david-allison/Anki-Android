@@ -484,11 +484,11 @@ open class Reviewer :
             insets
         }
 
+        // The bottom area's children take the side insets themselves so that the answer
+        // area's background spans the full width, like the top bar's, with only its content
+        // held clear of a notch or side navigation bar
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.bottom_area_layout)) { bottomArea, insets ->
-            val bars = insets.bars()
             bottomArea.updatePadding(
-                left = bars.left,
-                right = bars.right,
                 // "none": the type-answer field is the bottom-most element; keep it clear of
                 // the navigation bar and the keyboard
                 bottom =
@@ -501,6 +501,18 @@ open class Reviewer :
             insets
         }
 
+        val answerField = findViewById<View>(R.id.answer_field)
+        val answerFieldBasePaddingLeft = answerField.paddingLeft
+        val answerFieldBasePaddingRight = answerField.paddingRight
+        ViewCompat.setOnApplyWindowInsetsListener(answerField) { field, insets ->
+            val bars = insets.bars()
+            field.updatePadding(
+                left = answerFieldBasePaddingLeft + bars.left,
+                right = answerFieldBasePaddingRight + bars.right,
+            )
+            insets
+        }
+
         val answerArea = findViewById<View>(R.id.answer_options_layout)
         if (answerButtonsAtBottom) {
             // extends the answer area's color underneath the navigation bar, replacing the
@@ -508,13 +520,21 @@ open class Reviewer :
             answerArea.setBackgroundColor(MaterialColors.getColor(this, R.attr.showAnswerColor, 0))
         }
         ViewCompat.setOnApplyWindowInsetsListener(answerArea) { area, insets ->
-            if (answerButtonsAtBottom) {
+            val bars = insets.bars()
+            area.updatePadding(
+                left = bars.left,
+                right = bars.right,
                 // ime(): with edge-to-edge, adjustResize no longer resizes the window; the
                 // buttons and the type-answer field above them must clear the keyboard.
                 // In immersive review the hidden bars report zero insets, so the buttons sit
                 // flush with the bottom edge of the screen
-                area.updatePadding(bottom = insets.getInsets(systemBars() or displayCutout() or ime()).bottom)
-            }
+                bottom =
+                    if (answerButtonsAtBottom) {
+                        insets.getInsets(systemBars() or displayCutout() or ime()).bottom
+                    } else {
+                        0
+                    },
+            )
             insets
         }
 
