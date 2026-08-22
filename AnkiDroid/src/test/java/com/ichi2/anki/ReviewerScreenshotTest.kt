@@ -79,6 +79,21 @@ class ReviewerScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /**
+     * 'Hide the system bars' in landscape with a camera notch: the cutout is a side inset.
+     * The counts bar and the answer area clear it the same way: content inset, with their
+     * backgrounds spanning the full width.
+     */
+    @Test
+    fun fullscreenLandscape() {
+        setFullscreenMode(FullScreenMode.BUTTONS_ONLY)
+        RuntimeEnvironment.setQualifiers("+land")
+        withReviewer { reviewer ->
+            reviewer.simulateHiddenBarsWithSideCutout()
+            captureScreen("fullscreen_landscape")
+        }
+    }
+
     /** 'Hide the system bars', after the user swipes the bars back into view */
     @Test
     fun fullscreenBarsRevealed() {
@@ -180,6 +195,36 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 cutoutHeight.toPx(targetContext),
                 Gravity.TOP,
+            ),
+        )
+    }
+
+    /** As [simulateHiddenBarsWithCutout], but landscape: the camera notch is a side inset. */
+    private fun Reviewer.simulateHiddenBarsWithSideCutout() {
+        val cutoutWidth = 32.dp
+        val insets =
+            with(targetContext) {
+                WindowInsetsCompat
+                    .Builder()
+                    .setInsets(displayCutout(), insetsOf(left = cutoutWidth))
+                    .setVisible(statusBars() or navigationBars(), false)
+                    .build()
+            }
+        ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
+        // let the overlaid controls finish fading out with the bars
+        advanceRobolectricLooper()
+
+        val decor = window.decorView as ViewGroup
+        val cutoutOverlay =
+            View(this).apply {
+                setBackgroundColor(0x80000000.toInt())
+            }
+        decor.addView(
+            cutoutOverlay,
+            FrameLayout.LayoutParams(
+                cutoutWidth.toPx(targetContext),
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.LEFT,
             ),
         )
     }
