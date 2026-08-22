@@ -461,11 +461,10 @@ open class Reviewer :
             }
         ViewCompat.setOnApplyWindowInsetsListener(micToolBarLayer) { micToolBar, insets ->
             val bars = insets.bars()
-            micToolBar.updatePadding(
-                left = bars.left,
-                top = if (contentAtWindowTop) bars.top else micToolBar.paddingTop,
-                right = bars.right,
-            )
+            // side insets only. The card is laid out below this (usually empty) wrap_content
+            // layer and clears the top inset itself: top padding here would give the layer
+            // phantom height, doubling the gap above the card
+            micToolBar.updatePadding(left = bars.left, right = bars.right)
             insets
         }
 
