@@ -9,13 +9,18 @@ import android.os.Bundle
 import android.text.InputFilter
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.Spinner
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -33,6 +38,7 @@ import com.ichi2.anki.databinding.FragmentFilteredDeckOptionsBinding
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
+import com.ichi2.anki.utils.doOnApplyWindowInsets
 import com.ichi2.anki.utils.openUrl
 import com.ichi2.utils.cancelable
 import com.ichi2.utils.configureIconsDirection
@@ -62,11 +68,33 @@ class FilteredDeckOptionsFragment : Fragment(R.layout.fragment_filtered_deck_opt
             }
         }
 
+    /**
+     * Keeps the toolbar, the options and the 'show excluded cards' button clear of the system
+     * bars and any display cutout when [ConfigAwareSingleFragmentActivity] is edge-to-edge.
+     */
+    private fun setupInsets() {
+        binding.toolbar.doOnApplyWindowInsets { view, insets, _ ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            view.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+        }
+        binding.scrollView.doOnApplyWindowInsets { view, insets, initial ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            view.updatePadding(left = bars.left, right = bars.right, bottom = initial.padding.bottom + bars.bottom)
+        }
+        binding.btnShowExcludedCards.doOnApplyWindowInsets { view, insets, initial ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = initial.margins.bottom + bars.bottom
+            }
+        }
+    }
+
     override fun onViewCreated(
         view: View,
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+        setupInsets()
         binding.toolbar.apply {
             title = "" // properly set in state updates
             setNavigationOnClickListener {
