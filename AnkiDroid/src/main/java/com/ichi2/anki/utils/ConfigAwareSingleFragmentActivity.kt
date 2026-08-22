@@ -19,6 +19,7 @@ package com.ichi2.anki.utils
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.Fragment
 import com.ichi2.anki.SingleFragmentActivity
 import kotlin.reflect.KClass
@@ -30,8 +31,16 @@ import kotlin.reflect.jvm.jvmName
  *
  * Note: do NOT add any configuration changes in the manifest for this activity. Either use [SingleFragmentActivity]
  * or declare your own copy.
+ *
+ * This activity is edge-to-edge: fragments hosted here must apply the system bar insets to
+ * their views.
  */
 class ConfigAwareSingleFragmentActivity : SingleFragmentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+    }
+
     companion object {
         fun getIntent(
             context: Context,
