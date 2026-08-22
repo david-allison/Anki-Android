@@ -172,21 +172,20 @@ class ReviewerInsetsTest : RobolectricTest() {
     }
 
     @Test
-    fun `immersive review - revealed bars lift the answer buttons above the navigation bar`() {
+    fun `immersive review - the answer area's color extends under a revealed navigation bar`() {
         FullScreenMode.setPreference(targetContext.sharedPrefs(), FullScreenMode.BUTTONS_ONLY)
         withReviewer { reviewer ->
             reviewer.dispatchInsets(navBarBottom = 48.dp)
 
             assertThat(
-                "the answer area rests above the revealed navigation bar, via an unpainted " +
-                    "margin: the transient bar keeps its own scrim rather than blending into " +
-                    "a showAnswerColor strip",
-                reviewer.answerArea.marginBottom,
+                "the buttons rest above the navigation bar via painted padding: the " +
+                    "showAnswerColor strip runs to the screen edge, matching normal review",
+                reviewer.answerArea.paddingBottom,
                 equalTo(48.dp.toPx(targetContext)),
             )
             assertThat(
-                "the answer area's background is not painted underneath the transient bar",
-                reviewer.answerArea.paddingBottom,
+                "no unpainted margin below the answer area",
+                reviewer.answerArea.marginBottom,
                 equalTo(0),
             )
             assertThat(
@@ -230,10 +229,16 @@ class ReviewerInsetsTest : RobolectricTest() {
             reviewer.dispatchInsets(navBarStableBottom = 48.dp, barsVisible = false)
 
             assertThat(
-                "the answer area floats a navigation bar's height above the screen edge, " +
-                    "as it did pre-edge-to-edge under SYSTEM_UI_FLAG_LAYOUT_STABLE",
-                reviewer.answerArea.marginBottom,
+                "the buttons rest a navigation bar's height above the screen edge, as they " +
+                    "did pre-edge-to-edge under SYSTEM_UI_FLAG_LAYOUT_STABLE - via painted " +
+                    "padding, so the answer area's color still reaches the screen edge",
+                reviewer.answerArea.paddingBottom,
                 equalTo(48.dp.toPx(targetContext)),
+            )
+            assertThat(
+                "no unpainted margin below the answer area",
+                reviewer.answerArea.marginBottom,
+                equalTo(0),
             )
         }
     }

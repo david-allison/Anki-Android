@@ -244,7 +244,9 @@ class ReviewerScreenshotTest : ScreenshotTest() {
                 WindowInsetsCompat
                     .Builder()
                     .setInsets(statusBars(), insetsOf(top = statusBarHeight))
+                    .setInsetsIgnoringVisibility(statusBars(), insetsOf(top = statusBarHeight))
                     .setInsets(navigationBars(), insetsOf(bottom = navBarHeight))
+                    .setInsetsIgnoringVisibility(navigationBars(), insetsOf(bottom = navBarHeight))
                     .setVisible(statusBars() or navigationBars(), true)
                     .build()
             }
