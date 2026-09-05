@@ -18,7 +18,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
-import com.ichi2.anki.PermissionSet
+import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
 import com.ichi2.utils.Permissions.openAppSettingsScreen
@@ -136,11 +136,11 @@ class PermissionsTest {
         setCanPermissionBeRequested(true)
         showBottomSheetShouldSucceed()
         showBottomSheetShouldSucceed()
-        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, PermissionSet.NOTIFICATIONS) }
+        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS) }
 
         setCanPermissionBeRequested(false)
         showBottomSheetShouldFail()
-        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, PermissionSet.NOTIFICATIONS) }
+        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS) }
     }
 
     private fun setPermissionsGranted(granted: Boolean) {

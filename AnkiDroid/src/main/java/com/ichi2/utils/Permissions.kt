@@ -20,7 +20,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.ichi2.anki.NotificationChannel
-import com.ichi2.anki.PermissionSet
+import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.common.permissions.MANAGE_EXTERNAL_STORAGE
 import com.ichi2.anki.common.permissions.hasPermission
@@ -138,7 +138,7 @@ object Permissions {
                 )
             ) {
                 Timber.i("Showing notifications bottom sheet")
-                PermissionsBottomSheet.launch(fragmentManager, PermissionSet.NOTIFICATIONS)
+                PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS)
                 callback()
             }
         }

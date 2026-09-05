@@ -28,6 +28,7 @@ import com.ichi2.anki.servicelayer.PreferenceUpgradeService
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService.setPreferencesUpToDate
 import com.ichi2.anki.ui.windows.permissions.InternetPermissionFragment
 import com.ichi2.anki.ui.windows.permissions.NotificationsPermissionFragment
+import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment
 import com.ichi2.anki.ui.windows.permissions.PermissionsStartingAt30Fragment
 import com.ichi2.anki.ui.windows.permissions.PermissionsUntil29Fragment
@@ -196,28 +197,53 @@ object InitialActivity {
     }
 }
 
+/**
+ * Permissions requested together on a [PermissionsFragment].
+ *
+ * @see StoragePermissionSet
+ * @see OptionalPermissionSet
+ */
+sealed interface PermissionSet : Parcelable {
+    val permissions: List<String>
+    val permissionsFragment: Class<out PermissionsFragment>
+
+    fun hasRequiredPermissions(context: Context): Boolean = hasAllPermissions(context, permissions)
+}
+
+/**
+ * The permissions required to access the folder where AnkiDroid data is saved.
+ *
+ * See [selectStoragePermissions].
+ */
 @Parcelize
-enum class PermissionSet(
-    val permissions: List<String>,
-    val permissionsFragment: Class<out PermissionsFragment>,
-) : Parcelable {
+enum class StoragePermissionSet(
+    override val permissions: List<String>,
+    override val permissionsFragment: Class<out PermissionsFragment>,
+) : PermissionSet {
     LEGACY_ACCESS(Permissions.legacyStorageAccessStartupPermissions, PermissionsUntil29Fragment::class.java),
 
     @RequiresApi(Build.VERSION_CODES.R)
     EXTERNAL_MANAGER(Permissions.externalManagerStorageAccessStartupPermissions, PermissionsStartingAt30Fragment::class.java),
 
     APP_PRIVATE(Permissions.appPrivateStartupPermissions, InternetPermissionFragment::class.java),
-
-    /** Optional. */
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    NOTIFICATIONS(listOf(Manifest.permission.POST_NOTIFICATIONS), NotificationsPermissionFragment::class.java),
-    ;
-
-    fun hasRequiredPermissions(context: Context): Boolean = hasAllPermissions(context, permissions)
 }
 
 /**
- * Returns the [PermissionSet] required to access the folder where AnkiDroid data is saved.
+ * Permissions a feature requests when it is first used. AnkiDroid runs without them.
+ *
+ * Optional: requested on a [PermissionsBottomSheet].
+ */
+@Parcelize
+enum class OptionalPermissionSet(
+    override val permissions: List<String>,
+    override val permissionsFragment: Class<out PermissionsFragment>,
+) : PermissionSet {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    NOTIFICATIONS(listOf(Manifest.permission.POST_NOTIFICATIONS), NotificationsPermissionFragment::class.java),
+}
+
+/**
+ * Returns the [StoragePermissionSet] required to access the folder where AnkiDroid data is saved.
  * [AnkiDroidFolder.PUBLIC] is preferred, as it reduces risk of data loss.
  * When impossible, we use the app-private directory.
  * See https://github.com/ankidroid/Anki-Android/issues/5304 for more context.
@@ -225,29 +251,29 @@ enum class PermissionSet(
 internal fun selectStoragePermissions(
     canManageExternalStorage: Boolean,
     currentFolderIsAccessibleAndLegacy: Boolean,
-): PermissionSet {
+): StoragePermissionSet {
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q || currentFolderIsAccessibleAndLegacy) {
         // match AnkiDroid behaviour before scoped storage - force the use of ~/AnkiDroid,
         // since it's fast & safe up to & including 'Q'
         // If a user upgrades their OS from Android 10 to 11 then storage speed is severely reduced
         // and a user should use one of the below options to provide faster speeds
-        return PermissionSet.LEGACY_ACCESS
+        return StoragePermissionSet.LEGACY_ACCESS
     }
 
     // If the user can manage external storage, we can access the safe folder & access is fast
     return if (canManageExternalStorage) {
-        PermissionSet.EXTERNAL_MANAGER
+        StoragePermissionSet.EXTERNAL_MANAGER
     } else {
-        PermissionSet.APP_PRIVATE
+        StoragePermissionSet.APP_PRIVATE
     }
 }
 
-fun selectStoragePermissions(context: Context): PermissionSet {
+fun selectStoragePermissions(context: Context): StoragePermissionSet {
     // `false`: the collection is app-private, so it can be accessed without storage permissions
     // `null`: no collection path is set
     val currentFolderIsLegacy = isLegacyStorage(context, setCollectionPath = false)
     if (currentFolderIsLegacy == false) {
-        return PermissionSet.APP_PRIVATE
+        return StoragePermissionSet.APP_PRIVATE
     }
 
     val canAccessLegacyStorage = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy()
@@ -261,7 +287,7 @@ fun selectStoragePermissions(context: Context): PermissionSet {
 
 /** The folder where AnkiDroid data is saved. See [selectStoragePermissions]. */
 fun selectAnkiDroidFolder(context: Context): AnkiDroidFolder =
-    if (selectStoragePermissions(context) == PermissionSet.APP_PRIVATE) {
+    if (selectStoragePermissions(context) == StoragePermissionSet.APP_PRIVATE) {
         AnkiDroidFolder.APP_PRIVATE
     } else {
         AnkiDroidFolder.PUBLIC
