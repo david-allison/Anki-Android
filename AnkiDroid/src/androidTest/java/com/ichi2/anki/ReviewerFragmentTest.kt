@@ -56,6 +56,7 @@ class ReviewerFragmentTest : InstrumentedTest() {
     @After
     fun tearDown() {
         col.decks.remove(listOf(testDeckId))
+        col.cardStateCustomizer = ""
     }
 
     @Test
