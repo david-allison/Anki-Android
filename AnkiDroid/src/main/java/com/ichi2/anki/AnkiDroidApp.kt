@@ -37,6 +37,7 @@ import com.ichi2.anki.common.crashreporting.CrashReportService.sendExceptionRepo
 import com.ichi2.anki.common.permissions.hasLegacyStorageAccessPermission
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.common.utils.android.SdCard
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
@@ -61,6 +62,7 @@ import com.ichi2.anki.settings.PrefsRepository
 import com.ichi2.anki.startup.ensureCollectionPathSet
 import com.ichi2.anki.startup.getDefaultAnkiDroidDirectory
 import com.ichi2.anki.ui.dialogs.ActivityAgnosticDialogs
+import com.ichi2.anki.widget.RECURRING_WIDGETS
 import com.ichi2.utils.ExceptionUtil
 import com.ichi2.utils.LanguageUtil
 import com.ichi2.utils.measureTime
@@ -189,7 +191,7 @@ open class AnkiDroidApp :
         with(anki) { initializeAnkiDroidDirectory() }
         with(anki) { setupDayRollover() }
 
-        restoreRecurringAlarms(this)
+        restoreRecurringAlarms(this, RECURRING_WIDGETS)
 
         setupLifecycleLogging()
         activityAgnosticDialogs = ActivityAgnosticDialogs.register(this)
@@ -260,6 +262,12 @@ open class AnkiDroidApp :
             val ankiDroidDir =
                 try {
                     ensureCollectionPathSet(this)
+                    if (CollectionHelper.storageDecision(this.sharedPrefs()) != StorageDecision.Decided) {
+                        // on non-Play builds, the permission screen
+                        // sets this path (see `ensureCollectionPathSet`)
+                        Timber.i("skipping AnkiDroid directory init: storage is undecided")
+                        return@setup
+                    }
                     CollectionHelper.getCurrentAnkiDroidDirectory(this)
                 } catch (e: SystemStorageException) {
                     fatalInitializationError = FatalInitializationError.StorageError(e)

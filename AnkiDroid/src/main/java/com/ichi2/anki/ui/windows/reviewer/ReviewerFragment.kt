@@ -181,8 +181,13 @@ class ReviewerFragment :
         }
 
         viewModel.statesMutationEvalFlow.collectIn(lifecycleScope) { eval ->
-            webViewLayout.evaluateJavascript(eval) {
-                viewModel.onStateMutationCallback()
+            // Completion is signaled by `statesMutated`
+            webViewLayout.evaluateJavascript(eval) { result ->
+                // eval failed, usually a syntax error
+                // Note: this is `"null"`, not null
+                if ("null" == result) {
+                    viewModel.onStateMutationCallback()
+                }
             }
         }
 
@@ -207,10 +212,6 @@ class ReviewerFragment :
                 return@collectIn
             }
             navigate(destination)
-        }
-
-        viewModel.destinationFlow.collectIn(lifecycleScope) { destination ->
-            startActivity(destination.toIntent(requireContext()))
         }
 
         binding.webViewContainer.setFrameStyle()

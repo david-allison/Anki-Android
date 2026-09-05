@@ -16,6 +16,10 @@ import androidx.core.content.IntentCompat
 import androidx.work.WorkManager
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.coroutines.applicationScope
+import com.ichi2.anki.common.destinations.BrowserDestination
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.destinations.addNextIntent
+import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.common.storage.StorageDecision
@@ -27,7 +31,6 @@ import com.ichi2.anki.dialogs.DialogHandlerMessage
 import com.ichi2.anki.dialogs.requireDeckPickerOrShowError
 import com.ichi2.anki.exception.SystemStorageException
 import com.ichi2.anki.libanki.DeckId
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.MimeTypeUtils
@@ -111,9 +114,13 @@ class IntentHandler : AbstractIntentHandler() {
 
     private fun copyDebugInfoToClipboard(intent: Intent) {
         Timber.i("Copying debug info to clipboard")
-        // null string is handled by copyToClipboard in try-catch
+        val clipboardData =
+            intent.getStringExtra(EXTRA_CLIPBOARD_DATA) ?: run {
+                Timber.w("copyDebugInfoToClipboard: missing '%s' extra", EXTRA_CLIPBOARD_DATA)
+                return
+            }
         this.copyToClipboard(
-            text = (intent.getStringExtra(EXTRA_CLIPBOARD_DATA)!!),
+            text = clipboardData,
             failureMessageId = R.string.about_ankidroid_error_copy_debug_info,
         )
     }
@@ -154,13 +161,15 @@ class IntentHandler : AbstractIntentHandler() {
      */
     private fun handleBrowserIntent(intent: Intent) {
         Timber.i("Handling intent to open the Card Browser")
-        val browserIntent =
-            Intent(this, CardBrowser::class.java).apply {
-                action = Intent.ACTION_VIEW
-                data = intent.data
+        val search = intent.data?.getQueryParameter("search")
+        val destination =
+            if (search != null) {
+                BrowserDestination.Search(query = search, allDecks = false)
+            } else {
+                BrowserDestination.Open
             }
         // 'back' should close this activity.
-        startActivity(browserIntent)
+        navigate(destination)
         finish()
     }
 
@@ -270,26 +279,21 @@ class IntentHandler : AbstractIntentHandler() {
                 data.data
             }
 
-        val intentImageOcclusion = NoteEditorLauncher.ImageOcclusion(imageUri).toIntent(this)
-
         TaskStackBuilder
             .create(this)
             .addNextIntentWithParentStack(Intent(this, DeckPicker::class.java))
-            .addNextIntent(intentImageOcclusion)
+            .addNextIntent(NoteEditorDestination.ImageOcclusion(imageUri))
             .startActivities()
     }
 
     private fun handleSharedText(data: Intent) {
         Timber.i("Handling shared text content for note creation")
-        val noteEditorIntent =
-            if (data.extras != null) {
-                NoteEditorLauncher.PassArguments(data.extras!!).toIntent(this, data.action)
-            } else {
+        val destination =
+            data.extras
+                ?.let { NoteEditorDestination.PassArguments.from(data, it) }
                 // Fallback if no extras, though this shouldn't happen for ACTION_SEND
-                NoteEditorLauncher.AddNote().toIntent(this)
-            }
-        noteEditorIntent.setDataAndType(data.data, data.type)
-        startActivity(noteEditorIntent)
+                ?: NoteEditorDestination.AddNote()
+        navigate(destination)
     }
 
     private fun deleteDownloadedDeck(sharedDeckUri: Uri?) {

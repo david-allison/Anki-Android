@@ -13,6 +13,8 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.slf4j.api)
 
+    // sealedSubclasses in AnalyticsEventTest needs full reflection
+    testImplementation(libs.kotlin.reflect)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit.vintage.engine)
     testImplementation(libs.hamcrest)
@@ -21,5 +23,6 @@ dependencies {
 
     testFixturesImplementation(libs.hamcrest)
     testFixturesImplementation(libs.androidx.annotation)
+    testFixturesImplementation(libs.junit.vintage.engine)
     testFixturesImplementation(libs.slf4j.api)
 }

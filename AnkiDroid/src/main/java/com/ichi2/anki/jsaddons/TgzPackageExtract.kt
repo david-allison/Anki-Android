@@ -40,6 +40,7 @@ import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.compat.CompatHelper.Companion.compat
 import com.ichi2.utils.FileUtil
 import org.apache.commons.compress.archivers.ArchiveException
+import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -240,7 +241,7 @@ class TgzPackageExtract(
         try {
             FileInputStream(inputFile).use { inputStream ->
                 ArchiveStreamFactory().createArchiveInputStream<TarArchiveInputStream>("tar", inputStream).use { tarInputStream ->
-                    tarInputStream.forEach { entry ->
+                    tarInputStream.forEachEntry { entry ->
                         val outputFile = File(outputDir, entry.name)
 
                         // Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability
@@ -347,16 +348,29 @@ class TgzPackageExtract(
      * @param outputFile output file
      * @param destDirectory destination directory
      */
-    @Throws(ArchiveException::class, IOException::class)
+    @Throws(ArchiveException::class)
     private fun zipPathSafety(
         outputFile: File,
         destDirectory: File,
     ) {
-        val destDirCanonicalPath = destDirectory.canonicalPath
-        val outputFileCanonicalPath = outputFile.canonicalPath
-
-        if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
-            throw ArchiveException(context.getString(R.string.malicious_archive_entry_outside, outputFileCanonicalPath))
+        val destCanonical =
+            try {
+                destDirectory.canonicalPath
+            } catch (_: IOException) {
+                // Path may contain PII; removing the %s param would churn translations — use a placeholder.
+                throw ArchiveException(context.getString(R.string.malicious_archive_entry_outside, ARCHIVE_ENTRY_PATH_OMITTED))
+            }
+        val childCanonical =
+            try {
+                outputFile.canonicalPath
+            } catch (_: IOException) {
+                throw ArchiveException(context.getString(R.string.malicious_archive_entry_outside, ARCHIVE_ENTRY_PATH_OMITTED))
+            }
+        val destPrefix = destCanonical + File.separator
+        // Allow the destination directory itself (e.g. `./` entries). Reject anything else
+        // that is not dest and not under dest + separator (sibling-prefix safe).
+        if (childCanonical != destCanonical && !childCanonical.startsWith(destPrefix)) {
+            throw ArchiveException(context.getString(R.string.malicious_archive_entry_outside, ARCHIVE_ENTRY_PATH_OMITTED))
         }
     }
 
@@ -374,7 +388,7 @@ class TgzPackageExtract(
             ArchiveStreamFactory().createArchiveInputStream<TarArchiveInputStream>("tar", inputStream).use { tarInputStream ->
                 var numOfEntries = 0
 
-                tarInputStream.forEach { entry ->
+                tarInputStream.forEachEntry { entry ->
                     numOfEntries++
                     if (numOfEntries > TOO_MANY_FILES) {
                         throw IllegalStateException("Too many files to untar")
@@ -432,5 +446,21 @@ class TgzPackageExtract(
         private const val BUFFER = 512
         private const val TOO_BIG_SIZE: Long = 0x6400000 // max size of unzipped data, 100MB
         private const val TOO_MANY_FILES = 1024 // max number of files
+
+        /** Placeholder for [R.string.malicious_archive_entry_outside]; do not pass real archive paths. */
+        private const val ARCHIVE_ENTRY_PATH_OMITTED = "archive entry"
     }
+}
+
+/**
+ * Calls [action] on each entry in the stream.
+ *
+ * Only commons-compress APIs predating 1.27 may be used here: Robolectric's API 36 `android-all`
+ * jar bundles an older commons-compress which shadows our dependency in unit tests, so
+ * `TarArchiveInputStream.forEach` and its `TarArchiveEntry`-returning `getNextEntry` override
+ * fail with [NoSuchMethodError]. `ArchiveInputStream.getNextEntry` links against both versions.
+ */
+private fun TarArchiveInputStream.forEachEntry(action: (TarArchiveEntry) -> Unit) {
+    val archiveInputStream: ArchiveInputStream<TarArchiveEntry> = this
+    generateSequence { archiveInputStream.nextEntry }.forEach(action)
 }

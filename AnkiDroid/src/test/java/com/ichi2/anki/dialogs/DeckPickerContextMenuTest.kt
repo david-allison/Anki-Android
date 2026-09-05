@@ -1,18 +1,4 @@
-/*
- *  Copyright (c) 2022 David Allison <davidallisongithub@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 package com.ichi2.anki.dialogs
 
@@ -31,6 +17,7 @@ import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.testutils.BackupManagerTestUtilities.setupSpaceForBackup
+import com.ichi2.testutils.JvmTest
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert
 import org.junit.After
@@ -41,8 +28,12 @@ import timber.log.Timber
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
+// JvmTest loads the rust backend. Without it this class only passes when it happens to run
+// after a test which loads it, which is filesystem order dependent (#14796)
+// TODO: PERF: JvmTest also opens a collection, which these tests never use. They only
+// need the backend for the menu's translated labels
 @RunWith(AndroidJUnit4::class)
-class DeckPickerContextMenuTest {
+class DeckPickerContextMenuTest : JvmTest() {
     private val scenariosForCleanup = ArrayList<FragmentScenario<*>>()
 
     @Before

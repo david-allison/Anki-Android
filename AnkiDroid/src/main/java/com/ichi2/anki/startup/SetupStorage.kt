@@ -6,6 +6,8 @@ import android.content.Context
 import android.os.Environment
 import androidx.annotation.CheckResult
 import androidx.core.content.edit
+import com.ichi2.anki.common.permissions.hasLegacyStorageAccessPermission
+import com.ichi2.anki.common.permissions.isExternalStorageManagerCompat
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.AnkiDroidFolder
 import com.ichi2.anki.common.storage.CollectionHelper
@@ -19,8 +21,11 @@ import java.io.File
  * Ensures [CollectionHelper.PREF_COLLECTION_PATH] is set, choosing and persisting
  * [getDefaultAnkiDroidDirectory] if it is unset.
  *
- * This decides the storage location on the user's behalf: until a storage setup flow exists
- * (#19552), the user is not asked.
+ * On `play`: This decides the storage location
+ * On `full`: only in the rare case that public storage is available by default.
+ *
+ * In this case the [decision is deferred][storageDecisionRequiresUser] VIA THE
+ * permission screen.
  *
  * @throws SystemStorageException if `getExternalFilesDir` returns null. The failure is recorded
  * in [CollectionHelper.systemStorageFailure] so reads report it rather than
@@ -29,6 +34,10 @@ import java.io.File
 fun ensureCollectionPathSet(context: Context) {
     val preferences = context.sharedPrefs()
     if (preferences.contains(CollectionHelper.PREF_COLLECTION_PATH)) return
+    if (storageDecisionRequiresUser(context)) {
+        Timber.i("deferring the storage decision to the user")
+        return
+    }
     val defaultPath =
         try {
             getDefaultAnkiDroidDirectory(context).absolutePath
@@ -40,6 +49,19 @@ fun ensureCollectionPathSet(context: Context) {
     Timber.d("default collection path: %s", defaultPath)
     preferences.edit { putString(CollectionHelper.PREF_COLLECTION_PATH, defaultPath) }
 }
+
+/**
+ * Whether the storage decision must be made by the user on the permission screen:
+ * the default folder would be public storage, which cannot be accessed with the
+ * currently granted permissions.
+ *
+ * The screen records the decision (#13574): 'Continue' with the permissions granted
+ * selects public storage. 'Skip' (#21046) will select app-private storage.
+ */
+private fun storageDecisionRequiresUser(context: Context): Boolean =
+    selectAnkiDroidFolder(context) == AnkiDroidFolder.PUBLIC &&
+        !hasLegacyStorageAccessPermission(context) &&
+        !isExternalStorageManagerCompat()
 
 /**
  * Get the absolute path to a directory that is suitable to be the default starting location

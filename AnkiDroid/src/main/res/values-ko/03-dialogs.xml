@@ -68,6 +68,7 @@
     <string name="dialog_exit" comment="Label for a button which will exit/finish the current screen">나가기</string>
     <string name="dialog_continue">계속하기</string>
     <string name="dialog_processing">처리 중&#8230;</string>
+    <string name="dialog_allow">Allow</string>
     <string name="dialog_positive_create" comment="Create a new collection, probably erasing the previous one, may be necessary in case of error.">만들기</string>
     <string name="dialog_positive_delete" maxLength="28">삭제</string>
     <!-- Currently unsued, should be useful in the future -->
@@ -101,7 +102,7 @@
     <!-- Multimedia - Audio View -->
     <string name="multimedia_editor_audio_permission_denied">오디오 녹음 권한이 거부됨</string>
     <string name="permission_denied">권한이 거부되었습니다.</string>
-    <string name="recording_permission_denied_message">\"음성 녹음\" 기능을 사용하려면 마이크 권한이 필요합니다. 앱 설정에서 권한을 허용해 주세요.</string>
+    <string name="microphone_permission_denied_message">Microphone permission denied. Please grant it in the app settings.</string>
     <!-- Database Integrity Check -->
     <string name="integrity_check_continue_anyway">Continue Anyway</string>
     <string name="integrity_check_insufficient_space">Check Database uses a large amount of temporary storage.\n\nIt is strongly recommended that you have at least %s free space on your device before continuing.</string>
@@ -111,8 +112,8 @@
     <string name="card_viewer_url_decode_error">Error decoding data from card</string>
     <!-- Deck Options -->
     <!-- Database Errors-->
-    <string name="database_locked_title">Database Locked</string>
-    <string name="database_locked_summary">The AnkiDroid database is in use by another application. Please close the other application then reopen AnkiDroid.</string>
+    <string name="database_locked_title">데이터베이스 잠김</string>
+    <string name="database_locked_summary">다른 앱에 의해 AnkiDroid의 데이터베이스가 사용 중입니다. 다른 앱을 닫고 AnkiDroid를 재시작하세요.</string>
     <string name="incompatible_database_version_title">Incompatible Database Version</string>
     <string name="incompatible_database_version_summary">The database is a more advanced version than this version of AnkiDroid can work with. Upgrade AnkiDroid or downgrade the database to open it\n\nSupported version: %1$d\nDatabase version: %2$d\n\nThe following restore options will overwrite your current collection, possibly with a compatible database version:</string>
     <!-- Deck Picker Background-->
@@ -249,4 +250,7 @@
     <string name="special_field_card_id_help" comment="%s: either blank or \' %s\'">The ID of the card%s</string>
     <string name="special_field_card_help" comment="%s: either blank or \' %s\'">The name of the card template%s</string>
     <string name="special_field_type_help" comment="%s: either blank or \' %s\'">The name of the note type%s</string>
+    <!-- Change Note Type Dialog -->
+    <string name="change_note_type_from" comment="Label indicating the original note type before changing it">From</string>
+    <string name="change_note_type_to" comment="Label indicating the new note type to change to">To</string>
 </resources>

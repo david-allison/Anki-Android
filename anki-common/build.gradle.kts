@@ -5,6 +5,7 @@ import com.ichi2.anki.gradle.addAnkiBackendDependencies
 
 plugins {
     id("ankidroid.android.library")
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 configure<LibraryExtension> {
@@ -29,5 +30,7 @@ dependencies {
     implementation(libs.jakewharton.timber)
     implementation(libs.kotlinx.coroutines.core)
 
+    testFixturesImplementation(project(":common:android"))
+    testFixturesImplementation(libs.androidx.core.ktx)
     testFixturesImplementation(libs.androidx.test.core)
 }

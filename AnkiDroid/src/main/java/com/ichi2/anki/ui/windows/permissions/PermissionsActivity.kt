@@ -1,18 +1,6 @@
-/*
- *  Copyright (c) 2023 Brayan Oliveira <brayandso.dev@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2023 Brayan Oliveira <brayandso.dev@gmail.com>
+
 package com.ichi2.anki.ui.windows.permissions
 
 import android.content.Context
@@ -20,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.activity.addCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.core.content.IntentCompat
 import androidx.fragment.app.commit
 import com.ichi2.anki.AnkiActivity
@@ -27,10 +16,11 @@ import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.databinding.ActivityPermissionsBinding
+import com.ichi2.anki.exception.SystemStorageException
+import com.ichi2.anki.startup.ensureCollectionPathSet
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.HAS_ALL_PERMISSIONS_KEY
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment.Companion.PERMISSIONS_FRAGMENT_RESULT_KEY
 import com.ichi2.anki.utils.ext.setFragmentResultListener
-import com.ichi2.themes.setTransparentStatusBar
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
 
@@ -48,17 +38,17 @@ import timber.log.Timber
  * To request optional permissions from the user, prefer [PermissionsBottomSheet].
  */
 class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
-    private val binding by viewBinding(ActivityPermissionsBinding::bind)
+    val binding by viewBinding(ActivityPermissionsBinding::bind)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
         }
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setViewBinding(binding)
-        setTransparentStatusBar()
 
-        binding.continueButton.setOnClickListener { finish() }
+        binding.continueButton.setOnClickListener { decideStorageAndFinish() }
 
         // #20881: Activity should not be launchd without extras
         val permissionSet = IntentCompat.getParcelableExtra(intent, EXTRA_PERMISSIONS_SET, PermissionSet::class.java)
@@ -87,6 +77,24 @@ class PermissionsActivity : AnkiActivity(R.layout.activity_permissions) {
 
     fun setContinueButtonEnabled(isEnabled: Boolean) {
         binding.continueButton.isEnabled = isEnabled
+    }
+
+    /**
+     * Records the storage decision and closes the screen: the granted permissions
+     * determine the default collection path.
+     *
+     * No-op for an existing collection path.
+     *
+     * @see ensureCollectionPathSet
+     */
+    private fun decideStorageAndFinish() {
+        try {
+            ensureCollectionPathSet(this)
+        } catch (e: SystemStorageException) {
+            // don't block closing the screen: DeckPicker startup reports this failure
+            Timber.w(e, "unable to choose a default collection path")
+        }
+        finish()
     }
 
     companion object {

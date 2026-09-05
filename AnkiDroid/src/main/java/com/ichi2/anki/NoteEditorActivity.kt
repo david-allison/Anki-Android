@@ -1,23 +1,19 @@
-/*
- *  Copyright (c) 2025 Hari Srinivasan <harisrini21@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2025 Hari Srinivasan <harisrini21@gmail.com>
 
 package com.ichi2.anki
 
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import com.google.android.material.tabs.TabLayout
@@ -30,11 +26,14 @@ import com.ichi2.anki.noteeditor.NoteEditorFragmentDelegate
 import com.ichi2.anki.previewer.TemplatePreviewerArguments
 import com.ichi2.anki.previewer.TemplatePreviewerFragment
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.settings.enums.DayTheme
 import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.startup.ensureStorageIsReady
 import com.ichi2.anki.ui.ResizablePaneManager
+import com.ichi2.anki.utils.bottomCornerClearance
 import com.ichi2.anki.utils.ext.doOnTabSelected
+import com.ichi2.themes.Themes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import timber.log.Timber
@@ -82,6 +81,25 @@ class NoteEditorActivity :
 
     private lateinit var binding: ActivityNoteEditorBinding
 
+    private fun setupEdgeToEdge() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        } else {
+            setNavigationBarColor(R.attr.toolbarBackgroundColor)
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(systemBars() or displayCutout() or ime())
+            binding.toolbarContainer.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+            binding.previewerFrameLayout?.let { pane ->
+                pane.updatePadding(
+                    right = bars.right,
+                    bottom = maxOf(bars.bottom, insets.bottomCornerClearance(pane)),
+                )
+            }
+            insets
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if (showedActivityFailedScreen(savedInstanceState)) {
             return
@@ -91,8 +109,18 @@ class NoteEditorActivity :
             return
         }
 
+        enableEdgeToEdge(
+            statusBarStyle =
+                SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) {
+                    Themes.currentTheme != DayTheme.EINK
+                },
+            navigationBarStyle =
+                SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { Themes.isNightTheme },
+        )
+
         binding = ActivityNoteEditorBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupEdgeToEdge()
 
         previewerFrame = binding.previewerFrame
         Timber.i("Note Editor is in %s mode", if (fragmented) "split" else "single-pane")

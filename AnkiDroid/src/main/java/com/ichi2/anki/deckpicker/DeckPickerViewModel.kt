@@ -23,6 +23,7 @@ import com.ichi2.anki.OnErrorListener
 import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.common.destinations.BrowserDestination
 import com.ichi2.anki.common.destinations.DeckOptionsDestination
+import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.configureRenderingMode
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.CardId
@@ -34,7 +35,6 @@ import com.ichi2.anki.libanki.sched.DeckNode
 import com.ichi2.anki.libanki.undoAvailable
 import com.ichi2.anki.libanki.undoLabel
 import com.ichi2.anki.libanki.utils.extend
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
 import com.ichi2.anki.notetype.ManageNoteTypesDestination
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.performBackupInBackground
@@ -289,7 +289,7 @@ class DeckPickerViewModel :
         if (deckId != null && setAsCurrent) {
             withCol { decks.select(deckId) }
         }
-        flowOfDestination.emit(NoteEditorLauncher.AddNote(deckId))
+        flowOfNavigate.emit(NoteEditorDestination.AddNote(deckId))
     }
 
     val flowOfShowContextMenu = MutableSharedFlow<DeckId>(extraBufferCapacity = 1)
@@ -522,6 +522,9 @@ class DeckPickerViewModel :
         }
 
         Timber.d("handleStartup: Continuing after permission granted")
+
+        // Once we have permissions, we know the `StorageDecision`
+        environment.decideStorageIfUndecided()
         val failure = InitialActivity.getStartupFailureType(environment.preferences, environment::initializeAnkiDroidFolder)
         if (failure != null) {
             flowOfStartupResponse.value = StartupResponse.FatalError(failure)
@@ -542,6 +545,17 @@ class DeckPickerViewModel :
 
         /** The preferences of the (profile) context the collection path is read from */
         val preferences: SharedPreferences
+
+        /**
+         * Chooses and persists the default collection path if the user has not decided
+         * yet; no-op otherwise.
+         *
+         * Only called once [hasRequiredPermissions] passes: the default depends on the
+         * granted permissions.
+         *
+         * @see com.ichi2.anki.common.storage.StorageDecision
+         */
+        fun decideStorageIfUndecided()
 
         fun initializeAnkiDroidFolder(): Boolean
     }

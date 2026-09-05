@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2020 Mike Hardy <mike@mikehardy.net>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2020 Mike Hardy <mike@mikehardy.net>
 
 package com.ichi2.anki
 
@@ -24,6 +11,7 @@ import android.os.Looper
 import android.view.View
 import android.widget.EditText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.CardTemplateEditor.CardTemplateFragment
 import com.ichi2.anki.CardTemplateEditor.CardTemplateFragment.CardTemplate
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.dialogs.InsertFieldDialog
@@ -942,6 +930,24 @@ class CardTemplateEditorTest : RobolectricTest() {
                 assertThat(previewer.ord, equalTo(1))
             }
         }
+
+    @Test
+    fun `the current card is focused`() {
+        withCardTemplateEditor(noteType = getCurrentDatabaseNoteTypeCopy("Basic (and reversed card)")) {
+            advanceRobolectricLooper()
+            assertThat("card 1 is focused on open", window.decorView.findFocus(), equalTo(templateFragment(0).binding.editText))
+
+            selectTab(1)
+            advanceRobolectricLooper()
+            assertThat("card 2 is focused once selected", window.decorView.findFocus(), equalTo(templateFragment(1).binding.editText))
+
+            selectTab(0)
+            advanceRobolectricLooper()
+            assertThat("card 1 is focused again", window.decorView.findFocus(), equalTo(templateFragment(0).binding.editText))
+        }
+    }
+
+    private fun CardTemplateEditor.templateFragment(ord: Int) = supportFragmentManager.findFragmentByTag("f$ord") as CardTemplateFragment
 
     private fun addCardType(
         testEditor: CardTemplateEditor,

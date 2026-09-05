@@ -7,15 +7,15 @@ import android.content.Context
 import android.widget.RemoteViews
 import androidx.core.app.PendingIntentCompat
 import com.ichi2.anki.R
-import com.ichi2.anki.common.analytics.UsageAnalytics
-import com.ichi2.anki.noteeditor.NoteEditorLauncher
+import com.ichi2.anki.common.destinations.DeferredNavigation
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.destinations.toIntent
 
 class AddNoteWidget : AnalyticsWidgetProvider() {
     override fun performUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: AppWidgetIds,
-        usageAnalytics: UsageAnalytics,
     ) {
         updateWidgets(context, appWidgetManager, appWidgetIds)
     }
@@ -35,7 +35,7 @@ class AddNoteWidget : AnalyticsWidgetProvider() {
             appWidgetIds: AppWidgetIds,
         ) {
             val remoteViews = RemoteViews(context.packageName, R.layout.widget_add_note)
-            val intent = NoteEditorLauncher.AddNote().toIntent(context)
+            val intent = with(DeferredNavigation) { NoteEditorDestination.AddNote().toIntent() }
             val pendingIntent = PendingIntentCompat.getActivity(context, 0, intent, 0, false)
             remoteViews.setOnClickPendingIntent(R.id.widget_add_note_button, pendingIntent)
             appWidgetManager.updateAppWidget(appWidgetIds, remoteViews)

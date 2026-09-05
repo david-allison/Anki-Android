@@ -52,10 +52,10 @@ import androidx.core.util.component2
 import androidx.core.view.MenuItemCompat
 import androidx.core.view.OnReceiveContentListener
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type.displayCutout
 import androidx.core.view.WindowInsetsCompat.Type.navigationBars
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
-import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.draganddrop.DropHelper
@@ -99,6 +99,7 @@ import com.ichi2.anki.common.android.animationDisabled
 import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.crashreporting.CrashReportService
+import com.ichi2.anki.common.destinations.ChangelogDestination
 import com.ichi2.anki.common.destinations.DeferredNavigation
 import com.ichi2.anki.common.destinations.PreferencesDestination
 import com.ichi2.anki.common.destinations.ReviewDeckDestination
@@ -108,7 +109,6 @@ import com.ichi2.anki.common.destinations.toIntent
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.common.time.TimeManager
-import com.ichi2.anki.common.utils.android.isRobolectric
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
@@ -169,6 +169,7 @@ import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
 import com.ichi2.anki.reviewreminders.ScheduleRemindersFragment
 import com.ichi2.anki.servicelayer.ScopedStorageService
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.settings.enums.DayTheme
 import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.snackbar.showSnackbar
@@ -194,6 +195,7 @@ import com.ichi2.anki.widgets.DeckHierarchyLinesDecoration
 import com.ichi2.anki.worker.SyncMediaWorker
 import com.ichi2.anki.worker.SyncWorker
 import com.ichi2.anki.worker.UniqueWorkNames
+import com.ichi2.themes.Themes
 import com.ichi2.ui.AccessibleSearchView
 import com.ichi2.ui.BadgeDrawableBuilder
 import com.ichi2.utils.ClipboardUtil.IMPORT_MIME_TYPES
@@ -487,7 +489,10 @@ open class DeckPicker :
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            statusBarStyle =
+                SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) {
+                    Themes.currentTheme != DayTheme.EINK
+                },
             navigationBarStyle = BottomFadeFrameLayout.navigationBarStyle(),
         )
 
@@ -550,9 +555,7 @@ open class DeckPicker :
                     viewModel.requestRightClickContextMenu(deckId, x, y)
                     Timber.d("Right Click on deck recorded!! %d, %f %f", deckId, x, y)
                 },
-            ).apply {
-                highlightSelected = fragmented
-            }
+            )
         deckPickerBinding.decks.adapter = deckListAdapter
         if (Prefs.devBottomNavEnabled) {
             deckPickerBinding.decks.addItemDecoration(
@@ -632,6 +635,16 @@ open class DeckPicker :
 
     override fun fitsSystemWindows(): Boolean = false
 
+    /** Raises the FAB by half the 'Studied X cards' line, so it clears the line's text */
+    private fun raiseFabAboveSummary(summaryHeight: Int) {
+        val fabBottomMargin = summaryHeight / 2
+        val layoutParams = floatingActionButtonBinding.fabLinearLayout.layoutParams as MarginLayoutParams
+        if (layoutParams.bottomMargin != fabBottomMargin) {
+            layoutParams.bottomMargin = fabBottomMargin
+            floatingActionButtonBinding.fabLinearLayout.layoutParams = layoutParams
+        }
+    }
+
     /** Applied edge-to-edge insets for the screen */
     private fun setupEdgeToEdge() {
         fun setRecyclerViewBottomPaddingAbove(target: View) {
@@ -666,11 +679,9 @@ open class DeckPicker :
             )
             deckPickerBinding.reviewSummaryTextView.updatePadding(bottom = bars.bottom)
 
-            // hack for Roborazzi screenshot tests
-            val fabBottomOffset = if (isRobolectric) 12.dp.toPx(this) else -12.dp.toPx(this)
             val bottomNavView = findViewById<View?>(R.id.bottom_navigation)
             val bottomNavOffset = if (bottomNavView?.isVisible == true) BOTTOM_NAV_HEIGHT_DP.dp.toPx(this) else 0
-            floatingActionButtonBinding.root.updatePadding(bottom = bars.bottom + fabBottomOffset + bottomNavOffset)
+            floatingActionButtonBinding.root.updatePadding(bottom = bars.bottom + bottomNavOffset)
 
             setRecyclerViewBottomPaddingAbove(floatingActionButtonBinding.fabMain)
             insets
@@ -678,12 +689,24 @@ open class DeckPicker :
         floatingActionButtonBinding.fabMain.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
             setRecyclerViewBottomPaddingAbove(v)
         }
+        deckPickerBinding.reviewSummaryTextView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            // exclude paddingBottom: it holds the edge-to-edge inset, which is already applied
+            raiseFabAboveSummary(view.height - view.paddingBottom)
+        }
+        // The summary is hidden until the collection loads.
+        // Assume the summary takes up a single line, so it does not 'jump' up on load
+        deckPickerBinding.reviewSummaryTextView.apply {
+            measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+            raiseFabAboveSummary(measuredHeight - paddingBottom)
+        }
         if (fragmented) {
             val studyoptionsView = binding.studyoptionsFragment ?: return
             ViewCompat.setOnApplyWindowInsetsListener(studyoptionsView) { studyOptions, insets ->
                 val bars = insets.getInsets(systemBars() or displayCutout())
                 studyOptions.updatePadding(right = bars.right, bottom = bars.bottom)
-                insets
+                // insets are applied by padding. CONSUMED means hosted fragments don't apply them
+                // again (e.g. ScheduleRemindersFragment).
+                WindowInsetsCompat.CONSUMED
             }
         }
     }
@@ -751,15 +774,18 @@ open class DeckPicker :
 
         fun onStudiedTodayChanged(studiedToday: String) {
             deckPickerBinding.reviewSummaryTextView.text = studiedToday
-            // Adjust bottom margin of fabLinearLayout based on reviewSummaryTextView height
-            deckPickerBinding.reviewSummaryTextView.doOnLayout { view ->
-                val layoutParams = floatingActionButtonBinding.fabLinearLayout.layoutParams as MarginLayoutParams
-                layoutParams.setMargins(0, 0, 0, view.height / 2)
-                floatingActionButtonBinding.fabLinearLayout.layoutParams = layoutParams
-            }
         }
 
         fun onCollectionStatusChanged(isInInitialState: Boolean) {
+            // no summary line in the initial state: the FAB rests unraised
+            val summary = deckPickerBinding.reviewSummaryTextView
+            if (isInInitialState) {
+                raiseFabAboveSummary(summaryHeight = 0)
+            } else if (summary.height > 0) {
+                // re-showing the summary with unchanged text does not lay it out again,
+                // so restore the FAB from the bounds the summary keeps while hidden
+                raiseFabAboveSummary(summary.height - summary.paddingBottom)
+            }
             // Hide the background when there are no cards to improve text readability.
             deckPickerBinding.background.isVisible = !isInInitialState
             if (animationDisabled()) {
@@ -1027,6 +1053,8 @@ open class DeckPicker :
                 override val preferences: SharedPreferences
                     get() = context.sharedPrefs()
 
+                override fun decideStorageIfUndecided() = InitialActivity.decideStorageIfUndecided(context)
+
                 override fun initializeAnkiDroidFolder(): Boolean = CollectionHelper.isCurrentAnkiDroidDirAccessible(context)
             }
 
@@ -1060,9 +1088,8 @@ open class DeckPicker :
             is DiskFull -> displayNoStorageError()
             is DBError -> displayDatabaseFailure(CustomExceptionData.fromException(failure.exception))
             is StorageUndecided -> {
-                // unreachable: Undecided requires PREF_COLLECTION_PATH to be unset, which only
-                // happens if ensureCollectionPathSet failed at startup; getStartupFailureType
-                // then returns InitializationError (fatalError) before checking the decision
+                // only expected if choosing a default collection path failed
+                // after the permission checks passed (SystemStorageException)
                 // TODO: #19552 - replace with the storage setup flow
                 Timber.w("storage setup flow (#19552) not implemented; showing load-failure options")
                 CrashReportService.sendExceptionReport(
@@ -1305,13 +1332,13 @@ open class DeckPicker :
             }
             SyncIconState.PendingChanges -> {
                 BadgeDrawableBuilder(this)
-                    .withColor(getColor(R.color.badge_warning))
+                    .withColorAttr(R.attr.badgeWarningColor)
                     .replaceBadge(provider)
             }
             SyncIconState.OneWay, SyncIconState.NotLoggedIn -> {
                 BadgeDrawableBuilder(this)
                     .withText('!')
-                    .withColor(getColor(R.color.badge_error))
+                    .withColorAttr(R.attr.badgeErrorColor)
                     .replaceBadge(provider)
             }
         }
@@ -1821,9 +1848,7 @@ open class DeckPicker :
             // There the "lastVersion" is set, so that this code is not reached again
             if (VersionUtils.isReleaseVersion) {
                 Timber.i("Displaying new features")
-                val infoIntent = Intent(this, Info::class.java)
-                infoIntent.putExtra(Info.EXTRA_TYPE, Info.TYPE_NEW_VERSION)
-                showNewVersionInfoLauncher.launch(infoIntent)
+                showNewVersionInfoLauncher.navigate(ChangelogDestination)
             } else {
                 Timber.i("Dev Build - not showing 'new features'")
                 // Don't show new features dialog for development builds
@@ -2191,6 +2216,7 @@ open class DeckPicker :
                     title = TR.sentenceCase.renameDeck,
                     deckDialogType = CreateDeckDialog.DeckDialogType.RENAME_DECK,
                     parentId = null,
+                    renamedDeckId = did,
                 )
             createDeckDialog.deckName = currentName
             createDeckDialog.onNewDeckCreated = {

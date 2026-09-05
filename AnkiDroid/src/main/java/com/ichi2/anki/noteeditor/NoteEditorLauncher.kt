@@ -5,13 +5,13 @@ package com.ichi2.anki.noteeditor
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.NoteEditorActivity
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
+import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.DeckId
@@ -46,44 +46,6 @@ sealed interface NoteEditorLauncher : Destination {
     fun toBundle(): Bundle
 
     /**
-     * Represents opening the NoteEditor with an image occlusion.
-     * @property imageUri The URI of the image to occlude.
-     */
-    data class ImageOcclusion(
-        val imageUri: Uri?,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.IMG_OCCLUSION.value)
-                putParcelable(NoteEditorFragment.EXTRA_IMG_OCCLUSION, imageUri)
-            }
-    }
-
-    /**
-     * Represents opening the NoteEditor with custom arguments.
-     * @property arguments The bundle of arguments to pass.
-     */
-    data class PassArguments(
-        val arguments: Bundle,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle = arguments
-    }
-
-    /**
-     * Represents adding a note to the NoteEditor within a specific deck (Optional).
-     * @property deckId The ID of the deck where the note should be added.
-     */
-    data class AddNote(
-        val deckId: DeckId? = null,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.DECKPICKER.value)
-                deckId?.let { deckId -> putLong(NoteEditorFragment.EXTRA_DID, deckId) }
-            }
-    }
-
-    /**
      * Represents adding a note to the NoteEditor from the card browser.
      * @property searchTerms The current search terms from the card browser.
      * @property deckId The card browser's last deck, used as the deck for the new note.
@@ -100,35 +62,6 @@ sealed interface NoteEditorLauncher : Destination {
                 if (deckId != null && deckId > 0) {
                     putLong(NoteEditorFragment.EXTRA_DID, deckId)
                 }
-            }
-    }
-
-    /**
-     * Represents adding a note to the NoteEditor from the reviewer.
-     * @property animation The animation direction to use when transitioning.
-     */
-    data class AddNoteFromReviewer(
-        val animation: TransitionDirection? = null,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.REVIEWER_ADD.value)
-                animation?.let { putParcelable(AnkiActivity.EXTRA_FINISH_ANIMATION, it as Parcelable) }
-            }
-    }
-
-    /**
-     * Allows to move from Instant note editor to standard note editor while keeping the text content
-     *
-     * @property sharedText The shared text content for the instant note.
-     */
-    data class AddInstantNote(
-        val sharedText: String,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.INSTANT_NOTE_EDITOR.value)
-                putString(Intent.EXTRA_TEXT, sharedText)
             }
     }
 
@@ -154,38 +87,45 @@ sealed interface NoteEditorLauncher : Destination {
                 putBoolean(NoteEditorFragment.IN_CARD_BROWSER_ACTIVITY, inCardBrowserActivity)
             }
     }
-
-    /**
-     * Represents editing a note in the NoteEditor from the previewer.
-     * @property cardId The ID of the card associated with the note to edit.
-     */
-    data class EditNoteFromPreviewer(
-        val cardId: CardId,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.PREVIEWER_EDIT.value)
-                putLong(NoteEditorFragment.EXTRA_EDIT_FROM_CARD_ID, cardId)
-            }
-    }
-
-    /**
-     * Represents copying a note to the NoteEditor.
-     * @property deckId The ID of the deck where the note should be copied.
-     * @property fieldsText The text content of the fields to copy.
-     * @property tags Optional list of tags to assign to the copied note.
-     */
-    data class CopyNote(
-        val deckId: DeckId,
-        val fieldsText: String,
-        val tags: List<String>? = null,
-    ) : NoteEditorLauncher {
-        override fun toBundle(): Bundle =
-            Bundle().apply {
-                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NOTEEDITOR.value)
-                putLong(NoteEditorFragment.EXTRA_DID, deckId)
-                putString(NoteEditorFragment.EXTRA_CONTENTS, fieldsText)
-                tags?.let { tags -> putStringArray(NoteEditorFragment.EXTRA_TAGS, tags.toTypedArray()) }
-            }
-    }
 }
+
+fun NoteEditorDestination.toIntent(context: Context): Intent =
+    when (this) {
+        is NoteEditorDestination.AddNote ->
+            Intent(context, NoteEditorActivity::class.java).apply {
+                putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.DECKPICKER.value)
+                deckId?.let { putExtra(NoteEditorFragment.EXTRA_DID, it) }
+            }
+        is NoteEditorDestination.ImageOcclusion ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.IMG_OCCLUSION.value)
+                intent.putExtra(NoteEditorFragment.EXTRA_IMG_OCCLUSION, imageUri)
+            }
+        is NoteEditorDestination.AddInstantNote ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.INSTANT_NOTE_EDITOR.value)
+                intent.putExtra(Intent.EXTRA_TEXT, sharedText)
+            }
+        is NoteEditorDestination.EditNoteFromPreviewer ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.PREVIEWER_EDIT.value)
+                intent.putExtra(NoteEditorFragment.EXTRA_EDIT_FROM_CARD_ID, cardId)
+            }
+        is NoteEditorDestination.AddNoteFromReviewer ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.REVIEWER_ADD.value)
+                animation?.let { intent.putExtra(AnkiActivity.EXTRA_FINISH_ANIMATION, it as Parcelable) }
+            }
+        is NoteEditorDestination.CopyNote ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NOTEEDITOR.value)
+                intent.putExtra(NoteEditorFragment.EXTRA_DID, deckId)
+                intent.putExtra(NoteEditorFragment.EXTRA_CONTENTS, fieldsText)
+                tags?.let { intent.putExtra(NoteEditorFragment.EXTRA_TAGS, it.toTypedArray()) }
+            }
+        is NoteEditorDestination.PassArguments ->
+            Intent(context, NoteEditorActivity::class.java).also { intent ->
+                intent.putExtras(arguments)
+                intent.action = action
+            }
+    }

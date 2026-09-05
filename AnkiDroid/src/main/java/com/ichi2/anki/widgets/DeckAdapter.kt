@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2015 Houssam Salem <houssam.salem.au@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2015 Houssam Salem <houssam.salem.au@gmail.com>
 
 package com.ichi2.anki.widgets
 
@@ -102,12 +89,6 @@ class DeckAdapter(
             }
         }
 
-    /**
-     * Whether to highlight the selected deck. Usually true for fragmented (tablet) layouts
-     * where the deck contents are shown side-by-side, but false for phones.
-     */
-    var highlightSelected: Boolean = true
-
     class ViewHolder(
         val binding: ItemDeckBinding,
     ) : RecyclerView.ViewHolder(binding.root)
@@ -171,8 +152,7 @@ class DeckAdapter(
         }
         holder.binding.deckLayout.setBackgroundResource(rowCurrentDrawable)
         // set a different background color for the current selected deck
-        if (node.isSelected && highlightSelected) {
-            holder.binding.deckLayout.setBackgroundResource(rowCurrentDrawable)
+        if (node.isSelected) {
             if (activityHasBackground) {
                 val background =
                     holder.binding.deckLayout.background

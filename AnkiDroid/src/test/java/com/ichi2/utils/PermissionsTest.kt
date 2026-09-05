@@ -1,18 +1,5 @@
-/*
- *  Copyright (c) 2025 Eric Li <ericli3690@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2025 Eric Li <ericli3690@gmail.com>
 
 package com.ichi2.utils
 
@@ -26,6 +13,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -33,6 +21,7 @@ import androidx.test.filters.SdkSuppress
 import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
+import com.ichi2.utils.Permissions.openAppSettingsScreen
 import com.ichi2.utils.Permissions.requestPermissionThroughDialogOrSettings
 import com.ichi2.utils.Permissions.showToastAndOpenAppSettingsScreen
 import io.mockk.every
@@ -48,12 +37,16 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 class PermissionsTest {
     private lateinit var activity: Activity
+    private lateinit var fragmentActivity: FragmentActivity
     private lateinit var context: Context
     private lateinit var fragment: Fragment
     private lateinit var fragmentManager: FragmentManager
@@ -64,7 +57,9 @@ class PermissionsTest {
     fun setUp() {
         context = getApplicationContext()
         activity = mockk(relaxed = true)
+        fragmentActivity = mockk(relaxed = true)
         fragment = mockk(relaxed = true)
+        every { fragment.requireActivity() } returns fragmentActivity
         fragmentManager = mockk(relaxed = true)
         permissionRequestLauncher = mockk(relaxed = true)
         permissionsSpy = spyk(Permissions)
@@ -82,6 +77,14 @@ class PermissionsTest {
     fun tearDown() {
         unmockkAll()
         Prefs.notificationsPermissionRequested = false
+    }
+
+    @Test
+    fun `openAppSettingsScreen is a no-op if no app can show the app settings screen`() {
+        val realActivity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        // throw when resolving `ACTION_APPLICATION_DETAILS_SETTINGS`
+        shadowOf(realActivity.application).checkActivities(true)
+        assertDoesNotThrow { realActivity.openAppSettingsScreen() }
     }
 
     @Test
@@ -169,7 +172,7 @@ class PermissionsTest {
         verify(exactly = 0) { permissionRequestLauncher.launch(DUMMY_PERMISSION_STRING) }
 
         val intentSlot = slot<Intent>()
-        verify(exactly = 1) { fragment.startActivity(capture(intentSlot)) }
+        verify(exactly = 1) { fragmentActivity.startActivity(capture(intentSlot)) }
         assertThat(intentSlot.captured.action, equalTo(Settings.ACTION_APPLICATION_DETAILS_SETTINGS))
     }
 

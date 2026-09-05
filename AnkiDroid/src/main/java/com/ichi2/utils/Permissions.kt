@@ -1,23 +1,10 @@
-/*
- *  Copyright (c) 2020 David Allison <davidallisongithub@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 package com.ichi2.utils
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -259,15 +246,26 @@ object Permissions {
      * Opens the Android settings for AnkiDroid if the device provide this feature.
      * Lets a user grant any missing permissions which have been permanently denied.
      */
-    fun Fragment.openAppSettingsScreen() {
+    fun Activity.openAppSettingsScreen() {
         Timber.i("launching ACTION_APPLICATION_DETAILS_SETTINGS")
-        startActivity(
-            Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.fromParts("package", requireActivity().packageName, null),
-            ),
-        )
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", packageName, null),
+                ),
+            )
+        } catch (e: ActivityNotFoundException) {
+            Timber.w(e, "No app can show the app settings screen")
+            showThemedToast(this, R.string.activity_start_failed, false)
+        }
     }
+
+    /**
+     * Opens the Android settings for AnkiDroid if the device provide this feature.
+     * Lets a user grant any missing permissions which have been permanently denied.
+     */
+    fun Fragment.openAppSettingsScreen() = requireActivity().openAppSettingsScreen()
 
     /**
      * Opens the Android notifications settings for AnkiDroid if the device provides this feature.

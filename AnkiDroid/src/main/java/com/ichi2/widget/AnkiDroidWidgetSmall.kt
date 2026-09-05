@@ -20,10 +20,11 @@ import androidx.annotation.LayoutRes
 import androidx.core.app.PendingIntentCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import com.ichi2.anki.IntentHandler
 import com.ichi2.anki.R
-import com.ichi2.anki.common.analytics.UsageAnalytics
 import com.ichi2.anki.common.android.appContext
+import com.ichi2.anki.common.destinations.DeferredNavigation
+import com.ichi2.anki.common.destinations.LauncherDestination
+import com.ichi2.anki.common.destinations.toIntent
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.SdCard
 import com.ichi2.anki.compat.CompatHelper.Companion.registerReceiverCompat
@@ -41,7 +42,6 @@ class AnkiDroidWidgetSmall : AnalyticsWidgetProvider() {
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: AppWidgetIds,
-        usageAnalytics: UsageAnalytics,
     ) {
         WidgetStatus.updateInBackground(context)
     }
@@ -166,9 +166,7 @@ class AnkiDroidWidgetSmall : AnalyticsWidgetProvider() {
 
             // Add a click listener to open Anki from the icon.
             // This should be always there, whether there are due cards or not.
-            val ankiDroidIntent = Intent(context, IntentHandler::class.java)
-            ankiDroidIntent.action = Intent.ACTION_MAIN
-            ankiDroidIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+            val ankiDroidIntent = with(DeferredNavigation) { LauncherDestination.toIntent() }
             val pendingAnkiDroidIntent =
                 PendingIntentCompat.getActivity(
                     context,

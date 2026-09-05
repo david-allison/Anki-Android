@@ -5,8 +5,16 @@ package com.ichi2.anki
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
@@ -21,7 +29,7 @@ import com.ichi2.anki.startup.ensureStorageIsReady
 import com.ichi2.anki.ui.windows.managespace.ManageSpaceActivity
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import com.ichi2.anki.utils.ext.setFragmentResultListener
-import com.ichi2.themes.setTransparentStatusBar
+import com.ichi2.themes.Themes
 import com.ichi2.utils.FragmentFactoryUtils
 import timber.log.Timber
 import kotlin.reflect.KClass
@@ -58,7 +66,23 @@ open class SingleFragmentActivity :
         if (!ensureStorageIsReady()) {
             return
         }
-        setTransparentStatusBar()
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { Themes.isNightTheme })
+        val root = findViewById<CoordinatorLayout>(R.id.root_layout)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val constraints = insets.getInsets(systemBars() or displayCutout())
+            // apply the insets only for content/fragments defined by SingleFragmentActivity
+            // directly, subclasses(ex. ManageSpaceActivity, Preferences) should handle their
+            // content independently
+            if (this::class.java == SingleFragmentActivity::class.java) {
+                findViewById<FragmentContainerView>(R.id.fragment_container)?.updatePadding(
+                    left = constraints.left,
+                    right = constraints.right,
+                    top = constraints.top,
+                    bottom = constraints.bottom,
+                )
+            }
+            insets
+        }
 
         // avoid recreating the fragment on configuration changes
         // the fragment should handle state restoration

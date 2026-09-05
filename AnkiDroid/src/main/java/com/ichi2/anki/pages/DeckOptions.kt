@@ -1,18 +1,6 @@
-/*
- *  Copyright (c) 2022 Brayan Oliveira <brayandso.dev@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2022 Brayan Oliveira <brayandso.dev@gmail.com>
+
 package com.ichi2.anki.pages
 
 import android.content.Context
@@ -39,6 +27,7 @@ import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.updateDeckConfigsRaw
 import com.ichi2.anki.observability.undoableOp
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.openUrl
 import com.ichi2.anki.withProgress
 import kotlinx.coroutines.Dispatchers
@@ -247,6 +236,43 @@ class DeckOptions : PageFragment() {
         webViewIsReady = true
         webViewLayout.isVisible = true
         pageLoadingIndicator.isVisible = false
+        setParameterUnlockClickTimeout()
+    }
+
+    /**
+     * The FSRS parameters are locked until they are tapped three times in quick succession.
+     *
+     * Use [Prefs.doubleTapInterval] for this.
+     *
+     * See: https://github.com/ankitects/anki/blob/d036c2ade428b65d47c677bf3887a7402312c5c5/ts/routes/deck-options/ParamsInput.svelte
+     */
+    private fun setParameterUnlockClickTimeout() {
+        val minimumTimeoutMs = Prefs.doubleTapInterval
+        // The setter and default are only defined while `ParamsInput` is mounted, which requires
+        // FSRS to be enabled, and are reassigned each time it mounts.
+        // Intercept the assignments so this functionality works the first time someone enables
+        // FSRS.
+        webViewLayout.evaluateJavascript(
+            """
+            (() => {
+                globalThis.anki ||= {};
+                let setter = globalThis.anki.setParameterUnlockClickTimeoutMs;
+                const apply = () => {
+                    const defaultMs = globalThis.anki.defaultParameterUnlockClickTimeoutMs;
+                    if (setter === undefined || defaultMs === undefined) return;
+                    setter(Math.max(defaultMs, $minimumTimeoutMs));
+                };
+                Object.defineProperty(globalThis.anki, "setParameterUnlockClickTimeoutMs", {
+                    configurable: true,
+                    enumerable: true,
+                    get: () => setter,
+                    // the default is assigned after the setter: defer until both are defined
+                    set: (value) => { setter = value; queueMicrotask(apply); },
+                });
+                apply();
+            })();
+            """.trimIndent(),
+        )
     }
 
     companion object {

@@ -88,6 +88,8 @@ android {
         buildConfigField "Boolean", "ENABLE_LEAK_CANARY", "false"
         buildConfigField "String", "GIT_COMMIT_HASH", "\"${gitCommitHash.get()}\""
         buildConfigField "long", "BUILD_TIME", buildTimeMillis.get()
+        // whether UI elements linking to external donation pages are shown ('play' hides them)
+        buildConfigField "Boolean", "SHOW_DONATE_LINKS", "true"
         resValue "string", "app_name", "AnkiDroid"
 
         // The version number is of the form:
@@ -111,9 +113,9 @@ android {
         //
         // This ensures the correct ordering between the various types of releases (dev < alpha < beta < release) which is
         // needed for upgrades to be offered correctly.
-        versionCode=22500102
+        versionCode=22500104
         // If you change this to a new version, you probably also want to update .gradle/workflows/milestone.yml for the new version...
-        versionName="2.25.0alpha2"
+        versionName="2.25.0alpha4"
         minSdk = libs.versions.minSdk.get().toInteger()
 
         // After #13695: change .tests_emulator.yml
@@ -233,6 +235,9 @@ android {
         create('play') {
             getIsDefault().set(true)
             dimension "appStore"
+            // Google Play no longer considers Open Collective to be acceptable for
+            // a 'tax-exempt' link. Temporarily remove our links
+            buildConfigField "Boolean", "SHOW_DONATE_LINKS", "false"
         }
         create('amazon') {
             dimension "appStore"
@@ -327,7 +332,7 @@ android {
                                 throw new GradleException("Invalid param: '${invalid.join(', ')}'. Valid options: ${validOptions.join(', ')}.")
                             }
                         }
-                        validateInput(theme, ["light", "plain", "dark", "black", "all"])
+                        validateInput(theme, ["light", "plain", "dark", "black", "eink", "all"])
                         validateInput(device, ["phone", "tablet", "foldable", "desktop", "all"])
 
                         systemProperty "screenshot.theme", theme
@@ -566,6 +571,7 @@ dependencies {
 
     testImplementation testFixtures(project(":libanki"))
     testImplementation testFixtures(project(":common"))
+    testImplementation testFixtures(project(":common:android"))
     testImplementation testFixtures(project(":compat"))
     testImplementation testFixtures(project(":anki-common"))
 

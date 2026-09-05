@@ -1,20 +1,12 @@
-/*
- * Copyright (c) 2025 Brayan Oliveira <69634269+brayandso@users.noreply.github.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2025 Brayan Oliveira <69634269+brayandso@users.noreply.github.com>
+
 package com.ichi2.anki
 
+import android.view.View
+import android.view.WindowManager
+import androidx.core.content.getSystemService
+import androidx.core.view.allViews
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziOptions
@@ -33,6 +25,8 @@ import org.robolectric.RobolectricTestParameterInjector
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadow.api.Shadow
+import org.robolectric.shadows.ShadowWindowManagerImpl
 import java.io.File
 
 interface ScreenshotTestCategory
@@ -54,7 +48,7 @@ abstract class ScreenshotTest : RobolectricTest() {
 
     var fileNamePrefix = ""
 
-    enum class ThemeConfig { LIGHT, PLAIN, DARK, BLACK }
+    enum class ThemeConfig { LIGHT, PLAIN, DARK, BLACK, EINK }
 
     enum class DeviceConfig { PHONE, TABLET, FOLDABLE, DESKTOP }
 
@@ -96,6 +90,7 @@ abstract class ScreenshotTest : RobolectricTest() {
         }
     }
 
+    // ./gradlew :AnkiDroid:recordRoborazziPlayDebug -Pscreenshot -Ptheme=black,plain
     protected open fun applyThemeConfig() {
         val isNightMode = theme == ThemeConfig.DARK || theme == ThemeConfig.BLACK
         if (isNightMode) {
@@ -109,6 +104,7 @@ abstract class ScreenshotTest : RobolectricTest() {
         when (theme) {
             ThemeConfig.LIGHT -> prefs.dayTheme = DayTheme.LIGHT
             ThemeConfig.PLAIN -> prefs.dayTheme = DayTheme.PLAIN
+            ThemeConfig.EINK -> prefs.dayTheme = DayTheme.EINK
             ThemeConfig.DARK -> prefs.nightTheme = NightTheme.DARK
             ThemeConfig.BLACK -> prefs.nightTheme = NightTheme.BLACK
         }
@@ -136,6 +132,7 @@ abstract class ScreenshotTest : RobolectricTest() {
         // baseline is always in the root for the class, copied to /diffs/ if a change occurred
         val fileName = "$fileNamePrefix$name.png"
         val baseline = File(classDir, fileName)
+        disableScrollbarFading()
         captureScreenRoboImage(
             filePath = baseline.path,
             roborazziOptions = provideRoborazziContext().options.withCompareOutputDir(diffDir.path),
@@ -149,6 +146,13 @@ abstract class ScreenshotTest : RobolectricTest() {
         if (diffWritten && baseline.isFile) {
             baseline.copyTo(File(diffDir, baseline.name), overwrite = true)
         }
+    }
+
+    /** [View.disableScrollbarFading] for every window */
+    private fun disableScrollbarFading() {
+        val windowManager = targetContext.getSystemService<WindowManager>()
+        val windows = Shadow.extract<ShadowWindowManagerImpl>(windowManager).views
+        windows.forEach { it.disableScrollbarFading() }
     }
 
     class ThemeProvider : TestParameterValuesProvider() {
@@ -172,6 +176,12 @@ abstract class ScreenshotTest : RobolectricTest() {
             return DeviceConfig.entries.filter { requestedDevices.contains(it.name.lowercase()) }
         }
     }
+}
+
+fun View.disableScrollbarFading() {
+    allViews
+        .filter { it.isScrollbarFadingEnabled }
+        .forEach { it.isScrollbarFadingEnabled = false }
 }
 
 /** Sets the directory for _actual.png and _compare.png */

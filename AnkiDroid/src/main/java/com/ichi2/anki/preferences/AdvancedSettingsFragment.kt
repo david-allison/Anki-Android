@@ -1,24 +1,15 @@
-/*
- *  Copyright (c) 2022 Brayan Oliveira <brayandso.dev@gmail.com>
- *
- *  This program is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free Software
- *  Foundation; either version 3 of the License, or (at your option) any later
- *  version.
- *
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2022 Brayan Oliveira <brayandso.dev@gmail.com>
+
 package com.ichi2.anki.preferences
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.SwitchPreferenceCompat
@@ -35,6 +26,8 @@ import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.startup.getDefaultAnkiDroidDirectory
 import com.ichi2.anki.utils.openUrl
+import com.ichi2.utils.Permissions
+import com.ichi2.utils.Permissions.openAppSettingsScreen
 import com.ichi2.utils.show
 import timber.log.Timber
 import java.io.File
@@ -44,6 +37,27 @@ class AdvancedSettingsFragment : SettingsFragment() {
         get() = R.xml.preferences_advanced
     override val analyticsScreenNameConstant: String
         get() = "prefs.advanced"
+
+    private val microphonePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                requirePreference<SwitchPreferenceCompat>(R.string.pref_allow_template_audio_recording).isChecked = true
+                return@registerForActivityResult
+            }
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), Manifest.permission.RECORD_AUDIO)) {
+                return@registerForActivityResult
+            }
+
+            AlertDialog.Builder(requireContext()).show {
+                setTitle(R.string.permission_denied)
+                setMessage(R.string.microphone_permission_denied_message)
+                setPositiveButton(R.string.dialog_ok) { _, _ ->
+                    openAppSettingsScreen()
+                }
+                setNegativeButton(R.string.dialog_cancel, null)
+            }
+        }
 
     override fun initSubscreen() {
         removeUnnecessaryAdvancedPrefs()
@@ -107,6 +121,19 @@ class AdvancedSettingsFragment : SettingsFragment() {
                 setNegativeButton(R.string.dialog_cancel) { _, _ -> }
             }
             false
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_allow_template_audio_recording).apply {
+            isChecked = isChecked && Permissions.canRecordAudio(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                if (newValue !is Boolean) return@setOnPreferenceChangeListener false
+                if (!newValue || Permissions.canRecordAudio(requireContext())) {
+                    return@setOnPreferenceChangeListener true
+                }
+                // veto the opt-in until the permission is granted
+                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                false
+            }
         }
 
         /*

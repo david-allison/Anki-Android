@@ -10,14 +10,18 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.XmlRes
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceManager.OnPreferenceTreeClickListener
-import com.ichi2.anki.analytics.AnalyticsConstants
 import com.ichi2.anki.analytics.AnkiDroidUsageAnalytics
 import com.ichi2.anki.common.analytics.Analytics
+import com.ichi2.anki.common.analytics.AnalyticsEvent
 import com.ichi2.anki.databinding.FragmentSettingsBinding
+import com.ichi2.anki.utils.bottomCornerClearance
 import com.ichi2.preferences.DialogFragmentProvider
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
@@ -37,11 +41,7 @@ abstract class SettingsFragment :
     abstract fun initSubscreen()
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
-        Analytics.sendAnalyticsEvent(
-            category = AnalyticsConstants.Category.SETTING,
-            action = AnalyticsConstants.Actions.TAPPED_SETTING,
-            label = preference.key,
-        )
+        Analytics.send(AnalyticsEvent.SettingTapped(preference.key))
         return super.onPreferenceTreeClick(preference)
     }
 
@@ -54,12 +54,7 @@ abstract class SettingsFragment :
         }
         if (key != null) {
             val valueToReport = getPreferenceReportableValue(sharedPreferences.get(key))
-            Analytics.sendAnalyticsEvent(
-                category = AnalyticsConstants.Category.SETTING,
-                action = AnalyticsConstants.Actions.CHANGED_SETTING,
-                value = valueToReport,
-                label = key,
-            )
+            Analytics.send(AnalyticsEvent.SettingChanged(key, valueToReport))
         }
     }
 
@@ -83,6 +78,17 @@ abstract class SettingsFragment :
         binding.toolbar.apply {
             setTitle(title)
             setNavigationOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            view.updatePadding(
+                left = bars.left,
+                right = bars.right,
+            )
+            binding.appbar.updatePadding(top = bars.top)
+            listView.updatePadding(bottom = maxOf(bars.bottom, insets.bottomCornerClearance(listView)))
+            insets
         }
     }
 
@@ -131,7 +137,7 @@ abstract class SettingsFragment :
         /**
          * Converts a preference value to a numeric number that
          * can be reported to analytics, since analytics events only accept
-         * [Int] as value ([Analytics.sendAnalyticsEvent]),
+         * [Int] as value ([AnalyticsEvent.SettingChanged]),
          * or null if it can't be converted.
          *
          * Boolean preferences will return 1 if true and 0 if false

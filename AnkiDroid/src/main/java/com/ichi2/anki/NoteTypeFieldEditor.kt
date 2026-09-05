@@ -1,22 +1,11 @@
-/*
- * Copyright (c) 2015 Ryan Annis <squeenix@live.ca>
- * Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2015 Ryan Annis <squeenix@live.ca>
+// SPDX-FileCopyrightText: Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>
+
 package com.ichi2.anki
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -25,9 +14,17 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.BundleCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.CollectionManager.TR
@@ -56,6 +53,7 @@ import com.ichi2.anki.utils.ext.setFragmentResultListener
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.ui.FixedEditText
 import com.ichi2.utils.customView
+import com.ichi2.utils.dp
 import com.ichi2.utils.getInputField
 import com.ichi2.utils.input
 import com.ichi2.utils.moveCursorToEnd
@@ -103,6 +101,21 @@ class NoteTypeFieldEditor : AnkiActivity(R.layout.activity_note_type_field_edito
         }
         setContentView(R.layout.activity_note_type_field_editor)
         enableToolbar()
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
+        ViewCompat.setOnApplyWindowInsetsListener(binding.rootLayout) { _, insets ->
+            val constraints = insets.getInsets(systemBars() or displayCutout())
+            binding.toolbarContainer.updatePadding(left = constraints.left, right = constraints.right, top = constraints.top)
+            binding.btnAdd.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = constraints.bottom + 32.dp.toPx(this@NoteTypeFieldEditor)
+                rightMargin = constraints.right + 32.dp.toPx(this@NoteTypeFieldEditor)
+            }
+            binding.fields.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                leftMargin = constraints.left
+                rightMargin = constraints.right
+                bottomMargin = constraints.bottom
+            }
+            WindowInsetsCompat.CONSUMED
+        }
         binding.notetypeName.text = intent.getStringExtra(EXTRA_NOTETYPE_NAME)
         startLoadingCollection()
         setFragmentResultListener(REQUEST_HINT_LOCALE_SELECTION) { _, bundle ->

@@ -24,8 +24,11 @@ import com.ichi2.anki.common.storage.isLegacyStorage
 import com.ichi2.anki.common.utils.android.SdCard
 import com.ichi2.anki.compat.CompatHelper.Companion.sdkVersion
 import com.ichi2.anki.exception.StorageAccessException
+import com.ichi2.anki.exception.SystemStorageException
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService.setPreferencesUpToDate
+import com.ichi2.anki.startup.ensureCollectionPathSet
+import com.ichi2.anki.startup.getDefaultAnkiDroidDirectory
 import com.ichi2.anki.ui.windows.permissions.InternetPermissionFragment
 import com.ichi2.anki.ui.windows.permissions.NotificationsPermissionFragment
 import com.ichi2.anki.ui.windows.permissions.PermissionsFragment
@@ -39,6 +42,25 @@ import timber.log.Timber
 
 /** Utilities for launching the first activity (currently the DeckPicker)  */
 object InitialActivity {
+    /**
+     * Chooses and persists the default collection path if the user has not decided
+     * yet; no-op otherwise.
+     *
+     * **WARNING:** Only call this after required storage permissions are granted: the default
+     * ([selectAnkiDroidFolder]) depends on the granted permissions.
+     *
+     * @see getDefaultAnkiDroidDirectory
+     * @see selectAnkiDroidFolder
+     */
+    fun decideStorageIfUndecided(context: Context) {
+        try {
+            ensureCollectionPathSet(context)
+        } catch (e: SystemStorageException) {
+            // startup continues: getStartupFailureType reports the undecided state
+            Timber.w(e, "unable to choose a default collection path")
+        }
+    }
+
     @CheckResult
     fun getStartupFailureType(context: Context): StartupFailure? =
         getStartupFailureType(context.sharedPrefs()) { CollectionHelper.isCurrentAnkiDroidDirAccessible(context) }

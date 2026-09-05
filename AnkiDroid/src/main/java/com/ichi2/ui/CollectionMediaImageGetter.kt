@@ -1,18 +1,6 @@
-/*
- * Copyright (c) 2025 Rakshita Chauhan <chauhanrakshita64@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2025 Rakshita Chauhan <chauhanrakshita64@gmail.com>
+
 package com.ichi2.ui
 
 import android.content.Context
@@ -25,6 +13,7 @@ import android.widget.TextView
 import androidx.annotation.CheckResult
 import androidx.core.graphics.drawable.toDrawable
 import com.ichi2.utils.BitmapUtil.decodeSampledBitmap
+import com.ichi2.utils.withFileNameSafe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,13 +70,7 @@ class CollectionMediaImageGetter(
                     return@withContext null
                 }
 
-                val localFile = File(mediaDir, source)
-
-                // Prevent path traversal to ensure file is inside media directory
-                if (!localFile.canonicalPath.startsWith(mediaDir.canonicalPath + File.separator)) {
-                    Timber.w("CollectionMediaImageGetter: Path traversal attempt detected: %s", source)
-                    return@withContext null
-                }
+                val localFile = mediaDir.withFileNameSafe(source)
 
                 if (localFile.exists()) {
                     // Use view width or fallback to screen width
@@ -98,8 +81,13 @@ class CollectionMediaImageGetter(
                 } else {
                     null
                 }
+            } catch (e: SecurityException) {
+                Timber.w("Path traversal attempt blocked")
+                Timber.d(e, "Path: %s", source)
+                null
             } catch (e: Throwable) {
-                Timber.w(e, "Failed to load deck description image: %s", source)
+                Timber.w("Failed to load deck description image")
+                Timber.d(e, "Failed to load deck description image: %s", source)
                 null
             }
         }

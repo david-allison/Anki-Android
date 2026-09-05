@@ -1,19 +1,5 @@
-/*
- * Copyright (c) 2024 Ashish Yadav <mailtoashish693@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2024 Ashish Yadav <mailtoashish693@gmail.com>
 
 package com.ichi2.anki.multimedia
 
@@ -54,6 +40,9 @@ import com.ichi2.anki.multimedia.MultimediaUtils.createNewCacheImageFile
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.utils.ext.convertToString
 import com.ichi2.anki.utils.ext.toBase64Png
+import com.ichi2.anki.workarounds.OnWebViewRecreatedListener
+import com.ichi2.anki.workarounds.SafeWebViewClient
+import com.ichi2.anki.workarounds.SafeWebViewLayout
 import com.ichi2.imagecropper.ImageCropper
 import com.ichi2.imagecropper.ImageCropper.Companion.CROP_IMAGE_RESULT
 import com.ichi2.utils.BitmapUtil
@@ -80,8 +69,13 @@ import java.text.NumberFormat
 private const val SVG_IMAGE = "image/svg+xml"
 
 @NeedsTest("Ensure correct option is executed i.e. gallery or camera")
-class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_image) {
+class MultimediaImageFragment :
+    MultimediaFragment(R.layout.fragment_multimedia_image),
+    OnWebViewRecreatedListener {
     private val binding by viewBinding(FragmentMultimediaImageBinding::bind)
+
+    /** The image on screen, re-rendered if the WebView's render process dies */
+    private var previewedImage: Uri? = null
 
     override val title: String
         get() = resources.getString(R.string.multimedia_editor_popup_image)
@@ -269,8 +263,23 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
         super.onViewCreated(view, savedInstanceState)
         setupMenu(multimediaMenu)
 
+        setupWebView()
         handleImageUri()
         setupDoneButton()
+    }
+
+    private fun setupWebView() {
+        binding.multimediaWebView.setWebViewClient(SafeWebViewClient())
+    }
+
+    /**
+     * [SafeWebViewLayout] only replaces the crashed [WebView], so the client and the preview
+     * have to be applied again.
+     */
+    override fun onWebViewRecreated(webView: WebView) {
+        Timber.i("restoring the image preview after a render process crash")
+        setupWebView()
+        previewedImage?.let { previewImage(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -550,6 +559,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
      * @param imageUri The URI of the selected image.
      */
     private fun previewImage(imageUri: Uri) {
+        previewedImage = imageUri
         val mimeType = context?.contentResolver?.getType(imageUri)
 
         // Get the WebView and set it visible
@@ -571,7 +581,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
      *
      * @param imageUri The URI of the SVG image.
      */
-    private fun WebView.loadSvgImage(imageUri: Uri) {
+    private fun SafeWebViewLayout.loadSvgImage(imageUri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val svgData = withContext(Dispatchers.IO) { loadSvgFromUri(imageUri) }
@@ -597,7 +607,7 @@ class MultimediaImageFragment : MultimediaFragment(R.layout.fragment_multimedia_
      *
      * @param imageUri The URI of the non-SVG image.
      */
-    private fun WebView.loadImage(imageUri: Uri) {
+    private fun SafeWebViewLayout.loadImage(imageUri: Uri) {
         Timber.i("Loading non-SVG image using WebView")
 
         try {

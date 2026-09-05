@@ -7,6 +7,7 @@ package com.ichi2.anki
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,6 +22,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.CheckResult
@@ -30,15 +33,21 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.doOnAttach
 import androidx.core.view.isVisible
 import androidx.core.view.size
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import anki.notetypes.StockNotetype
 import anki.notetypes.StockNotetype.OriginalStockKind.ORIGINAL_STOCK_KIND_UNKNOWN_VALUE
 import anki.notetypes.notetypeId
@@ -188,6 +197,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
         if (!ensureStorageIsReady()) {
             return
         }
+        setupEdgeToEdge()
         // Load the args either from the intent or savedInstanceState bundle
         if (savedInstanceState == null) {
             // get note type id
@@ -241,7 +251,38 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
             loadTemplatePreviewerFragmentIfFragmented(tab.position)
         }
 
+        // ViewPager2 clears focus when a page is selected, so focus can't stay on an offscreen page.
+        // Move it to the selected page instead: see CardTemplateFragment.isCurrentPage
+        mainBinding.cardTemplateEditorPager.registerOnPageChangeCallback(
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    templateFragment(position)?.binding?.editText?.requestFocus()
+                }
+            },
+        )
+
         registerDeckSelectedHandler(action = ::onDeckSelected)
+    }
+
+    private fun setupEdgeToEdge() {
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
+        ViewCompat.setOnApplyWindowInsetsListener(binding.templateEditorTop.root) { _, insets ->
+            val constraints = insets.getInsets(systemBars() or displayCutout())
+            findViewById<LinearLayout>(
+                R.id.template_editor_top,
+            )?.updatePadding(left = constraints.left, top = constraints.top, right = constraints.right)
+            insets
+        }
+        // When not fragmented, each CardTemplateFragment insets its own template: the fragments
+        // are created after the first insets are dispatched, so they can't be reached from here
+        ViewCompat.setOnApplyWindowInsetsListener(binding.rootLayout) { _, insets ->
+            val constraints = insets.getInsets(systemBars() or displayCutout() or ime())
+            if (fragmented) {
+                findViewById<LinearLayout>(R.id.template_editor)?.updatePadding(left = constraints.left)
+                findViewById<FragmentContainerView>(R.id.fragment_container)?.updatePadding(right = constraints.right)
+            }
+            insets
+        }
     }
 
     /**
@@ -475,6 +516,12 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
         return true
     }
 
+    /** The page for a card, if the pager has created it */
+    private fun templateFragment(position: Int): CardTemplateFragment? {
+        val adapter = mainBinding.cardTemplateEditorPager.adapter ?: return null
+        return supportFragmentManager.findFragmentByTag("f${adapter.getItemId(position)}") as? CardTemplateFragment
+    }
+
     @get:VisibleForTesting
     val currentFragment: CardTemplateFragment?
         get() =
@@ -546,6 +593,10 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
         // Index of this card template fragment in ViewPager
         private val cardIndex
             get() = requireArguments().getInt(CARD_INDEX)
+
+        /** Whether this is the page shown by the pager. */
+        private val isCurrentPage: Boolean
+            get() = templateEditor.mainBinding.cardTemplateEditorPager.currentItem == cardIndex
 
         private val templateName
             get() = tempModel.notetype.templates[cardIndex].name
@@ -713,20 +764,30 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                 }
             binding.editText.addTextChangedListener(templateEditorWatcher)
 
-            /* When keyboard is visible, hide the bottom navigation bar to allow viewing
-            of all template text when resize happens */
             ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-                binding.bottomNavigation.isVisible = !insets.isVisible(WindowInsetsCompat.Type.ime())
+                /* When keyboard is visible, hide the bottom navigation bar to allow viewing
+                of all template text when resize happens */
+                binding.bottomNavigation.isVisible = !insets.isVisible(ime())
+                // When fragmented, the activity insets the editor pane instead.
+                // The bottom navigation insets itself, so it is not padded here.
+                if (!templateEditor.fragmented) {
+                    val bars = insets.getInsets(systemBars() or displayCutout())
+                    binding.scrollView.updatePadding(left = bars.left, right = bars.right)
+                }
                 insets
             }
+            // the view is added to the pager after the insets were dispatched, so request them again
+            binding.root.doOnAttach { ViewCompat.requestApplyInsets(it) }
 
             /*
              * We focus on the editText to indicate it's editable, but we don't automatically
              * show the keyboard. This is intentional - the keyboard should only appear
              * when the user taps on the edit field, not every time the fragment loads.
              */
-            binding.editText.post {
-                binding.editText.requestFocus()
+            if (isCurrentPage) {
+                binding.editText.post {
+                    binding.editText.requestFocus()
+                }
             }
 
             parentFragmentManager.setFragmentResultListener(insertFieldRequestKey, viewLifecycleOwner) { key, bundle ->
@@ -898,7 +959,9 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
             )
             currentEditorViewId = viewId
             binding.editText.setText(editorContent)
-            binding.editText.requestFocus()
+            if (isCurrentPage) {
+                binding.editText.requestFocus()
+            }
             binding.editText.setSelection(
                 templateEditor.tabToCursorPositions[cardId]?.get(
                     currentEditorViewId,
@@ -1038,7 +1101,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
          * Setups the part of the menu that can be used either in template editor or in previewer fragment.
          */
         fun setupCommonMenu(menu: Menu) {
-            menu.findItem(R.id.action_restore_to_default).title = TR.cardTemplatesRestoreToDefault()
+            menu.findItem(R.id.action_restore_to_default).title = TR.sentenceCase.restoreToDefault
             menu.findItem(R.id.action_card_browser_appearance).title = TR.sentenceCase.browserAppearance
             if (noteTypeCreatesDynamicNumberOfNotes()) {
                 Timber.d("Editing cloze/occlusion note type, disabling add/delete card template and deck override functionality")
@@ -1170,7 +1233,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                                 stockNotetypeKinds.map { getStockNotetype(it).name }
                             }
                         AlertDialog.Builder(requireContext()).show {
-                            setTitle(TR.cardTemplatesRestoreToDefault())
+                            setTitle(TR.sentenceCase.restoreToDefault)
                             setNegativeButton(R.string.dialog_cancel) { _, _ -> }
                             listItems(stockNotetypesNames) { _: DialogInterface, index: Int ->
                                 val kind = stockNotetypeKinds[index]

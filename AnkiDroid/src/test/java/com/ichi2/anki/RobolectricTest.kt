@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2018 Mike Hardy <mike@mikehardy.net>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2018 Mike Hardy <mike@mikehardy.net>
 
 package com.ichi2.anki
 
@@ -87,6 +74,9 @@ import org.robolectric.shadows.ShadowLooper
 import org.robolectric.shadows.ShadowMediaPlayer
 import timber.log.Timber
 import kotlin.test.assertNotNull
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 open class RobolectricTest :
     AnkiTest,
@@ -271,6 +261,29 @@ open class RobolectricTest :
         // Robolectric needs a manual advance in PAUSED looper mode
         fun advanceRobolectricLooper() {
             Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
+        }
+
+        /**
+         * Advances the main looper until [condition] holds, failing if [timeout] elapses first.
+         *
+         * @throws IllegalStateException [timeout] has elapsed without [condition] being true.
+         */
+        fun advanceRobolectricLooperUntil(
+            timeout: Duration = 10.seconds,
+            lazyMessage: () -> Any = { "condition not met after $timeout" },
+            condition: () -> Boolean,
+        ) {
+            val start = TimeSource.Monotonic.markNow()
+            while (!condition()) {
+                check(start.elapsedNow() < timeout, lazyMessage)
+                // a real sleep, so background threads finish and post to main
+                Thread.sleep(10)
+                // `advanceRobolectricLooper` only drains tasks already on the main looper,
+                // so it can return while a diff is still in flight (as it's on a different thread).
+                advanceRobolectricLooper()
+            }
+            // flush the work triggered by the condition becoming true (e.g. a layout pass)
+            advanceRobolectricLooper()
         }
 
         @JvmStatic // Using protected members which are not @JvmStatic in the superclass companion is unsupported yet

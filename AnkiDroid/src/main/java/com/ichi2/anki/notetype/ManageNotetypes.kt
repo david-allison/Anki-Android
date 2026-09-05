@@ -1,18 +1,6 @@
-/*
- * Copyright (c) 2022 lukstbit <52494258+lukstbit@users.noreply.github.com>
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2022 lukstbit <52494258+lukstbit@users.noreply.github.com>
+
 package com.ichi2.anki.notetype
 
 import android.app.SearchManager
@@ -22,7 +10,9 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -32,7 +22,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.isVisible
+import androidx.core.view.updateMargins
+import androidx.core.view.updateMarginsRelative
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -52,6 +49,7 @@ import com.ichi2.anki.sync.userAcceptsSchemaChange
 import com.ichi2.anki.utils.Destination
 import com.ichi2.themes.setTransparentStatusBar
 import com.ichi2.ui.AccessibleSearchView
+import com.ichi2.utils.dp
 import com.ichi2.utils.getInputField
 import com.ichi2.utils.getInputTextLayout
 import com.ichi2.utils.input
@@ -62,6 +60,7 @@ import com.ichi2.utils.show
 import com.ichi2.utils.title
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
     @VisibleForTesting
@@ -101,7 +100,8 @@ class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
         if (!ensureStorageIsReady()) {
             return
         }
-
+        enableEdgeToEdge()
+        applyInsets()
         setTransparentStatusBar()
         enableToolbar()
         binding.noteTypesList.adapter = notetypesAdapter
@@ -164,6 +164,27 @@ class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
             }
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
+    }
+
+    private fun applyInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.rootLayout) { _, insets ->
+            val constraints = insets.getInsets(systemBars() or displayCutout())
+            Timber.d("Applying insets: $constraints")
+            binding.appBarLayout.updatePadding(left = constraints.left, top = constraints.top, right = constraints.right)
+            binding.noteTypesList.updatePadding(left = constraints.left, right = constraints.right, bottom = constraints.bottom)
+            val fabLayoutParams = binding.floatingActionButton.layoutParams as ViewGroup.MarginLayoutParams
+            // also applies the 32dp bottom/end margin to not sit right on top of navigation bar
+            fabLayoutParams.updateMarginsRelative(
+                bottom = constraints.bottom + 32.dp.toPx(this),
+                end = constraints.right + 32.dp.toPx(this),
+            )
+            // needed otherwise the updated relative margins are not seen
+            binding.floatingActionButton.layoutParams = fabLayoutParams
+            val selectionToolbarParams = binding.selectionToolbar.layoutParams as ViewGroup.MarginLayoutParams
+            // also applies the 32dp bottom margin to not sit right on top of navigation bar
+            selectionToolbarParams.updateMargins(bottom = constraints.bottom + 32.dp.toPx(this))
+            WindowInsetsCompat.CONSUMED
+        }
     }
 
     @VisibleForTesting
@@ -278,7 +299,8 @@ class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
                         callback = { dialog, text ->
                             val inputStr = text.toString().trim()
 
-                            val isDuplicate = allNotetypes.any { it.name.equals(inputStr, ignoreCase = true) }
+                            val isDuplicate =
+                                allNotetypes.any { it.id != state.id && it.name.equals(inputStr, ignoreCase = true) }
 
                             val isUnchanged = inputStr == state.name
 

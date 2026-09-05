@@ -1,18 +1,5 @@
-/*
- Copyright (c) 2020 David Allison <davidallisongithub@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
 
- This program is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License as published by the Free Software
- Foundation; either version 3 of the License, or (at your option) any later
- version.
-
- This program is distributed in the hope that it will be useful, but WITHOUT ANY
- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License along with
- this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.ichi2.utils
 
 import android.content.ClipData
@@ -80,6 +67,53 @@ class ImportUtilsTest : RobolectricTest() {
 
         // COULD_BE_BETTER: Strip off the file path
         return testFileImporter.cacheFileName
+    }
+
+    @Test
+    fun pathTraversalInFileNameIsRejected() {
+        // GHSA-q29p-h3pp-mh3v — Path traversal via import DISPLAY_NAME should be blocked
+        val cacheDir = targetContext.cacheDir.canonicalFile
+        val maliciousFilenames =
+            listOf(
+                "../etc/passwd.apkg",
+                "..\\windows\\system32\\config.sam.apkg",
+                "../../../../../../../../../etc/passwd.apkg",
+                "..\\..\\..\\passwd.apkg",
+                "%2e%2e%2fetc%2fpasswd.apkg", // percent-encoded traversal: File does not decode it
+                "....apkg",
+                "normal.apkg",
+            )
+
+        for (maliciousFilename in maliciousFilenames) {
+            val testFileImporter = TestFileImporter(maliciousFilename)
+            val intent = getValidClipDataUri(maliciousFilename)
+            val result = testFileImporter.handleFileImport(targetContext, intent)
+            assertTrue("Import should succeed after basename sanitization: $maliciousFilename", result is ImportResult.Success)
+
+            // the cached path is Uri-encoded (see handleContentProviderFile): decode it before resolving it on disk
+            val cachedFile = File(Uri.decode(testFileImporter.cacheFileName)).canonicalFile
+            assertEquals(
+                "Cached file must be a direct child of cacheDir: $maliciousFilename -> $cachedFile",
+                cacheDir,
+                cachedFile.parentFile,
+            )
+        }
+    }
+
+    @Test
+    fun leadingDotFilenamesAreNotStripped() {
+        for (fileName in listOf(".hidden.apkg", "..apkg")) {
+            val actualFilePath = importValidFile(fileName)
+            assertEquals(fileName, File(Uri.decode(actualFilePath)).name)
+        }
+    }
+
+    @Test
+    fun getFileCachedCopyUsesUnnamedFileForEmptyDotAndDotDot() {
+        for (fileName in listOf("", ".", "..")) {
+            val actualFilepath = TestFileImporter(fileName).getFileCachedCopy(targetContext, "dummy".toUri())
+            assertEquals(File(targetContext.cacheDir, "unnamed_file").absolutePath, actualFilepath)
+        }
     }
 
     @Test

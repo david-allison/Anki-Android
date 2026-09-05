@@ -1,26 +1,14 @@
-/*
- Copyright (c) 2011 Norbert Nagold <norbert.nagold@gmail.com>
- Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>
- Copyright (c) 2021 Akshay Jadhav <jadhavakshay0701@gmail.com>
-
- This program is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License as published by the Free Software
- Foundation; either version 3 of the License, or (at your option) any later
- version.
-
- This program is distributed in the hope that it will be useful, but WITHOUT ANY
- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License along with
- this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2011 Norbert Nagold <norbert.nagold@gmail.com>
+// SPDX-FileCopyrightText: Copyright (c) 2015 Timothy Rae <perceptualchaos2@gmail.com>
+// SPDX-FileCopyrightText: Copyright (c) 2021 Akshay Jadhav <jadhavakshay0701@gmail.com>
 
 package com.ichi2.themes
 
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color
+import android.os.Bundle
 import android.util.TypedValue
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
@@ -53,14 +41,23 @@ object Themes {
         context.setTheme(currentTheme.styleResId)
     }
 
-    fun setTheme(activity: Activity) {
+    /**
+     * @param savedInstanceState the bundle provided to [Activity.onCreate]
+     */
+    fun setTheme(
+        activity: Activity,
+        savedInstanceState: Bundle?,
+    ) {
         val tv = TypedValue()
         activity.theme.resolveAttribute(android.R.attr.windowBackground, tv, true)
         val hadLauncherSplash = tv.resourceId == R.drawable.launch_screen
 
         // If the decor view already exists, `windowBackground` can no longer be updated by setTheme
         // `hadLauncherSplash` is exempt: its window background is replaced below.
-        if (!hadLauncherSplash && activity.window.peekDecorView() != null) {
+        // Exclude recreation: the decor view can exist before `onCreate`, but the framework
+        // refreshes `windowBackground`.
+        val isRecreation = savedInstanceState != null
+        if (!isRecreation && !hadLauncherSplash && activity.window.peekDecorView() != null) {
             val message =
                 "Decor view was initialized before setTheme(): windowBackground is stale. " +
                     "Move window access (e.g. enableEdgeToEdge()) after super.onCreate()"

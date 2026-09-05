@@ -6,6 +6,7 @@
 package com.ichi2.anki
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebChromeClient
@@ -13,6 +14,13 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.databinding.ActivityInfoBinding
@@ -49,16 +57,17 @@ class Info :
             return
         }
         super.onCreate(savedInstanceState)
-        val res = resources
-        val type = intent.getIntExtra(EXTRA_TYPE, TYPE_NEW_VERSION)
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
         // If the page crashes, we do not want to display it again (#7135 maybe)
-        if (type == TYPE_NEW_VERSION) {
-            val prefs = this.baseContext.sharedPrefs()
-            InitialActivity.setUpgradedToLatestVersion(prefs)
-        }
+        InitialActivity.setUpgradedToLatestVersion(sharedPrefs())
         setViewBinding(binding)
         enableToolbar()
-        binding.donate.setOnClickListener { openUrl(R.string.link_opencollective_donate) }
+        applyInsets()
+        if (BuildConfig.SHOW_DONATE_LINKS) {
+            binding.donate.setOnClickListener { openUrl(R.string.link_opencollective_donate) }
+        } else {
+            binding.donate.isVisible = false
+        }
         title = "$appName v$pkgVersionName"
         binding.webView.webChromeClient =
             object : WebChromeClient() {
@@ -103,72 +112,94 @@ class Info :
         binding.webView.settings.allowFileAccess = true
         binding.webView.settings.allowContentAccess = true
         setRenderWorkaround(this)
-        when (type) {
-            TYPE_NEW_VERSION -> {
-                binding.rightButton.run {
-                    text = res.getString(R.string.dialog_continue)
-                    setOnClickListener { close() }
-                }
-                val background = backgroundColor.toRGBHex()
-                binding.webView.loadUrl("/android_asset/changelog.html")
-                binding.webView.settings.javaScriptEnabled = true
-                binding.webView.webViewClient =
-                    object : WebViewClient() {
-                        override fun onPageFinished(
-                            view: WebView,
-                            url: String,
-                        ) {
-                        /* The order of below javascript code must not change (this order works both in debug and release mode)
-                         *  or else it will break in any one mode.
-                         */
-                            @Suppress("ktlint:standard:max-line-length")
-                            binding.webView.loadUrl(
-                                """javascript:document.body.style.setProperty("color", "$textColor");
-                                    x=document.getElementsByTagName("a");
-                                    for(i=0; i<x.length; i++){
-                                      x[i].style.color="$anchorTextColor";
-                                    }
-                                    document.getElementsByTagName("h1")[0].style.color="$textColor";
-                                    x=document.getElementsByTagName("h2");
-                                    for(i=0; i<x.length; i++){
-                                      x[i].style.color="#E37068";
-                                    }
-                                    document.body.style.setProperty("background", "$background");""",
-                            )
-                        }
-
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                        ): Boolean {
-                            // Excludes the url that are opened inside the changelog.html
-                            // and redirect the user to the browser
-                            val url = request?.url?.toString() ?: return false
-                            if (url == CHANGE_LOG_URL) {
-                                return false
-                            }
-                            this@Info.openUrl(url)
-                            return true
-                        }
-
-                        override fun doUpdateVisitedHistory(
-                            view: WebView?,
-                            url: String?,
-                            isReload: Boolean,
-                        ) {
-                            super.doUpdateVisitedHistory(view, url, isReload)
-                            onBackPressedCallback.isEnabled = view != null && view.canGoBack()
-                        }
-                    }
-            }
-            else -> finish()
+        binding.rightButton.run {
+            text = getString(R.string.dialog_continue)
+            setOnClickListener { close() }
         }
+        val background = backgroundColor.toRGBHex()
+        binding.webView.loadUrl("/android_asset/changelog.html")
+        binding.webView.settings.javaScriptEnabled = true
+        binding.webView.webViewClient =
+            object : WebViewClient() {
+                override fun onPageFinished(
+                    view: WebView,
+                    url: String,
+                ) {
+                /* The order of below javascript code must not change (this order works both in debug and release mode)
+                 *  or else it will break in any one mode.
+                 */
+                    @Suppress("ktlint:standard:max-line-length")
+                    binding.webView.loadUrl(
+                        """javascript:document.body.style.setProperty("color", "$textColor");
+                            x=document.getElementsByTagName("a");
+                            for(i=0; i<x.length; i++){
+                              x[i].style.color="$anchorTextColor";
+                            }
+                            document.getElementsByTagName("h1")[0].style.color="$textColor";
+                            x=document.getElementsByTagName("h2");
+                            for(i=0; i<x.length; i++){
+                              x[i].style.color="#E37068";
+                            }
+                            document.body.style.setProperty("background", "$background");""",
+                    )
+                    if (!BuildConfig.SHOW_DONATE_LINKS) {
+                        // remove donation links, keeping the text
+                        binding.webView.evaluateJavascript(
+                            """document.querySelectorAll('a[href*="opencollective.com"]')
+                                .forEach((a) => a.replaceWith(...a.childNodes));""",
+                            null,
+                        )
+                    }
+                }
+
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                ): Boolean {
+                    // Excludes the url that are opened inside the changelog.html
+                    // and redirect the user to the browser
+                    val url = request?.url?.toString() ?: return false
+                    if (url == CHANGE_LOG_URL) {
+                        return false
+                    }
+                    this@Info.openUrl(url)
+                    return true
+                }
+
+                override fun doUpdateVisitedHistory(
+                    view: WebView?,
+                    url: String?,
+                    isReload: Boolean,
+                ) {
+                    super.doUpdateVisitedHistory(view, url, isReload)
+                    onBackPressedCallback.isEnabled = view != null && view.canGoBack()
+                }
+            }
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+    }
+
+    /**
+     * Applies edge-to-edge insets.
+     *
+     * The app bar's background spans the full width and draws behind the status bar; only its
+     * content is inset. Everything below it is held inside the safe area.
+     */
+    private fun applyInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(systemBars() or displayCutout())
+            // the toolbar's parent: padding on the Toolbar counts towards its minHeight,
+            // which would shrink the app bar's content below actionBarSize
+            binding.toolbarContainer.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+            // no corner clearance: the buttons carry a 12dp horizontal margin, so the arc
+            // intrudes less than the navigation bar already clears
+            binding.content.updatePadding(left = bars.left, right = bars.right, bottom = bars.bottom)
+            insets
+        }
     }
 
     private fun close() {
         setResult(RESULT_OK)
-        finishWithAnimation()
+        finish()
     }
 
     private fun canOpenMarketUri(): Boolean =
@@ -178,13 +209,4 @@ class Info :
             Timber.w(e)
             false
         }
-
-    private fun finishWithAnimation() {
-        finish()
-    }
-
-    companion object {
-        const val EXTRA_TYPE = "infoType"
-        const val TYPE_NEW_VERSION = 2
-    }
 }
