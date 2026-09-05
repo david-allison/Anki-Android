@@ -128,12 +128,12 @@ class ReviewerViewModel(
      * ensure that the custom JS scheduler has persisted its SchedulingStates
      * back to the Reviewer before we save it to the database.
      *
-     * This flag should be reset when we show the front of the card
-     * and only complete once we know the custom scheduler has finished its
-     * execution, or complete immediately if the custom scheduler has not
+     * This flag is reset before we show the front of the card
+     * and only completes once we know the custom scheduler has finished its
+     * execution, or completes immediately if the custom scheduler has not
      * been configured.
      */
-    private var mutationSignal = CompletableDeferred(Unit)
+    private var mutationSignal = CompletableDeferred<Unit>()
 
     val isAutoAdvanceEnabledFlow = MutableStateFlow(autoAdvance.isEnabled)
     val answerButtonsNextTimeFlow: MutableStateFlow<AnswerButtonsNextTime?> = MutableStateFlow(null)
@@ -455,6 +455,11 @@ class ReviewerViewModel(
 
     override suspend fun showQuestion() {
         Timber.v("ReviewerViewModel::showQuestion")
+        // 'Show answer' may be pressed while the question loads: reset before, not after.
+        // If it was pressed earlier, it is already waiting on the pending signal: keep it.
+        if (mutationSignal.isCompleted) {
+            mutationSignal = CompletableDeferred()
+        }
         super.showQuestion()
         runStateMutationHook()
         updateMarkIcon()
@@ -472,7 +477,6 @@ class ReviewerViewModel(
             }
             return
         }
-        mutationSignal = CompletableDeferred()
         // https://github.com/ankitects/anki/commit/bd88c6d352dc7aeb4a674029eab7bdda2a821a78
         statesMutationEvalFlow.emit(
             """
@@ -511,6 +515,7 @@ class ReviewerViewModel(
 
     private suspend fun answerCardInternal(rating: Rating) {
         Timber.v("ReviewerViewModel::answerCard")
+        mutationSignal.await()
         val state = queueState.await() ?: return
         val card = currentCard.await()
         val answer =

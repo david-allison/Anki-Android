@@ -16,10 +16,10 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.previewer.CardViewerActivity
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.tests.checkWithTimeout
-import com.ichi2.anki.tests.libanki.RetryRule
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
+import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.ext.cardStateCustomizer
 import org.hamcrest.MatcherAssert.assertThat
@@ -36,9 +36,6 @@ import java.util.concurrent.TimeUnit
 class ReviewerFragmentTest : InstrumentedTest() {
     @get:Rule
     val runtimePermissionRule = grantPermissions(storagePermission, notificationPermission)
-
-    @get:Rule
-    val retry = RetryRule(10)
 
     /** The collection is shared between tests: review a deck which only contains this test's cards */
     private var testDeckId: DeckId = 0
@@ -103,6 +100,10 @@ class ReviewerFragmentTest : InstrumentedTest() {
             assertThat(cardFromDb.customData, equalTo("""{"c":1}"""))
 
             clickShowAnswerAndAnswerGood()
+            // Answering runs on the IO dispatcher, which Espresso does not wait for.
+            waitUntil(message = { "The review of card ${card.id} was not saved" }) {
+                col.getCard(card.id).reps == card.reps + 1
+            }
 
             cardFromDb = col.getCard(card.id).toBackendCard()
             assertThat(cardFromDb.easeFactor, equalTo(3000))
