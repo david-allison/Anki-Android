@@ -3,26 +3,27 @@
 package com.ichi2.anki
 
 import androidx.core.content.edit
+import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.libanki.Consts
+import com.ichi2.anki.previewer.CardViewerActivity
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.tests.checkWithTimeout
 import com.ichi2.anki.tests.libanki.RetryRule
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
-import com.ichi2.anki.testutil.closeBackupCollectionDialogIfExists
-import com.ichi2.anki.testutil.closeGetStartedScreenIfExists
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
-import com.ichi2.anki.testutil.reviewDeckWithName
+import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.ext.cardStateCustomizer
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,21 +31,20 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class ReviewerFragmentTest : InstrumentedTest() {
-    // Launch IntroductionActivity instead of DeckPicker activity because in CI
-    // builds, it seems to create IntroductionActivity after the DeckPicker,
-    // causing the DeckPicker activity to be destroyed. As a consequence, this
-    // will throw RootViewWithoutFocusException when Espresso tries to interact
-    // with an already destroyed activity. By launching IntroductionActivity, we
-    // ensure that IntroductionActivity is launched first and navigate to the
-    // DeckPicker -> Reviewer activities
-    @get:Rule
-    val activityScenarioRule = ActivityScenarioRule(IntroductionActivity::class.java)
-
     @get:Rule
     val runtimePermissionRule = grantPermissions(storagePermission, notificationPermission)
 
     @get:Rule
     val retry = RetryRule(10)
+
+    @Before
+    fun setUp() {
+        testContext.sharedPrefs().edit {
+            putBoolean("newReviewer", true)
+            putBoolean("newReviewerOptions", true)
+        }
+        col.decks.select(Consts.DEFAULT_DECK_ID)
+    }
 
     @Test
     fun testCustomSchedulerWithCustomData() = testCustomSchedulerWithCustomData(schedulerDelayMs = 0)
@@ -57,7 +57,6 @@ class ReviewerFragmentTest : InstrumentedTest() {
     fun testCustomSchedulerWithCustomDataAndSlowScheduler() = testCustomSchedulerWithCustomData(schedulerDelayMs = 5000)
 
     private fun testCustomSchedulerWithCustomData(schedulerDelayMs: Long) {
-        setNewReviewer()
         val delayJs =
             if (schedulerDelayMs > 0) {
                 "await new Promise(resolve => setTimeout(resolve, $schedulerDelayMs));"
@@ -71,9 +70,7 @@ class ReviewerFragmentTest : InstrumentedTest() {
             states.good.normal.review.scheduledDays = 123;
             customData.good.c += 1;
             """
-        val note = addNoteUsingBasicNoteType("foo", "bar")
-        val card = note.firstCard(col)
-        val deck = col.decks.getLegacy(note.notetype.did)!!
+        val card = addNoteUsingBasicNoteType("foo", "bar").firstCard(col)
         card.moveToReviewQueue()
         col.backend.updateCards(
             listOf(
@@ -86,37 +83,35 @@ class ReviewerFragmentTest : InstrumentedTest() {
             true,
         )
 
-        closeGetStartedScreenIfExists()
-        closeBackupCollectionDialogIfExists()
-        reviewDeckWithName(deck.name)
+        withReviewer {
+            var cardFromDb = col.getCard(card.id).toBackendCard()
+            assertThat(cardFromDb.easeFactor, equalTo(card.factor))
+            assertThat(cardFromDb.interval, equalTo(card.ivl))
+            assertThat(cardFromDb.customData, equalTo("""{"c":1}"""))
 
-        var cardFromDb = col.getCard(card.id).toBackendCard()
-        assertThat(cardFromDb.easeFactor, equalTo(card.factor))
-        assertThat(cardFromDb.interval, equalTo(card.ivl))
-        assertThat(cardFromDb.customData, equalTo("""{"c":1}"""))
+            clickShowAnswerAndAnswerGood()
 
-        clickShowAnswerAndAnswerGood()
-
-        cardFromDb = col.getCard(card.id).toBackendCard()
-        assertThat(cardFromDb.easeFactor, equalTo(3000))
-        assertThat(cardFromDb.interval, equalTo(123))
-        assertThat(cardFromDb.customData, equalTo("""{"c":2}"""))
+            cardFromDb = col.getCard(card.id).toBackendCard()
+            assertThat(cardFromDb.easeFactor, equalTo(3000))
+            assertThat(cardFromDb.interval, equalTo(123))
+            assertThat(cardFromDb.customData, equalTo("""{"c":2}"""))
+        }
     }
 
     @Test
     fun testCustomSchedulerWithRuntimeError() {
-        setNewReviewer()
         // Issue 15035 - runtime errors weren't handled
         col.cardStateCustomizer = "states.this_is_not_defined.normal.review = 12;"
         addNoteUsingBasicNoteType()
 
-        closeGetStartedScreenIfExists()
-        closeBackupCollectionDialogIfExists()
-        reviewDeckWithName("Default")
+        withReviewer {
+            clickShowAnswer()
+            ensureAnswerButtonsAreDisplayed()
+        }
+    }
 
-        clickShowAnswer()
-
-        ensureAnswerButtonsAreDisplayed()
+    private fun withReviewer(block: () -> Unit) {
+        ActivityScenario.launch<CardViewerActivity>(ReviewerFragment.getIntent(testContext)).use { block() }
     }
 
     private fun clickShowAnswerAndAnswerGood() {
@@ -141,12 +136,5 @@ class ReviewerFragmentTest : InstrumentedTest() {
             // slow
             TimeUnit.SECONDS.toMillis(30),
         )
-    }
-
-    private fun setNewReviewer() {
-        testContext.sharedPrefs().edit {
-            putBoolean("newReviewer", true)
-            putBoolean("newReviewerOptions", true)
-        }
     }
 }
