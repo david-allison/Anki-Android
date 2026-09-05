@@ -5,10 +5,12 @@ package com.ichi2.anki.preferences
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.test.core.app.ActivityScenario
+import com.google.android.material.appbar.AppBarLayout
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.testutils.HIDDEN_GESTURE_BAR
 import com.ichi2.testutils.ext.clear
 import com.ichi2.testutils.simulateSystemBars
 import com.ichi2.utils.dp
@@ -41,6 +43,22 @@ class PreferencesScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun headerFragmentGestureBarHiddenScrolledToBottom() =
+        withPreferencesActivity(HeaderFragment::class) { activity ->
+            activity.simulateSystemBars(navBarBottom = HIDDEN_GESTURE_BAR, bottomCornerRadius = 34.dp)
+            activity.scrollSettingsToBottom()
+            captureScreen("HeaderFragment_gesture_bar_hidden_scrolled_to_bottom")
+        }
+
+    @Test
+    fun headerFragmentGestureBarScrolledToBottom() =
+        withPreferencesActivity(HeaderFragment::class) { activity ->
+            activity.simulateSystemBars(navBarBottom = 24.dp, bottomCornerRadius = 34.dp)
+            activity.scrollSettingsToBottom()
+            captureScreen("HeaderFragment_gesture_bar_scrolled_to_bottom")
+        }
+
+    @Test
     fun `capture all preference fragments`() {
         val fragments = PreferenceTestUtils.getAllPreferencesFragments(targetContext)
 
@@ -63,6 +81,23 @@ class PreferencesScreenshotTest : ScreenshotTest() {
                 captureScreen(fragmentClass.simpleName!!)
             }
         }
+    }
+
+    /**
+     * Scrolls the displayed settings list to its end, where its bottom padding is visible.
+     *
+     * The app bar is collapsed first, as a user's scroll would: while it is expanded, the list
+     * extends below the screen by the app bar's scroll range, which hides the padding.
+     */
+    private fun PreferencesActivity.scrollSettingsToBottom() {
+        findViewById<AppBarLayout>(R.id.appbar).setExpanded(false, false)
+        advanceRobolectricLooper()
+        val mainFragment = fragment as PreferencesFragment
+        val settingsFragment = mainFragment.childFragmentManager.findFragmentById(R.id.settings_container) as SettingsFragment
+        val list = settingsFragment.listView
+        list.scrollToPosition(list.adapter!!.itemCount - 1)
+        while (list.canScrollVertically(1)) list.scrollBy(0, 50)
+        advanceRobolectricLooper()
     }
 
     private fun withPreferencesActivity(

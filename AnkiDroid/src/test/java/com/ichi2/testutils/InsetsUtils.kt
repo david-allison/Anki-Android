@@ -22,6 +22,13 @@ import com.ichi2.utils.Dp
 import com.ichi2.utils.dp
 
 /**
+ * The bottom navigation bar height when the gesture navigation indicator is hidden
+ * ('Hide full screen indicator' on MIUI): no inset is reported and nothing is drawn at the
+ * bottom of the screen, but the display corners are still rounded.
+ */
+val HIDDEN_GESTURE_BAR = 0.dp
+
+/**
  * Helper to build [Insets] using [Dp]
  *
  * Default parameters allow for succinct code:
@@ -137,27 +144,44 @@ fun Activity.dispatchInsets(
  *
  * @param cutoutLeft simulates a display cutout on the left edge, as when a phone with a
  * top notch is rotated to landscape.
+ * @param navBarBottom the height of a navigation bar along the bottom edge:
+ * * 48dp for 3-button
+ * * less for gesture navigation.
+ * * [HIDDEN_GESTURE_BAR] if the gesture indicator is hidden, in which case no band is drawn:
+ *   nothing marks the area on a real device either.
+ * @param bottomCornerRadius the radius of both bottom rounded display corners
  */
 @SuppressLint("RtlHardcoded") // insets and cutouts are physical: not layout-direction relative
-fun Activity.simulateSystemBars(cutoutLeft: Dp = 0.dp) {
+fun Activity.simulateSystemBars(
+    cutoutLeft: Dp = 0.dp,
+    navBarBottom: Dp = 48.dp,
+    bottomCornerRadius: Dp = 0.dp,
+) {
     val statusBarHeight = 24.dp
-    val navBarHeight = 48.dp
+    val context: Context = this
     val insets =
         WindowInsetsCompat
             .Builder()
             .setInsets(statusBars(), insetsOf(top = statusBarHeight))
             // workaround for 'systemWindowInsets', so snackbars match a real device
-            .setInsets(navigationBars(), insetsOf(left = cutoutLeft, bottom = navBarHeight))
+            .setInsets(navigationBars(), insetsOf(left = cutoutLeft, bottom = navBarBottom))
             .setInsets(displayCutout(), insetsOf(left = cutoutLeft))
-            .build()
+            .apply {
+                // set even when zero: Robolectric's WindowInsets.Builder leaks rounded corners between tests
+                val radius = bottomCornerRadius.toPx(context)
+                for (position in intArrayOf(RoundedCornerCompat.POSITION_BOTTOM_LEFT, RoundedCornerCompat.POSITION_BOTTOM_RIGHT)) {
+                    setRoundedCorner(position, RoundedCornerCompat(position, radius, radius, radius))
+                }
+            }.build()
     ViewCompat.dispatchApplyWindowInsets(findViewById(android.R.id.content), insets)
 
     val decor = window.decorView as ViewGroup
-    val context: Context = this
     val bands =
         buildList {
             add(FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, statusBarHeight.toPx(context), Gravity.TOP))
-            add(FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, navBarHeight.toPx(context), Gravity.BOTTOM))
+            if (navBarBottom.dp > 0) {
+                add(FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, navBarBottom.toPx(context), Gravity.BOTTOM))
+            }
             if (cutoutLeft.dp > 0) {
                 add(FrameLayout.LayoutParams(cutoutLeft.toPx(context), FrameLayout.LayoutParams.MATCH_PARENT, Gravity.LEFT))
             }
