@@ -17,6 +17,7 @@ import com.ichi2.anki.previewer.CardViewerActivity
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.tests.checkWithTimeout
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
+import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.anki.testutil.waitUntil
@@ -26,6 +27,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -152,5 +154,11 @@ class ReviewerFragmentTest : InstrumentedTest() {
             // slow
             TimeUnit.SECONDS.toMillis(30),
         )
+    }
+
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun checkWebView() = ensureWebViewIsSupported()
     }
 }
