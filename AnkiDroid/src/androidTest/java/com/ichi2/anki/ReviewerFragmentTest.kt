@@ -11,7 +11,8 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.common.preferences.sharedPrefs
-import com.ichi2.anki.libanki.Consts
+import com.ichi2.anki.libanki.Card
+import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.previewer.CardViewerActivity
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.tests.checkWithTimeout
@@ -23,10 +24,12 @@ import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.ext.cardStateCustomizer
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
@@ -37,13 +40,22 @@ class ReviewerFragmentTest : InstrumentedTest() {
     @get:Rule
     val retry = RetryRule(10)
 
+    /** The collection is shared between tests: review a deck which only contains this test's cards */
+    private var testDeckId: DeckId = 0
+
     @Before
     fun setUp() {
         testContext.sharedPrefs().edit {
             putBoolean("newReviewer", true)
             putBoolean("newReviewerOptions", true)
         }
-        col.decks.select(Consts.DEFAULT_DECK_ID)
+        testDeckId = col.decks.addNormalDeckWithName("ReviewerFragmentTest-${UUID.randomUUID()}").id
+        col.decks.select(testDeckId)
+    }
+
+    @After
+    fun tearDown() {
+        col.decks.remove(listOf(testDeckId))
     }
 
     @Test
@@ -70,7 +82,7 @@ class ReviewerFragmentTest : InstrumentedTest() {
             states.good.normal.review.scheduledDays = 123;
             customData.good.c += 1;
             """
-        val card = addNoteUsingBasicNoteType("foo", "bar").firstCard(col)
+        val card = addCardToTestDeck()
         card.moveToReviewQueue()
         col.backend.updateCards(
             listOf(
@@ -102,13 +114,15 @@ class ReviewerFragmentTest : InstrumentedTest() {
     fun testCustomSchedulerWithRuntimeError() {
         // Issue 15035 - runtime errors weren't handled
         col.cardStateCustomizer = "states.this_is_not_defined.normal.review = 12;"
-        addNoteUsingBasicNoteType()
+        addCardToTestDeck()
 
         withReviewer {
             clickShowAnswer()
             ensureAnswerButtonsAreDisplayed()
         }
     }
+
+    private fun addCardToTestDeck(): Card = addNoteUsingBasicNoteType("foo", "bar").firstCard(col).update { did = testDeckId }
 
     private fun withReviewer(block: () -> Unit) {
         ActivityScenario.launch<CardViewerActivity>(ReviewerFragment.getIntent(testContext)).use { block() }
