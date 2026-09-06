@@ -14,6 +14,7 @@ import com.ichi2.anki.reviewreminders.AddEditReminderDialog.DialogMode
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import org.junit.Test
 import org.robolectric.Robolectric.buildActivity
+import org.robolectric.RuntimeEnvironment
 
 class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
     @Test
@@ -60,6 +61,14 @@ class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
         @TestParameter use24HourClock: Boolean,
     ) {
         captureTimePicker("timePicker", use24HourClock)
+    }
+
+    @Test
+    fun `time picker in landscape`(
+        @TestParameter use24HourClock: Boolean,
+    ) {
+        RuntimeEnvironment.setQualifiers("+land")
+        captureTimePicker("timePicker_landscape", use24HourClock)
     }
 
     private fun captureTimePicker(
