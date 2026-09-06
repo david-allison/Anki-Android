@@ -3,11 +3,15 @@
 
 package com.ichi2.anki.reviewreminders
 
+import android.provider.Settings
 import android.view.View
 import androidx.fragment.app.FragmentActivity
+import androidx.test.core.app.ActivityScenario
+import com.google.testing.junit.testparameterinjector.TestParameter
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.reviewreminders.AddEditReminderDialog.DialogMode
+import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import org.junit.Test
 import org.robolectric.Robolectric.buildActivity
 
@@ -49,5 +53,40 @@ class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
         dialogFragment.dialog?.findViewById<View>(R.id.add_edit_reminder_advanced_dropdown)?.performClick()
         advanceRobolectricLooper()
         captureScreen("edit_mode_advanced_open")
+    }
+
+    @Test
+    fun `time picker`(
+        @TestParameter use24HourClock: Boolean,
+    ) {
+        captureTimePicker("timePicker", use24HourClock)
+    }
+
+    private fun captureTimePicker(
+        name: String,
+        use24HourClock: Boolean,
+    ) {
+        Settings.System.putString(targetContext.contentResolver, Settings.System.TIME_12_24, if (use24HourClock) "24" else "12")
+        val reminder = ReviewReminder.createReviewReminder(time = ReviewReminderTime(17, 45))
+        withReminderDialog(DialogMode.Edit(reminder)) { dialog ->
+            dialog.requireDialog().findViewById<View>(R.id.add_edit_reminder_time_button).performClick()
+            advanceRobolectricLooper()
+            captureScreen("${name}_${if (use24HourClock) "24h" else "12h"}")
+        }
+    }
+
+    private fun withReminderDialog(
+        mode: DialogMode,
+        block: (AddEditReminderDialog) -> Unit,
+    ) {
+        val intent = ScheduleRemindersFragment.getIntent(targetContext, ReviewReminderScope.Global)
+        ActivityScenario.launch<ConfigAwareSingleFragmentActivity>(intent).use { scenario ->
+            scenario.onActivity { activity ->
+                val dialog = AddEditReminderDialog.getInstance(mode)
+                dialog.show(activity.fragment!!.childFragmentManager, "dialog")
+                advanceRobolectricLooper()
+                block(dialog)
+            }
+        }
     }
 }
