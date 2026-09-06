@@ -11,6 +11,7 @@ import androidx.test.core.app.ActivityScenario
 import com.ichi2.anki.NotificationChannel
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
+import com.ichi2.anki.reviewreminders.CheckResult.Warning
 import com.ichi2.anki.reviewreminders.ScheduleRemindersFragment.FragmentHost
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import org.junit.Before
@@ -47,6 +48,17 @@ class ReminderTroubleshootingScreenshotTest : ScreenshotTest() {
     fun `all checks passing`() {
         targetContext.setTroubleshootingChecks()
         captureTroubleshooting("allChecksPassing")
+    }
+
+    @Test
+    fun `checks with warnings`() {
+        targetContext.setTroubleshootingChecks(
+            doNotDisturb = Warning,
+            batteryOptimization = Warning,
+            powerSavingMode = Warning,
+        )
+
+        captureTroubleshooting("checksWithWarnings")
     }
 
     private fun captureTroubleshooting(name: String) {
