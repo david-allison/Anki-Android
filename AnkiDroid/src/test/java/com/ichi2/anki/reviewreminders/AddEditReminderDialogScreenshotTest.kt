@@ -5,7 +5,6 @@ package com.ichi2.anki.reviewreminders
 
 import android.provider.Settings
 import android.view.View
-import androidx.fragment.app.FragmentActivity
 import androidx.test.core.app.ActivityScenario
 import com.google.testing.junit.testparameterinjector.TestParameter
 import com.ichi2.anki.R
@@ -13,7 +12,6 @@ import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.reviewreminders.AddEditReminderDialog.DialogMode
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import org.junit.Test
-import org.robolectric.Robolectric.buildActivity
 import org.robolectric.RuntimeEnvironment
 
 class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
@@ -37,18 +35,13 @@ class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
                 scope = ReviewReminderScope.DeckSpecific(deckId),
                 onlyNotifyIfNoReviews = true,
             )
-        val activity = buildActivity(FragmentActivity::class.java).setup().get()
-        AddEditReminderDialog
-            .getInstance(DialogMode.Edit(reminder))
-            .show(activity.supportFragmentManager, "dialog")
-        advanceRobolectricLooper()
-        captureScreen("edit_mode")
+        withReminderDialog(DialogMode.Edit(reminder)) { dialog ->
+            captureScreen("edit_mode")
 
-        val dialogFragment =
-            activity.supportFragmentManager.findFragmentByTag("dialog") as AddEditReminderDialog
-        dialogFragment.dialog?.findViewById<View>(R.id.add_edit_reminder_advanced_dropdown)?.performClick()
-        advanceRobolectricLooper()
-        captureScreen("edit_mode_advanced_open")
+            dialog.requireDialog().findViewById<View>(R.id.add_edit_reminder_advanced_dropdown).performClick()
+            advanceRobolectricLooper()
+            captureScreen("edit_mode_advanced_open")
+        }
     }
 
     @Test
