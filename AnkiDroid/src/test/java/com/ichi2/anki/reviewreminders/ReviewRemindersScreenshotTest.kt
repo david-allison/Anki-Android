@@ -4,6 +4,7 @@
 package com.ichi2.anki.reviewreminders
 
 import androidx.annotation.IdRes
+import androidx.core.content.edit
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.test.core.app.ActivityScenario
@@ -24,6 +25,8 @@ import com.ichi2.testutils.BackupManagerTestUtilities
 import com.ichi2.testutils.simulateSystemBars
 import com.ichi2.utils.dp
 import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
 
@@ -31,6 +34,13 @@ import org.robolectric.RuntimeEnvironment
  * Covers all [FragmentHost] configurations of the fragment.
  */
 class ReviewRemindersScreenshotTest : ScreenshotTest() {
+    @Before
+    @After
+    fun clearReminders() {
+        // The database retains its own SharedPreferences instance across Robolectric test cases.
+        ReviewRemindersDatabase.remindersSharedPrefs.edit { clear() }
+    }
+
     @Test
     fun `settings host`() {
         captureSettingsHost("settingsHost")
@@ -147,6 +157,19 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
         }
 
     @Test
+    fun `enabled and disabled global and deck reminders`() {
+        val deckScope = ReviewReminderScope.DeckSpecific(addDeck("Japanese::Vocabulary"))
+        insertReminder(ReviewReminderTime(8, 0))
+        insertReminder(ReviewReminderTime(9, 30), enabled = false)
+        insertReminder(ReviewReminderTime(18, 15), scope = deckScope)
+        insertReminder(ReviewReminderTime(21, 45), scope = deckScope, enabled = false)
+
+        withStandaloneScheduleReminders {
+            captureScreen("globalAndDeckReminders_enabledAndDisabled")
+        }
+    }
+
+    @Test
     fun `standalone activity host with system bars`() =
         withStandaloneScheduleReminders { activity ->
             activity.simulateSystemBars()
@@ -191,6 +214,16 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
             advanceRobolectricLooper()
             captureScreen("standaloneActivityHost_troubleshooting_systemBars")
         }
+    }
+
+    private fun insertReminder(
+        time: ReviewReminderTime,
+        scope: ReviewReminderScope = ReviewReminderScope.Global,
+        enabled: Boolean = true,
+    ) = runBlocking {
+        ReviewRemindersDatabase.insertReminder(
+            ReviewReminder.createReviewReminder(time = time, scope = scope, enabled = enabled),
+        )
     }
 
     /** Inserts [count] reminders so the list has content to render behind the simulated bars */
