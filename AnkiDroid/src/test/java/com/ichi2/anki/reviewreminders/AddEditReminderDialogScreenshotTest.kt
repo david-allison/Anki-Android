@@ -19,18 +19,13 @@ import org.robolectric.RuntimeEnvironment
 class AddEditReminderDialogScreenshotTest : ScreenshotTest() {
     @Test
     fun `add mode`() {
-        val activity = buildActivity(FragmentActivity::class.java).setup().get()
-        AddEditReminderDialog
-            .getInstance(DialogMode.Add(ReviewReminderScope.Global))
-            .show(activity.supportFragmentManager, "dialog")
-        advanceRobolectricLooper()
-        captureScreen("add_mode")
+        withReminderDialog(DialogMode.Add(ReviewReminderScope.Global)) { dialog ->
+            captureScreen("add_mode")
 
-        val dialogFragment =
-            activity.supportFragmentManager.findFragmentByTag("dialog") as AddEditReminderDialog
-        dialogFragment.dialog?.findViewById<View>(R.id.add_edit_reminder_advanced_dropdown)?.performClick()
-        advanceRobolectricLooper()
-        captureScreen("add_mode_advanced_open")
+            dialog.requireDialog().findViewById<View>(R.id.add_edit_reminder_advanced_dropdown).performClick()
+            advanceRobolectricLooper()
+            captureScreen("add_mode_advanced_open")
+        }
     }
 
     @Test
