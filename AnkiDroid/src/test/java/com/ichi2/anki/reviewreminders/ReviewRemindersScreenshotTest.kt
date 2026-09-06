@@ -3,8 +3,11 @@
 
 package com.ichi2.anki.reviewreminders
 
+import android.app.NotificationManager
 import androidx.annotation.IdRes
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
+import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.test.core.app.ActivityScenario
@@ -19,6 +22,8 @@ import com.ichi2.anki.databinding.FragmentScheduleRemindersBinding
 import com.ichi2.anki.preferences.PreferencesActivity
 import com.ichi2.anki.preferences.PreferencesFragment
 import com.ichi2.anki.reviewreminders.ScheduleRemindersFragment.FragmentHost
+import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
 import com.ichi2.anki.utils.ConfigAwareSingleFragmentActivity
 import com.ichi2.anki.withDeckPicker
 import com.ichi2.testutils.BackupManagerTestUtilities
@@ -29,6 +34,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 
 /**
  * Covers all [FragmentHost] configurations of the fragment.
@@ -184,6 +190,11 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun `notification permission bottom sheet after adding a reminder`() {
+        captureNotificationPermissionSheet("notificationPermissionBottomSheet")
+    }
+
+    @Test
     fun `standalone activity host with system bars`() =
         withStandaloneScheduleReminders { activity ->
             activity.simulateSystemBars()
@@ -227,6 +238,38 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
             binding.scrollView.scrollTo(0, binding.scrollView.getChildAt(0).bottom)
             advanceRobolectricLooper()
             captureScreen("standaloneActivityHost_troubleshooting_systemBars")
+        }
+    }
+
+    private fun captureNotificationPermissionSheet(name: String) {
+        shadowOf(targetContext.getSystemService<NotificationManager>()!!).setNotificationsEnabled(false)
+        Prefs.reminderNotifsRequestShown = false
+        Prefs.notificationsPermissionRequested = false
+
+        withStandaloneScheduleReminders { activity ->
+            val fragment = activity.fragment as ScheduleRemindersFragment
+            val binding = FragmentScheduleRemindersBinding.bind(fragment.requireView())
+            binding.floatingActionButtonAdd.performClick()
+            advanceRobolectricLooper()
+
+            val dialog =
+                fragment.childFragmentManager.fragments
+                    .filterIsInstance<AddEditReminderDialog>()
+                    .single()
+            (dialog.requireDialog() as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            advanceRobolectricLooperUntil {
+                val sheet =
+                    fragment.childFragmentManager.fragments
+                        .filterIsInstance<PermissionsBottomSheet>()
+                        .singleOrNull()
+                sheet
+                    ?.childFragmentManager
+                    ?.fragments
+                    ?.singleOrNull()
+                    ?.view != null &&
+                    binding.recyclerView.adapter!!.itemCount == 1
+            }
+            captureScreen(name)
         }
     }
 
