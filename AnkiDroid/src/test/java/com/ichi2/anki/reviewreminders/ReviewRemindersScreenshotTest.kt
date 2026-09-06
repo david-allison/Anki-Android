@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.test.core.app.ActivityScenario
 import com.google.android.material.appbar.AppBarLayout
+import com.ichi2.anki.PermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.StudyOptionsActivity
@@ -192,6 +193,17 @@ class ReviewRemindersScreenshotTest : ScreenshotTest() {
     @Test
     fun `notification permission bottom sheet after adding a reminder`() {
         captureNotificationPermissionSheet("notificationPermissionBottomSheet")
+    }
+
+    @Test
+    fun `legacy notification permission bottom sheet`() {
+        shadowOf(targetContext.getSystemService<NotificationManager>()!!).setNotificationsEnabled(false)
+        withStandaloneScheduleReminders { activity ->
+            // Capture the legacy content on the suite's SDK; mixing SDKs cannot share the native backend.
+            PermissionsBottomSheet.launch(activity.fragment!!.childFragmentManager, PermissionSet.LEGACY_NOTIFICATIONS)
+            advanceRobolectricLooper()
+            captureScreen("legacyNotificationPermissionBottomSheet")
+        }
     }
 
     @Test
