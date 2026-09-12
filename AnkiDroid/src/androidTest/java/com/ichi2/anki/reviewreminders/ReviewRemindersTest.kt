@@ -2,6 +2,11 @@
 
 package com.ichi2.anki.reviewreminders
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.os.Build
+import android.os.ParcelFileDescriptor
+import android.os.Process
 import android.text.format.DateFormat
 import android.widget.EditText
 import androidx.core.content.edit
@@ -21,10 +26,16 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.google.android.material.chip.Chip
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.R
+import com.ichi2.anki.common.permissions.canPostNotifications
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.tests.InstrumentedTest
@@ -41,8 +52,10 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.regex.Pattern
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import com.google.android.material.R as MaterialR
 
@@ -308,6 +321,170 @@ class ReviewRemindersTest : InstrumentedTest() {
         withReminders(reminderCount = 1) {
             assertReminderRow(reminder, deckName)
         }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
+    fun grantNotificationPermissionWhenCreatingReminder() {
+        withNotificationsEnabled(false) {
+            withReminders {
+                openAddDialog()
+                onView(withId(android.R.id.button1)).perform(click())
+                val reminder = awaitSingleReminder()
+
+                onView(withId(R.id.notification_permission)).checkWithTimeout(matches(isDisplayed()))
+                assertTrue(Prefs.reminderNotifsRequestShown)
+                onView(withId(R.id.notification_permission)).perform(click())
+                val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+                val allowButton =
+                    device.wait(
+                        Until.findObject(By.res(Pattern.compile(".*:id/permission_allow_button"))),
+                        10_000,
+                    )
+                assertNotNull(allowButton, "Android's notification permission dialog did not appear").click()
+
+                waitUntil(message = { "Notification permission was not granted" }) { canPostNotifications(testContext) }
+                onView(withId(R.id.bottom_sheet_fragment_container)).checkWithTimeout(doesNotExist())
+                assertTrue(Prefs.notificationsPermissionRequested)
+                assertReminderRow(reminder, allDecksName)
+            }
+        }
+    }
+
+    @Test
+    fun notificationPermissionPromptIsOnlyShownOnce() {
+        withNotificationsEnabled(false) {
+            withReminders {
+                openAddDialog()
+                onView(withId(android.R.id.button1)).perform(click())
+                val reminder = awaitSingleReminder()
+
+                val permissionView =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        R.id.notification_permission
+                    } else {
+                        R.id.legacy_notification_permission
+                    }
+                onView(withId(permissionView)).checkWithTimeout(matches(isDisplayed()))
+                assertTrue(Prefs.reminderNotifsRequestShown)
+                onView(withId(R.id.close_button)).perform(click())
+                assertReminderRow(reminder, allDecksName)
+            }
+            withReminders(reminderCount = 1) {
+                openAddDialog()
+                onView(withId(android.R.id.button1)).perform(click())
+
+                waitUntil(message = { "The second reminder was not saved" }) { storedReminders().size == 2 }
+                onView(withId(R.id.bottom_sheet_fragment_container)).check(doesNotExist())
+                assertReminderCount(2)
+                assertFalse(canPostNotifications(testContext), "Dismissing the sheet must not grant permission")
+            }
+        }
+    }
+
+    @Test
+    fun notificationPermissionPromptIsSkippedWhenGranted() {
+        withNotificationsEnabled(true) {
+            withReminders {
+                openAddDialog()
+                onView(withId(android.R.id.button1)).perform(click())
+
+                assertReminderRow(awaitSingleReminder(), allDecksName)
+                onView(withId(R.id.bottom_sheet_fragment_container)).check(doesNotExist())
+                assertFalse(Prefs.reminderNotifsRequestShown, "A sheet that was not shown must not consume the first request")
+            }
+        }
+    }
+
+    @Test
+    fun cancelCreatingReminderDoesNotRequestNotificationPermission() {
+        withNotificationsEnabled(false) {
+            withReminders {
+                openAddDialog()
+                onView(withId(android.R.id.button3)).perform(click())
+
+                onView(withId(R.id.bottom_sheet_fragment_container)).check(doesNotExist())
+                assertFalse(Prefs.reminderNotifsRequestShown)
+                assertTrue(storedReminders().isEmpty())
+                assertReminderCount(0)
+            }
+        }
+    }
+
+    private fun withNotificationsEnabled(
+        enabled: Boolean,
+        action: () -> Unit,
+    ) {
+        val originallyEnabled = canPostNotifications(testContext)
+        val originallyRequested = Prefs.notificationsPermissionRequested
+        val legacySheetShown = Prefs.notificationsBottomSheetShownBelowAPI33
+        try {
+            Prefs.reminderNotifsRequestShown = false
+            Prefs.notificationsPermissionRequested = false
+            Prefs.notificationsBottomSheetShownBelowAPI33 = false
+            setNotificationsEnabled(enabled)
+            action()
+        } finally {
+            setNotificationsEnabled(originallyEnabled)
+            Prefs.notificationsPermissionRequested = originallyRequested
+            Prefs.notificationsBottomSheetShownBelowAPI33 = legacySheetShown
+        }
+    }
+
+    @SuppressLint("PrivateApi")
+    private fun setNotificationsEnabled(enabled: Boolean) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val packageName = testContext.packageName
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            runPermissionCommand("pm clear-permission-flags $packageName $permission user-set user-fixed")
+            val automation = instrumentation.uiAutomation
+            if (enabled) {
+                automation.grantRuntimePermission(packageName, permission)
+            } else {
+                // Ordinary revocation kills the instrumented app. Android provides a notification-specific
+                // @TestApi for this purpose, but it is hidden from the public SDK.
+                automation.adoptShellPermissionIdentity(
+                    "android.permission.REVOKE_POST_NOTIFICATIONS_WITHOUT_KILL",
+                    "android.permission.REVOKE_RUNTIME_PERMISSIONS",
+                )
+                try {
+                    val manager = testContext.getSystemService("permission")!!
+                    manager.javaClass
+                        .getMethod(
+                            "revokePostNotificationPermissionWithoutKillForTest",
+                            String::class.java,
+                            Int::class.javaPrimitiveType,
+                        ).invoke(manager, packageName, Process.myUserHandle().hashCode())
+                } finally {
+                    automation.dropShellPermissionIdentity()
+                }
+            }
+        } else {
+            val mode = if (enabled) "allow" else "ignore"
+            runPermissionCommand("appops set $packageName POST_NOTIFICATION $mode")
+        }
+        waitUntil(message = { "Expected notifications enabled = $enabled" }) { canPostNotifications(testContext) == enabled }
+    }
+
+    /** These permission commands produce no output on success. */
+    private fun runPermissionCommand(command: String) {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val descriptors =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                automation.executeShellCommandRwe(command)
+            } else {
+                arrayOf(automation.executeShellCommand(command))
+            }
+        descriptors.getOrNull(1)?.close() // No input is needed.
+        val output = ParcelFileDescriptor.AutoCloseInputStream(descriptors[0]).bufferedReader().use { it.readText() }
+        val errors =
+            if (descriptors.size > 2) {
+                ParcelFileDescriptor.AutoCloseInputStream(descriptors[2]).bufferedReader().use { it.readText() }
+            } else {
+                ""
+            }
+        assertTrue(output.isBlank() && errors.isBlank(), "$command: $output $errors")
     }
 
     private fun withReminders(
