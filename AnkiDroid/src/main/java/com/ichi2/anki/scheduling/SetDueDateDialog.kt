@@ -213,8 +213,12 @@ class SetDueDateDialog : AnalyticsDialogFragment() {
                 binding.changeInterval.also { cb ->
                     // `.also` is used as .isVisible is an extension, so Kotlin prefers
                     // incorrectly setting Fragment.isVisible
-                    cb.isVisible = viewModel.canSetUpdateIntervalToMatchDueDate
-                    cb.isChecked = viewModel.updateIntervalToMatchDueDate
+                    lifecycleScope.launch {
+                        viewModel.fsrsEnabled.collect {
+                            cb.isVisible = viewModel.canSetUpdateIntervalToMatchDueDate
+                            cb.isChecked = viewModel.updateIntervalToMatchDueDate
+                        }
+                    }
                     cb.setOnCheckedChangeListener { _, isChecked ->
                         viewModel.updateIntervalToMatchDueDate = isChecked
                     }
