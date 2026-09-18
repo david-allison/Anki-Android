@@ -157,8 +157,9 @@ class SetDueDateViewModelTest : JvmTest() {
         fsrsEnabled: Boolean = false,
         testBody: suspend SetDueDateViewModel.() -> Unit,
     ) = runTest {
+        col.config.set("fsrs", fsrsEnabled)
         val viewModel = SetDueDateViewModel()
-        viewModel.init(cardIds, fsrsEnabled = fsrsEnabled)
+        viewModel.init(cardIds)
         testBody(viewModel)
     }
 }
