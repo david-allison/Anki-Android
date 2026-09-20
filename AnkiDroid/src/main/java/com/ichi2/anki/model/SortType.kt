@@ -9,7 +9,9 @@ import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
 import com.ichi2.anki.browser.BrowserColumnKey
+import com.ichi2.anki.common.utils.ext.cardBrowserSortBackwards
 import com.ichi2.anki.common.utils.ext.cardBrowserSortColumn
+import com.ichi2.anki.common.utils.ext.noteBrowserSortBackwards
 import com.ichi2.anki.common.utils.ext.noteBrowserSortColumn
 import com.ichi2.anki.libanki.BrowserConfig
 import com.ichi2.anki.libanki.SortOrder
@@ -56,11 +58,11 @@ sealed class SortType : Parcelable {
                     when (cardsOrNotes) {
                         CardsOrNotes.CARDS -> {
                             config.cardBrowserSortColumn = this@SortType.key.value
-                            config.set(BrowserConfig.CARDS_SORT_BACKWARDS_KEY, this@SortType.reverse)
+                            config.cardBrowserSortBackwards = this@SortType.reverse
                         }
                         NOTES -> {
                             config.noteBrowserSortColumn = this@SortType.key.value
-                            config.set(BrowserConfig.NOTES_SORT_BACKWARDS_KEY, this@SortType.reverse)
+                            config.noteBrowserSortBackwards = this@SortType.reverse
                         }
                     }
                 }
@@ -117,14 +119,5 @@ private suspend fun getBrowserColumnKey(cardsOrNotes: CardsOrNotes): String =
 
 private suspend fun getSortBackwards(cardsOrNotes: CardsOrNotes): Boolean =
     withCol {
-        if (cardsOrNotes ==
-            NOTES
-        ) {
-            (config.get<Boolean>(BrowserConfig.NOTES_SORT_BACKWARDS_KEY) ?: false)
-        } else {
-            (
-                config.get<Boolean>(BrowserConfig.CARDS_SORT_BACKWARDS_KEY)
-                    ?: false
-            )
-        }
+        if (cardsOrNotes == NOTES) config.noteBrowserSortBackwards else config.cardBrowserSortBackwards
     }

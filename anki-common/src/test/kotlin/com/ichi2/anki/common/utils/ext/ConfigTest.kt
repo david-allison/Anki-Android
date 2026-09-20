@@ -28,6 +28,8 @@ class ConfigTest : InMemoryAnkiTest() {
                 "dueCounts",
                 "sortType",
                 "noteSortType",
+                "sortBackwards",
+                "browserNoteSortBackwards",
             )
 
         fun assertDefaults() {
@@ -38,6 +40,8 @@ class ConfigTest : InMemoryAnkiTest() {
             assertTrue(col.config.showRemainingDueCounts)
             assertEquals("noteFld", col.config.cardBrowserSortColumn)
             assertEquals("noteFld", col.config.noteBrowserSortColumn)
+            assertFalse(col.config.cardBrowserSortBackwards)
+            assertFalse(col.config.noteBrowserSortBackwards)
         }
 
         keys.forEach { col.config.remove(it) }
