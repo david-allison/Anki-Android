@@ -42,6 +42,7 @@ import com.ichi2.anki.common.destinations.CardInfoDestination
 import com.ichi2.anki.common.destinations.CardInfoDestination.EntryPoint
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.ui.TransitionDirection
+import com.ichi2.anki.common.utils.ext.ignoreAccentsInSearch
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
 import com.ichi2.anki.export.ExportDialogFragment.ExportType
 import com.ichi2.anki.launchCatchingIO
@@ -65,7 +66,6 @@ import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.preferences.SharedPreferencesProvider
 import com.ichi2.anki.utils.ext.getCardOrNull
-import com.ichi2.anki.utils.ext.ignoreAccentsInSearch
 import com.ichi2.anki.utils.ext.setUserFlagForCards
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
