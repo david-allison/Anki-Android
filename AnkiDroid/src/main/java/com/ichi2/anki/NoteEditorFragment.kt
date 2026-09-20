@@ -2548,10 +2548,9 @@ class NoteEditorFragment :
         currentDeck.put("mid", newId)
         getColUnsafe.decks.save(currentDeck)
 
-        // Update deck
-        if (!getColUnsafe.config.getBool(ConfigKey.Bool.ADDING_DEFAULTS_TO_CURRENT_DECK)) {
-            deckId = getColUnsafe.defaultsForAdding().deckId
-        }
+        // Anki preserves the editor's deck when the new note type has no remembered destination.
+        // https://github.com/ankitects/anki/blob/754ce3a25f608010c0249e074e5d7fe95bda035f/qt/aqt/addcards_legacy.py#L165-L171
+        getColUnsafe.defaultDeckForNoteType(newId)?.let { deckId = it }
 
         refreshNoteData(FieldChangeType.changeFieldCount(shouldReplaceNewlines()))
         setDuplicateFieldStyles()

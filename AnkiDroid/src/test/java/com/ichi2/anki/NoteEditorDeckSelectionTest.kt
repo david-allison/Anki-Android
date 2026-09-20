@@ -15,6 +15,7 @@ import com.ichi2.anki.noteeditor.openNoteEditorWithArgs
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -35,6 +36,8 @@ class NoteEditorDeckSelectionTest : RobolectricTest() {
         ensureCollectionLoadIsSynchronous()
         col.config.setBool(ConfigKey.Bool.ADDING_DEFAULTS_TO_CURRENT_DECK, current)
     }
+
+    private fun openAdd() = openNoteEditorWithArgs(NoteEditorFragment.addNoteArgs())
 
     private fun share(text: String) =
         openNoteEditorWithArgs(
@@ -120,5 +123,43 @@ class NoteEditorDeckSelectionTest : RobolectricTest() {
                 assertEquals(rememberedDeck, activity.getNoteEditorFragment().deckId)
                 activity.finish()
             }
+        }
+
+    @Test
+    fun `switching to a note type without history preserves the chosen deck`() =
+        runTest {
+            useCurrentDeck(false)
+            addDeck("Study A", setAsSelected = true)
+            val b = addDeck("Add B")
+            val reversed = col.notetypes.basicAndReversed
+            assertNull(col.defaultDeckForNoteType(reversed.id))
+            val editor = openAdd()
+            editor.select(b)
+            editor.setCurrentlySelectedNoteType(reversed.id)
+            advanceRobolectricLooper()
+            assertEquals(reversed.id, editor.editorNote!!.noteTypeId)
+            assertEquals(b, editor.deckId)
+        }
+
+    @Test
+    fun `deleted remembered deck does not replace the editor destination on a note-type change`() =
+        runTest {
+            useCurrentDeck(false)
+            addDeck("Study", setAsSelected = true)
+            val destination = addDeck("Destination")
+            val deletedDeck = addDeck("Deleted")
+            val reversed = col.notetypes.basicAndReversed
+            col.addNote(col.newNote(reversed).apply { fields[0] = "existing" }, deletedDeck)
+            col.decks.remove(listOf(deletedDeck))
+            col.notetypes.setCurrent(col.notetypes.basic)
+            assertNull(col.defaultDeckForNoteType(reversed.id))
+
+            val editor = openAdd()
+            editor.select(destination)
+            editor.setCurrentlySelectedNoteType(reversed.id)
+            advanceRobolectricLooper()
+
+            assertEquals(reversed.id, editor.editorNote!!.noteTypeId)
+            assertEquals(destination, editor.deckId)
         }
 }
