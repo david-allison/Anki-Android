@@ -10,12 +10,12 @@ import androidx.core.view.RoundedCornerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type.displayCutout
-import androidx.core.view.WindowInsetsCompat.Type.ime
 import androidx.core.view.WindowInsetsCompat.Type.navigationBars
 import androidx.core.view.WindowInsetsCompat.Type.statusBars
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.noteeditor.toIntent
 import com.ichi2.testutils.insetsOf
+import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.utils.dp
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
@@ -139,22 +139,6 @@ class NoteEditorScreenshotTest : ScreenshotTest() {
             }
         ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
         addOverlay(navBarWidth.toPx(targetContext), FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END)
-    }
-
-    /** As [simulateNavigationBar], but with the keyboard open over it */
-    private fun NoteEditorActivity.simulateKeyboard() {
-        val keyboardHeight = 300.dp
-        val insets =
-            with(targetContext) {
-                WindowInsetsCompat
-                    .Builder()
-                    .setInsets(statusBars(), insetsOf(top = 24.dp))
-                    .setInsets(navigationBars(), insetsOf(bottom = 48.dp))
-                    .setInsets(ime(), insetsOf(bottom = keyboardHeight))
-                    .build()
-            }
-        ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
-        addOverlay(FrameLayout.LayoutParams.MATCH_PARENT, keyboardHeight.toPx(targetContext), Gravity.BOTTOM)
     }
 
     private fun NoteEditorActivity.addOverlay(
