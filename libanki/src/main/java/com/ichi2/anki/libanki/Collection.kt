@@ -661,6 +661,15 @@ class Collection(
     @LibAnkiAlias("new_note")
     fun newNote(notetype: NotetypeJson): Note = Note.fromNotetypeId(this, notetype.id)
 
+    /**
+     * Adds the note and records the last deck for its note type, the last note type for the deck,
+     * and the current note type. The selected study deck is unchanged.
+     *
+     * These defaults are recorded by the backend as part of the successful add operation, not when
+     * a user changes the editor's selections.
+     *
+     * @see <a href="https://github.com/ankitects/anki/blob/754ce3a25f608010c0249e074e5d7fe95bda035f/rslib/src/notes/mod.rs#L377-L392">Upstream add_note_inner</a>
+     */
     @LibAnkiAlias("add_note")
     fun addNote(
         note: Note,
@@ -713,9 +722,18 @@ class Collection(
     fun cardIdsOfNote(nid: NoteId): List<CardId> = backend.cardsOfNote(nid = nid)
 
     /**
-     * Get starting deck and notetype for add screen.
-     * An option in the preferences controls whether this will be based on the current deck
-     * or current notetype.
+     * Get the starting deck and note type for the Add screen. Use both values together.
+     *
+     * With "default to current deck", use the selected normal deck and its last-used note type.
+     * Otherwise, use the current note type and its last-used normal deck, falling back to the
+     * selected deck. If the selected deck is filtered or missing, use [currentReviewCard]'s home
+     * deck when supplied, then Default. Missing note-type history falls back to the current note
+     * type, then the first available type.
+     *
+     * For a note-type change in an already open editor, use [defaultDeckForNoteType] instead:
+     * its null result means to preserve the editor's current destination.
+     *
+     * @see <a href="https://github.com/ankitects/anki/blob/754ce3a25f608010c0249e074e5d7fe95bda035f/rslib/src/adding.rs#L13-L98">Upstream defaults_for_adding</a>
      */
     @CheckResult
     @LibAnkiAlias("defaults_for_adding")
@@ -726,7 +744,9 @@ class Collection(
 
     /**
      * If 'change deck depending on notetype' is enabled in the preferences,
-     * return the last deck used with the provided notetype, if any..
+     * return the last valid normal deck used with the provided note type, if any.
+     * A null result means the editor should keep its current deck selection. This also applies
+     * when the remembered deck was deleted or is filtered, or the preference is disabled.
      */
     @CheckResult
     @LibAnkiAlias("default_deck_for_notetype")
