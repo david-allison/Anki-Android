@@ -3,6 +3,8 @@
 package com.ichi2.anki.common.utils.ext
 
 import anki.config.ConfigKey
+import com.ichi2.anki.browser.search.SavedSearch
+import com.ichi2.anki.browser.search.toMap
 import com.ichi2.anki.common.utils.ConfigProperty
 import com.ichi2.anki.common.utils.configProperty
 import com.ichi2.anki.common.utils.ext.AddingDefaultsMode.DECIDE_BY_NOTE_TYPE
@@ -88,4 +90,13 @@ var Config.flagLabels by ConfigProperty(
     // Construct a fresh object on each read, including when the stored value is invalid.
     read = { getObject("flagLabels", JSONObject()) },
     write = { set("flagLabels", it) },
+)
+
+/**
+ * Saved searches in the collection. Names are case-sensitive.
+ * Anki Desktop orders them by name, regardless of the order written here.
+ */
+var Config.savedFilters by jsonConfigProperty<Map<String, String>>("savedFilters").orDefault(emptyMap()).mapped(
+    decode = { values -> values.map { (name, query) -> SavedSearch(name, query) } },
+    encode = { values -> values.toMap() },
 )
