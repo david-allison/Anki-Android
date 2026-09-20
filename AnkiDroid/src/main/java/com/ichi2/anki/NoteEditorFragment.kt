@@ -113,7 +113,6 @@ import com.ichi2.anki.libanki.CardOrdinal
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Consts
 import com.ichi2.anki.libanki.DeckId
-import com.ichi2.anki.libanki.Decks.Companion.CURRENT_DECK
 import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.Fields
 import com.ichi2.anki.libanki.Note
@@ -776,7 +775,6 @@ class NoteEditorFragment :
             }
         }
         val getTextFromSearchView = requireArguments().getString(EXTRA_TEXT_FROM_SEARCH_VIEW)
-        setDid(editorNote)
         setNote(editorNote, FieldChangeType.onActivityCreation(shouldReplaceNewlines()))
         if (addNote) {
             noteTypeSpinner!!.onItemSelectedListener = SetNoteTypeListener()
@@ -2095,34 +2093,7 @@ class NoteEditorFragment :
         return fieldText.toString()
     }
 
-    private fun setDid(note: Note?) {
-        fun calculateDeckId(): DeckId {
-            if (deckId != 0L) return deckId
-            if (note != null && !addNote && currentEditedCard != null) {
-                return currentEditedCard!!.currentDeckId()
-            }
-
-            if (!getColUnsafe.config.getBool(ConfigKey.Bool.ADDING_DEFAULTS_TO_CURRENT_DECK)) {
-                return getColUnsafe.notetypes.current().let {
-                    Timber.d("Adding to deck of note type, noteType: %s", it.name)
-                    return@let it.did
-                }
-            }
-
-            val currentDeckId = getColUnsafe.config.get(CURRENT_DECK) ?: 1L
-            return if (getColUnsafe.decks.isFiltered(currentDeckId)) {
-                /*
-                 * If the deck in mCurrentDid is a filtered (dynamic) deck, then we can't create cards in it,
-                 * and we set mCurrentDid to the Default deck. Otherwise, we keep the number that had been
-                 * selected previously in the activity.
-                 */
-                1
-            } else {
-                currentDeckId
-            }
-        }
-
-        deckId = calculateDeckId()
+    private fun updateDeckName() {
         launchCatchingTask {
             val selectedDeckName = withCol { decks.name(deckId) }
             view?.findViewById<TextView>(R.id.note_deck_name)?.text = selectedDeckName
@@ -2145,7 +2116,7 @@ class NoteEditorFragment :
         }
         // nb: setOnItemSelectedListener and populateEditFields need to occur after this
         setNoteTypePosition()
-        setDid(note)
+        updateDeckName()
         updateTags()
         updateCards(editorNote!!.notetype)
         updateToolbar()
