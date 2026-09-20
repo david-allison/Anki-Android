@@ -18,6 +18,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.common.utils.ext.cardStateCustomizer
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.tests.checkWithTimeout
 import com.ichi2.anki.tests.libanki.RetryRule
@@ -27,7 +28,6 @@ import com.ichi2.anki.testutil.closeBackupCollectionDialogIfExists
 import com.ichi2.anki.testutil.closeGetStartedScreenIfExists
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
-import com.ichi2.anki.utils.ext.cardStateCustomizer
 import com.ichi2.testutils.common.Flaky
 import com.ichi2.testutils.common.OS
 import org.hamcrest.MatcherAssert.assertThat
@@ -70,7 +70,7 @@ class ReviewerTest : InstrumentedTest() {
     @Test
     @Flaky(os = OS.ALL, "Fails on CI with timing issues frequently")
     fun testCustomSchedulerWithCustomData() {
-        col.cardStateCustomizer =
+        col.config.cardStateCustomizer =
             """
             states.good.normal.review.easeFactor = 3.0;
             states.good.normal.review.scheduledDays = 123;
@@ -123,7 +123,7 @@ class ReviewerTest : InstrumentedTest() {
     @Flaky(os = OS.ALL, "Fails on CI with timing issues frequently")
     fun testCustomSchedulerWithRuntimeError() {
         // Issue 15035 - runtime errors weren't handled
-        col.cardStateCustomizer = "states.this_is_not_defined.normal.review = 12;"
+        col.config.cardStateCustomizer = "states.this_is_not_defined.normal.review = 12;"
         addNoteUsingBasicNoteType()
 
         closeGetStartedScreenIfExists()
