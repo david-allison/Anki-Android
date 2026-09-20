@@ -26,6 +26,8 @@ class ConfigTest : InMemoryAnkiTest() {
                 "rollover",
                 "estTimes",
                 "dueCounts",
+                "sortType",
+                "noteSortType",
             )
 
         fun assertDefaults() {
@@ -34,6 +36,8 @@ class ConfigTest : InMemoryAnkiTest() {
             assertEquals(4, col.config.rolloverHour)
             assertTrue(col.config.showIntervalsOnButtons)
             assertTrue(col.config.showRemainingDueCounts)
+            assertEquals("noteFld", col.config.cardBrowserSortColumn)
+            assertEquals("noteFld", col.config.noteBrowserSortColumn)
         }
 
         keys.forEach { col.config.remove(it) }
