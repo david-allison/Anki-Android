@@ -108,6 +108,7 @@ import com.ichi2.anki.common.utils.HashUtil.hashSetInit
 import com.ichi2.anki.common.utils.android.HandlerUtils.newHandler
 import com.ichi2.anki.common.utils.android.getResFromAttr
 import com.ichi2.anki.common.utils.android.showThemedToast
+import com.ichi2.anki.common.utils.ext.showIntervalsOnButtons
 import com.ichi2.anki.compat.CompatHelper.Companion.resolveActivityCompat
 import com.ichi2.anki.compat.ResolveInfoFlagsCompat
 import com.ichi2.anki.dialogs.TtsPlaybackErrorDialog
@@ -1251,7 +1252,7 @@ abstract class AbstractFlashcardViewer :
         // These are preferences we pull out of the collection instead of SharedPreferences
         try {
             lifecycle.removeObserver(automaticAnswer)
-            showNextReviewTime = col.config.get("estTimes") ?: true
+            showNextReviewTime = col.config.showIntervalsOnButtons
             automaticAnswer = AutomaticAnswer.createInstance(this, col)
             lifecycle.addObserver(automaticAnswer)
         } catch (ex: Exception) {
