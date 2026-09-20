@@ -36,6 +36,17 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.jakewharton.timber)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(testFixtures(project(":libanki")))
+    testImplementation(testFixtures(project(":common")))
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.junit.vintage.engine)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.json)
 
     testFixturesImplementation(project(":common:android"))
     testFixturesImplementation(libs.androidx.core.ktx)
