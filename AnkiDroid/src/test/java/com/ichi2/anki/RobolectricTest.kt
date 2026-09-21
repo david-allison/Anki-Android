@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Resources
+import android.os.Bundle
 import android.os.Looper
 import android.widget.TextView
 import androidx.annotation.CallSuper
@@ -298,6 +299,7 @@ open class RobolectricTest :
             testClass: RobolectricTest,
             clazz: Class<T>?,
             i: Intent?,
+            savedInstanceState: Bundle? = null,
         ): ActivityController<T> {
             if (AbstractFlashcardViewer::class.java.isAssignableFrom(clazz!!)) {
                 // fixes 'Don't know what to do with dataSource...' inside Sounds.kt
@@ -309,8 +311,9 @@ open class RobolectricTest :
             val controller =
                 Robolectric
                     .buildActivity(clazz, i)
-                    .create()
+                    .create(savedInstanceState)
                     .start()
+                    .apply { savedInstanceState?.let(::restoreInstanceState) }
                     .resume()
                     .visible()
             advanceRobolectricLooper()
@@ -393,7 +396,8 @@ open class RobolectricTest :
     internal fun <T : Activity?> startActivityControllerNormallyOpenCollectionWithIntent(
         clazz: Class<T>?,
         i: Intent?,
-    ): ActivityController<T> = startActivityControllerNormallyOpenCollectionWithIntent(this, clazz, i)
+        savedInstanceState: Bundle? = null,
+    ): ActivityController<T> = startActivityControllerNormallyOpenCollectionWithIntent(this, clazz, i, savedInstanceState)
 
     internal inline fun <reified T : Activity?> startRegularActivity(): T = startRegularActivity(null)
 
