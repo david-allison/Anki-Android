@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package com.ichi2.anki.dialogs.viewmodel
 
+import android.os.Bundle
 import android.os.Parcelable
 import androidx.lifecycle.ViewModel
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.dialogs.ExportReadyDialog
 import com.ichi2.anki.utils.ViewModelSavedStateHandle
 import com.ichi2.anki.utils.savedStateViewModelFactory
@@ -42,7 +44,12 @@ class ExportReadyViewModel(
     ) : Parcelable
 
     companion object {
-        val factory = savedStateViewModelFactory(create = ::ExportReadyViewModel)
+        val factory =
+            savedStateViewModelFactory { handle ->
+                // The previous default factory persisted whole fragment arguments, including large notes.
+                handle.remove<Bundle>(SingleFragmentActivity.EXTRA_FRAGMENT_ARGS)
+                ExportReadyViewModel(handle)
+            }
 
         private const val ARG_EXPORT_READY_PARAMS = "arg_export_ready_params"
     }
