@@ -34,6 +34,8 @@ import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.collectIn
+import com.ichi2.anki.utils.ext.getIntOrNull
+import com.ichi2.anki.utils.ext.requireParcelable
 import com.ichi2.anki.utils.ext.setIconRes
 import com.ichi2.anki.utils.ext.sharedPrefs
 import com.ichi2.anki.workarounds.SafeWebViewLayout
@@ -48,7 +50,13 @@ class PreviewerFragment :
     BaseSnackbarBuilderProvider,
     DispatchKeyEventListener,
     BindingProcessor<MappableBinding, PreviewerAction> {
-    override val viewModel: PreviewerViewModel by viewModels()
+    override val viewModel: PreviewerViewModel by viewModels {
+        val arguments = requireArguments()
+        PreviewerViewModel.factory(
+            idsFile = arguments.requireParcelable(CARD_IDS_FILE_ARG),
+            initialIndex = requireNotNull(arguments.getIntOrNull(CURRENT_INDEX_ARG)),
+        )
+    }
     private val binding by viewBinding(FragmentPreviewerBinding::bind)
     override val webViewLayout: SafeWebViewLayout get() = binding.webViewLayout
 

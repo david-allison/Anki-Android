@@ -3,7 +3,6 @@
 package com.ichi2.anki.previewer
 
 import androidx.annotation.VisibleForTesting
-import androidx.lifecycle.SavedStateHandle
 import anki.collection.OpChanges
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
@@ -20,9 +19,10 @@ import com.ichi2.anki.pages.AnkiServer
 import com.ichi2.anki.reviewer.CardSide
 import com.ichi2.anki.servicelayer.MARKED_TAG
 import com.ichi2.anki.servicelayer.NoteService
+import com.ichi2.anki.utils.ViewModelSavedStateHandle
 import com.ichi2.anki.utils.ext.flag
-import com.ichi2.anki.utils.ext.require
 import com.ichi2.anki.utils.ext.setUserFlagForCards
+import com.ichi2.anki.utils.savedStateViewModelFactory
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -30,20 +30,22 @@ import kotlinx.coroutines.flow.update
 import timber.log.Timber
 
 class PreviewerViewModel(
-    savedStateHandle: SavedStateHandle,
+    savedStateHandle: ViewModelSavedStateHandle,
+    idsFile: IdsFile,
+    initialIndex: Int,
 ) : CardViewerViewModel(savedStateHandle),
     ChangeManager.Subscriber {
     val currentIndex =
         savedStateHandle.getMutableStateFlow(
             KEY_CURRENT_INDEX,
-            initialValue = savedStateHandle.require<Int>(PreviewerFragment.CURRENT_INDEX_ARG),
+            initialValue = initialIndex,
         )
     val backSideOnly = savedStateHandle.getMutableStateFlow(KEY_BACKSIDE_ONLY, false)
     val isMarked = MutableStateFlow(false)
     val flag: MutableStateFlow<Flag> = MutableStateFlow(Flag.NONE)
 
     @VisibleForTesting
-    val selectedCardIds: List<Long> = savedStateHandle.require<IdsFile>(PreviewerFragment.CARD_IDS_FILE_ARG).getIds()
+    val selectedCardIds: List<Long> = idsFile.getIds()
 
     val isBackButtonEnabled =
         combine(currentIndex, showingAnswer, backSideOnly) { index, showingAnswer, isBackSideOnly ->
@@ -58,7 +60,7 @@ class PreviewerViewModel(
 
     override var currentCard: Deferred<Card> =
         asyncIO {
-            withCol { getCard(selectedCardIds[savedStateHandle.require(PreviewerFragment.CURRENT_INDEX_ARG)]) }
+            withCol { getCard(selectedCardIds[currentIndex.value]) }
         }
     override val server = AnkiServer(this).also { it.start() }
 
@@ -259,6 +261,13 @@ class PreviewerViewModel(
     }
 
     companion object {
+        fun factory(
+            idsFile: IdsFile,
+            initialIndex: Int,
+        ) = savedStateViewModelFactory { handle ->
+            PreviewerViewModel(handle, idsFile, initialIndex)
+        }
+
         private const val KEY_BACKSIDE_ONLY = "backsideOnly"
         private const val KEY_CURRENT_INDEX = "currentIndex"
     }

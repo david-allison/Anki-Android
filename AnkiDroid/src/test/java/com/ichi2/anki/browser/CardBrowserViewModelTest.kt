@@ -406,27 +406,25 @@ class CardBrowserViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `EXTRA_DECK_ID intent opens the specified deck`() =
+    fun `initial deck opens the specified deck`() =
         runTest {
             val deckId = addDeck("New")
-            val savedState = SavedStateHandle(mapOf(CardBrowserViewModel.EXTRA_DECK_ID to deckId))
-            viewModel(savedStateHandle = savedState).apply {
+            viewModel(initialDeckId = deckId).apply {
                 assertThat("intent deck is selected", deckId, equalTo(this.deckId))
             }
         }
 
     @Test
-    fun `EXTRA_DECK_ID intent persists deck to lastDeckIdRepository`() =
+    fun `initial deck persists to lastDeckIdRepository`() =
         runTest {
             val deckId = addDeck("New")
-            val savedState = SavedStateHandle(mapOf(CardBrowserViewModel.EXTRA_DECK_ID to deckId))
-            viewModel(savedStateHandle = savedState).apply {
+            viewModel(initialDeckId = deckId).apply {
                 assertThat("deck persisted for next launch", lastDeckId, equalTo(deckId))
             }
         }
 
     @Test
-    fun `no EXTRA_DECK_ID falls back to lastDeckIdRepository`() =
+    fun `no initial deck falls back to lastDeckIdRepository`() =
         runTest {
             val deckId = addDeck("Persisted")
             viewModel(lastDeckId = deckId).apply {
@@ -435,12 +433,11 @@ class CardBrowserViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `EXTRA_DECK_ID for unknown deck falls back to lastDeckIdRepository`() =
+    fun `unknown initial deck falls back to lastDeckIdRepository`() =
         runTest {
             val persisted = addDeck("Persisted")
             val unknownDeckId: DeckId = 9_999_999_999L
-            val savedState = SavedStateHandle(mapOf(CardBrowserViewModel.EXTRA_DECK_ID to unknownDeckId))
-            viewModel(lastDeckId = persisted, savedStateHandle = savedState).apply {
+            viewModel(lastDeckId = persisted, initialDeckId = unknownDeckId).apply {
                 assertThat("unknown intent deck is ignored", persisted, equalTo(this.deckId))
             }
         }
@@ -450,7 +447,7 @@ class CardBrowserViewModelTest : JvmTest() {
         runTest {
             val intentDeckId = addDeck("From intent")
             val userDeckId = addDeck("User selection")
-            val savedState = SavedStateHandle(mapOf(CardBrowserViewModel.EXTRA_DECK_ID to intentDeckId))
+            val savedState = SavedStateHandle()
 
             val persistentRepo =
                 object : LastDeckIdRepository {
@@ -459,6 +456,7 @@ class CardBrowserViewModelTest : JvmTest() {
 
             // setup: initial launch + select new deck
             viewModel(
+                initialDeckId = intentDeckId,
                 savedStateHandle = savedState,
                 lastDeckIdRepository = persistentRepo,
             ).apply {
@@ -469,6 +467,7 @@ class CardBrowserViewModelTest : JvmTest() {
 
             // intent does not override user selection
             viewModel(
+                initialDeckId = intentDeckId,
                 savedStateHandle = savedState,
                 lastDeckIdRepository = persistentRepo,
             ).apply {
@@ -2076,6 +2075,7 @@ class CardBrowserViewModelTest : JvmTest() {
                 lastDeckIdRepository = SharedPreferencesLastDeckIdRepository(),
                 cacheDir = createTransientDirectory(),
                 options = options,
+                initialDeckId = null,
                 preferences = AnkiDroidApp.sharedPreferencesProvider,
                 isFragmented = false,
                 manualInit = initMode == InitMode.MANUAL || initMode == InitMode.AUTOMATIC,
@@ -2105,6 +2105,7 @@ class CardBrowserViewModelTest : JvmTest() {
                 lastDeckIdRepository = SharedPreferencesLastDeckIdRepository(),
                 cacheDir = createTransientDirectory(),
                 options = options,
+                initialDeckId = null,
                 preferences = AnkiDroidApp.sharedPreferencesProvider,
                 isFragmented = isFragmented,
                 manualInit = initMode == InitMode.MANUAL || initMode == InitMode.AUTOMATIC,
@@ -2124,6 +2125,7 @@ class CardBrowserViewModelTest : JvmTest() {
 
         private suspend fun viewModel(
             lastDeckId: DeckId? = null,
+            initialDeckId: DeckId? = null,
             intent: CardBrowserLaunchOptions? = null,
             mode: CardsOrNotes = CardsOrNotes.CARDS,
             savedStateHandle: SavedStateHandle = SavedStateHandle(),
@@ -2142,6 +2144,7 @@ class CardBrowserViewModelTest : JvmTest() {
                 lastDeckIdRepository = lastDeckIdRepository,
                 cacheDir = cache,
                 options = intent,
+                initialDeckId = initialDeckId,
                 isFragmented = false,
                 preferences = AnkiDroidApp.sharedPreferencesProvider,
                 savedStateHandle = savedStateHandle,
@@ -2179,6 +2182,7 @@ private fun runViewModelTest(
             lastDeckIdRepository = SharedPreferencesLastDeckIdRepository(),
             cacheDir = createTransientDirectory(),
             options = null,
+            initialDeckId = null,
             preferences = AnkiDroidApp.sharedPreferencesProvider,
             isFragmented = false,
             manualInit = manualInit,
@@ -2367,6 +2371,7 @@ fun createCardBrowserViewModel(manualInit: Boolean = true): CardBrowserViewModel
             lastDeckIdRepository = SharedPreferencesLastDeckIdRepository(),
             cacheDir = createTransientDirectory(),
             options = null,
+            initialDeckId = null,
             preferences = AnkiDroidApp.sharedPreferencesProvider,
             isFragmented = false,
             manualInit = manualInit,
