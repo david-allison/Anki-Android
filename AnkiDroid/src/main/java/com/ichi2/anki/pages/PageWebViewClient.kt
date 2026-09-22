@@ -4,6 +4,7 @@ package com.ichi2.anki.pages
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Base64
 import android.webkit.ValueCallback
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -16,9 +17,11 @@ import com.ichi2.anki.workarounds.SafeWebViewClient
 import com.ichi2.anki.workarounds.SafeWebViewLayout
 import com.ichi2.utils.AssetHelper.guessMimeType
 import com.ichi2.utils.toRGBHex
+import org.jsoup.Jsoup
 import timber.log.Timber
 import java.io.ByteArrayInputStream
 import java.io.IOException
+import java.security.MessageDigest
 
 /**
  * Base WebViewClient to be used on [PageFragment]
@@ -68,6 +71,10 @@ open class PageWebViewClient : SafeWebViewClient() {
         try {
             val mimeType = guessMimeType(assetPath)
             val inputStream = view.context.assets.open(assetPath)
+            if (assetPath == "backend/sveltekit/index.html") {
+                val html = inputStream.bufferedReader().use { it.readText() }
+                return pageResponse(html, request.url)
+            }
             val response = WebResourceResponse(mimeType, null, inputStream)
             if ("immutable" in path) {
                 response.responseHeaders = mapOf("Cache-Control" to "max-age=31536000")
@@ -77,6 +84,42 @@ open class PageWebViewClient : SafeWebViewClient() {
             Timber.w("Not found %s", assetPath)
         }
         return null
+    }
+
+    /**
+     * Anki's media server replaces the generated CSP according to the route. We serve the same
+     * assets without that server, so must apply the policy here as well.
+     */
+    private fun pageResponse(
+        html: String,
+        url: Uri,
+    ): WebResourceResponse {
+        val document = Jsoup.parse(html)
+        document.outputSettings().prettyPrint(false)
+        document.select("meta[http-equiv=content-security-policy]").remove()
+        val policy =
+            if (url.path?.removePrefix("/")?.substringBefore("/") == "image-occlusion") {
+                // Hash the bundled startup scripts. This also supports older backends whose HTML
+                // predates the generated CSP, without allowing inline scripts from note content.
+                val scriptHashes =
+                    document.select("script:not([src])").joinToString(" ") {
+                        val digest = MessageDigest.getInstance("SHA-256").digest(it.data().toByteArray(Charsets.UTF_8))
+                        "'sha256-${Base64.encodeToString(digest, Base64.NO_WRAP)}'"
+                    }
+                val origin = "${url.scheme}://${url.encodedAuthority}"
+                "script-src $origin/_app/ $origin/_anki/ $scriptHashes; form-action 'none'; frame-ancestors 'none'"
+            } else {
+                // Trusted pages use javascript: bridge links, including Custom Study and Unbury.
+                "frame-ancestors 'none'"
+            }
+        return WebResourceResponse(
+            "text/html",
+            "UTF-8",
+            200,
+            "OK",
+            mapOf("Content-Security-Policy" to policy),
+            document.outerHtml().byteInputStream(Charsets.UTF_8),
+        )
     }
 
     override fun onPageStarted(

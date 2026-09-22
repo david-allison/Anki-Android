@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -21,6 +22,34 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class PageWebViewClientTest : RobolectricTest() {
+    @Test
+    fun `trusted pages allow their bridge links but cannot be framed`() =
+        withStatistics { view, client ->
+            val response = assertNotNull(client.shouldInterceptRequest(view, request(assertNotNull(view.url))))
+            assertEquals("frame-ancestors 'none'", response.responseHeaders["Content-Security-Policy"])
+            val html = response.data.bufferedReader().use { it.readText() }
+            assertFalse(html.contains("http-equiv=\"content-security-policy\"", ignoreCase = true))
+        }
+
+    @Test
+    fun `image occlusion permits bundled scripts but restricts note content`() =
+        withStatistics { view, client ->
+            val address =
+                assertNotNull(view.url)
+                    .toUri()
+                    .buildUpon()
+                    .path("/image-occlusion/1")
+                    .build()
+            val response = assertNotNull(client.shouldInterceptRequest(view, request(address.toString())))
+            val policy = assertNotNull(response.responseHeaders["Content-Security-Policy"])
+            assertTrue(policy.contains("http://${address.encodedAuthority}/_app/"))
+            assertTrue(policy.contains("'sha256-"), "the bundled startup script must remain executable")
+            assertTrue(policy.contains("form-action 'none'"))
+            assertTrue(policy.contains("frame-ancestors 'none'"))
+            assertFalse(policy.contains("'self'"), "media must not become executable just because it is local")
+            assertFalse(policy.contains("'unsafe-inline'"))
+        }
+
     @Test
     fun `only the page server can serve bundled pages`() =
         withStatistics { view, client ->
