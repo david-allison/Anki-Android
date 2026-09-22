@@ -20,7 +20,7 @@ class PostRequestHandlerTest : RobolectricTest() {
     fun `All backend typescript functions should be handled`() {
         assertThat(
             "Mapping exists for every TS backend function call",
-            typescriptFunctionsUsedByBackend,
+            typescriptFunctionsUsedByBackend - unsupportedEditorFunctions,
             // this matcher asserts equality in everything but order, no extras, nothing missing
             containsInAnyOrder((collectionMethods + uiMethods).keys),
         )
@@ -42,4 +42,53 @@ class PostRequestHandlerTest : RobolectricTest() {
                 assertThat("Stored Typescript functions", lines, not(empty()))
             }
         }
+
+    // The asset lists imports from every bundled route, including Anki's experimental editor
+    // and preferences. Android does not expose those routes. Keep this list explicit so new
+    // calls still fail this test; do not expose file/clipboard/frontend APIs just for coverage.
+    private val unsupportedEditorFunctions =
+        setOf(
+            "addMediaFile",
+            "addMediaFromPath",
+            "addMediaFromUrl",
+            "addNote",
+            "askUser",
+            "closeAddCards",
+            "closeEditCurrent",
+            "convertPastedImage",
+            "decodeIriPaths",
+            "defaultDeckForNotetype",
+            "defaultsForAdding",
+            "encodeIriPaths",
+            "extractMediaFiles",
+            "getAbsoluteMediaPath",
+            "getCard",
+            "getClozeFieldOrds",
+            "getConfigBool",
+            "getConfigJson",
+            "getDeck",
+            "getMetaJson",
+            "getNote",
+            "getNotetype",
+            "getProfileConfigJson",
+            "htmlToTextLine",
+            "newNote",
+            "noteFieldsCheck",
+            "openCardsDialog",
+            "openFieldsDialog",
+            "openFilePicker",
+            "openLink",
+            "openMedia",
+            "playFile",
+            "readClipboard",
+            "recordAudio",
+            "setConfigJson",
+            "setMetaJson",
+            "setProfileConfigJson",
+            "showInMediaFolder",
+            "showMessageBox",
+            "updateNotes",
+            "updateNotetype",
+            "writeClipboard",
+        )
 }
