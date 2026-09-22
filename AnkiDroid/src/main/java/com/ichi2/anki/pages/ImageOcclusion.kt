@@ -96,7 +96,29 @@ class ImageOcclusion : PageFragment(R.layout.page_image_occlusion) {
             ) {
                 super.onPageFinished(view, url)
                 viewModel.args.toImageOcclusionMode().let { options ->
-                    view?.evaluateJavascript("globalThis.anki.imageOcclusion.mode = $options") {
+                    view?.evaluateJavascript(
+                        """
+                        (() => {
+                            const mode = $options;
+                            if (mode.kind === "add") {
+                                mode.notetypeId = BigInt(mode.notetypeId);
+                            } else {
+                                mode.noteId = BigInt(mode.noteId);
+                            }
+                            // Svelte's asynchronous route may initialize after onPageFinished.
+                            // Apply the native arguments both to an existing API and to a later one.
+                            globalThis.anki ||= {};
+                            let api = globalThis.anki.imageOcclusion;
+                            if (api) api.mode = mode;
+                            Object.defineProperty(globalThis.anki, "imageOcclusion", {
+                                configurable: true,
+                                enumerable: true,
+                                get: () => api,
+                                set: (value) => { value.mode = mode; api = value; },
+                            });
+                        })();
+                        """.trimIndent(),
+                    ) {
                         super.onPageFinished(view, url)
                     }
                 }
