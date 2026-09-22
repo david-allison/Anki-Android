@@ -20,7 +20,12 @@ import kotlin.time.Duration.Companion.seconds
 
 class ImageOcclusionTest : InstrumentedTest() {
     @Test
-    fun editUsesBigIntAndSavesFields() {
+    fun editUsesBigIntAndSavesFields() = editAndSave()
+
+    @Test
+    fun editPreservesIdsBeyondJavaScriptNumberPrecision() = editAndSave(9007199254740993L)
+
+    private fun editAndSave(requestedNoteId: Long? = null) {
         val image = File.createTempFile("occlusion", ".png", testContext.cacheDir)
         var noteId = 0L
         try {
@@ -40,6 +45,11 @@ class ImageOcclusionTest : InstrumentedTest() {
                 tags = listOf("io-roundtrip"),
             )
             noteId = col.findNotes("tag:io-roundtrip").single()
+            if (requestedNoteId != null) {
+                col.db.execute("update notes set id = ? where id = ?", requestedNoteId, noteId)
+                col.db.execute("update cards set nid = ? where nid = ?", requestedNoteId, noteId)
+                noteId = requestedNoteId
+            }
 
             val intent = ImageOcclusion.getIntent(testContext, ImageOcclusionArgs.Edit(noteId))
             ActivityScenario.launch<SingleFragmentActivity>(intent).use { scenario ->
