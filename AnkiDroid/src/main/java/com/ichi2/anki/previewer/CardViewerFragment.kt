@@ -247,7 +247,7 @@ abstract class CardViewerFragment(
     open inner class CardViewerWebViewClient(
         val savedInstanceState: Bundle?,
     ) : SafeWebViewClient() {
-        private val resourceHandler = ViewerResourceHandler(requireContext())
+        private val resourceHandler = ViewerResourceHandler(requireContext(), viewModel.baseUrl().toUri())
         private var hasLoaded = false
 
         override fun shouldInterceptRequest(

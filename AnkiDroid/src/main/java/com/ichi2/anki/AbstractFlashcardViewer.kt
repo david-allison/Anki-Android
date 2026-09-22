@@ -1056,7 +1056,7 @@ abstract class AbstractFlashcardViewer :
     }
 
     protected open fun createWebView(): WebView {
-        val resourceHandler = ViewerResourceHandler(this)
+        val resourceHandler = ViewerResourceHandler(this, server.baseUrl().toUri())
         val webView: WebView =
             MyWebView(this).apply {
                 scrollBarStyle = View.SCROLLBARS_OUTSIDE_OVERLAY

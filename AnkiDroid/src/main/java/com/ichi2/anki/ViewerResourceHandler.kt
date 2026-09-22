@@ -3,6 +3,7 @@
 package com.ichi2.anki
 
 import android.content.Context
+import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -19,8 +20,17 @@ import kotlin.io.path.pathString
 private const val RANGE_HEADER = "Range"
 private const val MATHJAX_PATH_PREFIX = "/_anki/js/vendor/mathjax"
 
+// Match Anki's media-document policy: retain presentation, but prevent HTML/SVG media from
+// executing scripts or reaching the parent card's APIs when loaded in an iframe or object.
+private const val MEDIA_CONTENT_SECURITY_POLICY =
+    "default-src 'none'; script-src 'none'; connect-src 'none'; object-src 'none'; " +
+        "frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'; " +
+        "style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; media-src 'self'; " +
+        "sandbox allow-same-origin"
+
 class ViewerResourceHandler(
     context: Context,
+    private val serverUrl: Uri,
 ) {
     private val assetManager = context.assets
     private val mediaDir = CollectionHelper.getMediaDirectory(context)
@@ -29,7 +39,9 @@ class ViewerResourceHandler(
         val url = request.url
         val path = url.path
 
-        if (request.method != "GET" || path == null) {
+        if (request.method != "GET" || path == null || url.scheme != serverUrl.scheme ||
+            url.encodedAuthority != serverUrl.encodedAuthority
+        ) {
             return null
         }
         if (path == "/favicon.ico") {
@@ -52,12 +64,13 @@ class ViewerResourceHandler(
             if (!file.exists()) {
                 return null
             }
-            request.requestHeaders[RANGE_HEADER]?.let { range ->
-                return handlePartialContent(file, range)
-            }
-            val inputStream = FileInputStream(file)
-            val mimeType = guessMimeType(path)
-            return WebResourceResponse(mimeType, null, inputStream)
+            val response =
+                request.requestHeaders[RANGE_HEADER]?.let { range ->
+                    handlePartialContent(file, range)
+                } ?: WebResourceResponse(guessMimeType(path), null, FileInputStream(file))
+            response.responseHeaders = response.responseHeaders.orEmpty() +
+                ("Content-Security-Policy" to MEDIA_CONTENT_SECURITY_POLICY)
+            return response
         } catch (e: SecurityException) {
             Timber.w("Path traversal attempt blocked")
             return null
