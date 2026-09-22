@@ -20,8 +20,12 @@ open class AnkiServer(
     override fun useGzipWhenAccepted(r: Response?) = false
 
     override fun serve(session: IHTTPSession): Response =
-        when (session.method) {
-            Method.POST -> {
+        when {
+            // The server is reachable from other web pages. Reject cross-origin requests
+            // before reading their bodies or dispatching any collection mutations.
+            session.method == Method.POST && !hasValidOrigin(session) ->
+                newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid origin")
+            session.method == Method.POST -> {
                 val uri = session.uri
                 Timber.d("POST: Requested %s", uri)
                 // NanoHTTPD closes the connection on body read failures by default
@@ -34,7 +38,7 @@ open class AnkiServer(
                     buildResponse(exception.localizedMessage?.encodeToByteArray(), status = Response.Status.INTERNAL_ERROR)
                 }
             }
-            Method.GET -> {
+            session.method == Method.GET -> {
                 Timber.d("Rejecting GET request to server %s", session.uri)
                 newFixedLengthResponse(Response.Status.NOT_FOUND, null, null)
             }
@@ -43,6 +47,11 @@ open class AnkiServer(
                 newFixedLengthResponse(null)
             }
         }
+
+    private fun hasValidOrigin(session: IHTTPSession): Boolean {
+        val authority = "$LOCALHOST:$listeningPort"
+        return session.headers["host"] == authority && session.headers["origin"] == "http://$authority"
+    }
 
     private fun buildResponse(
         data: ByteArray?,
