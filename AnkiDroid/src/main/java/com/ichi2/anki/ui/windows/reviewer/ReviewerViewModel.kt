@@ -636,6 +636,7 @@ class ReviewerViewModel(
             """
             <center>
             <input type="text" id="typeans" onkeydown="ankidroid.onTypeAnswerKeyDown(event);" 
+               ${if (typeAnswer.noSuggest) """data-ankidroid-nosuggest="true" enterkeyhint="done"""" else ""}
                style="font-family: '${typeAnswer.font}'; font-size: ${typeAnswer.fontSize}px;">
             </center>
             """.trimIndent()

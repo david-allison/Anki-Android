@@ -9,6 +9,8 @@ import org.intellij.lang.annotations.Language
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class TypeAnswerTest : RobolectricTest() {
@@ -16,6 +18,28 @@ class TypeAnswerTest : RobolectricTest() {
         super.setUp()
         col
     }
+
+    @Test
+    fun `HTML answer marks nosuggest fields and requests a Done key`() =
+        runTest {
+            for (noSuggest in listOf(true, false)) {
+                val card = addBasicWithTypingNote("front", "back").firstCard()
+                val noteType = card.noteType(col)
+                val filter = if (noSuggest) "nosuggest:type" else "type"
+                noteType.templates[0].qfmt = "{{Front}}{{$filter:Back}}"
+                col.notetypes.save(noteType)
+
+                val typeAnswer = TypeAnswer(useInputTag = true, autoFocus = true)
+                typeAnswer.updateInfo(col, card, targetContext.resources)
+                val html = typeAnswer.filterQuestion(card.question(col))
+                if (noSuggest) {
+                    assertTrue(html.contains("""data-ankidroid-nosuggest="true""""))
+                    assertTrue(html.contains("""enterkeyhint="done""""))
+                } else {
+                    assertFalse(html.contains("data-ankidroid-nosuggest"))
+                }
+            }
+        }
 
     @Test
     fun testTypeAnsAnswerFilterNormalCorrect() {

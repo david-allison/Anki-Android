@@ -2,12 +2,14 @@
 
 package com.ichi2.anki.ui.windows.reviewer
 
+import androidx.core.content.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.scheduler.CardAnswer.Rating
 import app.cash.turbine.test
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.utils.ext.cardStateCustomizer
 import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.After
@@ -34,6 +36,26 @@ class ReviewerViewModelTest : RobolectricTest() {
     fun clearViewModels() {
         viewModelStore.clear()
     }
+
+    @Test
+    fun `HTML answer marks nosuggest fields and requests a Done key`() =
+        runTest {
+            targetContext.sharedPrefs().edit { putBoolean("useInputTag", true) }
+            val card = addBasicWithTypingNote("front", "back").firstCard()
+            val noteType = card.noteType(col)
+            noteType.templates[0].qfmt = "{{Front}}{{nosuggest:type:Back}}"
+            col.notetypes.save(noteType)
+            val viewModel = ReviewerViewModel(SavedStateHandle()).also { viewModelStore.put("reviewer", it) }
+            viewModel.eval.test {
+                viewModel.onPageFinished(false)
+                advanceUntilIdle()
+                var script = awaitItem()
+                while (!script.startsWith("_showQuestion(")) script = awaitItem()
+                assertTrue(script.contains("data-ankidroid-nosuggest=\\\"true\\\""))
+                assertTrue(script.contains("enterkeyhint=\\\"done\\\""))
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
     fun `answering waits for the custom scheduler of the first card`() =

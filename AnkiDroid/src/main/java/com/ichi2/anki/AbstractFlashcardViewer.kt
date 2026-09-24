@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.text.InputType
 import android.view.GestureDetector
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.KeyEvent
@@ -94,6 +93,7 @@ import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.cardviewer.TTS
 import com.ichi2.anki.cardviewer.TypeAnswer
 import com.ichi2.anki.cardviewer.TypeAnswer.Companion.createInstance
+import com.ichi2.anki.cardviewer.TypeAnswerWebView
 import com.ichi2.anki.cardviewer.ViewerCommand
 import com.ichi2.anki.cardviewer.ViewerRefresh
 import com.ichi2.anki.cardviewer.handledGamepadKeyDown
@@ -242,9 +242,6 @@ abstract class AbstractFlashcardViewer :
     private var touchLayer: FrameLayout? = null
     protected var answerField: FixedEditText? = null
 
-    /** Layout-provided default `inputType` for [answerField], captured once and used to restore
-     *  state when moving off a card that used `{{nosuggest:type:}}`. See issue #10352. */
-    private var defaultAnswerFieldInputType: Int? = null
     protected var flipCardLayout: FrameLayout? = null
     private var easeButtonsLayout: LinearLayout? = null
 
@@ -745,11 +742,8 @@ abstract class AbstractFlashcardViewer :
      */
     private fun applyTypeAnswerSuggestionFlags(noSuggest: Boolean) {
         val field = answerField ?: return
-        // see ReviewerFragment for why `TYPE_NULL` was selected
-        val targetInputType =
-            if (noSuggest) InputType.TYPE_NULL else (defaultAnswerFieldInputType ?: field.inputType)
-        if (field.inputType != targetInputType) {
-            field.inputType = targetInputType
+        if (field.noSuggest != noSuggest) {
+            field.noSuggest = noSuggest
             getSystemService<InputMethodManager>()?.restartInput(field)
         }
     }
@@ -996,10 +990,7 @@ abstract class AbstractFlashcardViewer :
             val params = flipCardLayout!!.layoutParams
             params.height = initialFlipCardHeight * 2
         }
-        answerField =
-            findViewById<FixedEditText>(R.id.answer_field).also { answerField ->
-                defaultAnswerFieldInputType = answerField.inputType
-            }
+        answerField = findViewById(R.id.answer_field)
         initControls()
 
         // Position answer buttons
@@ -2021,7 +2012,7 @@ abstract class AbstractFlashcardViewer :
     /** Fixing bug 720: <input></input> focus, thanks to pablomouzo on android issue 7189  */
     internal inner class MyWebView(
         context: Context?,
-    ) : WebView(context!!) {
+    ) : TypeAnswerWebView(context!!) {
         override fun loadDataWithBaseURL(
             baseUrl: String?,
             data: String,
