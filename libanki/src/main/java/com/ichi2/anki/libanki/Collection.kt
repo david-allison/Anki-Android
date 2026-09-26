@@ -760,9 +760,24 @@ class Collection(
     fun cardIdsOfNote(nid: NoteId): List<CardId> = backend.cardsOfNote(nid = nid)
 
     /**
-     * Get starting deck and notetype for add screen.
-     * An option in the preferences controls whether this will be based on the current deck
-     * or current notetype.
+     * Returns the starting deck and note type for the Add screen.
+     *
+     * Callers should use both returned values together.
+     * For note-type changes, use [defaultDeckForNoteType] instead.
+     * The returned deck will not be a filtered deck.
+     *
+     * - With [ConfigKey.Bool.ADDING_DEFAULTS_TO_CURRENT_DECK] enabled, choose a deck, then its last
+     *   recorded note type. Missing note types fall back to the current type, then the first available.
+     * - Otherwise, choose the current note type (or the first available if missing), then its last
+     *   recorded deck if that deck exists and is not filtered.
+     *
+     * Deck fallback order:
+     *
+     * 1. Selected non-filtered deck.
+     * 2. [currentReviewCard]'s [Card.currentDeckId].
+     * 3. [Default][Decks.getDefault]
+     *
+     * @see <a href="https://github.com/ankitects/anki/blob/e64c6b1aee3e8d668fb8bbe084beada8e070d985/rslib/src/adding.rs#L13-L97">Upstream defaults_for_adding</a>
      */
     @CheckResult
     @LibAnkiAlias("defaults_for_adding")
