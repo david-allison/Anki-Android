@@ -44,6 +44,7 @@ import com.ichi2.utils.show
 import com.ichi2.utils.title
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.IOException
 
 /**
  * Dialog that shows the options for finding and replacing the text of notes in [CardBrowser].
@@ -100,13 +101,15 @@ class FindAndReplaceDialogFragment : AnalyticsDialogFragment() {
             (dialog as? AlertDialog)?.positiveButton?.isEnabled = false
             binding.contentViewsGroup.isVisible = false
             binding.loadingViewsGroup.isVisible = true
-            val fetchNoteIdsResult = runCatching { idsFile.getIds() }
-            val noteIds = fetchNoteIdsResult.getOrNull()
-            if (fetchNoteIdsResult.isFailure || noteIds == null) {
-                requireActivity().showSnackbar(CommonString.something_wrong)
-                dismiss()
-                return@launch
-            }
+            val noteIds =
+                try {
+                    idsFile.getIds()
+                } catch (e: IOException) {
+                    Timber.w(e, "Failed to read find and replace IDs")
+                    requireActivity().showSnackbar(CommonString.something_wrong)
+                    dismiss()
+                    return@launch
+                }
             binding.onlySelectedNotesCheckBox.isChecked = noteIds.isNotEmpty()
             binding.onlySelectedNotesCheckBox.isEnabled = noteIds.isNotEmpty()
             val fieldsNames =

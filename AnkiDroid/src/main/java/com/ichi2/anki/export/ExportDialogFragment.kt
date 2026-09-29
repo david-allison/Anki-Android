@@ -33,6 +33,7 @@ import com.ichi2.anki.browser.removeSafely
 import com.ichi2.anki.common.ALL_DECKS_ID
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.common.time.getTimestamp
+import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
 import com.ichi2.anki.databinding.DialogExportOptionsBinding
 import com.ichi2.anki.exportApkgPackage
@@ -48,7 +49,9 @@ import com.ichi2.anki.utils.ext.requireParcelable
 import com.ichi2.utils.negativeButton
 import com.ichi2.utils.positiveButton
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
+import java.io.IOException
 
 /**
  * Shows the possible options for exporting(collection, decks or notes/card selection).
@@ -101,11 +104,16 @@ class ExportDialogFragment : AnalyticsDialogFragment() {
                 // enabled(the user was really fast or fetching the decks is delayed for some
                 // reason) then simply return
                 if (selectedIndex != 0 && !binding.deckSelector.isEnabled) return@positiveButton
-                when (ExportConfiguration.from(selectedIndex)) {
-                    ExportConfiguration.Collection -> handleCollectionExport()
-                    ExportConfiguration.Apkg -> handleAnkiPackageExport()
-                    ExportConfiguration.Notes -> handleNotesInPlainTextExport()
-                    ExportConfiguration.Cards -> handleCardsInPlainTextExport()
+                try {
+                    when (ExportConfiguration.from(selectedIndex)) {
+                        ExportConfiguration.Collection -> handleCollectionExport()
+                        ExportConfiguration.Apkg -> handleAnkiPackageExport()
+                        ExportConfiguration.Notes -> handleNotesInPlainTextExport()
+                        ExportConfiguration.Cards -> handleCardsInPlainTextExport()
+                    }
+                } catch (e: IOException) {
+                    Timber.w(e, "Failed to read export IDs")
+                    showThemedToast(requireContext(), CommonString.something_wrong, false)
                 }
             }.create()
     }

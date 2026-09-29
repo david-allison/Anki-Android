@@ -92,6 +92,7 @@ import net.ankiweb.rsdroid.BackendException
 import org.jetbrains.annotations.VisibleForTesting
 import timber.log.Timber
 import java.io.File
+import java.io.IOException
 import java.util.Collections
 import kotlin.math.max
 import kotlin.math.min
@@ -542,8 +543,8 @@ class CardBrowserViewModel(
         pendingSelectionRestore =
             try {
                 idsFile?.getIds()?.map { CardOrNoteId(it) }
-            } catch (e: Exception) {
-                // #19572: I suspect we have a startup bug here, so continue reporting the exception
+            } catch (e: IOException) {
+                // Issue 19572: I suspect we have a startup bug here, so continue reporting the exception
                 Timber.w(e, "failed to read STATE_MULTISELECT_VALUES")
                 CrashReportService.sendExceptionReport(
                     e = e,

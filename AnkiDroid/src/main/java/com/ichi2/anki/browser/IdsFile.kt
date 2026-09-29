@@ -10,6 +10,7 @@ import java.io.DataOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 
 /**
  * Temporary file containing cards or note IDs to be passed in a Bundle.
@@ -33,9 +34,22 @@ class IdsFile(
         }
     }
 
+    /**
+     * Reads a snapshot without consuming it. An empty list is a valid selection.
+     *
+     * @throws IOException if the file is missing, unreadable, or corrupt. Callers must decide
+     * whether to discard optional UI state or cancel an operation requiring these IDs.
+     */
+    @Throws(IOException::class)
     fun getIds(): List<Long> =
-        DataInputStream(FileInputStream(this)).use { inputStream ->
+        FileInputStream(this).use { fileStream ->
+            val inputStream = DataInputStream(fileStream.buffered())
             val size = inputStream.readInt()
+            // Check before allocating: a corrupt count must not cause an enormous allocation,
+            // and a partial selection must never be used to perform an operation.
+            if (size < 0 || fileStream.channel.size() != Int.SIZE_BYTES + size.toLong() * Long.SIZE_BYTES) {
+                throw IOException("Invalid IDs file length or count: $name")
+            }
             List(size) { inputStream.readLong() }
         }
 

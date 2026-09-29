@@ -6,15 +6,64 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.browser.IdsFile
 import com.ichi2.testutils.createTransientDirectory
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.shadows.ShadowToast
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class PreviewerFragmentTest : RobolectricTest() {
+    @Test
+    fun `missing selection closes previewer`() = assertUnavailableSelection { assertTrue(delete()) }
+
+    @Test
+    fun `truncated selection closes previewer`() = assertUnavailableSelection { writeBytes(byteArrayOf(0)) }
+
+    @Test
+    fun `empty selection closes previewer`() {
+        assertUnavailableSelection { writeBytes(byteArrayOf(0, 0, 0, 0)) }
+    }
+
+    private fun assertUnavailableSelection(changeFile: IdsFile.() -> Unit) {
+        val file = IdsFile(createTransientDirectory(), addBasicNote().cardIds(col)).apply(changeFile)
+        val intent = PreviewerFragment.getIntent(targetContext, file, currentIndex = 0)
+        Robolectric.buildActivity(CardViewerActivity::class.java, intent).use { controller ->
+            val activity = controller.setup().get()
+            assertTrue(activity.isFinishing)
+            assertEquals(targetContext.getString(CommonString.something_wrong), ShadowToast.getTextOfLatestToast())
+        }
+    }
+
+    @Test
+    fun `rotation retains loaded selection when its file has disappeared`() {
+        val ids = addBasicAndReversedNote().cardIds(col)
+        val file = IdsFile(createTransientDirectory(), ids)
+        val intent = PreviewerFragment.getIntent(targetContext, file, currentIndex = 0)
+        ActivityScenario.launch<CardViewerActivity>(intent).use { scenario ->
+            lateinit var original: PreviewerViewModel
+            scenario.onActivity { activity ->
+                original = (activity.supportFragmentManager.fragments.single() as PreviewerFragment).viewModel
+            }
+            assertTrue(file.delete())
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                assertFalse(activity.isFinishing)
+                val restored = (activity.supportFragmentManager.fragments.single() as PreviewerFragment).viewModel
+                assertSame(original, restored)
+                assertEquals(ids, restored.selectedCardIds)
+            }
+        }
+    }
+
     @Test
     fun `previewer - back button`() {
         val note = addBasicAndReversedNote()
