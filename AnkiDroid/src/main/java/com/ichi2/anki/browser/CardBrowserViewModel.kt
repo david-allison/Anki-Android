@@ -99,11 +99,6 @@ import java.util.Collections
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Whether the current sort is reversed (descending). `true` if reversed.
- */
-typealias ReverseDirection = Boolean
-
 // TODO: move the tag computation to ViewModel
 
 /**
@@ -227,12 +222,8 @@ class CardBrowserViewModel(
 
     val flowOfScrollRequest = MutableSharedFlow<RowSelection>()
 
-    /**
-     * Whether the current sort is reversed (descending).
-     *
-     * `null` when no sort is applied ([SortType.NoOrdering]).
-     */
-    val flowOfReverseDirection: MutableStateFlow<ReverseDirection?> = MutableStateFlow(null)
+    /** The active sort column and direction, or [SortType.NoOrdering]. */
+    val flowOfSortType = MutableStateFlow<SortType>(SortType.NoOrdering)
 
     /** Emits each time the user changes the sort order, with data for a snackbar */
     val flowOfSortTypeChanged = MutableSharedFlow<SortChangeNotification>()
@@ -588,6 +579,7 @@ class CardBrowserViewModel(
             .onEach { cardsOrNotes ->
                 Timber.d("loading columns for %s mode", cardsOrNotes)
                 updateActiveColumns(BrowserColumnCollection.load(sharedPrefs(), cardsOrNotes))
+                if (initCompleted) flowOfSortType.value = SortType.build(cardsOrNotes)
             }.launchIn(viewModelScope)
 
         viewModelScope.launch {
@@ -603,7 +595,7 @@ class CardBrowserViewModel(
             setSelectedDeck(initialDeckId)
             refreshBackendColumns()
 
-            flowOfReverseDirection.update { (SortType.build(cardsOrNotes) as? SortType.CollectionOrdering)?.reverse }
+            flowOfSortType.value = SortType.build(cardsOrNotes)
 
             Timber.i("initCompleted")
 
@@ -650,6 +642,7 @@ class CardBrowserViewModel(
         // if the language has changed, the backend column labels may have changed
         viewModelScope.launch {
             refreshBackendColumns()
+            flowOfSortType.value = SortType.build(cardsOrNotes)
         }
     }
 
@@ -969,12 +962,7 @@ class CardBrowserViewModel(
 
             sortType.save(cardsOrNotes)
 
-            flowOfReverseDirection.update {
-                when (sortType) {
-                    is SortType.NoOrdering -> null
-                    is SortType.CollectionOrdering -> sortType.reverse
-                }
-            }
+            flowOfSortType.value = sortType
 
             flowOfSortTypeChanged.emit(buildSortChangeNotification(sortType))
 
