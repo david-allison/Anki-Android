@@ -19,6 +19,7 @@ import android.view.MenuItem
 import android.view.SubMenu
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.ImageButton
@@ -362,11 +363,12 @@ class CardBrowserFragment :
             )
         cardsListView.adapter = cardsAdapter
         cardsAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-        val layoutManager = LinearLayoutManager(requireContext())
+        val layoutManager = BrowserLayoutManager(requireContext()) { activityViewModel.flowOfActiveColumns.value.count }
         cardsListView.layoutManager = layoutManager
         cardsListView.addItemDecoration(DividerItemDecoration(requireContext(), layoutManager.orientation))
 
         browserColumnHeadings = view.findViewById(R.id.browser_column_headings)
+        view.setBrowserTableAccessibility(activityViewModel)
         toggleRowSelections =
             view.findViewById<ImageButton>(R.id.toggle_row_selections).apply {
                 setOnClickListener { activityViewModel.toggleSelectAllOrNone() }
@@ -958,6 +960,7 @@ class CardBrowserFragment :
         fun onColumnsChanged(columnCollection: BrowserColumnCollection) {
             Timber.d("columns changed")
             cardsAdapter.notifyDataSetChanged()
+            view?.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
         }
 
         fun onMultiSelectModeChanged(modeChange: ChangeMultiSelectMode) {
@@ -975,6 +978,7 @@ class CardBrowserFragment :
 
             // update adapter to remove check boxes
             cardsAdapter.notifyDataSetChanged()
+            view?.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
             if (modeChange is SingleSelectCause.DeselectRow) {
                 cardsAdapter.notifyDataSetChanged()
                 autoScrollTo(modeChange.selection)
@@ -1037,6 +1041,7 @@ class CardBrowserFragment :
 
         fun searchStateChanged(searchState: SearchState) {
             cardsAdapter.notifyDataSetChanged()
+            view?.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
             progressIndicator.isVisible = searchState == Initializing || searchState == Searching
             if (searchState is SearchState.Completed) {
                 onSearchCompleted(searchState)
@@ -1072,12 +1077,12 @@ class CardBrowserFragment :
             browserColumnHeadings.removeAllViews()
 
             val layoutInflater = LayoutInflater.from(browserColumnHeadings.context)
-            for (column in columnCollection) {
+            for ((index, column) in columnCollection.withIndex()) {
                 Timber.d("setting up column %s", column)
                 val columnView = layoutInflater.inflate(R.layout.view_browser_column_heading, browserColumnHeadings, false) as TextView
 
                 columnView.text = column.label
-                columnView.setBrowserHeadingAccessibility()
+                columnView.setBrowserHeadingAccessibility(index)
 
                 // Attach click listener to open the selection dialog
                 columnView.setOnClickListener {
