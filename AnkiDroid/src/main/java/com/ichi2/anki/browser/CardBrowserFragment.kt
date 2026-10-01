@@ -1082,7 +1082,7 @@ class CardBrowserFragment :
                 val columnView = layoutInflater.inflate(R.layout.view_browser_column_heading, browserColumnHeadings, false) as TextView
 
                 columnView.text = column.label
-                columnView.setBrowserHeadingAccessibility(index)
+                columnView.setBrowserHeadingAccessibility(index, column.ankiColumnKey) { activityViewModel.flowOfSortType.value }
 
                 // Attach click listener to open the selection dialog
                 columnView.setOnClickListener {
@@ -1234,6 +1234,7 @@ class CardBrowserFragment :
         fun sortTypeChanged(sortType: SortType) {
             val reverse = (sortType as? SortType.CollectionOrdering)?.reverse
             sortChip?.scaleY = if (reverse == false || reverse == null) 1.0f else -1.0f
+            browserColumnHeadings.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
         }
 
         fun onChangeNoteType(result: ChangeNoteTypeResponse) =
