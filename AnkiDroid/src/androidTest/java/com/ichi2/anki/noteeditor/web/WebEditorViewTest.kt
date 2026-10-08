@@ -105,6 +105,62 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun caretMovementDoesNotRewriteDraftButLatestInputIsRecovered() =
+        withEditor {
+            val draftId = "instrumentation-${UUID.randomUUID()}"
+            try {
+                loadDocument(document("front"))
+                createDraft(draftId, "{}")
+                evaluate(
+                    """
+                    window.draftPuts = 0;
+                    const originalPut = IDBObjectStore.prototype.put;
+                    IDBObjectStore.prototype.put = function(...args) {
+                        window.draftPuts++;
+                        return originalPut.apply(this, args);
+                    };
+                    """.trimIndent(),
+                )
+                select(0, 1, 1)
+                select(1, 2, 2)
+                evaluate("document.dispatchEvent(new Event('selectionchange'))")
+                snapshot()
+                assertEquals("0", evaluate("window.draftPuts"))
+
+                evaluate(
+                    """
+                    window.blockDraftRefresh = event => event.stopImmediatePropagation();
+                    document.addEventListener('anki-editor-fields-change', window.blockDraftRefresh, true);
+                    document.addEventListener('selectionchange', window.blockDraftRefresh, true);
+                    ${fieldElement(0)}.textContent = 'latest input';
+                    """.trimIndent(),
+                )
+                // Reading first must not consume the change needed by the background checkpoint.
+                assertEquals("latest input", snapshot().fields.first())
+                assertEquals("0", evaluate("window.draftPuts"))
+                evaluate(
+                    """
+                    document.removeEventListener('anki-editor-fields-change', window.blockDraftRefresh, true);
+                    document.removeEventListener('selectionchange', window.blockDraftRefresh, true);
+                    document.dispatchEvent(new Event('selectionchange'));
+                    """.trimIndent(),
+                )
+                awaitJavascript("window.draftPuts > 0")
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals(
+                    "latest input",
+                    restored.document.fields
+                        .first()
+                        .html,
+                )
+                assertEquals(listOf("front", "back"), restored.baseline)
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun noteHtmlCannotExecuteScriptsInTheBridgeDocument() =
         withEditor {
             loadDocument(document("<img src='missing' onerror='window.noteCodeExecuted=true'>"))

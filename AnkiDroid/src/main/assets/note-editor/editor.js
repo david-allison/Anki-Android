@@ -17,7 +17,8 @@
         operations = Promise.resolve(),
         refreshQueued = false;
     let fieldsReady = false,
-        nextHostRequest = 0;
+        nextHostRequest = 0,
+        checkpointNeeded = false;
     const hostRequests = new Map();
     const api = () => window.AnkiEditorFields;
     const send = message => host.postMessage(JSON.stringify(message));
@@ -116,6 +117,7 @@
             initialRendered: rendered[index],
             revision: savedRevisions[index] || 0,
         }));
+        checkpointNeeded = false;
         status();
     }
 
@@ -136,7 +138,10 @@
             field.html = html;
             field.spec = { ...field.spec, ...spec, html };
         });
-        if (changed) revision++;
+        if (changed) {
+            revision++;
+            checkpointNeeded = true;
+        }
     }
 
     async function captureTarget() {
@@ -174,7 +179,8 @@
             refreshQueued = false;
             await captureTarget();
             status();
-            checkpoint().catch(reportError);
+            // Caret/focus events need selection state, but do not change the draft.
+            if (checkpointNeeded) checkpoint().catch(reportError);
         }).catch(reportError);
     }
 
@@ -335,9 +341,14 @@
             fieldRevisions: fields.map(field => field.revision),
             revision,
         };
+        checkpointNeeded = false;
         writes = writes
             .catch(() => {})
-            .then(() => transact("readwrite", store => store.put(record, key)));
+            .then(() => transact("readwrite", store => store.put(record, key)))
+            .catch(error => {
+                checkpointNeeded = true;
+                throw error;
+            });
         return writes;
     }
 
