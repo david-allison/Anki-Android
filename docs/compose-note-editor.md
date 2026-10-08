@@ -33,3 +33,6 @@ Development limitations: the backend's uncommitted card renderer does not accept
 a preview deck ID, so `{{Deck}}`/`{{Subdeck}}` show the saved deck for Edit and a
 placeholder for Add. Draft recovery restores completed checkpoints; it is not a
 transaction spanning WebView storage and a collection Save.
+
+See [loading measurements and optimization experiments](compose-note-editor-loading.md)
+for the current performance evidence and a small timing capture script.
