@@ -5,6 +5,8 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import com.ichi2.anki.CollectionManager
@@ -73,16 +76,28 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             captureScreenshot("phone-add", web)
 
             runBlocking { web.focusField(0) }
-            clickDescription(testContext.getString(R.string.compose_editor_source))
-            web.awaitJavascript(
-                """
-                (() => {
-                    const source = document.querySelector('.editor-field[data-field-ordinal="0"] .CodeMirror');
-                    return source?.offsetHeight > 0 && source.CodeMirror.getValue() === '<b>Retained front</b>';
-                })()
-                """.trimIndent(),
-            )
-            captureScreenshot("phone-source", web)
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            device.waitForIdle()
+            var sourceButton = checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_source))))
+            while (!sourceButton.isClickable) sourceButton = checkNotNull(sourceButton.parent)
+            waitUntil(timeout = 10.seconds, message = { "The native Edit HTML button did not become enabled for the focused field" }) {
+                sourceButton.isEnabled
+            }
+            val sourceBounds = sourceButton.visibleBounds
+            assertFalse(sourceBounds.isEmpty, "The native Edit HTML button is outside the visible toolbar")
+            assertTrue(device.click(sourceBounds.centerX(), sourceBounds.centerY()))
+            try {
+                web.awaitJavascript(
+                    """
+                    (() => {
+                        const source = document.querySelector('.editor-field[data-field-ordinal="0"] .CodeMirror');
+                        return source?.offsetHeight > 0 && source.CodeMirror.getValue() === '<b>Retained front</b>';
+                    })()
+                    """.trimIndent(),
+                )
+            } finally {
+                captureScreenshot("phone-source", web)
+            }
 
             clickText(testContext.getString(CommonString.save))
 
@@ -128,6 +143,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             web.setField(0, "Unsaved while closing")
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val saveBounds = device.findObject(UiSelector().text(testContext.getString(CommonString.save))).bounds
             web.evaluate(
                 """
                 (() => {
@@ -148,13 +165,10 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
             web.awaitJavascript("window.backSnapshotHeld === true")
             assertEquals("false", web.evaluate("${richField(0)}.isContentEditable"))
-            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val saveText = testContext.getString(CommonString.save)
-            waitUntil(timeout = 5.seconds, message = { "Save remained enabled while Back awaited its snapshot" }) {
-                !device.findObject(UiSelector().text(saveText).enabled(true)).exists()
-            }
-            // A tap at the disabled Save control must not start a collection operation.
-            device.findObject(UiSelector().text(saveText)).click()
+            // Tap the control's position: its Text child does not inherit the Compose
+            // button's disabled semantics. Avoid waiting for an idle busy spinner.
+            assertTrue(device.click(saveBounds.centerX(), saveBounds.centerY()))
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             assertFalse(scenario.editorState().isSaving)
             assertEquals(0, runBlocking { withCol { noteCount() } })
 
@@ -267,6 +281,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 cardWebView != null
             }
             val preview = checkNotNull(cardWebView)
+            scenario.onActivity { activity ->
+                val views =
+                    activity.window.decorView.webViews().map { web ->
+                        val position = IntArray(2).also(web::getLocationOnScreen)
+                        "${web.javaClass.simpleName}@${System.identityHashCode(web)} shown=${web.isShown} " +
+                            "bounds=${position.toList()} ${web.width}x${web.height} url=${web.url}"
+                    }
+                android.util.Log.i("ComposeEditorTest", "Preview views=$views fragments=${activity.supportFragmentManager.fragments}")
+            }
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview unsaved front') === true")
             preview.awaitJavascript("getComputedStyle(document.getElementById('qa')).opacity === '1'")
             captureScreenshot("tablet-preview", editor, preview)
@@ -375,7 +398,34 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the screenshot state")
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.waitForIdle()
+        // Capture the actual display before a diagnostic software draw can affect painting.
         assertTrue(device.takeScreenshot(File(directory, "$name.png")))
+        device.dumpWindowHierarchy(File(directory, "$name.xml"))
+        webViews.forEachIndexed { index, web ->
+            File(directory, "$name-web$index.json").writeText(
+                web.evaluate(
+                    """
+                    JSON.stringify({
+                        url: location.href, viewport: [innerWidth, innerHeight],
+                        body: document.body.innerHTML,
+                        qa: (() => {
+                            const qa = document.getElementById('qa');
+                            if (!qa) return null;
+                            const style = getComputedStyle(qa);
+                            return {html: qa.innerHTML, bounds: qa.getBoundingClientRect().toJSON(),
+                                visibility: style.visibility, display: style.display, opacity: style.opacity};
+                        })()
+                    })
+                    """.trimIndent(),
+                ),
+            )
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                val bitmap = Bitmap.createBitmap(web.width, web.height, Bitmap.Config.ARGB_8888)
+                web.draw(Canvas(bitmap))
+                File(directory, "$name-web$index.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                bitmap.recycle()
+            }
+        }
     }
 
     private fun clickText(text: String) {
@@ -383,13 +433,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         val button = device.findObject(UiSelector().text(text).enabled(true))
         waitUntil(timeout = 30.seconds, message = { "Enabled button not found: $text" }) { button.exists() }
         assertTrue(button.click(), "Unable to click: $text")
-    }
-
-    private fun clickDescription(description: String) {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val button = device.findObject(UiSelector().description(description).enabled(true))
-        waitUntil(timeout = 30.seconds, message = { "Enabled button not found: $description" }) { button.exists() }
-        assertTrue(button.click(), "Unable to click: $description")
     }
 
     private fun View.webViews(): List<WebView> =
