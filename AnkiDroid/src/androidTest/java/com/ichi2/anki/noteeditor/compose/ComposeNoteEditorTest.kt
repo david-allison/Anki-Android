@@ -5,8 +5,6 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -268,6 +266,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
             assumeTrue("Preview needs a tablet window with smallest width at least 600 dp", windowWidth >= 600 && smallestWidth >= 600)
             val editor = scenario.awaitEditor()
+            runBlocking { editor.focusField(0) }
             editor.setField(0, "Preview unsaved front")
             editor.setField(1, "Preview first answer")
             var cardWebView: WebView? = null
@@ -293,12 +292,16 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview unsaved front') === true")
             preview.awaitJavascript("getComputedStyle(document.getElementById('qa')).opacity === '1'")
             captureScreenshot("tablet-preview", editor, preview)
+            editor.setField(0, "Preview updated front")
+            preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview updated front') === true")
+            captureScreenshot("tablet-updated", editor, preview)
             clickText(testContext.getString(CommonString.show_answer))
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview first answer') === true")
 
             editor.setField(1, "Preview updated answer")
 
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview updated answer') === true")
+            captureScreenshot("tablet-answer", editor, preview)
             assertEquals(0, runBlocking { withCol { noteCount() } })
             assertTrue(runBlocking { editor.snapshot().hasChanges })
         }
@@ -326,6 +329,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         }
         return checkNotNull(editor).also {
             it.awaitJavascript("${richField(0)}?.isContentEditable === true")
+            // Mounted fields precede completion of loadDocument; serialize past that load.
+            runBlocking { it.snapshot() }
             // A mounted editor can still be clipped by a zero-height viewport.
             // Require the field to be visible and reachable, as a user's tap would be.
             it.awaitJavascript(
@@ -398,7 +403,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the screenshot state")
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.waitForIdle()
-        // Capture the actual display before a diagnostic software draw can affect painting.
+        // Capture only the actual display, without forcing WebView invalidation or drawing.
         assertTrue(device.takeScreenshot(File(directory, "$name.png")))
         device.dumpWindowHierarchy(File(directory, "$name.xml"))
         webViews.forEachIndexed { index, web ->
@@ -419,12 +424,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     """.trimIndent(),
                 ),
             )
-            InstrumentationRegistry.getInstrumentation().runOnMainSync {
-                val bitmap = Bitmap.createBitmap(web.width, web.height, Bitmap.Config.ARGB_8888)
-                web.draw(Canvas(bitmap))
-                File(directory, "$name-web$index.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                bitmap.recycle()
-            }
         }
     }
 
