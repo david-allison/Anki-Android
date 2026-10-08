@@ -776,6 +776,7 @@ dependencies {
     implementation(libs.androidx.draganddrop)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.fragment.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.profileinstaller)
