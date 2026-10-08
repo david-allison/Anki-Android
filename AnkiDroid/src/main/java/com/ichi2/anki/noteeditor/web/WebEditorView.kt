@@ -66,6 +66,8 @@ class WebEditorView(
     private val scriptNonce = UUID.randomUUID().toString().replace("-", "")
 
     init {
+        // WebView uses wrap-content height to choose its CSS viewport, even with exact Compose constraints.
+        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.allowFileAccess = false
