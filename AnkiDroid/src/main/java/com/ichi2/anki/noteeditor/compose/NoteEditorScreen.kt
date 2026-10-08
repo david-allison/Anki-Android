@@ -91,9 +91,9 @@ fun NoteEditorScreen(
                                 if (state?.isAdding !=
                                     false
                                 ) {
-                                    R.string.compose_editor_add
+                                    CommonString.menu_add_note
                                 } else {
-                                    R.string.compose_editor_edit
+                                    CommonString.cardeditor_title_edit_card
                                 },
                             ),
                         )
@@ -201,7 +201,7 @@ fun NoteEditorScreen(
                             listOf(
                                 R.string.compose_editor_image to MultimediaActionHandler.ImageFile,
                                 R.string.compose_editor_camera to MultimediaActionHandler.Camera,
-                                R.string.compose_editor_record to MultimediaActionHandler.AudioRecording,
+                                CommonString.multimedia_editor_popup_audio to MultimediaActionHandler.AudioRecording,
                                 R.string.compose_editor_audio to MultimediaActionHandler.AudioFile,
                                 R.string.compose_editor_video to MultimediaActionHandler.VideoFile,
                             ).forEach { (label, handler) ->
@@ -251,7 +251,7 @@ private fun EditorMetadata(
     }
     TextButton(onClick = onTags, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
         Text(
-            stringResource(R.string.compose_editor_tags) + ": " + tags.ifEmpty { stringResource(R.string.compose_editor_no_tags) },
+            stringResource(CommonString.card_details_tags) + ": " + tags.ifEmpty { stringResource(R.string.compose_editor_no_tags) },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

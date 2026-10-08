@@ -46,7 +46,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /** The development editor's one field surface; native controls never mirror live field HTML. */
-@SuppressLint("SetJavaScriptEnabled")
+// Created programmatically: a collection media root is required, so XML/tool constructors are not applicable.
+@SuppressLint("SetJavaScriptEnabled", "ViewConstructor")
 class WebEditorView(
     context: Context,
     mediaDirectory: File,
