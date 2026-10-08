@@ -179,7 +179,7 @@
     }
 
     async function execute({ action, target, value = "" }) {
-        if (composing || !inputEnabled) return { applied: false };
+        if (!inputEnabled || (composing && action !== "SOURCE_MODE")) return { applied: false };
         await reconcile();
         target ??= await captureTarget();
         const field = fields[target.field];

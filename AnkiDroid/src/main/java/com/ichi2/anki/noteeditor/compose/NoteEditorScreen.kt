@@ -209,7 +209,7 @@ fun NoteEditorScreen(
                             EditorActionButton(
                                 R.drawable.ic_code,
                                 R.string.compose_editor_source,
-                                formatEnabled,
+                                enabled && status.hasSelection,
                             ) { onAction(WebEditorAction.SOURCE_MODE) }
                             EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled) { dialog = "media" }
                             if (state.isAdding) {
