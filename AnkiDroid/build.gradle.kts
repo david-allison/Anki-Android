@@ -805,8 +805,11 @@ dependencies {
         localProperties.load(project.rootProject.file("local.properties").inputStream())
     }
     if (localProperties["local_backend"] == "true") {
-        implementation(files(rootProject.file("../Anki-Android-Backend/rsdroid/build/outputs/aar/rsdroid-release.aar")))
-        testImplementation(files(rootProject.file("../Anki-Android-Backend/rsdroid-testing/build/libs/rsdroid-testing.jar")))
+        val backendCheckout =
+            localProperties.getProperty("local_backend_path")?.let(::File)
+                ?: rootProject.file("../Anki-Android-Backend")
+        implementation(files(File(backendCheckout, "rsdroid/build/outputs/aar/rsdroid-release.aar")))
+        testImplementation(files(File(backendCheckout, "rsdroid-testing/build/libs/rsdroid-testing.jar")))
     } else {
         implementation(libs.ankiBackend.backend)
         testImplementation(libs.ankiBackend.testing)

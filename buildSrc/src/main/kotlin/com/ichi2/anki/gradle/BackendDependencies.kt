@@ -46,12 +46,13 @@ fun DependencyHandlerScope.addAnkiBackendDependencies(project: Project) {
 private val Project.hasTestFixtures: Boolean
     get() = configurations.findByName("testFixturesImplementation") != null
 
-private fun Project.localBackendEnabled(): Boolean {
+private fun Project.backendProperties(): Properties {
     val localProperties = rootProject.layout.projectDirectory.file("local.properties")
-    val content = providers.fileContents(localProperties).asText.orNull ?: return false
-    val properties = Properties().apply { content.reader().use { load(it) } }
-    return properties["local_backend"] == "true"
+    val content = providers.fileContents(localProperties).asText.orNull.orEmpty()
+    return Properties().apply { content.reader().use { load(it) } }
 }
+
+private fun Project.localBackendEnabled(): Boolean = backendProperties()["local_backend"] == "true"
 
 private fun Project.addBackendArtifact(
     configuration: String,
@@ -61,7 +62,8 @@ private fun Project.addBackendArtifact(
 ) {
     if (useLocalBackend) {
         // ../Anki-Android-Backend
-        val backendCheckout = File(rootProject.projectDir.parentFile, "Anki-Android-Backend")
+        val backendCheckout = backendProperties().getProperty("local_backend_path")?.let(::File)
+            ?: File(rootProject.projectDir.parentFile, "Anki-Android-Backend")
         dependencies.add(configuration, files(File(backendCheckout, localPath)))
     } else {
         dependencies.addProvider(configuration, libsLibrary(catalogAlias))
