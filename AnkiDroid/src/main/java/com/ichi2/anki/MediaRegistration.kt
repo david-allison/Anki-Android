@@ -80,6 +80,7 @@ object MediaRegistration {
      * @param uri The URI of the media to be pasted.
      * @param description The description of the clipboard content.
      * @param pasteAsPng A flag indicating whether to convert the media to PNG format.
+     * @param registerMedia Allows a caller already holding the collection queue to import directly.
      * @param showError A callback function for displaying error messages based on media error type.
      * @return A string reference to the media if successfully processed, or null if an error occurred.
      */
@@ -88,10 +89,11 @@ object MediaRegistration {
         uri: Uri,
         description: ClipDescription,
         pasteAsPng: Boolean,
+        registerMedia: (File) -> Boolean = ::registerMediaForWebView,
         showError: DisplayMediaError,
     ): String? =
         try {
-            loadMediaIntoCollection(context, uri, description, pasteAsPng, showError)
+            loadMediaIntoCollection(context, uri, description, pasteAsPng, registerMedia, showError)
         } catch (ex: NullPointerException) {
             // Tested under FB Messenger and GMail, both apps do nothing if this occurs.
             // This typically works if the user copies again - don't know the exact cause
@@ -160,6 +162,7 @@ object MediaRegistration {
         uri: Uri,
         description: ClipDescription,
         pasteAsPng: Boolean,
+        registerMedia: (File) -> Boolean = ::registerMediaForWebView,
         showError: DisplayMediaError,
     ): String? {
         val filename = getFileName(context.contentResolver, uri)
@@ -197,7 +200,7 @@ object MediaRegistration {
         }
 
         // register media for webView
-        if (!registerMediaForWebView(tempFilePath)) {
+        if (!registerMedia(tempFilePath)) {
             clipCopy.delete()
             return null
         }
