@@ -420,6 +420,9 @@ open class PrefsRepository protected constructor(
 
     var isNewStudyScreenEnabled by booleanPref(R.string.new_reviewer_options_key, false)
 
+    /** Development-only opt-in to the Compose note editor. */
+    var isComposeNoteEditorEnabled by booleanPref(R.string.dev_compose_note_editor_key, false)
+
     val devIsCardBrowserFragmented: Boolean
         get() = getBoolean(R.string.dev_card_browser_fragmented, false)
 

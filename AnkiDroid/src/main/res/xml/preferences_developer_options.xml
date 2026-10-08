@@ -110,5 +110,10 @@
             android:summary="Replaces the navigation drawer with a bottom nav bar"
             android:key="@string/dev_bottom_nav_key"
             android:defaultValue="false"/>
+        <SwitchPreferenceCompat
+            android:title="Compose note editor"
+            android:summary="Use the development note editor for adding and editing notes"
+            android:key="@string/dev_compose_note_editor_key"
+            android:defaultValue="false"/>
     </com.ichi2.anki.preferences.ExtendedPreferenceCategory>
 </PreferenceScreen>
