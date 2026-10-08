@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<resources>
+    <string name="compose_editor_update_webview">Update Android System WebView to use the development editor.</string>
+    <string name="compose_editor_update_backend">This development editor requires a backend with the editor-fields component.</string>
+    <string name="compose_editor_add">Add note</string>
+    <string name="compose_editor_edit">Edit note</string>
+    <string name="compose_editor_deck">Deck</string>
+    <string name="compose_editor_type">Note type</string>
+    <string name="compose_editor_tags">Tags</string>
+    <string name="compose_editor_no_tags">Add tags</string>
+    <string name="compose_editor_bold">Bold</string>
+    <string name="compose_editor_italic">Italic</string>
+    <string name="compose_editor_underline">Underline</string>
+    <string name="compose_editor_cloze_new">New cloze number</string>
+    <string name="compose_editor_cloze_same">Same cloze number</string>
+    <string name="compose_editor_source">Edit HTML</string>
+    <string name="compose_editor_media">Attach media</string>
+    <string name="compose_editor_image">Choose image</string>
+    <string name="compose_editor_camera">Take photo</string>
+    <string name="compose_editor_record">Record audio</string>
+    <string name="compose_editor_audio">Choose audio</string>
+    <string name="compose_editor_video">Choose video</string>
+    <string name="compose_editor_sticky">Retain fields after adding</string>
+    <string name="compose_editor_added">Note added</string>
+    <string name="compose_editor_discard">Discard changes to this note?</string>
+    <string name="compose_editor_legacy">Open existing editor</string>
+    <string name="compose_editor_stale_command">The insertion position changed. Select a field and try again.</string>
+    <string name="compose_editor_draft_incompatible">This draft could not be restored because its note or note type changed.</string>
+    <string name="compose_editor_save_type_change">Save this note before changing its note type?</string>
+</resources>
