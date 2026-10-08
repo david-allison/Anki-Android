@@ -3,6 +3,7 @@
 
 package com.ichi2.anki
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -24,6 +25,8 @@ import com.ichi2.anki.databinding.ActivityNoteEditorBinding
 import com.ichi2.anki.libanki.CardOrdinal
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.noteeditor.NoteEditorFragmentDelegate
+import com.ichi2.anki.noteeditor.compose.ComposeNoteEditorActivity
+import com.ichi2.anki.noteeditor.compose.shouldUseComposeEditor
 import com.ichi2.anki.previewer.TemplatePreviewerArguments
 import com.ichi2.anki.previewer.TemplatePreviewerFragment
 import com.ichi2.anki.settings.Prefs
@@ -90,7 +93,7 @@ class NoteEditorActivity :
      * hidden the pane via the "Show preview sidebar" menu action.
      */
     val isPreviewerVisible: Boolean
-        get() = binding.previewerFrameLayout?.isVisible == true
+        get() = ::binding.isInitialized && binding.previewerFrameLayout?.isVisible == true
 
     /** Whether this layout contains a previewer pane (split layouts only); never changes at runtime. */
     val hasPreviewerPane: Boolean
@@ -123,6 +126,14 @@ class NoteEditorActivity :
         }
         super.onCreate(savedInstanceState)
         if (!ensureStorageIsReady()) {
+            return
+        }
+
+        if (intent.shouldUseComposeEditor()) {
+            startActivity(
+                Intent(intent).setClass(this, ComposeNoteEditorActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT),
+            )
+            finish()
             return
         }
 
@@ -399,10 +410,10 @@ class NoteEditorActivity :
     }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean =
-        noteEditorFragment.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
+        (::noteEditorFragment.isInitialized && noteEditorFragment.dispatchKeyEvent(event)) || super.dispatchKeyEvent(event)
 
-    override val shortcuts: ShortcutGroup
-        get() = noteEditorFragment.shortcuts
+    override val shortcuts: ShortcutGroup?
+        get() = if (::noteEditorFragment.isInitialized) noteEditorFragment.shortcuts else super.shortcuts
 
     override fun onResume() {
         super.onResume()

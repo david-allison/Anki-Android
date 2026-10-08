@@ -11,6 +11,7 @@ import com.ichi2.anki.NoteEditorActivity
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.noteeditor.compose.useComposeEditor
 
 /** Resolves a [NoteEditorDestination] to its launch [Intent] for [NoteEditorActivity]. */
 fun NoteEditorDestination.toIntent(context: Context): Intent =
@@ -69,4 +70,4 @@ fun NoteEditorDestination.toIntent(context: Context): Intent =
                 intent.putExtras(arguments)
                 intent.action = action
             }
-    }
+    }.useComposeEditor(context)
