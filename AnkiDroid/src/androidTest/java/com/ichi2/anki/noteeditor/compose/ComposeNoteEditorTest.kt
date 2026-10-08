@@ -39,6 +39,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
@@ -68,7 +70,19 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val web = scenario.awaitEditor()
             web.setField(0, "<b>Retained front</b>")
             web.setField(1, "Clear this back")
-            captureScreenshot("phone-add")
+            captureScreenshot("phone-add", web)
+
+            runBlocking { web.focusField(0) }
+            clickDescription(testContext.getString(R.string.compose_editor_source))
+            web.awaitJavascript(
+                """
+                (() => {
+                    const source = document.querySelector('.editor-field[data-field-ordinal="0"] .CodeMirror');
+                    return source?.offsetHeight > 0 && source.CodeMirror.getValue() === '<b>Retained front</b>';
+                })()
+                """.trimIndent(),
+            )
+            captureScreenshot("phone-source", web)
 
             clickText(testContext.getString(CommonString.save))
 
@@ -255,7 +269,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val preview = checkNotNull(cardWebView)
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview unsaved front') === true")
             preview.awaitJavascript("getComputedStyle(document.getElementById('qa')).opacity === '1'")
-            captureScreenshot("tablet-preview")
+            captureScreenshot("tablet-preview", editor, preview)
             clickText(testContext.getString(CommonString.show_answer))
             preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Preview first answer') === true")
 
@@ -337,10 +351,28 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         "document.querySelector('.field-container[data-index=\"$index\"] .rich-text-editable')?.shadowRoot?.querySelector('anki-editable')"
 
     /** Optional instrumentation artifacts; no production debug UI or pauses are required. */
-    private fun captureScreenshot(name: String) {
+    private fun captureScreenshot(
+        name: String,
+        vararg webViews: WebView,
+    ) {
         val artifactDir = InstrumentationRegistry.getArguments().getString("artifactDir") ?: return
         val directory = File(testContext.filesDir, artifactDir)
         check(directory.isDirectory || directory.mkdirs())
+        // DOM assertions can finish before Chromium submits the corresponding frame.
+        val rendered = CountDownLatch(webViews.size)
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            webViews.forEach { web ->
+                web.postVisualStateCallback(
+                    0,
+                    object : WebView.VisualStateCallback() {
+                        override fun onComplete(requestId: Long) {
+                            web.postOnAnimation { web.postOnAnimation { rendered.countDown() } }
+                        }
+                    },
+                )
+            }
+        }
+        assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the screenshot state")
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.waitForIdle()
         assertTrue(device.takeScreenshot(File(directory, "$name.png")))
@@ -351,6 +383,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         val button = device.findObject(UiSelector().text(text).enabled(true))
         waitUntil(timeout = 30.seconds, message = { "Enabled button not found: $text" }) { button.exists() }
         assertTrue(button.click(), "Unable to click: $text")
+    }
+
+    private fun clickDescription(description: String) {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val button = device.findObject(UiSelector().description(description).enabled(true))
+        waitUntil(timeout = 30.seconds, message = { "Enabled button not found: $description" }) { button.exists() }
+        assertTrue(button.click(), "Unable to click: $description")
     }
 
     private fun View.webViews(): List<WebView> =
