@@ -123,12 +123,24 @@ class WebEditorViewTest : InstrumentedTest() {
             keyboard.perform("compose", "に")
             keyboard.perform("compose", "日本")
             awaitJavascript("${fieldElement(0)}.textContent === '日本'")
-            assertTrue(snapshot().fields.first().contains("日本"))
+            val composingHtml = snapshot().fields.first()
+            assertTrue(composingHtml.contains("日本"))
             assertEquals("true", evaluate("document.activeElement.shadowRoot.activeElement.id === 'field-0'"))
             assertFalse(execute(WebEditorAction.ITALIC))
+            // A view change can finish composition; formatting must remain guarded above.
+            assertTrue(execute(WebEditorAction.SOURCE_MODE))
+            awaitJavascript(
+                """
+                (() => {
+                    const source = document.querySelector('.editor-field[data-field-ordinal="0"] .CodeMirror');
+                    return source?.getBoundingClientRect().height > 0 && source.CodeMirror.getValue().includes('日本');
+                })()
+                """.trimIndent(),
+            )
             keyboard.perform("finish")
             awaitJavascript("${fieldElement(0)}.textContent === '日本'")
             assertEquals("\"日本\"", evaluate("${fieldElement(0)}.textContent"))
+            assertEquals(composingHtml, snapshot().fields.first())
             assertTrue(snapshot().fields.first().let { it.contains("<b>日本</b>") || it.contains("<strong>日本</strong>") })
         }
 
