@@ -49,14 +49,13 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.web.WebEditorAction
-import com.ichi2.anki.noteeditor.web.WebEditorStatus
 
 /** Native controls surround one web field editor, with a preview alongside it on tablets. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
     state: EditorState?,
-    status: WebEditorStatus,
+    toolbarState: EditorToolbarState,
     ready: Boolean,
     busy: Boolean,
     error: String?,
@@ -140,85 +139,36 @@ fun NoteEditorScreen(
             } else {
                 Row(Modifier.fillMaxSize().padding(padding)) {
                     Column(Modifier.weight(1f)) {
-                        Row(Modifier.padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            MetadataButton(
-                                stringResource(R.string.compose_editor_deck),
-                                state.deckName,
-                                enabled,
-                                { dialog = "deck" },
-                                Modifier.weight(1f),
-                            )
-                            MetadataButton(stringResource(R.string.compose_editor_type), state.noteTypeName, enabled, {
+                        EditorMetadata(
+                            deckName = state.deckName,
+                            noteTypeName = state.noteTypeName,
+                            tags = state.tags.joinToString(" "),
+                            enabled = enabled,
+                            onDeck = { dialog = "deck" },
+                            onType = {
                                 if (state.isAdding) dialog = "type" else onEditType()
-                            }, Modifier.weight(1f))
-                        }
-                        TextButton(onClick = onTags, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                stringResource(R.string.compose_editor_tags) + ": " +
-                                    state.tags.joinToString(" ").ifEmpty { stringResource(R.string.compose_editor_no_tags) },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                            },
+                            onTags = onTags,
+                        )
                         HorizontalDivider()
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            editor(Modifier.fillMaxSize())
-                            if (!ready || busy) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    if (!ready && error != null) {
-                                        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(error, color = MaterialTheme.colorScheme.error)
-                                            TextButton(onClick = onLegacy) { Text(stringResource(R.string.compose_editor_legacy)) }
-                                        }
-                                    } else {
-                                        CircularProgressIndicator()
-                                    }
-                                }
-                            }
-                        }
+                        EditorFields(
+                            ready = ready,
+                            busy = busy,
+                            error = error,
+                            onLegacy = onLegacy,
+                            editor = editor,
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                        )
                         HorizontalDivider()
-                        Row(Modifier.horizontalScroll(rememberScrollState())) {
-                            val formatEnabled = enabled && status.hasSelection && !status.composing
-                            EditorActionButton(
-                                R.drawable.ic_format_bold_black_24dp,
-                                R.string.compose_editor_bold,
-                                formatEnabled,
-                            ) { onAction(WebEditorAction.BOLD) }
-                            EditorActionButton(R.drawable.ic_format_italic_black_24dp, R.string.compose_editor_italic, formatEnabled) {
-                                onAction(WebEditorAction.ITALIC)
-                            }
-                            EditorActionButton(
-                                R.drawable.ic_format_underlined_black_24dp,
-                                R.string.compose_editor_underline,
-                                formatEnabled,
-                            ) {
-                                onAction(WebEditorAction.UNDERLINE)
-                            }
-                            if (state.isCloze) {
-                                EditorActionButton(
-                                    R.drawable.ic_cloze_new_card,
-                                    R.string.compose_editor_cloze_new,
-                                    formatEnabled,
-                                ) { onAction(WebEditorAction.CLOZE_NEW) }
-                                EditorActionButton(R.drawable.ic_cloze_same_card, R.string.compose_editor_cloze_same, formatEnabled) {
-                                    onAction(WebEditorAction.CLOZE_SAME)
-                                }
-                            }
-                            EditorActionButton(R.drawable.ic_undo_2, CommonString.undo, formatEnabled) { onAction(WebEditorAction.UNDO) }
-                            EditorActionButton(R.drawable.ic_redo_2, CommonString.redo, formatEnabled) { onAction(WebEditorAction.REDO) }
-                            EditorActionButton(
-                                R.drawable.ic_code,
-                                R.string.compose_editor_source,
-                                enabled && status.hasSelection,
-                            ) { onAction(WebEditorAction.SOURCE_MODE) }
-                            EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled) { dialog = "media" }
-                            if (state.isAdding) {
-                                TextButton(
-                                    onClick = { dialog = "sticky" },
-                                    enabled = enabled,
-                                ) { Text(stringResource(R.string.compose_editor_sticky)) }
-                            }
-                        }
+                        EditorToolbar(
+                            isAdding = state.isAdding,
+                            isCloze = state.isCloze,
+                            enabled = enabled,
+                            state = toolbarState,
+                            onAction = onAction,
+                            onMedia = { dialog = "media" },
+                            onSticky = { dialog = "sticky" },
+                        )
                     }
                     if (tablet && showPreview) {
                         VerticalDivider()
@@ -281,6 +231,96 @@ fun NoteEditorScreen(
                     },
                     confirmButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(CommonString.dialog_ok)) } },
                 )
+        }
+    }
+}
+
+@Composable
+private fun EditorMetadata(
+    deckName: String,
+    noteTypeName: String,
+    tags: String,
+    enabled: Boolean,
+    onDeck: () -> Unit,
+    onType: () -> Unit,
+    onTags: () -> Unit,
+) {
+    Row(Modifier.padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MetadataButton(stringResource(R.string.compose_editor_deck), deckName, enabled, onDeck, Modifier.weight(1f))
+        MetadataButton(stringResource(R.string.compose_editor_type), noteTypeName, enabled, onType, Modifier.weight(1f))
+    }
+    TextButton(onClick = onTags, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            stringResource(R.string.compose_editor_tags) + ": " + tags.ifEmpty { stringResource(R.string.compose_editor_no_tags) },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun EditorFields(
+    ready: Boolean,
+    busy: Boolean,
+    error: String?,
+    onLegacy: () -> Unit,
+    editor: @Composable (Modifier) -> Unit,
+    modifier: Modifier,
+) {
+    Box(modifier) {
+        editor(Modifier.fillMaxSize())
+        if (!ready || busy) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (!ready && error != null) {
+                    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(error, color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = onLegacy) { Text(stringResource(R.string.compose_editor_legacy)) }
+                    }
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorToolbar(
+    isAdding: Boolean,
+    isCloze: Boolean,
+    enabled: Boolean,
+    state: EditorToolbarState,
+    onAction: (WebEditorAction) -> Unit,
+    onMedia: () -> Unit,
+    onSticky: () -> Unit,
+) {
+    Row(Modifier.horizontalScroll(rememberScrollState())) {
+        val formatEnabled = enabled && state.hasSelection && !state.composing
+        EditorActionButton(R.drawable.ic_format_bold_black_24dp, R.string.compose_editor_bold, formatEnabled) {
+            onAction(WebEditorAction.BOLD)
+        }
+        EditorActionButton(R.drawable.ic_format_italic_black_24dp, R.string.compose_editor_italic, formatEnabled) {
+            onAction(WebEditorAction.ITALIC)
+        }
+        EditorActionButton(R.drawable.ic_format_underlined_black_24dp, R.string.compose_editor_underline, formatEnabled) {
+            onAction(WebEditorAction.UNDERLINE)
+        }
+        if (isCloze) {
+            EditorActionButton(R.drawable.ic_cloze_new_card, R.string.compose_editor_cloze_new, formatEnabled) {
+                onAction(WebEditorAction.CLOZE_NEW)
+            }
+            EditorActionButton(R.drawable.ic_cloze_same_card, R.string.compose_editor_cloze_same, formatEnabled) {
+                onAction(WebEditorAction.CLOZE_SAME)
+            }
+        }
+        EditorActionButton(R.drawable.ic_undo_2, CommonString.undo, formatEnabled) { onAction(WebEditorAction.UNDO) }
+        EditorActionButton(R.drawable.ic_redo_2, CommonString.redo, formatEnabled) { onAction(WebEditorAction.REDO) }
+        EditorActionButton(R.drawable.ic_code, R.string.compose_editor_source, enabled && state.hasSelection) {
+            onAction(WebEditorAction.SOURCE_MODE)
+        }
+        EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled, onMedia)
+        if (isAdding) {
+            TextButton(onClick = onSticky, enabled = enabled) { Text(stringResource(R.string.compose_editor_sticky)) }
         }
     }
 }

@@ -6,7 +6,6 @@ import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewInput
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorField
 import com.ichi2.anki.noteeditor.web.WebEditorSnapshot
-import com.ichi2.anki.noteeditor.web.WebEditorStatus
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -30,8 +29,8 @@ class EditorWebSession(
 ) {
     private val mutableReady = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = mutableReady
-    private val mutableStatus = MutableStateFlow(WebEditorStatus(0, false))
-    val status: StateFlow<WebEditorStatus> = mutableStatus
+    private val mutableToolbarState = MutableStateFlow(EditorToolbarState())
+    val toolbarState: StateFlow<EditorToolbarState> = mutableToolbarState
     private val mutablePreview = MutableStateFlow<EditorPreviewInput?>(null)
     val preview: StateFlow<EditorPreviewInput?> = mutablePreview
     var view: WebEditorView? = null
@@ -43,6 +42,7 @@ class EditorWebSession(
             if (!value) mutablePreview.value = null
         }
     private var previewDirty = true
+    private var lastContentRevision: Int? = null
     private var documentToken: Pair<String, Int>? = null
     private var lastHostState: String? = null
     private var binding: Job? = null
@@ -55,10 +55,14 @@ class EditorWebSession(
         view = editor
         documentToken = null
         lastHostState = null
+        lastContentRevision = null
         mutableReady.value = false
         editor.onChanged = {
-            mutableStatus.value = it
-            previewDirty = true
+            mutableToolbarState.value = EditorToolbarState(composing = it.composing, hasSelection = it.hasSelection)
+            if (lastContentRevision != it.revision) {
+                lastContentRevision = it.revision
+                previewDirty = true
+            }
         }
         editor.onError = reportError
         editor.onRendererGone = {
@@ -192,6 +196,12 @@ class EditorWebSession(
         mutableReady.value = false
     }
 }
+
+/** Content revisions do not affect native controls or need to recompose the editor screen. */
+data class EditorToolbarState(
+    val composing: Boolean = false,
+    val hasSelection: Boolean = false,
+)
 
 private fun EditorState.toWebDocument() =
     WebEditorDocument(
