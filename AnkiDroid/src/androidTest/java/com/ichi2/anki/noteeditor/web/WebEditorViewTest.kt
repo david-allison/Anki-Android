@@ -14,6 +14,9 @@ import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.evaluate
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -125,6 +128,48 @@ class WebEditorViewTest : InstrumentedTest() {
                 assertTrue(snapshot().hasChanges)
             } finally {
                 discardDraft(draftId)
+            }
+        }
+
+    @Test
+    fun failedDraftStorageWaitsForRenderingBeforeReleasingQueuedCommands() =
+        withEditor {
+            loadDocument(document("before"))
+            evaluate(
+                """
+                indexedDB.open = () => { throw new Error('Draft storage denied'); };
+                window.unhandledStorageFailure = false;
+                window.addEventListener('unhandledrejection', () => window.unhandledStorageFailure = true);
+                const loadFields = AnkiEditorFields.load;
+                AnkiEditorFields.load = async (...args) => {
+                    await new Promise(resolve => window.releaseFieldLoad = resolve);
+                    return loadFields(...args);
+                };
+                const request = AnkiEditor.request;
+                AnkiEditor.request = (...args) => {
+                    window.lastEditorMethod = args[1];
+                    return request(...args);
+                };
+                """.trimIndent(),
+            )
+            coroutineScope {
+                val loading =
+                    async(Dispatchers.Default) {
+                        runCatching { loadDocumentAndCreateDraft(document("after"), "storage-denied", "{}") }
+                    }
+                try {
+                    awaitJavascript("typeof window.releaseFieldLoad === 'function'")
+                    val queuedSnapshot = async(Dispatchers.Default) { snapshot() }
+                    awaitJavascript("window.lastEditorMethod === 'snapshot'")
+                    assertFalse(loading.isCompleted)
+                    assertFalse(queuedSnapshot.isCompleted)
+                    evaluate("window.releaseFieldLoad()")
+                    assertEquals("Draft storage denied", loading.await().exceptionOrNull()?.message)
+                    assertEquals(listOf("after", "back"), queuedSnapshot.await().fields)
+                    assertEquals("false", evaluate("window.unhandledStorageFailure"))
+                } finally {
+                    evaluate("window.releaseFieldLoad?.()")
+                }
             }
         }
 
