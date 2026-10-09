@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.web
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
+import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
@@ -20,8 +21,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -33,6 +36,56 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @get:Rule
     val keyboard = TestInputMethodRule()
+
+    @Test
+    fun unboundEditorLoadsPackagedShellAndWaitsForItsCollection() =
+        withEditor(initiallyBound = false) {
+            val media = File.createTempFile("editor-binding-", ".txt", context.cacheDir)
+            val draftId = "instrumentation-${UUID.randomUUID()}"
+            var draftCreated = false
+            media.writeText("collection media")
+            try {
+                awaitJavascript("typeof window.AnkiEditor?.request === 'function'")
+                evaluate(
+                    """
+                    fetch('/media/${media.name}', {cache: 'no-store'}).then(async response => {
+                        window.unboundMedia = {status: response.status, body: await response.text()};
+                    });
+                    """.trimIndent(),
+                )
+                awaitJavascript("window.unboundMedia?.status === 404")
+                assertEquals("\"\"", evaluate("window.unboundMedia.body"))
+                assertEquals("true", evaluate("window.AnkiEditorFields === undefined"))
+                getInstrumentation().runOnMainSync {
+                    bindCollection(context.cacheDir)
+                    bindCollection(File(context.cacheDir, "."))
+                    assertFailsWith<IllegalStateException> { bindCollection(File(context.cacheDir, "another-collection")) }
+                }
+                loadDocumentAndCreateDraft(document("bound fields"), draftId, "{}")
+                draftCreated = true
+                evaluate(
+                    """
+                    fetch('/media/${media.name}', {cache: 'no-store'}).then(async response => {
+                        window.boundMedia = {status: response.status, body: await response.text()};
+                    });
+                    """.trimIndent(),
+                )
+                awaitJavascript("window.boundMedia?.status === 200")
+                assertEquals("\"collection media\"", evaluate("window.boundMedia.body"))
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals(
+                    "bound fields",
+                    restored.document.fields
+                        .first()
+                        .html,
+                )
+                assertEquals(listOf("bound fields", "back"), snapshot().fields)
+            } finally {
+                media.delete()
+                if (draftCreated) discardDraft(draftId)
+            }
+        }
 
     @Test
     fun untouchedHtmlRoundTripsAndSnapshotIncludesTheLatestDom() =
@@ -312,13 +365,16 @@ class WebEditorViewTest : InstrumentedTest() {
     private fun fieldElement(index: Int) =
         "document.querySelector('.editor-field[data-field-ordinal=\"$index\"] .rich-text-editable').shadowRoot.querySelector('anki-editable')"
 
-    private fun withEditor(block: suspend WebEditorView.() -> Unit) {
+    private fun withEditor(
+        initiallyBound: Boolean = true,
+        block: suspend WebEditorView.() -> Unit,
+    ) {
         ensureWebViewIsSupported()
         val intent = SingleFragmentActivity.getIntent(testContext, Fragment::class)
         ActivityScenario.launch<SingleFragmentActivity>(intent).use { scenario ->
             lateinit var webView: WebEditorView
             scenario.onActivity { activity ->
-                webView = WebEditorView(activity, activity.cacheDir)
+                webView = WebEditorView(activity, activity.cacheDir.takeIf { initiallyBound })
                 activity.setContentView(webView)
             }
             try {
