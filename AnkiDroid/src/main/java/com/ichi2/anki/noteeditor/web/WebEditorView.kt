@@ -46,11 +46,11 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /** The development editor's one field surface; native controls never mirror live field HTML. */
-// Created programmatically: a collection media root is required, so XML/tool constructors are not applicable.
+// Created programmatically and bound to a collection before accessing media or translations.
 @SuppressLint("SetJavaScriptEnabled", "ViewConstructor")
 class WebEditorView(
     context: Context,
-    mediaDirectory: File,
+    mediaDirectory: File? = null,
 ) : WebView(context) {
     var onReady: (() -> Unit)? = null
     var onChanged: ((WebEditorStatus) -> Unit)? = null
@@ -65,6 +65,10 @@ class WebEditorView(
     private var destroyed = false
     private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val scriptNonce = UUID.randomUUID().toString().replace("-", "")
+    private val collectionReady = CompletableDeferred<Unit>()
+
+    @Volatile
+    private var mediaRoot: File? = null
 
     init {
         // WebView uses wrap-content height to choose its CSS viewport, even with exact Compose constraints.
@@ -74,7 +78,7 @@ class WebEditorView(
         settings.allowFileAccess = false
         settings.allowContentAccess = false
         settings.setSupportMultipleWindows(false)
-        val mediaRoot = mediaDirectory.canonicalFile
+        mediaDirectory?.let(::bindCollection)
         val loader =
             WebViewAssetLoader
                 .Builder()
@@ -82,8 +86,9 @@ class WebEditorView(
                 .addPathHandler("/_app/") { path -> assetResponse("backend/sveltekit/app/$path") }
                 .addPathHandler("/media/") { path ->
                     runCatching {
-                        val file = File(mediaRoot, path).canonicalFile
-                        if (file.parentFile == mediaRoot && file.isFile) {
+                        val root = mediaRoot ?: return@addPathHandler emptyResponse()
+                        val file = File(root, path).canonicalFile
+                        if (file.parentFile == root && file.isFile) {
                             WebResourceResponse(URLConnection.guessContentTypeFromName(file.name), null, file.inputStream())
                         } else {
                             emptyResponse()
@@ -137,6 +142,15 @@ class WebEditorView(
             }
         }
         loadUrl("$ORIGIN/editor-fields")
+    }
+
+    /** Packaged assets can load immediately; collection resources wait for this one-time binding. */
+    fun bindCollection(mediaDirectory: File) {
+        check(!destroyed) { "The note editor is closed." }
+        val root = mediaDirectory.canonicalFile
+        check(mediaRoot == null || mediaRoot == root) { "The editor is already bound to another collection." }
+        mediaRoot = root
+        collectionReady.complete(Unit)
     }
 
     /** Trusted packaged bootstrap only; note HTML never receives a script nonce. */
@@ -352,6 +366,7 @@ class WebEditorView(
                         "i18nResources" -> {
                             val encoded = message.getString("bytes")
                             require(encoded.length <= 16_384) { "Invalid translation request." }
+                            collectionReady.await()
                             val bytes = withCol { i18nResourcesRaw(Base64.decode(encoded, Base64.DEFAULT)) }
                             JSONObject().put("bytes", Base64.encodeToString(bytes, Base64.NO_WRAP))
                         }
