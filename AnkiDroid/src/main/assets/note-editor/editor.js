@@ -354,6 +354,9 @@
 
     const methods = {
         async loadDocumentAndCreateDraft(value) {
+            // Open storage while fields render. Keep the rejected database promise for
+            // createDraft to await, but handle it now so an early failure is not unhandled.
+            openDatabase().catch(() => {});
             await methods.loadDocument(value.document);
             return methods.createDraft(value);
         },
