@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.doOnAttach
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -38,6 +40,7 @@ import com.ichi2.anki.dialogs.ChangeNoteTypeDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.mediaFolder
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.noteeditor.compose.media.ComposeEditorMedia
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreview
@@ -66,6 +69,8 @@ class ComposeNoteEditorActivity :
     private var changed = false
     private var changeTypeAfterSave = false
     private lateinit var tagsFactory: TagsDialogFactory
+    private var editorView by mutableStateOf<WebEditorView?>(null)
+    private var collectionMediaDirectory: File? = null
     private val webSession by lazy { EditorWebSession(model, lifecycleScope, ::reportError) }
     private val media =
         ComposeEditorMedia(
@@ -112,15 +117,21 @@ class ComposeNoteEditorActivity :
                 }
             }
         }
-        startLoadingCollection()
+        if (supportsEditor()) {
+            // Start collection work and the trusted page independently. Note binding waits for both.
+            startLoadingCollection()
+            if (isFinishing) return
+            editorView =
+                WebEditorView(this, collectionMediaDirectory).also {
+                    it.onMediaPaste = media::paste
+                }
+        }
     }
 
-    override fun onCollectionLoaded(col: Collection) {
-        super.onCollectionLoaded(col)
-        registerReceiver()
+    private fun supportsEditor(): Boolean {
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             reportError(getString(R.string.compose_editor_update_webview))
-            return
+            return false
         }
         val fieldsAvailable =
             runCatching {
@@ -128,9 +139,17 @@ class ComposeNoteEditorActivity :
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
-            return
         }
+        return fieldsAvailable
+    }
+
+    override fun onCollectionLoaded(col: Collection) {
+        super.onCollectionLoaded(col)
+        registerReceiver()
         launchEditorTask {
+            val directory = requireNotNull(col.mediaFolder) { "The collection media folder is unavailable." }
+            collectionMediaDirectory = directory
+            editorView?.bindCollection(directory)
             val arguments = intent.extras ?: NoteEditorFragment.addNoteArgs()
             if (model.state.value == null && withCol { requiresLegacyEditor(arguments) }) {
                 openLegacyEditor()
@@ -178,20 +197,15 @@ class ComposeNoteEditorActivity :
             onLegacy = ::openLegacyEditor,
             onPreviewVisibility = { webSession.previewEnabled = it },
             editor = { modifier ->
-                state?.let { current ->
+                editorView?.let { web ->
                     AndroidView(
                         modifier = modifier,
-                        factory = { context ->
-                            WebEditorView(context, File(current.mediaDirectory)).also {
-                                it.onMediaPaste = media::paste
-                                webSession.attach(it)
-                            }
-                        },
+                        factory = { web.apply { doOnAttach { webSession.attach(web) } } },
                         onRelease = { editor ->
                             webSession.detach()
                             editor.destroy()
                         },
-                        update = { editor -> editor.setOnTouchListener { _, _ -> busy || !ready || current.isSaving } },
+                        update = { editor -> editor.setOnTouchListener { _, _ -> busy || !ready || state?.isSaving == true } },
                     )
                 }
             },
@@ -400,6 +414,17 @@ class ComposeNoteEditorActivity :
         outState.putBoolean(STATE_CHANGE_TYPE, changeTypeAfterSave)
         media.save(outState)
         super.onSaveInstanceState(outState)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Startup can be canceled before Compose attaches the already-loading WebView.
+        editorView?.let {
+            webSession.detach()
+            (it.parent as? ViewGroup)?.removeView(it)
+            it.destroy()
+        }
+        editorView = null
     }
 
     private fun launchEditorTask(block: suspend () -> Unit) {
