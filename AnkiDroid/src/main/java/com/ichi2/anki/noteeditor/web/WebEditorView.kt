@@ -142,9 +142,14 @@ class WebEditorView(
     /** Trusted packaged bootstrap only; note HTML never receives a script nonce. */
     private fun backendIndexResponse(): WebResourceResponse =
         runCatching {
+            val entryPoint =
+                context.assets
+                    .open("backend/editor-fields.json")
+                    .bufferedReader()
+                    .use { JSONObject(it.readText()).optString("entryPoint", "index.html") }
             val page =
                 context.assets
-                    .open("backend/sveltekit/index.html")
+                    .open("backend/sveltekit/$entryPoint")
                     .bufferedReader()
                     .use { it.readText() }
             val style =
