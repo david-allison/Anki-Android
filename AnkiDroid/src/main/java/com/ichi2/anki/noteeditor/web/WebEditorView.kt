@@ -147,9 +147,26 @@ class WebEditorView(
                     .open("backend/sveltekit/index.html")
                     .bufferedReader()
                     .use { it.readText() }
+            val style =
+                context.assets
+                    .open("note-editor/editor.css")
+                    .bufferedReader()
+                    .use { it.readText() }
+            val script =
+                context.assets
+                    .open("note-editor/editor.js")
+                    .bufferedReader()
+                    .use { it.readText() }
+                    .replace("</script", "<\\/script", ignoreCase = true)
+            // The small trusted shell must run before Svelte starts. Inline it to avoid
+            // two parser-blocking requests through WebView's asset interception.
             val shell =
-                """<base href="/media/"><link rel="stylesheet" href="/assets/note-editor/editor.css"><script src="/assets/note-editor/editor.js"></script>"""
-            val html = page.replace("<head>", "<head>$shell").replace(Regex("<script(?=\\s|>)"), "<script nonce=\"$scriptNonce\"")
+                """<base href="/media/"><style>$style</style>""" +
+                    """<script nonce="$scriptNonce">$script</script>"""
+            val html =
+                page
+                    .replace(Regex("<script(?=\\s|>)"), "<script nonce=\"$scriptNonce\"")
+                    .replace("<head>", "<head>$shell")
             WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(html.toByteArray()))
         }.getOrElse { emptyResponse() }
 
