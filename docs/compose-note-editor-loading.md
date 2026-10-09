@@ -1,4 +1,28 @@
-# Compose note editor loading: measurements and next experiments
+# Compose note editor loading: before and after
+
+**Browser field loading: 80 → 63 ms (20% faster). Android startup: no consistent
+improvement established yet.**
+
+Latest comparison: the previous inline-shell/scoped-CSS implementation versus
+the standalone fields entry with fewer startup bridge calls.
+
+| Measurement | Before | After |
+|---|---:|---:|
+| Initial asset requests, browser | 52 | 8 |
+| Initial JavaScript | 607 KB | 401 KB |
+| Fields loaded, browser median | 79.5 ms | 63.2 ms |
+| Fields loaded, browser median at 6× CPU throttle | 456.1 ms | 356.6 ms |
+| Native session ready, cold Android process | 1,180–2,056 ms | 1,464–1,532 ms |
+| Native session ready, repeat Android opening | 500–1,058 ms | 601–936 ms |
+
+Browser timings start at navigation and use five fresh processes per case.
+Android ranges contain two emulator samples each and start at Activity entry:
+the new build won the first pair and lost the second. These are readiness
+milestones, not tap-to-visible timings. **The 100 ms Android target is not yet
+demonstrated; the Pixel has not been measured.** Details and earlier iterations
+follow below.
+
+## Investigation context
 
 Recorded 2026-10-08; investigation continued 2026-10-09. The target is roughly **100 ms to usable fields**, with a smooth
 keyboard transition. The current measurements do not establish an architectural
