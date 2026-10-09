@@ -105,6 +105,30 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun loadingDraftKeepsMappedBaselineAndNativeStateTogether() =
+        withEditor {
+            val draftId = "instrumentation-${UUID.randomUUID()}"
+            try {
+                loadDocument(document("clean"))
+                loadDocumentAndCreateDraft(
+                    document("changed").copy(generation = 1),
+                    draftId,
+                    "{\"tags\":[\"draft\"]}",
+                    resetBaseline = false,
+                )
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals(1, restored.document.generation)
+                assertEquals(listOf("clean", "back"), restored.baseline)
+                assertEquals("{\"tags\":[\"draft\"]}", restored.hostStateJson)
+                assertEquals(listOf("changed", "back"), snapshot().fields)
+                assertTrue(snapshot().hasChanges)
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun caretMovementDoesNotRewriteDraftButLatestInputIsRecovered() =
         withEditor {
             val draftId = "instrumentation-${UUID.randomUUID()}"

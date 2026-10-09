@@ -159,8 +159,12 @@ class EditorWebSession(
         val hostState = model.hostState()
         if (documentToken != token) {
             mutableReady.value = false
-            editor.loadDocument(state.toWebDocument(), resetBaseline = state.resetFieldBaseline)
-            editor.createDraft(model.draftId, hostState)
+            editor.loadDocumentAndCreateDraft(
+                state.toWebDocument(),
+                model.draftId,
+                hostState,
+                resetBaseline = state.resetFieldBaseline,
+            )
             documentToken = token
             mutableReady.value = true
             previewDirty = true

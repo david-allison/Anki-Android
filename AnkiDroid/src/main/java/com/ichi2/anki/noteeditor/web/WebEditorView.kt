@@ -189,6 +189,22 @@ class WebEditorView(
         request("loadDocument", document.toJson().put("resetBaseline", resetBaseline))
     }
 
+    /** Loads fields and commits their recovery record in one bridge round trip. */
+    suspend fun loadDocumentAndCreateDraft(
+        document: WebEditorDocument,
+        draftId: String,
+        hostStateJson: String,
+        resetBaseline: Boolean = true,
+    ) {
+        request(
+            "loadDocumentAndCreateDraft",
+            JSONObject()
+                .put("document", document.toJson().put("resetBaseline", resetBaseline))
+                .put("draftId", draftId)
+                .put("hostStateJson", hostStateJson),
+        )
+    }
+
     /** A brief native Save/type transition can disable editing while snapshots remain available. */
     suspend fun setInputEnabled(enabled: Boolean) {
         request("setInputEnabled", JSONObject().put("enabled", enabled))
