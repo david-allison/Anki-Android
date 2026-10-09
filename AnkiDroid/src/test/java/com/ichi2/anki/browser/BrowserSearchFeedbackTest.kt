@@ -12,12 +12,38 @@ import kotlin.test.assertEquals
 /** Feedback rules tested without Android views or a collection. */
 class BrowserSearchFeedbackTest {
     @Test
+    fun `collection edits show only a hidden count regardless of scope or number of results`() {
+        for (allDecks in listOf(false, true)) {
+            for (count in listOf(0, 2)) {
+                assertEquals(
+                    COUNT,
+                    browserSearchFeedback(
+                        trigger = BrowserSearchTrigger.USER_REFRESH,
+                        rowCount = count,
+                        allDecksSelected = allDecks,
+                        isHeaderCountVisible = false,
+                    ),
+                )
+                assertEquals(
+                    NONE,
+                    browserSearchFeedback(
+                        trigger = BrowserSearchTrigger.USER_REFRESH,
+                        rowCount = count,
+                        allDecksSelected = allDecks,
+                        isHeaderCountVisible = true,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `automatic searches stay quiet even when an empty deck could offer an action`() {
         for (headerVisible in listOf(false, true)) {
             assertEquals(
                 NONE,
                 browserSearchFeedback(
-                    fromUserSearch = false,
+                    trigger = BrowserSearchTrigger.AUTOMATIC,
                     rowCount = 0,
                     allDecksSelected = false,
                     isHeaderCountVisible = headerVisible,
@@ -26,7 +52,7 @@ class BrowserSearchFeedbackTest {
             assertEquals(
                 NONE,
                 browserSearchFeedback(
-                    fromUserSearch = false,
+                    trigger = BrowserSearchTrigger.AUTOMATIC,
                     rowCount = 2,
                     allDecksSelected = false,
                     isHeaderCountVisible = headerVisible,
@@ -35,7 +61,7 @@ class BrowserSearchFeedbackTest {
             assertEquals(
                 NONE,
                 browserSearchFeedback(
-                    fromUserSearch = false,
+                    trigger = BrowserSearchTrigger.AUTOMATIC,
                     rowCount = 0,
                     allDecksSelected = true,
                     isHeaderCountVisible = headerVisible,
@@ -44,7 +70,7 @@ class BrowserSearchFeedbackTest {
             assertEquals(
                 NONE,
                 browserSearchFeedback(
-                    fromUserSearch = false,
+                    trigger = BrowserSearchTrigger.AUTOMATIC,
                     rowCount = 2,
                     allDecksSelected = true,
                     isHeaderCountVisible = headerVisible,
@@ -59,7 +85,7 @@ class BrowserSearchFeedbackTest {
             assertEquals(
                 COUNT,
                 browserSearchFeedback(
-                    fromUserSearch = true,
+                    trigger = BrowserSearchTrigger.USER_SEARCH,
                     rowCount = count,
                     allDecksSelected = true,
                     isHeaderCountVisible = false,
@@ -74,7 +100,7 @@ class BrowserSearchFeedbackTest {
             assertEquals(
                 NONE,
                 browserSearchFeedback(
-                    fromUserSearch = true,
+                    trigger = BrowserSearchTrigger.USER_SEARCH,
                     rowCount = count,
                     allDecksSelected = true,
                     isHeaderCountVisible = true,
@@ -88,7 +114,7 @@ class BrowserSearchFeedbackTest {
         for (headerVisible in listOf(false, true)) {
             val feedback =
                 browserSearchFeedback(
-                    fromUserSearch = true,
+                    trigger = BrowserSearchTrigger.USER_SEARCH,
                     rowCount = 2,
                     allDecksSelected = false,
                     isHeaderCountVisible = headerVisible,
@@ -103,7 +129,7 @@ class BrowserSearchFeedbackTest {
         for (headerVisible in listOf(false, true)) {
             val feedback =
                 browserSearchFeedback(
-                    fromUserSearch = true,
+                    trigger = BrowserSearchTrigger.USER_SEARCH,
                     rowCount = 0,
                     allDecksSelected = false,
                     isHeaderCountVisible = headerVisible,

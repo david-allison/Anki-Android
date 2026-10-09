@@ -209,7 +209,7 @@ class CardBrowserFragment :
             if (result.resultCode == Activity.RESULT_OK) {
                 // The old forceRefreshSearch called setQuery(searchView.text) before searching,
                 // but the ViewModel already holds the submitted query, so we just re-run the search directly.
-                activityViewModel.launchSearchForCards()
+                activityViewModel.launchSearchForCards(trigger = BrowserSearchTrigger.USER_REFRESH)
             }
         }
 
@@ -597,7 +597,7 @@ class CardBrowserFragment :
                                         }
 
                                         override fun onQueryTextSubmit(query: String): Boolean {
-                                            vm.setQuery(query, fromUserSearch = true)
+                                            vm.setQuery(query, trigger = BrowserSearchTrigger.USER_SEARCH)
                                             legacySearchView!!.clearFocus()
                                             return true
                                         }
@@ -1003,13 +1003,15 @@ class CardBrowserFragment :
             }
         }
 
-        fun onSearchCompleted(state: SearchState.Completed) {
+        fun onSearchFeedback(state: SearchState.Completed) {
+            if (!activityViewModel.consumeSearchFeedback(state)) return
+            val subtitle = legacySubtitle ?: requireActivity().findViewById<TextView>(R.id.subtitle)
             val feedback =
                 browserSearchFeedback(
-                    fromUserSearch = state.fromUserSearch,
+                    trigger = state.trigger,
                     rowCount = state.rowCount,
                     allDecksSelected = state.allDecksSelected,
-                    isHeaderCountVisible = legacySearchView?.isIconified == true,
+                    isHeaderCountVisible = subtitle?.isShown == true && legacySearchView?.isIconified != false,
                 )
             val message =
                 when (feedback) {
@@ -1021,7 +1023,7 @@ class CardBrowserFragment :
             showSnackbar(message, Snackbar.LENGTH_SHORT) {
                 if (feedback.offersSearchAllDecks) {
                     setAction(CommonString.card_browser_search_all_decks) {
-                        activityViewModel.setSelectedDeck(SelectableDeck.AllDecks)
+                        activityViewModel.setSelectedDeck(SelectableDeck.AllDecks, trigger = BrowserSearchTrigger.USER_SEARCH)
                     }
                 }
             }
@@ -1031,7 +1033,6 @@ class CardBrowserFragment :
             cardsAdapter.refreshRows()
             progressIndicator.isVisible = searchState == Initializing || searchState == Searching
             if (searchState is SearchState.Completed) {
-                onSearchCompleted(searchState)
                 invalidateMenu()
             }
         }
@@ -1141,7 +1142,7 @@ class CardBrowserFragment :
             launchCatchingTask { searchBar?.setText(value.toUserSpannable()) }
 
             Timber.i("relaying submitted search to activity")
-            activityViewModel.launchSearchForCards(value, forceRefresh = false, fromUserSearch = true)
+            activityViewModel.launchSearchForCards(value, forceRefresh = false, trigger = BrowserSearchTrigger.USER_SEARCH)
         }
 
         fun onUserMessage(message: UserMessage) =
@@ -1265,6 +1266,7 @@ class CardBrowserFragment :
         activityViewModel.flowOfCardsUpdated.launchCollectionInLifecycleScope(::cardsUpdatedChanged)
         activityViewModel.flowOfMultiSelectModeChanged.launchCollectionInLifecycleScope(::onMultiSelectModeChanged)
         activityViewModel.flowOfSearchState.launchCollectionInLifecycleScope(::searchStateChanged)
+        activityViewModel.flowOfSearchFeedback.filterNotNull().launchCollectionInLifecycleScope(::onSearchFeedback)
         activityViewModel.flowOfLastCompletedSearch.filterNotNull().launchCollectionInLifecycleScope(::onLastCompletedSearchChanged)
         activityViewModel.flowOfColumnHeadings.launchCollectionInLifecycleScope(::onColumnNamesChanged)
         activityViewModel.flowOfCardStateChanged.launchCollectionInLifecycleScope(::onCardsMarkedEvent)
@@ -1905,7 +1907,7 @@ class CardBrowserFragment :
                             tags = selectedTags,
                         ),
                 )
-            activityViewModel.launchSearchForCards(updatedSearch, forceRefresh = false)
+            activityViewModel.launchSearchForCards(updatedSearch, forceRefresh = false, trigger = BrowserSearchTrigger.USER_SEARCH)
         } else {
             activityViewModel.filterByTags(selectedTags, cardState)
         }

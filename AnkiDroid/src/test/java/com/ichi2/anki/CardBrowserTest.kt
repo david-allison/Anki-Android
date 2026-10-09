@@ -47,6 +47,7 @@ import com.ichi2.anki.RobolectricTest.Companion.advanceRobolectricLooperUntil
 import com.ichi2.anki.browser.BrowserColumnKey
 import com.ichi2.anki.browser.BrowserMultiColumnAdapter
 import com.ichi2.anki.browser.BrowserMultiColumnAdapter.Companion.LINES_VISIBLE_WHEN_COLLAPSED
+import com.ichi2.anki.browser.BrowserSearchTrigger
 import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.browser.CardBrowserColumn.DECK
 import com.ichi2.anki.browser.CardBrowserColumn.QUESTION
@@ -524,7 +525,7 @@ class CardBrowserTest : RobolectricTest() {
                     CardBrowserViewModel.SearchState.Completed(
                         rowCount = count,
                         cardsOrNotes = mode,
-                        fromUserSearch = true,
+                        trigger = BrowserSearchTrigger.USER_SEARCH,
                         allDecksSelected = true,
                     )
                 assertThat(search.formatCardCount(targetContext.resources), equalTo(expected))

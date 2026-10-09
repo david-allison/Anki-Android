@@ -35,6 +35,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.browser.BrowserRowCollection
+import com.ichi2.anki.browser.BrowserSearchTrigger
 import com.ichi2.anki.browser.CardBrowserFragment
 import com.ichi2.anki.browser.CardBrowserLaunchOptions
 import com.ichi2.anki.browser.CardBrowserViewModel
@@ -615,18 +616,21 @@ open class CardBrowser :
         )
     }
 
-    private fun forceRefreshSearch(useSearchTextValue: Boolean = false) {
+    private fun forceRefreshSearch(
+        useSearchTextValue: Boolean = false,
+        trigger: BrowserSearchTrigger = BrowserSearchTrigger.AUTOMATIC,
+    ) {
         if (useSearchTextValue && searchView != null) {
-            viewModel.setQuery(searchView!!.query.toString())
+            viewModel.setQuery(searchView!!.query.toString(), trigger = trigger)
         } else {
-            viewModel.launchSearchForCards()
+            viewModel.launchSearchForCards(trigger = trigger)
         }
     }
 
-    private fun refreshBrowserUI() {
+    private fun refreshBrowserUI(trigger: BrowserSearchTrigger) {
         hideProgressBar()
         // reload whole view
-        forceRefreshSearch()
+        forceRefreshSearch(trigger = trigger)
         viewModel.endMultiSelectMode(SingleSelectCause.Other)
         invalidateOptionsMenu() // maybe the availability of undo changed
     }
@@ -667,7 +671,9 @@ open class CardBrowser :
             changes.card
         ) {
             // We refresh the Browser's own UI
-            refreshBrowserUI()
+            val trigger =
+                if (handler is NoteEditorFragment) BrowserSearchTrigger.USER_REFRESH else BrowserSearchTrigger.AUTOMATIC
+            refreshBrowserUI(trigger)
         }
     }
 

@@ -1664,7 +1664,7 @@ class CardBrowserViewModelTest : JvmTest() {
                 manualInit()
                 val completed = awaitSearchCompleted()
                 assertThat(completed.rowCount, equalTo(2))
-                assertThat(completed.fromUserSearch, equalTo(false))
+                assertThat(completed.trigger, equalTo(BrowserSearchTrigger.AUTOMATIC))
             }
         }
 
@@ -1675,11 +1675,11 @@ class CardBrowserViewModelTest : JvmTest() {
                 ignoreEventsDuringViewModelInit()
                 setSelectedDeck(SelectableDeck.AllDecks)
                 awaitSearchCompleted()
-                setQuery("", fromUserSearch = true)
+                setQuery("", trigger = BrowserSearchTrigger.USER_SEARCH)
                 val completed = awaitSearchCompleted()
                 assertThat("count", completed.rowCount, equalTo(3))
                 assertThat("cardsOrNotes", completed.cardsOrNotes, equalTo(CardsOrNotes.CARDS))
-                assertThat(completed.fromUserSearch, equalTo(true))
+                assertThat(completed.trigger, equalTo(BrowserSearchTrigger.USER_SEARCH))
                 assertThat(completed.allDecksSelected, equalTo(true))
             }
         }
@@ -1694,7 +1694,7 @@ class CardBrowserViewModelTest : JvmTest() {
                 setSelectedDeck(deck)
                 val completed = awaitSearchCompleted()
                 assertThat(completed.rowCount, equalTo(1))
-                assertThat(completed.fromUserSearch, equalTo(false))
+                assertThat(completed.trigger, equalTo(BrowserSearchTrigger.AUTOMATIC))
                 assertThat(completed.allDecksSelected, equalTo(false))
             }
         }
@@ -1714,7 +1714,7 @@ class CardBrowserViewModelTest : JvmTest() {
                     setSortType(sort).join()
                     val completed = awaitSearchCompleted()
                     assertThat("sorting retains the results", completed.rowCount, equalTo(2))
-                    assertThat("sorting has its own feedback", completed.fromUserSearch, equalTo(false))
+                    assertThat("sorting has its own feedback", completed.trigger, equalTo(BrowserSearchTrigger.AUTOMATIC))
                 }
             }
         }
@@ -2135,6 +2135,51 @@ class CardBrowserViewModelTest : JvmTest() {
             Prefs.devUsingCardBrowserSearchView = false
         }
     }
+
+    @Test
+    fun `external search launches request feedback`() {
+        for (options in listOf(DeepLink("cat"), SystemContextMenu("cat"), CardBrowserLaunchOptions.SearchQueryJs("cat", allDecks = true))) {
+            runViewModelTest(options = options) {
+                waitForSearchResults()
+                assertEquals(BrowserSearchTrigger.USER_SEARCH, flowOfSearchFeedback.value?.trigger)
+            }
+        }
+    }
+
+    @Test
+    fun `restoring notes mode on startup does not request feedback`() =
+        runViewModelNotesTest(notes = 1) {
+            waitForSearchResults()
+            assertEquals(CardsOrNotes.NOTES, cardsOrNotes)
+            assertNull(flowOfSearchFeedback.value)
+        }
+
+    @Test
+    fun `a newer automatic refresh discards unshown feedback`() =
+        runViewModelTest(notes = 1) {
+            setQuery("", trigger = BrowserSearchTrigger.USER_SEARCH).join()
+            waitForSearchResults()
+            val feedback = assertNotNull(flowOfSearchFeedback.value)
+
+            launchSearchForCards()
+            waitForSearchResults()
+
+            assertNull(flowOfSearchFeedback.value)
+            assertEquals(false, consumeSearchFeedback(feedback))
+        }
+
+    @Test
+    fun `feedback is consumed once but identical later searches still request it`() =
+        runViewModelTest(notes = 1) {
+            repeat(2) {
+                setQuery("", trigger = BrowserSearchTrigger.USER_SEARCH).join()
+                waitForSearchResults()
+                val feedback = assertNotNull(flowOfSearchFeedback.value)
+                assertEquals(true, consumeSearchFeedback(feedback))
+                assertEquals(false, consumeSearchFeedback(feedback))
+                assertNull(flowOfSearchFeedback.value)
+            }
+        }
 
     @Test
     fun `setDefaultSearchText round-trips through collection config`() {
