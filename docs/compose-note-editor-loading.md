@@ -225,7 +225,7 @@ The final clean debug APK then passed an Add smoke test: two real Anki fields,
 expected seeded text, and no temporary `editor:*` timing marks.
 [Paired timelines, reproduction scripts, and final smoke evidence](../AnkiDroid/build/reports/compose-editor/performance-emulator-debug-paired/).
 
-## Current validation and phone handoff
+## Validation and phone handoff after the CSS changes
 
 The combined native/bootstrap and backend-style changes pass:
 
@@ -256,6 +256,99 @@ improvement, or emulator GPU change as a measured phone startup speedup or as
 meeting the 100 ms target.
 [Phone baseline artifacts](../AnkiDroid/build/reports/compose-editor/performance-phone-baseline/)
 and [updated diagnostic APK](../AnkiDroid/build/reports/compose-editor/performance-phone-after/).
+
+## Standalone fields entry and fewer startup bridge calls
+
+The next change mounts the **same upstream Anki fields page** through a 19-line
+entry script, without starting the SvelteKit router. A separate Vite build can
+also remove generated translation/backend exports used only by other pages.
+Native metadata, saving, preview, and recovery ownership remain unchanged.
+The backend capability marker adds `entryPoint: "editor-fields.html"`; Android
+defaults to `index.html` for older compatible backend bundles.
+
+Five fresh browser processes per variant and CPU setting, alternating variants,
+produce these medians. They isolate the backend entry change and do not include
+the concurrent Android bridge changes:
+
+| Measurement | Previous route | Standalone fields |
+|---|---:|---:|
+| Initial asset requests | 52 | 8 |
+| Initial JavaScript | 606,746 B | 401,076 B |
+| Total initial assets | 632,479 B | 426,806 B |
+| API ready, no throttle | 61.1 ms | 42.6 ms |
+| Fields loaded since navigation, no throttle | 79.5 ms | 63.2 ms |
+| API ready, 6× CPU throttle | 314.1 ms | 194.1 ms |
+| Fields loaded since navigation, 6× throttle | 456.1 ms | 356.6 ms |
+
+Complete field loading improves about **20–22% in this browser comparison**.
+The gain comes from bootstrap: field-load API duration itself did not improve
+(16.2 → 17.7 ms unthrottled; 135.2 → 164.6 ms at 6×). These are navigation/API
+milestones, not the first presented frame or Android input readiness.
+
+DCL is no longer a comparable milestone: the previous inline bootstrap starts
+dynamic imports that DCL does not await; the new module script executes before
+DCL. DCL therefore moves later (7.4 → 26.5 ms unthrottled) even while fields load
+sooner. Optimizing this DCL number would be misleading.
+
+The separate build adds approximately **934 KiB of compressed AAR assets**, mostly
+duplicate lazy MathJax and CodeMirror chunks retained for compatibility with other
+SvelteKit pages. Those engines still do not load for plain fields. Sharing their
+build outputs is a possible packaging improvement, not a startup requirement.
+
+The production build and Svelte typecheck pass. The shared browser suite passes
+23 tests with one intentional skip for navigation owned by the native host.
+All 23 computed-style selections match; four light/dark × rich/source screenshot
+pairs are byte-identical.
+[Standalone source, browser evidence, and packaging breakdown](../build/reports/compose-editor/performance-standalone/README.md).
+
+Android also removes two unnecessary startup bridge calls:
+
+- A newly allocated draft UUID skips its first recovery lookup. The decision is
+  consumed before any web request, so a canceled attachment or a saved-instance
+  ID still requires recovery on the next attachment.
+- Loading fields and creating their draft use one bridge request, which completes
+  only after the IndexedDB transaction commits. The native recovery pointer still
+  commits before autofocus. Restored drafts retain their original baseline and
+  native metadata.
+
+Validation for this iteration passes: 29 focused draft-ID/ViewModel unit tests,
+9 WebView instrumentation tests, 5 editor Activity tests on the phone-sized
+emulator, and the tablet preview test. Actual-display screenshots confirm rich
+text, source HTML, and initial/updated front/answer previews with the keyboard
+open. Temporary timing code has been removed from production source.
+[Android tests, screenshots, diagnostic APK, and timing captures](../AnkiDroid/build/reports/compose-editor/performance-standalone-android/).
+
+The Android comparison alternates the previous inline-shell/scoped-CSS APK with
+the new standalone-entry/startup-call APK twice. Both are isolated debug builds
+without coverage or LeakCanary, on the same hardware-rendered emulator. Each
+opening has a new Activity and WebView target with verified unique seeded fields;
+the driver closes through the native toolbar and confirms detachment before the
+next opening. The database already exists; these are fresh notes, not restored
+drafts. No builds or other performance captures ran during measurement.
+
+| Opening | API ready since navigation, previous → new | Native session ready since Activity entry, previous → new |
+|---|---:|---:|
+| Pair 1, cold process | 1,085 → 600 ms | 2,056 → 1,464 ms |
+| Pair 1, same-process repeat | 535 → 327 ms | 1,058 → 601 ms |
+| Pair 2, cold process | 463 → 551 ms | 1,180 → 1,532 ms |
+| Pair 2, same-process repeat | 243 → 345 ms | 500 → 936 ms |
+
+All eight captures are valid. **The second pair reverses the first pair's timing
+advantage: a consistent Android startup improvement is not established.** The
+new APK consistently requests far fewer resources (9–12 vs 53–54), but time
+before navigation and field-loading duration vary substantially. Intercepted
+resource durations can overlap and must not be summed as elapsed loading time;
+their reported byte counts are zero, so byte comparisons above come from the
+controlled browser capture. Session readiness includes native checkpoint
+coordination and autofocus, not keyboard-animation completion or a presented
+frame. Neither these samples nor the browser gains meet or disprove the 100 ms
+Android target. The Pixel remains USB-unauthorized and has not been used.
+
+The final clean debug APK also passes an Add smoke check: visible editable fields
+contain the expected seed, the standalone assets load, and diagnostic timing
+marks are absent. This checks readiness, not launch latency.
+[Clean debug APK](../AnkiDroid/build/reports/compose-editor/final-debug/AnkiDroid-Editor-Perf-debug.apk)
+and [final smoke evidence](../AnkiDroid/build/reports/compose-editor/performance-standalone-android/final-smoke/).
 
 ## Tiny capture script
 
@@ -294,14 +387,16 @@ or recovery is the dominant cost:
    before interception and native reply delivery can be large on the emulator.
    Capture `devtools.timeline,v8,blink.user_timing,loading,toplevel` before
    navigation if the phone reproduces them. Distinguish execution from waiting.
-3. **Investigate the remaining JavaScript only if it dominates.** About 607 KB
-   still loads for the route. CSS reduction alone barely changed API readiness.
-   A small static-page/add-back experiment can isolate bootstrap/module work.
-4. **Measure necessary startup storage separately from bridge trips.** A newly
-   allocated UUID cannot have an old draft, but skipping its lookup does not avoid
-   opening IndexedDB for the first checkpoint. Combining field load/checkpoint
-   could remove one bridge round trip; preserve durable recovery semantics and
-   retained-Activity cancellation behavior.
+3. **Investigate the remaining JavaScript only if it dominates.** The standalone
+   entry reduces it to about 401 KB. Bootstrap improved in the browser, while
+   field loading itself did not; use Android stage timings to choose the next step.
+4. **Measure necessary startup storage separately from bridge trips.** The fresh
+   lookup skip and combined field load/checkpoint remove two bridge requests.
+   They do not avoid opening IndexedDB or committing the recovery record. Measure
+   these remaining costs before changing their scheduling or durability. The
+   latest candidate spends 11–60 ms opening the existing database after loading
+   fields. Opening it concurrently is a possible follow-up; error handling must
+   still await field initialization and the durable checkpoint before readiness.
 5. **Assess lifecycle changes last.** Prewarming/reuse may help, but adds
    ownership/memory costs. These measurements do not establish it as necessary
    or establish a 100 ms architectural lower bound.
@@ -315,6 +410,6 @@ or recovery is the dominant cost:
 
 These artifact directories are ignored build output. Temporary native/JavaScript
 timing patches are archived there, not enabled in production source. An earlier
-optimized tracing attempt hit lint checks; the subsequent successful capture and environment findings are recorded above. The updated browser suite
-passes twelve tests; the combined updated Android APK passes eight WebView tests,
-five phone-layout Activity tests, and the tablet preview test.
+optimized tracing attempt hit lint checks; the subsequent successful capture and
+environment findings are recorded above. Validation counts are recorded with
+each iteration so that results are not attributed to a later untested change.
