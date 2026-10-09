@@ -1,6 +1,6 @@
 # Compose note editor loading: measurements and next experiments
 
-Recorded 2026-10-08. The target is roughly **100 ms to usable fields**, with a smooth
+Recorded 2026-10-08; investigation continued 2026-10-09. The target is roughly **100 ms to usable fields**, with a smooth
 keyboard transition. The current measurements do not establish an architectural
 lower bound or show that prewarming is necessary. In particular, **500 ms before
 DOMContentLoaded is not evidence of 500 ms spent constructing the DOM**.
@@ -12,7 +12,8 @@ taken on an emulator or desktop Chromium; the phone was not used.
 
 Environment: `emulator-5582`, ARM64, Android 14/API 34, WebView 154.0.8037.106.
 The APK was `playDebug`, with code coverage enabled and no R8 optimization.
-LeakCanary disabled itself under JUnit. No optimized Android timings exist yet.
+LeakCanary disabled itself under JUnit. The debug results below predate the
+optimized measurements described later in this document.
 
 The probe opens a synthetic Basic note, observes editable field DOM, and requests
 a snapshot. It then types into the note, closes, and reopens the editor in the same
@@ -59,9 +60,10 @@ These are local, intercepted requests, with no DNS or connection setup. They are
 omitted start timestamps, so they cannot reconstruct the waterfall. Requests can
 overlap; adding their durations would be wrong.
 
-## What the HTML actually waits for
+## Baseline: what the HTML waited for
 
-The generated HTML is 2,900 bytes before native injection. Its order is:
+Before inlining the shell and scoping CSS, generated HTML was 2,900 bytes before
+native injection. Its order was:
 
 | Order | Resource | Size, uncompressed | Relationship to DCL |
 |---|---|---:|---|
@@ -83,9 +85,9 @@ Module work can compete for the renderer thread, but is not itself a prerequisit
 for DCL here. Classic scripts can wait for preceding stylesheets.
 [DOMContentLoaded semantics](https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event).
 
-The root CSS has no runtime `@import` or `@font-face` chain; its URLs are inline
-SVG data. The large CSS files and early blocking asset requests are concrete
-investigation targets, rather than a reason to assume HTML must be slow.
+That root CSS has no runtime `@import` or `@font-face` chain; its URLs are inline
+SVG data. The large CSS files and early blocking asset requests were concrete
+investigation targets, rather than evidence that HTML must be slow.
 
 ## Work already reduced
 
@@ -117,6 +119,144 @@ Those are still poor frame times. Large native traversal intervals were recorded
 without a call-stack trace, they cannot all be attributed to Compose. During the
 earlier keyboard cycles, measured JavaScript work was only about 2 ms total.
 
+## Optimized Android follow-up: check the renderer first
+
+The first R8 `playBenchmark` measurements used an isolated
+`com.ichi2.anki.composeperf` installation, without coverage or instrumentation.
+Temporary native/browser markers measured Activity entry, WebView construction,
+asset interception/reads, field loading, draft storage, and bridge replies.
+The APK used default sideload compilation; no AOT compilation or profile-install
+command was run.
+
+**The emulator was using software graphics.** Its effective launch log selected
+`lavapipe` for Vulkan and `swangle` for GLES, with the SwiftShader adapter. The
+same frame records show little recorded UI work but long rendering queues. These
+results identify investigation targets; they do not characterize a Pixel's GPU
+or establish that native composition is the bottleneck.
+
+In the first fresh Add, actual field loading took 44 ms. By contrast, there was a
+458 ms gap between the HTML stream reaching EOF and interception of the tiny
+shell stylesheet. Reading that stylesheet's stream took less than 1 ms. The
+first-ever IndexedDB open took 367 ms. These are distinct delays, not DOM parsing.
+
+Later fresh Add runs with an existing database reached native session readiness
+in 2,233–2,903 ms from Activity entry. Keyboard loops recorded a 113 ms median
+frame, while measured JavaScript and layout work across those loops totalled only
+about 5 ms. Rendering must be remeasured with hardware acceleration before using
+these numbers to justify further app changes.
+
+The visual-state callback records that submitted WebView content is ready for a
+subsequent draw; it does not timestamp the first presented fields. A subsequent
+natural draw may not occur if the screen has already settled. The probe never
+forces a repaint to manufacture that milestone.
+[Optimized software-rendering evidence](../AnkiDroid/build/reports/compose-editor/performance-baseline-staged/).
+
+## Reducing blocking requests and styles
+
+The implemented changes inline the trusted 104-byte CSS and small bridge script in the
+HTML response, preserving the nonce policy and their position before Svelte
+starts. The files remain separate source assets. This removes two parser-blocking
+intercepted requests. The native screen also uses window width directly for its
+tablet threshold, removing a layout subcomposition used only to obtain that width.
+
+The rebuilt HTML is 2,828 bytes before injection, retains 20 preloads totalling
+222,607 bytes, and has no root stylesheet link.
+
+The backend now supplies a small field-specific stylesheet. Other pages await
+their existing full stylesheet in the root route loader. Shared upstream field
+components, rich-text shadow styles, CodeMirror, and MathJax remain unchanged.
+
+Paired browser measurements alternate five fresh Chromium processes per variant
+and CPU setting; timings in the table are medians. These measure the CSS change; they **do not** include the native
+inline-shell change.
+
+| Measurement | Before scoped CSS | After scoped CSS |
+|---|---:|---:|
+| Requested CSS | 265,655 B | 25,733 B |
+| Total route assets | 872,200 B | 632,479 B |
+| DCL, no throttle | 14.3 ms | 7.7 ms |
+| DCL, 6× CPU throttle | 99.9 ms | 48.5 ms |
+| Fields loaded since navigation, no throttle | 85.8 ms | 85.7 ms |
+| Fields loaded since navigation, 6× throttle | 516.0 ms | 511.3 ms |
+
+This is a substantial reduction in CSS and parser blocking, but **not a measured
+end-to-end browser loading improvement**. Twelve browser tests pass, including
+source mode, RTL, collapsed fields, scroll shadows, and navigation to another
+page while its stylesheet is delayed. Twenty-three computed-style selections
+match, and light/dark rich/source screenshots are byte-identical before/after.
+[CSS evidence and reproduction details](../build/reports/compose-editor/performance-css/README.md).
+
+Repeating the unchanged optimized Android APK with host GPU rendering (Apple M1
+Max/Metal, Vulkan disabled) reduced the keyboard sample's median/p95 frame times
+from 113/250 ms to 40/81 ms. Startup was still highly variable: cold fresh Add
+3,182/5,162 ms; repeat fresh Add 2,546/721 ms to native readiness. These are
+**environment comparisons, not gains from the code changes**. The first run
+immediately after emulator boot timed out and was excluded explicitly.
+[Hardware baseline evidence](../AnkiDroid/build/reports/compose-editor/performance-baseline-hardware/).
+
+## Combined changes on the hardware-rendered emulator
+
+Before/after diagnostic `playDebug` APKs use the same isolated package, with
+coverage and LeakCanary disabled. They were alternated on the same emulator with
+host GPU rendering and an initialized draft database. Each valid sample opened
+a fresh seeded Add, rather than restoring a draft. All timings below are in ms.
+DCL/API readiness are relative to WebView navigation; native session readiness
+is relative to Activity `onCreate`, not the user's tap or a presented frame.
+
+| Opening | DCL before → after | API ready before → after | Native ready before → after |
+|---|---:|---:|---:|
+| Comparable cold process | 429 → 203–245 | 568 → 536–553 | 1,319 → 1,221–1,248 |
+| Same-process repeat | 167 → 90–117 | 267 → 242–247 | 444 → 509–677 |
+
+Each row shows one comparable baseline sample and two updated samples, not
+population statistics. Seven valid samples are preserved in the evidence. The
+additional first baseline cold sample took 9,308 ms, including 3,459 ms before
+navigation began; it is recorded separately rather than attributing that whole
+stall to HTML. One attempted warm baseline reused the existing Activity and is
+invalid. One updated warm capture required reattaching DevTools to the current
+WebView; its existing timeline/native log were recovered without relaunching.
+
+**The HTML loading stage improved; consistent overall startup improvement has
+not been established.** The warm result in particular does not justify a claim
+that the UX is now faster. These emulator samples also do not establish phone
+performance or attainment of the 100 ms target.
+
+The final clean debug APK then passed an Add smoke test: two real Anki fields,
+expected seeded text, and no temporary `editor:*` timing marks.
+[Paired timelines, reproduction scripts, and final smoke evidence](../AnkiDroid/build/reports/compose-editor/performance-emulator-debug-paired/).
+
+## Current validation and phone handoff
+
+The combined native/bootstrap and backend-style changes pass:
+
+- 8 WebView instrumentation tests, including source mode, Japanese IME,
+  unchanged HTML, draft recovery, and script isolation.
+- 5 editor Activity tests on the phone-sized emulator.
+- 1 tablet preview test; initial front, updated front, and updated answer are
+  correct in actual-display screenshots with the keyboard visible.
+- 12 backend browser tests and a full Svelte type check with no errors/warnings.
+
+[Android test evidence](../AnkiDroid/build/reports/compose-editor/loading-optimization-validation/).
+Temporary timing code has been removed from production source; diagnostic APKs
+and capture scripts remain in ignored report directories.
+
+The user subsequently permitted the Pixel **only with a debug APK**, and forbade
+phone system-settings changes. Baseline and updated `playDebug` APKs were built
+for the isolated package `com.ichi2.anki.composeperfphone`, labelled “AnkiDroid
+Editor Perf”. APK manifests verify `debuggable=true`; coverage and LeakCanary
+are disabled consistently in both builds through an archived local Gradle init
+script. The existing AnkiDroid package and collection are outside this probe.
+
+USB still reports the physical device as unauthorized, so **no phone APK has
+been installed or measured**, and no phone system settings have been changed.
+Prepared phone scripts contain no `settings put`, `setprop`, `wm`, keyboard/IME
+configuration, or global log clearing. A before/after phone comparison remains
+pending USB authorization. Do not present the CSS byte reduction, browser DCL
+improvement, or emulator GPU change as a measured phone startup speedup or as
+meeting the 100 ms target.
+[Phone baseline artifacts](../AnkiDroid/build/reports/compose-editor/performance-phone-baseline/)
+and [updated diagnostic APK](../AnkiDroid/build/reports/compose-editor/performance-phone-after/).
+
 ## Tiny capture script
 
 Open an empty editor normally on the disposable emulator. In that WebView's
@@ -139,32 +279,32 @@ Reading this data does not reload or edit the note. Reloading an already attache
 editor would measure page bootstrap alone and would not rerun native note binding.
 The script captures elapsed milestones; it does not provide CPU attribution.
 
-## Optimize one piece at a time
+## Next measurements
 
-1. **Explain the slow tiny asset requests.** Capture the full waterfall and native
-   interception entry/return plus stream first-read/EOF for `editor.css`,
-   `editor.js`, and the root CSS. Measure stream reads too: `AssetManager.open()`
-   alone is insufficient. Align browser/native clocks before subtracting times.
-2. **Test the shell independently.** Start with a tiny static local page, then add
-   the shell CSS, bridge script, root stylesheet, and Svelte bootstrap individually.
-   Keep the same WebView and asset-serving mechanism. Compare first and repeated
-   navigation separately. This isolates the HTML path from Compose/note setup.
-3. **Remove avoidable blocking requests.** First try inlining the 104-byte CSS;
-   separately test inlining the small bridge script. Preserve bridge/fetch-shim
-   installation before Svelte starts. Measure each change before combining them.
-4. **Reduce field-page CSS and preload scope.** Measure CSS coverage and determine
-   which of the global stylesheet and 20 preloads the field-only page needs.
-   Check rich editing, source mode, MathJax, themes and viewport sizing afterward.
-5. **Measure the remaining Android stages in an optimized build.** Record Activity
-   entry, collection/note loading, WebView constructor, page/API ready, IndexedDB
-   restore, field mounting, initial checkpoint, first displayed fields, and IME
-   request/animation. Separate overlapping stages and test-observation overhead.
-6. **Only then assess lifecycle changes.** Empty-page prewarming or reuse may help,
-   but introduces ownership/memory costs. It is not yet a measured requirement.
+The shell requests and oversized CSS have now been removed; full asset timing
+and native interception/stream markers have also been captured. Remaining work
+should follow measurements rather than assume that DOM construction, Compose,
+or recovery is the dominant cost:
 
-If timing gaps remain inside the renderer, capture a trace before navigation with
-`devtools.timeline,v8,blink.user_timing,loading,toplevel`. Inspect parsing,
-stylesheet processing, script compilation/execution and scheduling separately.
+1. **Compare on the Pixel after USB authorization.** Use the two isolated debug
+   APKs with identical diagnostic/build settings. Separate first-ever database
+   creation, a fresh Add after process restart, a repeated Add, and draft recovery.
+   Keep phone system settings unchanged.
+2. **Attribute renderer scheduling gaps.** The stream reads are short, but gaps
+   before interception and native reply delivery can be large on the emulator.
+   Capture `devtools.timeline,v8,blink.user_timing,loading,toplevel` before
+   navigation if the phone reproduces them. Distinguish execution from waiting.
+3. **Investigate the remaining JavaScript only if it dominates.** About 607 KB
+   still loads for the route. CSS reduction alone barely changed API readiness.
+   A small static-page/add-back experiment can isolate bootstrap/module work.
+4. **Measure necessary startup storage separately from bridge trips.** A newly
+   allocated UUID cannot have an old draft, but skipping its lookup does not avoid
+   opening IndexedDB for the first checkpoint. Combining field load/checkpoint
+   could remove one bridge round trip; preserve durable recovery semantics and
+   retained-Activity cancellation behavior.
+5. **Assess lifecycle changes last.** Prewarming/reuse may help, but adds
+   ownership/memory costs. These measurements do not establish it as necessary
+   or establish a 100 ms architectural lower bound.
 
 ## Local evidence
 
@@ -174,7 +314,7 @@ stylesheet processing, script compilation/execution and scheduling separately.
 - [Browser updated](../AnkiDroid/build/reports/compose-editor/performance-after/anki-fields-boot-lazy.json)
 
 These artifact directories are ignored build output. Temporary native/JavaScript
-timing patches are archived there, not enabled in production source. The optimized
-tracing attempt hit lint checks on diagnostic logging; it produced no optimized
-measurement. The browser regression suite passes nine tests; the updated debug
-WebView suite passes eight, including source editing/IME and draft persistence.
+timing patches are archived there, not enabled in production source. An earlier
+optimized tracing attempt hit lint checks; the subsequent successful capture and environment findings are recorded above. The updated browser suite
+passes twelve tests; the combined updated Android APK passes eight WebView tests,
+five phone-layout Activity tests, and the tablet preview test.
