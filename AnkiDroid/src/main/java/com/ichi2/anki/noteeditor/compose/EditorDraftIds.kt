@@ -21,6 +21,7 @@ internal class EditorDraftIds(
 ) {
     private var key: String? = null
     private var id: String? = null
+    private var recoveryRequired = true
 
     fun acquire(
         collection: String,
@@ -31,11 +32,23 @@ internal class EditorDraftIds(
             check(id == null) { "This editor already has a draft ID." }
             val preferenceKey = "composeEditorDraft:" + draftKeyHash("$collection\u0000$target")
             val candidate = savedId ?: preferences.getString(preferenceKey, null)
-            val selected = candidate?.takeUnless { it in activeIds } ?: UUID.randomUUID().toString()
+            val reusable = candidate?.takeUnless { it in activeIds }
+            val selected = reusable ?: UUID.randomUUID().toString()
             activeIds.add(selected)
             key = preferenceKey
             id = selected
+            recoveryRequired = reusable != null
             selected
+        }
+
+    /**
+     * Call before any web request. Only a new ID can skip its first lookup: a canceled attachment
+     * can still leave a committed web checkpoint, so every subsequent attachment must recover.
+     */
+    fun takeRecoveryRequired(): Boolean =
+        synchronized(activeIds) {
+            checkNotNull(id)
+            recoveryRequired.also { recoveryRequired = true }
         }
 
     /** Called after an IndexedDB checkpoint commits. The small pointer write must also complete. */
@@ -43,6 +56,7 @@ internal class EditorDraftIds(
         synchronized(activeIds) {
             val key = checkNotNull(key)
             val id = checkNotNull(id)
+            recoveryRequired = true
             val previous = preferences.getString(key, null)
             if (previous == id || previous in activeIds) return@synchronized
             check(preferences.edit().putString(key, id).commit()) { "Could not record the note editor draft." }

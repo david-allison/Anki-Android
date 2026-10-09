@@ -64,6 +64,9 @@ class EditorViewModel(
 
     val draftId: String get() = requireNotNull(state.value).sessionId
 
+    /** Consume before the first web request, including when attachment may be canceled. */
+    internal fun takeDraftRecoveryRequired(): Boolean = draftIds.takeRecoveryRequired()
+
     suspend fun rememberDraft() = withContext(ioDispatcher) { draftIds.remember() }
 
     suspend fun forgetDraft() = withContext(ioDispatcher) { draftIds.forget() }
