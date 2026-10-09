@@ -353,6 +353,10 @@
     }
 
     const methods = {
+        async loadDocumentAndCreateDraft(value) {
+            await methods.loadDocument(value.document);
+            return methods.createDraft(value);
+        },
         async loadDocument(value) {
             await writes;
             draftId = null;
