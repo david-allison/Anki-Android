@@ -75,10 +75,11 @@ class EditorWebSession(
                 try {
                     updates.withLock {
                         val current = model.state.filterNotNull().first { !it.isSaving }
+                        val recoveryRequired = model.takeDraftRecoveryRequired()
                         // A completed Save in this retained ViewModel supersedes the old checkpoint.
                         val saved = model.saveResult.value
                         val draft =
-                            if (saved is EditorSaveResult.Added ||
+                            if (!recoveryRequired || saved is EditorSaveResult.Added ||
                                 saved is EditorSaveResult.Saved
                             ) {
                                 null

@@ -5,12 +5,32 @@ package com.ichi2.anki.noteeditor.compose
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class EditorDraftIdsTest {
     private val preferences = SPMockBuilder().createSharedPreferences()
     private val active = mutableSetOf<String>()
+
+    @Test
+    fun `fresh ID skips lookup once even if attachment never records its checkpoint`() {
+        val draft = editor()
+        draft.acquire("collection", "add", null)
+        assertFalse(draft.takeRecoveryRequired())
+
+        // JavaScript may commit after native cancellation, before remember or attachment completes.
+        assertTrue(preferences.all.isEmpty())
+        assertTrue(draft.takeRecoveryRequired())
+    }
+
+    @Test
+    fun `saved instance ID requires recovery even without a discovery pointer`() {
+        val draft = editor()
+        assertEquals("saved-instance", draft.acquire("collection", "add", "saved-instance"))
+        assertTrue(preferences.all.isEmpty())
+        assertTrue(draft.takeRecoveryRequired())
+    }
 
     @Test
     fun `a checkpoint makes the draft discoverable after a fresh process launch`() {
@@ -22,6 +42,7 @@ class EditorDraftIdsTest {
 
         val afterProcessDeath = EditorDraftIds(preferences, mutableSetOf())
         assertEquals(draft, afterProcessDeath.acquire("collection A", "add", null))
+        assertTrue(afterProcessDeath.takeRecoveryRequired())
     }
 
     @Test
@@ -51,6 +72,8 @@ class EditorDraftIdsTest {
         first.remember()
         val second = editor()
         val secondId = second.acquire("collection", "add", null)
+        assertFalse(second.takeRecoveryRequired())
+        assertTrue(second.takeRecoveryRequired())
         second.remember()
         assertNotEquals(firstId, secondId)
         assertEquals(listOf(firstId), preferences.all.values.toList())
