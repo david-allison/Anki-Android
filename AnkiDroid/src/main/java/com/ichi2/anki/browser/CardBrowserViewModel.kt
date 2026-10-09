@@ -186,17 +186,6 @@ class CardBrowserViewModel(
         companion object
     }
 
-    /** Result of a completed search, used to drive a snackbar in the UI */
-    sealed interface SearchResultMessage {
-        /** "X cards/notes shown | Search all decks" */
-        data class CardCount(
-            val includeSearchAllDecksAction: Boolean,
-        ) : SearchResultMessage
-
-        /** "No cards in deck X" message; always paired with a "search all decks" action. */
-        data object NoCardsInSelectedDeck : SearchResultMessage
-    }
-
     /** text in the search box (potentially unsubmitted) */
     // this does not currently bind to the value in the UI and is only used for posting
     val flowOfFilterQuery = MutableSharedFlow<String>()
@@ -1446,7 +1435,7 @@ class CardBrowserViewModel(
     /**
      * @param forceRefresh if `true`, perform a search even if the search query is unchanged
      * @param fromUserSearch whether the user explicitly searched for something; controls whether a
-     * result message (snackbar) is surfaced. See [SearchState.Completed.resultMessage]
+     * result message (snackbar) is surfaced. See [browserSearchFeedback]
      */
     fun launchSearchForCards(
         searchRequest: SearchRequest,
@@ -1617,14 +1606,8 @@ class CardBrowserViewModel(
         SearchState.Completed(
             rowCount = rowCount,
             cardsOrNotes = cardsOrNotes,
-            resultMessage =
-                when {
-                    !fromUserSearch -> null
-                    // TODO: better message if rowCount == 0 AND hasSelectedAllDecks
-                    hasSelectedAllDecks() -> SearchResultMessage.CardCount(includeSearchAllDecksAction = false)
-                    rowCount == 0 -> SearchResultMessage.NoCardsInSelectedDeck
-                    else -> SearchResultMessage.CardCount(includeSearchAllDecksAction = true)
-                },
+            fromUserSearch = fromUserSearch,
+            allDecksSelected = hasSelectedAllDecks(),
         )
 
     /** Builds the post-search trailing-pane command from current ViewModel state (tablet only). */
@@ -1749,13 +1732,10 @@ class CardBrowserViewModel(
         data class Completed(
             val rowCount: Int,
             val cardsOrNotes: CardsOrNotes,
-            /**
-             * The message (snackbar) to surface for this search, or `null` if none should be shown.
-             *
-             * Only populated for explicit user searches; `null` for browser open, deck change and
-             * order/direction changes.
-             */
-            val resultMessage: SearchResultMessage?,
+            /** Whether the user explicitly submitted this search, rather than an automatic refresh. */
+            val fromUserSearch: Boolean,
+            /** The deck scope used by this search, before any subsequent UI changes. */
+            val allDecksSelected: Boolean,
         ) : SearchState {
             companion object
         }

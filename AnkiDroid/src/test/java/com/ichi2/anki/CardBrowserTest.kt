@@ -524,7 +524,8 @@ class CardBrowserTest : RobolectricTest() {
                     CardBrowserViewModel.SearchState.Completed(
                         rowCount = count,
                         cardsOrNotes = mode,
-                        resultMessage = CardBrowserViewModel.SearchResultMessage.CardCount(includeSearchAllDecksAction = false),
+                        fromUserSearch = true,
+                        allDecksSelected = true,
                     )
                 assertThat(search.formatCardCount(targetContext.resources), equalTo(expected))
             }
