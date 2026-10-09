@@ -97,7 +97,10 @@ class EditorViewModel(
                             this,
                             requireNotNull(
                                 defaultType?.takeUnless { it.isImageOcclusion }
-                                    ?: notetypes.all().firstOrNull { !it.isImageOcclusion },
+                                    ?: notetypes
+                                        .allNamesAndIds()
+                                        .mapNotNull { notetypes.get(it.id) }
+                                        .firstOrNull { !it.isImageOcclusion },
                             ) { "No supported note type is available." }.id,
                         )
                     // Image Occlusion has its own editor and remains on that route.
@@ -139,13 +142,6 @@ class EditorViewModel(
                         isCloze = note.notetype.isCloze,
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
-                        decks = decks.allNamesAndIds(includeFiltered = false).map { EditorChoice(it.id, it.name) },
-                        noteTypes =
-                            notetypes
-                                .all()
-                                .filterNot { it.isImageOcclusion }
-                                .sortedBy { it.name.lowercase() }
-                                .map { EditorChoice(it.id, it.name) },
                     )
                 }
             val target =
@@ -163,6 +159,34 @@ class EditorViewModel(
             throw e
         } catch (e: Exception) {
             report(e)
+        }
+    }
+
+    /** Picker contents are read when opened, without delaying fields or changing the current note. */
+    suspend fun deckChoices(): List<EditorChoice> =
+        loadChoices { decks.allNamesAndIds(includeFiltered = false).map { EditorChoice(it.id, it.name) } }
+
+    suspend fun noteTypeChoices(): List<EditorChoice> =
+        loadChoices {
+            notetypes
+                .all()
+                .filterNot { it.isImageOcclusion }
+                .sortedBy { it.name.lowercase() }
+                .map { EditorChoice(it.id, it.name) }
+        }
+
+    private suspend fun loadChoices(readChoices: Collection.() -> List<EditorChoice>): List<EditorChoice> {
+        if (state.value == null) return emptyList()
+        return try {
+            withCol {
+                requireCurrentCollection()
+                readChoices()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            report(e)
+            emptyList()
         }
     }
 

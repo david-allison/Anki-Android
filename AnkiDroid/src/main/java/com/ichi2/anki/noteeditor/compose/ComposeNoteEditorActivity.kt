@@ -156,6 +156,8 @@ class ComposeNoteEditorActivity :
             snackbar = snackbar,
             onBack = ::requestClose,
             onSave = { save() },
+            loadDecks = model::deckChoices,
+            loadNoteTypes = model::noteTypeChoices,
             onDeck = { id -> updateMetadata { model.selectDeck(id) } },
             onType = { id ->
                 launchEditorTask {
