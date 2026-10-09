@@ -18,8 +18,6 @@ data class EditorState(
     val isCloze: Boolean,
     val fields: List<EditorFieldState>,
     val tags: List<String>,
-    val decks: List<EditorChoice>,
-    val noteTypes: List<EditorChoice>,
     /** Type changes map the existing web baseline; starting the next Add note establishes a new one. */
     val resetFieldBaseline: Boolean = true,
     val isSaving: Boolean = false,
