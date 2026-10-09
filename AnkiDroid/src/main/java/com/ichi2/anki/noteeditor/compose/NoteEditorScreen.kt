@@ -65,6 +65,8 @@ fun NoteEditorScreen(
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onSave: () -> Unit,
+    loadDecks: suspend () -> List<EditorChoice>,
+    loadNoteTypes: suspend () -> List<EditorChoice>,
     onDeck: (Long) -> Unit,
     onType: (Long) -> Unit,
     onEditType: () -> Unit,
@@ -190,9 +192,11 @@ fun NoteEditorScreen(
         when (dialog) {
             "deck", "type" -> {
                 val deck = dialog == "deck"
+                var choices by remember(dialog) { mutableStateOf<List<EditorChoice>?>(null) }
+                LaunchedEffect(dialog) { choices = if (deck) loadDecks() else loadNoteTypes() }
                 ChoiceDialog(
                     title = stringResource(if (deck) R.string.compose_editor_deck else R.string.compose_editor_type),
-                    choices = if (deck) state.decks else state.noteTypes,
+                    choices = choices,
                     onDismiss = { dialog = null },
                     onSelect = {
                         dialog = null
@@ -362,7 +366,7 @@ private fun EditorActionButton(
 @Composable
 private fun ChoiceDialog(
     title: String,
-    choices: List<EditorChoice>,
+    choices: List<EditorChoice>?,
     onDismiss: () -> Unit,
     onSelect: (Long) -> Unit,
 ) {
@@ -370,9 +374,13 @@ private fun ChoiceDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            LazyColumn(Modifier.heightIn(max = 420.dp)) {
-                items(choices, key = { it.id }) { choice ->
-                    TextButton(onClick = { onSelect(choice.id) }, modifier = Modifier.fillMaxWidth()) { Text(choice.name) }
+            if (choices == null) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else {
+                LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                    items(choices, key = { it.id }) { choice ->
+                        TextButton(onClick = { onSelect(choice.id) }, modifier = Modifier.fillMaxWidth()) { Text(choice.name) }
+                    }
                 }
             }
         },
