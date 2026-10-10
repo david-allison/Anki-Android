@@ -137,10 +137,8 @@ fun NoteEditorScreen(
             },
         ) { padding ->
             if (state == null) {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    if (error == null) {
-                        CircularProgressIndicator()
-                    } else {
+                if (error != null) {
+                    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                         Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(error, color = MaterialTheme.colorScheme.error)
                             TextButton(onClick = onLegacy) { Text(stringResource(R.string.compose_editor_legacy)) }
@@ -284,19 +282,15 @@ private fun EditorFields(
     editor: @Composable (Modifier) -> Unit,
     modifier: Modifier,
 ) {
-    Box(modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
         editor(Modifier.fillMaxSize())
-        if (!ready || busy) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (!ready && error != null) {
-                    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(error, color = MaterialTheme.colorScheme.error)
-                        TextButton(onClick = onLegacy) { Text(stringResource(R.string.compose_editor_legacy)) }
-                    }
-                } else {
-                    CircularProgressIndicator()
-                }
+        if (!ready && error != null) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(error, color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = onLegacy) { Text(stringResource(R.string.compose_editor_legacy)) }
             }
+        } else if (busy) {
+            CircularProgressIndicator()
         }
     }
 }
