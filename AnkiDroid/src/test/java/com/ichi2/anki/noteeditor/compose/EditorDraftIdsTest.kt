@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import org.junit.Test
+import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -102,6 +103,36 @@ class EditorDraftIdsTest {
         first.remember()
         first.release()
         assertEquals(id, editor().acquire("collection", "add", null))
+    }
+
+    @Test
+    fun `drafts stored with legacy hex formatting remain discoverable for every digest byte`() {
+        val digestBytes = mutableSetOf<Int>()
+        repeat(256) { index ->
+            val collection = "collection $index"
+            val target = "edit:$index"
+            val digest = MessageDigest.getInstance("SHA-256").digest("$collection\u0000$target".toByteArray())
+            digestBytes.addAll(digest.map { it.toInt() and 0xff })
+            val legacyKey = "composeEditorDraft:" + digest.joinToString("") { "%02x".format(it) }
+            val existingId = "existing-draft-$index"
+            preferences.edit().putString(legacyKey, existingId).commit()
+
+            val draft = editor()
+            assertEquals(existingId, draft.acquire(collection, target, null))
+            assertTrue(draft.takeRecoveryRequired())
+            draft.release()
+        }
+        assertEquals((0..255).toSet(), digestBytes)
+    }
+
+    @Test
+    fun `non ASCII collection retains its existing UTF8 SHA256 draft key`() {
+        val key = "composeEditorDraft:2eaace35c63a47540dc76732d8bae8b71f4ea47167dafacf17d299c274b15c75"
+        preferences.edit().putString(key, "existing-unicode-draft").commit()
+
+        val draft = editor()
+        assertEquals("existing-unicode-draft", draft.acquire("/collections/日本語/café/🗃️", "edit:12:34:34", null))
+        assertTrue(draft.takeRecoveryRequired())
     }
 
     private fun editor() = EditorDraftIds(preferences, active)
