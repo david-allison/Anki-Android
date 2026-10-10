@@ -99,10 +99,8 @@ class EditorWebSession(
                             documentToken = draft.document.sessionId to draft.document.generation
                             lastHostState = draft.hostStateJson
                         }
-                        synchronize(editor)
-                        if (!model.hasAttachedEditor && draft == null && current.isAdding) editor.focusField()
+                        synchronize(editor, focusFirstField = !model.hasAttachedEditor && draft == null && current.isAdding)
                         model.hasAttachedEditor = true
-                        mutableReady.value = true
                     }
                     model.state.filterNotNull().collect {
                         updates.withLock { synchronize(editor) }
@@ -153,7 +151,10 @@ class EditorWebSession(
 
     suspend fun synchronize() = updates.withLock { synchronize(requireNotNull(view)) }
 
-    private suspend fun synchronize(editor: WebEditorView) {
+    private suspend fun synchronize(
+        editor: WebEditorView,
+        focusFirstField: Boolean = false,
+    ) {
         val state = requireNotNull(model.state.value)
         val token = state.sessionId to state.generation
         val hostState = model.hostState()
@@ -166,7 +167,6 @@ class EditorWebSession(
                 resetBaseline = state.resetFieldBaseline,
             )
             documentToken = token
-            mutableReady.value = true
             previewDirty = true
         } else if (lastHostState != hostState) {
             editor.updateHostState(hostState)
@@ -174,6 +174,10 @@ class EditorWebSession(
         }
         lastHostState = hostState
         model.rememberDraft()
+        if (focusFirstField) editor.focusField()
+        // Enabling native controls schedules a frame. Let persistence and initial
+        // focus finish before that frame competes with their main-thread callbacks.
+        mutableReady.value = true
     }
 
     suspend fun checkpoint() =
