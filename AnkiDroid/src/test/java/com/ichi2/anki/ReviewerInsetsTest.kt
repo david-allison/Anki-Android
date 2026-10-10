@@ -3,7 +3,9 @@
 package com.ichi2.anki
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.MotionEvent
 import android.view.View
@@ -20,9 +22,12 @@ import com.ichi2.anki.reviewer.FullScreenMode
 import com.ichi2.testutils.dispatchInsets
 import com.ichi2.utils.dp
 import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.nullValue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows
 
 /**
  * Edge-to-edge inset handling for the legacy [Reviewer].
@@ -566,6 +571,32 @@ class ReviewerInsetsTest : RobolectricTest() {
             )
         }
     }
+
+    @Test
+    fun `the card's rendered background paints its inset strips`() =
+        withReviewer { reviewer ->
+            // the query is issued once a card side has rendered
+            reviewer.onPageFinished(reviewer.webView!!)
+            assertThat(
+                "onPageFinished queries the rendered card's background color",
+                Shadows.shadowOf(reviewer.webView).lastEvaluatedJavascript ?: "",
+                containsString("backgroundColor"),
+            )
+
+            reviewer.paintInsetsWithCardBackground("\"rgb(255, 0, 0)\"")
+            assertThat(
+                "an opaque card background extends into the card's inset strips",
+                (reviewer.cardContainer.background as ColorDrawable).color,
+                equalTo(Color.RED),
+            )
+
+            reviewer.paintInsetsWithCardBackground("\"rgba(0, 0, 0, 0)\"")
+            assertThat(
+                "a transparent card background keeps the window background",
+                reviewer.cardContainer.background,
+                nullValue(),
+            )
+        }
 
     /** The ease recorded for the most recent answer */
     private fun lastAnsweredEase(): Long = col.db.queryLongScalar("select ease from revlog order by id desc limit 1")
