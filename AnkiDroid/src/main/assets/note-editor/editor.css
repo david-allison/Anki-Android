@@ -2,5 +2,14 @@
 :root { color-scheme: light dark; }
 body { margin: 0; }
 
+/* The native host supplies the surrounding surface and matching label colours. */
+html:root, html body { background: transparent; }
+.fields-only .fields .field-container { background: transparent; }
+.fields-only .field-container .label-container {
+    /* Keep sticky labels opaque when field content scrolls behind them. */
+    background: var(--editor-host-background);
+    color: var(--editor-host-foreground);
+}
+
 /* Desktop field elevation creates extra graphics pipelines on first draw. */
-.fields-only .field-container .editor-field { box-shadow: none; }
+.fields-only .field-container .editor-field { background: var(--canvas); box-shadow: none; }
