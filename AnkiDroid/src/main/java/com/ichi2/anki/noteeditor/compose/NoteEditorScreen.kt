@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -91,8 +92,7 @@ fun NoteEditorScreen(
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview) { onPreviewVisibility(tablet && showPreview) }
         Scaffold(
-            modifier = Modifier.imePadding(),
-            snackbarHost = { SnackbarHost(snackbar) },
+            snackbarHost = { SnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
                 TopAppBar(
                     title = {
@@ -147,7 +147,7 @@ fun NoteEditorScreen(
                     }
                 }
             } else {
-                Row(Modifier.fillMaxSize().padding(padding)) {
+                Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                     Column(Modifier.weight(1f)) {
                         EditorMetadata(
                             deckName = state.deckName,
@@ -161,28 +161,32 @@ fun NoteEditorScreen(
                             onTags = onTags,
                         )
                         HorizontalDivider()
-                        EditorFields(
-                            ready = ready,
-                            busy = busy,
-                            error = error,
-                            onLegacy = onLegacy,
-                            editor = editor,
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                        )
-                        HorizontalDivider()
-                        EditorToolbar(
-                            isAdding = state.isAdding,
-                            isCloze = state.isCloze,
-                            enabled = enabled,
-                            state = toolbarState,
-                            onAction = onAction,
-                            onMedia = { dialog = "media" },
-                            onSticky = { dialog = "sticky" },
-                        )
+                        // Only the field area and toolbar follow the keyboard. Keep the
+                        // metadata and top bar out of its changing layout constraints.
+                        Column(Modifier.weight(1f).fillMaxWidth().imePadding()) {
+                            EditorFields(
+                                ready = ready,
+                                busy = busy,
+                                error = error,
+                                onLegacy = onLegacy,
+                                editor = editor,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                            )
+                            HorizontalDivider()
+                            EditorToolbar(
+                                isAdding = state.isAdding,
+                                isCloze = state.isCloze,
+                                enabled = enabled,
+                                state = toolbarState,
+                                onAction = onAction,
+                                onMedia = { dialog = "media" },
+                                onSticky = { dialog = "sticky" },
+                            )
+                        }
                     }
                     if (tablet && showPreview) {
                         VerticalDivider()
-                        preview(Modifier.weight(1f).fillMaxSize())
+                        preview(Modifier.weight(1f).fillMaxSize().imePadding())
                     }
                 }
             }
