@@ -324,6 +324,11 @@
             transaction.onabort = () =>
                 reject(transaction.error || request.error || new Error("Draft storage failed."));
             transaction.onerror = () => {};
+            // All requests are queued synchronously. Avoid the auto-commit round trip,
+            // but only report success once the transaction has actually completed.
+            if (mode === "readwrite" && typeof transaction.commit === "function") {
+                transaction.commit();
+            }
         });
     }
 
