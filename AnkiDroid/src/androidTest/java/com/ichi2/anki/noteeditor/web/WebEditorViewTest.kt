@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -283,6 +284,29 @@ class WebEditorViewTest : InstrumentedTest() {
                 discardDraft(draftId)
             }
         }
+
+    @Test
+    fun shellInsertionPreservesPackagedHtmlAndLaterHeadLiterals() {
+        val marker =
+            testContext.assets
+                .open("backend/editor-fields.json")
+                .bufferedReader()
+                .use { JSONObject(it.readText()) }
+        val entryPoint = marker.optString("entryPoint", "index.html")
+        val page =
+            testContext.assets
+                .open("backend/sveltekit/$entryPoint")
+                .bufferedReader()
+                .use { it.readText() }
+        val shell = "<script>window.headLiteral = '<head>';</script>"
+        assertTrue(page.contains("<head>"))
+        assertEquals(page.replaceFirst("<head>", "<head>$shell"), insertEditorShell(page, shell))
+        assertEquals(
+            "<head>$shell</head><body><template><head></template></body>",
+            insertEditorShell("<head></head><body><template><head></template></body>", shell),
+        )
+        assertEquals("<html><body>no head</body></html>", insertEditorShell("<html><body>no head</body></html>", shell))
+    }
 
     @Test
     @SuppressLint("SetJavaScriptEnabled")
