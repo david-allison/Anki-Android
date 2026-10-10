@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.doOnAttach
+import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -118,13 +119,22 @@ class ComposeNoteEditorActivity :
             }
         }
         if (supportsEditor()) {
-            // Start collection work and the trusted page independently. Note binding waits for both.
+            // Let the native screen draw before WebView startup competes for the UI thread.
+            // Collection loading and page bootstrap can then proceed independently.
             startLoadingCollection()
             if (isFinishing) return
-            editorView =
-                WebEditorView(this, collectionMediaDirectory).also {
-                    it.onMediaPaste = media::paste
+            window.decorView.doOnPreDraw { view ->
+                // One startup task, after this traversal but before a queued metadata frame.
+                // This lets page loading overlap that frame without delaying the first draw.
+                view.handler.postAtFrontOfQueue {
+                    if (!isFinishing && !isDestroyed) {
+                        editorView =
+                            WebEditorView(this, collectionMediaDirectory).also {
+                                it.onMediaPaste = media::paste
+                            }
+                    }
                 }
+            }
         }
     }
 
