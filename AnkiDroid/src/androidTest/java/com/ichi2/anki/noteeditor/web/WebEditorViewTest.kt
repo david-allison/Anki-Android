@@ -2,7 +2,9 @@
 
 package com.ichi2.anki.noteeditor.web
 
+import android.annotation.SuppressLint
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
@@ -281,6 +283,50 @@ class WebEditorViewTest : InstrumentedTest() {
                 discardDraft(draftId)
             }
         }
+
+    @Test
+    @SuppressLint("SetJavaScriptEnabled")
+    fun mixedCaseClosingTagsStayInsideTheTrustedInlineScript() {
+        ensureWebViewIsSupported()
+        val intent = SingleFragmentActivity.getIntent(testContext, Fragment::class)
+        ActivityScenario.launch<SingleFragmentActivity>(intent).use { scenario ->
+            lateinit var webView: WebView
+            scenario.onActivity { activity ->
+                // Test HTML parsing without the production client's navigation/CSP restrictions.
+                webView = WebView(activity).apply { settings.javaScriptEnabled = true }
+                activity.setContentView(webView)
+            }
+            val script =
+                """
+                window.scriptLiteral = '</ScRiPt><script>window.injected = true</script>';
+                window.scriptFinished = true;
+                """.trimIndent()
+
+            fun loadScript(
+                source: String,
+                marker: String,
+            ) {
+                val html = "<html><head><script>$source</script></head><body id='$marker'></body></html>"
+                scenario.onActivity { webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null) }
+                webView.awaitJavascript("document.body?.id === '$marker'")
+            }
+
+            try {
+                // A control proves this fixture would detect an unescaped closing tag.
+                loadScript(script, "unescaped")
+                assertEquals("true", webView.evaluate("window.injected === true"))
+                loadScript(escapeInlineEditorScript(script), "escaped")
+                assertEquals("true", webView.evaluate("window.scriptFinished === true"))
+                assertEquals("true", webView.evaluate("window.scriptLiteral === '</script><script>window.injected = true</script>'"))
+                assertEquals("true", webView.evaluate("window.injected === undefined"))
+            } finally {
+                scenario.onActivity {
+                    (webView.parent as? ViewGroup)?.removeView(webView)
+                    webView.destroy()
+                }
+            }
+        }
+    }
 
     @Test
     fun noteHtmlCannotExecuteScriptsInTheBridgeDocument() =
