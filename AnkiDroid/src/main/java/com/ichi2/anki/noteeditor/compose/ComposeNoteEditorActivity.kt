@@ -163,7 +163,7 @@ class ComposeNoteEditorActivity :
     private fun EditorContent() {
         val state by model.state.collectAsStateWithLifecycle()
         val ready by webSession.ready.collectAsStateWithLifecycle()
-        val toolbarState by webSession.toolbarState.collectAsStateWithLifecycle()
+        val toolbarState = webSession.toolbarState.collectAsStateWithLifecycle()
         val preview by webSession.preview.collectAsStateWithLifecycle()
         BackHandler { requestClose() }
         NoteEditorScreen(
