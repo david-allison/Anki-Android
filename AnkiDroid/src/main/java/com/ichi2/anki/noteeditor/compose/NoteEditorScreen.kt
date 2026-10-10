@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,7 +60,7 @@ import com.ichi2.anki.noteeditor.web.WebEditorAction
 @Composable
 fun NoteEditorScreen(
     state: EditorState?,
-    toolbarState: EditorToolbarState,
+    toolbarState: State<EditorToolbarState>,
     ready: Boolean,
     busy: Boolean,
     error: String?,
@@ -305,13 +306,14 @@ private fun EditorToolbar(
     isAdding: Boolean,
     isCloze: Boolean,
     enabled: Boolean,
-    state: EditorToolbarState,
+    state: State<EditorToolbarState>,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
     onSticky: () -> Unit,
 ) {
+    val toolbarState by state
     Row(Modifier.horizontalScroll(rememberScrollState())) {
-        val formatEnabled = enabled && state.hasSelection && !state.composing
+        val formatEnabled = enabled && toolbarState.hasSelection && !toolbarState.composing
         EditorActionButton(R.drawable.ic_format_bold_black_24dp, R.string.compose_editor_bold, formatEnabled) {
             onAction(WebEditorAction.BOLD)
         }
@@ -331,7 +333,7 @@ private fun EditorToolbar(
         }
         EditorActionButton(R.drawable.ic_undo_2, CommonString.undo, formatEnabled) { onAction(WebEditorAction.UNDO) }
         EditorActionButton(R.drawable.ic_redo_2, CommonString.redo, formatEnabled) { onAction(WebEditorAction.REDO) }
-        EditorActionButton(R.drawable.ic_code, R.string.compose_editor_source, enabled && state.hasSelection) {
+        EditorActionButton(R.drawable.ic_code, R.string.compose_editor_source, enabled && toolbarState.hasSelection) {
             onAction(WebEditorAction.SOURCE_MODE)
         }
         EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled, onMedia)
