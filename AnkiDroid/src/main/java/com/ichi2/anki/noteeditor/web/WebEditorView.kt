@@ -149,7 +149,21 @@ class WebEditorView(
                 onError?.invoke(exception.message.orEmpty())
             }
         }
-        loadUrl("$ORIGIN/editor-fields")
+        // This app-wide list is owned here. The leading dot matches only our local asset
+        // host, not its subdomains. Interception still rejects every non-local request.
+        // Wait for registration so the first navigation benefits too; unsupported providers
+        // and rejected registrations retain normal Safe Browsing checks.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ALLOWLIST)) {
+            WebViewCompat.setSafeBrowsingAllowlist(setOf(".appassets.androidplatform.net")) {
+                loadEditor()
+            }
+        } else {
+            loadEditor()
+        }
+    }
+
+    private fun loadEditor() {
+        if (!destroyed) loadUrl("$ORIGIN/editor-fields")
     }
 
     /** Packaged assets can load immediately; collection resources wait for this one-time binding. */
