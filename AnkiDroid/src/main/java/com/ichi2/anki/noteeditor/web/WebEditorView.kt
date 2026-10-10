@@ -185,7 +185,7 @@ class WebEditorView(
             val html =
                 page
                     .replace(Regex("<script(?=\\s|>)"), "<script nonce=\"$scriptNonce\"")
-                    .replace("<head>", "<head>$shell")
+                    .let { insertEditorShell(it, shell) }
             WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(html.toByteArray()))
         }.getOrElse { emptyResponse() }
 
@@ -436,6 +436,15 @@ class WebEditorView(
 /** Most packaged scripts contain no end tags, so avoid scanning every character with case folding. */
 internal fun escapeInlineEditorScript(script: String): String =
     if ("</" in script) script.replace("</script", "<\\/script", ignoreCase = true) else script
+
+/** String insertion uses bulk copies instead of Android's per-character CharSequence range append. */
+internal fun insertEditorShell(
+    page: String,
+    shell: String,
+): String {
+    val head = page.indexOf("<head>")
+    return if (head < 0) page else StringBuilder(page).insert(head + "<head>".length, shell).toString()
+}
 
 private fun WebEditorDocument.toJson(): JSONObject =
     JSONObject()
