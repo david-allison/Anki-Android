@@ -164,6 +164,69 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun draftRecoveryWorksWithoutExplicitCommitSupport() =
+        withEditor {
+            val draftId = "instrumentation-${UUID.randomUUID()}"
+            loadDocument(document("fallback"))
+            evaluate("window.savedCommit = IDBTransaction.prototype.commit; IDBTransaction.prototype.commit = undefined;")
+            try {
+                createDraft(draftId, "{\"deck\":2}")
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals(
+                    "fallback",
+                    restored.document.fields
+                        .first()
+                        .html,
+                )
+                assertEquals("{\"deck\":2}", restored.hostStateJson)
+            } finally {
+                discardDraft(draftId)
+                evaluate("IDBTransaction.prototype.commit = window.savedCommit;")
+            }
+        }
+
+    @Test
+    fun abortedDraftWriteRejectsAndPreservesTheLastCommittedDraft() {
+        val draftId = "instrumentation-${UUID.randomUUID()}"
+        withEditor {
+            loadDocument(document("committed"))
+            createDraft(draftId, "{\"deck\":1}")
+            loadDocument(document("must not replace committed draft"))
+            evaluate(
+                """
+                window.originalDraftPut = IDBObjectStore.prototype.put;
+                IDBObjectStore.prototype.put = function(value, key) {
+                    const request = window.originalDraftPut.call(this, value, key);
+                    // The put succeeds, then a duplicate add aborts the whole transaction.
+                    this.add(value, key);
+                    return request;
+                };
+                """.trimIndent(),
+            )
+            assertFailsWith<IllegalStateException> { createDraft(draftId, "{\"deck\":2}") }
+            // Keep the failure installed through pagehide: restoring put here would
+            // let the final checkpoint successfully retry the rejected write.
+            // Destroying this WebView also destroys its patched JavaScript context.
+        }
+        // A fresh WebView must recover only the fully committed transaction.
+        withEditor {
+            try {
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals(
+                    "committed",
+                    restored.document.fields
+                        .first()
+                        .html,
+                )
+                assertEquals("{\"deck\":1}", restored.hostStateJson)
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+    }
+
+    @Test
     fun loadingDraftKeepsMappedBaselineAndNativeStateTogether() =
         withEditor {
             val draftId = "instrumentation-${UUID.randomUUID()}"
