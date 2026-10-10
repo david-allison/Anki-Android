@@ -3,12 +3,16 @@
 package com.ichi2.anki.noteeditor.web
 
 import android.annotation.SuppressLint
+import android.view.ContextThemeWrapper
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import androidx.test.uiautomator.UiDevice
+import com.ichi2.anki.R
 import com.ichi2.anki.SingleFragmentActivity
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
 import com.ichi2.anki.testutil.TestInputMethodRule
@@ -39,6 +43,58 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @get:Rule
     val keyboard = TestInputMethodRule()
+
+    @Test
+    fun outerBackgroundAndLabelsFollowLightTheme() = assertOuterTheme(R.style.Theme_Light)
+
+    @Test
+    fun outerBackgroundAndLabelsFollowDarkTheme() = assertOuterTheme(R.style.Theme_Dark)
+
+    @Test
+    fun outerBackgroundAndLabelsFollowBlackTheme() = assertOuterTheme(R.style.Theme_Dark_Black)
+
+    private fun assertOuterTheme(theme: Int) =
+        withEditor(theme = theme) {
+            loadDocument(document("<span style='color: rgb(200, 30, 40)'>coloured text</span>"))
+            val foreground = getColorFromAttr(context, com.google.android.material.R.attr.colorOnSurface)
+
+            fun rgb(color: Int) =
+                "rgb(${android.graphics.Color.red(color)}, ${android.graphics.Color.green(color)}, ${android.graphics.Color.blue(color)})"
+            val background = getColorFromAttr(context, android.R.attr.colorBackground)
+            val appearance =
+                JSONObject(
+                    evaluate(
+                        """
+                        (() => {
+                            const style = selector => getComputedStyle(document.querySelector(selector));
+                            return {
+                                body: style('body').backgroundColor,
+                                container: style('.field-container').backgroundColor,
+                                label: style('.label-name').color,
+                                badge: style('.label-container .badge').color,
+                                labelBackground: style('.label-container').backgroundColor,
+                                field: style('.rich-text-input').backgroundColor,
+                                content: getComputedStyle(${fieldElement(0)}.querySelector('span')).color
+                            };
+                        })()
+                        """.trimIndent(),
+                    ),
+                )
+            assertEquals("rgba(0, 0, 0, 0)", appearance.getString("body"))
+            assertEquals("rgba(0, 0, 0, 0)", appearance.getString("container"))
+            assertEquals(rgb(foreground), appearance.getString("label"))
+            assertEquals(rgb(foreground), appearance.getString("badge"))
+            assertEquals(rgb(background), appearance.getString("labelBackground"))
+            assertTrue(appearance.getString("field").startsWith("rgb("), "Field surface must remain opaque")
+            assertEquals("rgb(200, 30, 40)", appearance.getString("content"))
+            evaluate("requestAnimationFrame(() => requestAnimationFrame(() => window.themeFrameReady = true))")
+            awaitJavascript("window.themeFrameReady === true")
+            getInstrumentation().waitForIdleSync()
+            UiDevice.getInstance(getInstrumentation()).apply {
+                waitForIdle()
+                takeScreenshot(File(context.filesDir, "editor-theme-$theme.png"))
+            }
+        }
 
     @Test
     fun unboundEditorLoadsPackagedShellAndWaitsForItsCollection() =
@@ -500,6 +556,7 @@ class WebEditorViewTest : InstrumentedTest() {
 
     private fun withEditor(
         initiallyBound: Boolean = true,
+        theme: Int? = null,
         block: suspend WebEditorView.() -> Unit,
     ) {
         ensureWebViewIsSupported()
@@ -507,7 +564,13 @@ class WebEditorViewTest : InstrumentedTest() {
         ActivityScenario.launch<SingleFragmentActivity>(intent).use { scenario ->
             lateinit var webView: WebEditorView
             scenario.onActivity { activity ->
-                webView = WebEditorView(activity, activity.cacheDir.takeIf { initiallyBound })
+                val editorContext = theme?.let { ContextThemeWrapper(activity, it) } ?: activity
+                if (theme !=
+                    null
+                ) {
+                    activity.window.decorView.setBackgroundColor(getColorFromAttr(editorContext, android.R.attr.colorBackground))
+                }
+                webView = WebEditorView(editorContext, activity.cacheDir.takeIf { initiallyBound })
                 activity.setContentView(webView)
             }
             try {

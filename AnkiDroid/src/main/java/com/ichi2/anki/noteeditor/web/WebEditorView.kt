@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.web
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Color
 import android.net.Uri
 import android.os.LocaleList
 import android.util.Base64
@@ -23,6 +24,7 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.utils.AssetHelper.guessMimeType
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CancellationException
@@ -66,11 +68,17 @@ class WebEditorView(
     private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val scriptNonce = UUID.randomUUID().toString().replace("-", "")
     private val collectionReady = CompletableDeferred<Unit>()
+    private val hostBackgroundColor = getColorFromAttr(context, android.R.attr.colorBackground)
+    private val hostForegroundColor = getColorFromAttr(context, com.google.android.material.R.attr.colorOnSurface)
+    private val hostStyle =
+        ":root { --editor-host-background: ${hostBackgroundColor.toCssRgb()}; " +
+            "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; }"
 
     @Volatile
     private var mediaRoot: File? = null
 
     init {
+        setBackgroundColor(Color.TRANSPARENT)
         // WebView uses wrap-content height to choose its CSS viewport, even with exact Compose constraints.
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         settings.javaScriptEnabled = true
@@ -180,7 +188,7 @@ class WebEditorView(
             // The small trusted shell must run before Svelte starts. Inline it to avoid
             // two parser-blocking requests through WebView's asset interception.
             val shell =
-                """<base href="/media/"><style>$style</style>""" +
+                """<base href="/media/"><style>$hostStyle$style</style>""" +
                     """<script nonce="$scriptNonce">$script</script>"""
             val html =
                 page
@@ -432,6 +440,8 @@ class WebEditorView(
             WebResourceResponse("text/plain", "UTF-8", 404, "Not found", emptyMap(), ByteArrayInputStream(byteArrayOf()))
     }
 }
+
+private fun Int.toCssRgb(): String = "rgb(${Color.red(this)}, ${Color.green(this)}, ${Color.blue(this)})"
 
 /** Most packaged scripts contain no end tags, so avoid scanning every character with case folding. */
 internal fun escapeInlineEditorScript(script: String): String =
