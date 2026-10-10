@@ -176,7 +176,7 @@ class WebEditorView(
                     .open("note-editor/editor.js")
                     .bufferedReader()
                     .use { it.readText() }
-                    .replace("</script", "<\\/script", ignoreCase = true)
+                    .let(::escapeInlineEditorScript)
             // The small trusted shell must run before Svelte starts. Inline it to avoid
             // two parser-blocking requests through WebView's asset interception.
             val shell =
@@ -432,6 +432,10 @@ class WebEditorView(
             WebResourceResponse("text/plain", "UTF-8", 404, "Not found", emptyMap(), ByteArrayInputStream(byteArrayOf()))
     }
 }
+
+/** Most packaged scripts contain no end tags, so avoid scanning every character with case folding. */
+internal fun escapeInlineEditorScript(script: String): String =
+    if ("</" in script) script.replace("</script", "<\\/script", ignoreCase = true) else script
 
 private fun WebEditorDocument.toJson(): JSONObject =
     JSONObject()
