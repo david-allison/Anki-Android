@@ -3,11 +3,14 @@
 package com.ichi2.anki.noteeditor.web
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.view.ContextThemeWrapper
 import android.view.ViewGroup
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.UiDevice
 import com.ichi2.anki.R
@@ -509,6 +512,38 @@ class WebEditorViewTest : InstrumentedTest() {
             assertEquals("\"日本\"", evaluate("${fieldElement(0)}.textContent"))
             assertEquals(composingHtml, snapshot().fields.first())
             assertTrue(snapshot().fields.first().let { it.contains("<b>日本</b>") || it.contains("<strong>日本</strong>") })
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun localHostExceptionDoesNotOpenTheRequestBoundary() =
+        withEditor {
+            loadDocument(document("front"))
+            getInstrumentation().runOnMainSync {
+                assertTrue(settings.safeBrowsingEnabled)
+                for (url in listOf(
+                    "https://example.invalid/editor-fields",
+                    "https://sub.appassets.androidplatform.net/editor-fields",
+                    "http://appassets.androidplatform.net/editor-fields",
+                    "${WebEditorView.ORIGIN}:443/editor-fields",
+                )) {
+                    val request =
+                        object : WebResourceRequest {
+                            override fun getUrl(): Uri = Uri.parse(url)
+
+                            override fun isForMainFrame(): Boolean = false
+
+                            override fun isRedirect(): Boolean = false
+
+                            override fun hasGesture(): Boolean = false
+
+                            override fun getMethod(): String = "GET"
+
+                            override fun getRequestHeaders(): Map<String, String> = emptyMap()
+                        }
+                    assertEquals(404, webViewClient.shouldInterceptRequest(this, request)?.statusCode, url)
+                }
+            }
         }
 
     @Test
