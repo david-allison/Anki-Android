@@ -64,6 +64,23 @@ mutation can see a different sequence. CSS URLs are also imported directly
 instead of through dynamic JavaScript wrapper modules. These are shared backend
 component changes, so desktop/add-on compatibility deserves review too.
 
+## Editor controls and draft compatibility
+
+The version 2 fields API adds preferences, formatting commands, selection text and
+native equation editing. Update the capability marker and generated web assets
+together when packaging the backend AAR; an older cached AAR is rejected.
+
+Global editor preferences use desktop's existing collection configuration keys.
+Toggling MathJax preview preserves content and focus but rebuilds inputs, resetting
+undo histories. List, alignment and eraser commands are restricted to rich text.
+LaTeX insertion adds wrappers; it does not introduce an Android LaTeX compiler.
+
+Draft host metadata now records field identities and schema so field-management
+changes can preserve unsaved values after rename/reorder or process death. Old
+drafts without those identities retain the stricter matching-name requirement.
+Text from deleted fields is retained until explicitly discarded; it must be
+resolved before the note can be saved.
+
 ## Changes intended to preserve compatibility
 
 - Explicit IndexedDB commit still waits for transaction completion, with an
@@ -75,7 +92,7 @@ component changes, so desktop/add-on compatibility deserves review too.
 
 ## Existing boundaries, not new optimization regressions
 
-The new editor requires a backend exposing the version 1 fields page. It uses
+The new editor requires a backend exposing the version 2 fields page. It uses
 an app-private virtual HTTPS origin and a restricted field bridge, rather than
 exposing the full desktop editor environment. Image Occlusion and Aedict retain
 their existing flows. Preview deck placeholders and recovery across a collection
