@@ -31,6 +31,7 @@ import com.ichi2.utils.DisplayUtils.setDialogKeyboardResize
 import com.ichi2.utils.TypedFilter
 import com.ichi2.utils.cancelable
 import com.ichi2.utils.customView
+import com.ichi2.utils.neutralButton
 import com.ichi2.utils.show
 import java.util.Locale
 
@@ -53,6 +54,9 @@ class LocaleSelectionDialog : AnalyticsDialogFragment() {
         return AlertDialog.Builder(requireContext()).show {
             cancelable(true)
             customView(binding.root)
+            if (arguments?.getBoolean(ARG_ALLOW_DEFAULT) == true) {
+                neutralButton(R.string.compose_editor_language_hint_default) { sendSelectionResult(useDefault = true) }
+            }
         }
     }
 
@@ -84,10 +88,16 @@ class LocaleSelectionDialog : AnalyticsDialogFragment() {
         }
     }
 
-    private fun sendSelectionResult(locale: Locale? = null) {
+    private fun sendSelectionResult(
+        locale: Locale? = null,
+        useDefault: Boolean = false,
+    ) {
         parentFragmentManager.setFragmentResult(
             REQUEST_HINT_LOCALE_SELECTION,
-            Bundle().apply { putSerializable(RESULT_SELECTED_LOCALE, locale) },
+            Bundle().apply {
+                putSerializable(RESULT_SELECTED_LOCALE, locale)
+                putBoolean(KEY_USE_DEFAULT, useDefault)
+            },
         )
     }
 
@@ -152,6 +162,14 @@ class LocaleSelectionDialog : AnalyticsDialogFragment() {
     companion object {
         const val REQUEST_HINT_LOCALE_SELECTION = "request_hint_locale_selection"
         const val RESULT_SELECTED_LOCALE = "key_selected_locale"
+        const val KEY_USE_DEFAULT = "key_use_default"
+        private const val ARG_ALLOW_DEFAULT = "allow_default"
+
+        /** Offer an explicit default choice without treating cancellation as a reset. */
+        fun withDefaultOption() =
+            LocaleSelectionDialog().apply {
+                arguments = Bundle().apply { putBoolean(ARG_ALLOW_DEFAULT, true) }
+            }
 
         /**
          * Language identifier for International Phonetic Alphabet. This isn't available from [Locale.getAvailableLocales], but

@@ -9,7 +9,8 @@
     let revision = 0,
         composing = false,
         inputEnabled = true,
-        lastTarget = null;
+        lastTarget = null,
+        activeField = null;
     let draftId = null,
         hostStateJson = "",
         database;
@@ -76,6 +77,7 @@
             hasChanges: hasChanges(),
             composing,
             hasSelection: !!lastTarget,
+            activeField,
         });
     }
 
@@ -107,6 +109,7 @@
         revision = savedRevision;
         composing = false;
         lastTarget = null;
+        activeField = null;
         await api().load(model.fields, model.isCloze);
         await api().setInputEnabled(inputEnabled);
         const rendered = await api().snapshot();
@@ -277,7 +280,8 @@
     document.addEventListener("anki-editor-fields-change", scheduleRefresh);
     document.addEventListener("selectionchange", scheduleRefresh);
     document.addEventListener("anki-editor-fields-focus", event => {
-        send({ type: "focus", languageTag: event.detail.languageTag || "" });
+        activeField = event.detail.field;
+        send({ type: "focus", field: activeField, languageTag: event.detail.languageTag || "" });
         scheduleRefresh();
     });
     document.addEventListener("anki-editor-fields-input", event => {

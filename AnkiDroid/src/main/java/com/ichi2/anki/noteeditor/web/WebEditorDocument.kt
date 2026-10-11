@@ -27,6 +27,7 @@ data class WebEditorStatus(
     val hasChanges: Boolean,
     val composing: Boolean = false,
     val hasSelection: Boolean = false,
+    val activeField: Int? = null,
 )
 
 data class WebEditorSnapshot(

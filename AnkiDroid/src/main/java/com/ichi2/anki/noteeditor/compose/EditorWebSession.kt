@@ -58,7 +58,12 @@ class EditorWebSession(
         lastContentRevision = null
         mutableReady.value = false
         editor.onChanged = {
-            mutableToolbarState.value = EditorToolbarState(composing = it.composing, hasSelection = it.hasSelection)
+            mutableToolbarState.value =
+                EditorToolbarState(
+                    composing = it.composing,
+                    hasSelection = it.hasSelection,
+                    activeField = it.activeField,
+                )
             if (lastContentRevision != it.revision) {
                 lastContentRevision = it.revision
                 previewDirty = true
@@ -173,6 +178,7 @@ class EditorWebSession(
             previewDirty = true
         }
         lastHostState = hostState
+        editor.updateLanguageHints(state.fields.map { it.languageTag })
         model.rememberDraft()
         if (focusFirstField) editor.focusField()
         // Enabling native controls schedules a frame. Let persistence and initial
@@ -210,6 +216,7 @@ class EditorWebSession(
 data class EditorToolbarState(
     val composing: Boolean = false,
     val hasSelection: Boolean = false,
+    val activeField: Int? = null,
 )
 
 private fun EditorState.toWebDocument() =

@@ -64,6 +64,8 @@ class WebEditorView(
     private val pending = mutableMapOf<Int, CancellableContinuation<JSONObject>>()
     private var nextRequest = 0
     private var languageTag: String? = null
+    private var focusedField: Int? = null
+    private var languageHints: List<String?>? = null
     private var destroyed = false
     private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val scriptNonce = UUID.randomUUID().toString().replace("-", "")
@@ -227,6 +229,7 @@ class WebEditorView(
         document: WebEditorDocument,
         resetBaseline: Boolean = true,
     ) {
+        focusedField = null
         request("loadDocument", document.toJson().put("resetBaseline", resetBaseline))
     }
 
@@ -237,6 +240,7 @@ class WebEditorView(
         hostStateJson: String,
         resetBaseline: Boolean = true,
     ) {
+        focusedField = null
         request(
             "loadDocumentAndCreateDraft",
             JSONObject()
@@ -249,6 +253,18 @@ class WebEditorView(
     /** A brief native Save/type transition can disable editing while snapshots remain available. */
     suspend fun setInputEnabled(enabled: Boolean) {
         request("setInputEnabled", JSONObject().put("enabled", enabled))
+    }
+
+    /** Apply note-type hints without rebuilding fields, losing selection or resetting undo. */
+    fun updateLanguageHints(hints: List<String?>) {
+        languageHints = hints
+        focusedField?.let { updateInputLanguage(hints.getOrNull(it)) }
+    }
+
+    private fun updateInputLanguage(tag: String?) {
+        if (tag == languageTag) return
+        languageTag = tag
+        context.getSystemService<InputMethodManager>()?.restartInput(this)
     }
 
     suspend fun focusField(index: Int = 0) {
@@ -356,6 +372,7 @@ class WebEditorView(
                         message.getBoolean("hasChanges"),
                         message.optBoolean("composing"),
                         message.optBoolean("hasSelection"),
+                        message.optInt("activeField", -1).takeIf { it >= 0 },
                     ),
                 )
             "error" -> {
@@ -369,11 +386,11 @@ class WebEditorView(
                 onMediaPaste?.invoke(target, uri) ?: onError?.invoke("Use the media button to insert this file.")
             }
             "focus" -> {
-                val tag = message.optString("languageTag").ifEmpty { null }
-                if (tag != languageTag) {
-                    languageTag = tag
-                    context.getSystemService<InputMethodManager>()?.restartInput(this)
-                }
+                focusedField = message.optInt("field", -1).takeIf { it >= 0 }
+                val hints = languageHints
+                updateInputLanguage(
+                    if (hints != null) focusedField?.let(hints::getOrNull) else message.optString("languageTag").ifEmpty { null },
+                )
             }
         }
     }

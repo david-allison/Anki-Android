@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
+import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
 import com.ichi2.testutils.JvmTest
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -27,6 +29,74 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
+    @Test
+    fun `field settings persist on the note type without changing the draft generation`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.setFieldPinned(target, true)
+            vm.setFieldLanguageHint(target, Locale.JAPANESE)
+
+            val updated = assertNotNull(vm.state.value)
+            val type = assertNotNull(col.notetypes.get(original.noteTypeId))
+            assertTrue(type.fields[1].sticky)
+            assertEquals(Locale.JAPANESE, type.fields[1].languageHint)
+            assertNull(type.fields[0].languageHint)
+            assertTrue(updated.fields[1].sticky)
+            assertEquals("ja", updated.fields[1].languageTag)
+            assertEquals(original.generation, updated.generation)
+            assertEquals(original.fields.map { it.html }, updated.fields.map { it.html })
+            assertFalse(updated.hasMetadataChanges)
+
+            vm.setFieldLanguageHint(target, null)
+            assertNull(
+                vm.state.value
+                    ?.fields
+                    ?.get(1)
+                    ?.languageTag,
+            )
+            assertNull(
+                col.notetypes
+                    .get(original.noteTypeId)!!
+                    .fields[1]
+                    .languageHint,
+            )
+        }
+
+    @Test
+    fun `a field menu from a previous document cannot change settings`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.selectNoteType(col.notetypes.basicOptionalReversed.id, listOf("front", "back"))
+            val changed = assertNotNull(vm.state.value)
+
+            vm.setFieldPinned(target, true)
+            vm.setFieldLanguageHint(target, Locale.JAPANESE)
+
+            assertEquals(changed, vm.state.value)
+            assertNull(
+                col.notetypes
+                    .get(original.noteTypeId)!!
+                    .fields[1]
+                    .languageHint,
+            )
+            assertFalse(
+                col.notetypes
+                    .get(original.noteTypeId)!!
+                    .fields[1]
+                    .sticky,
+            )
+            assertNull(
+                col.notetypes
+                    .get(changed.noteTypeId)!!
+                    .fields[1]
+                    .languageHint,
+            )
+        }
+
     @Test
     fun `Add saves HTML and tags then retains only sticky fields`() =
         runTest {
