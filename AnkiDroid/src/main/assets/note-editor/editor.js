@@ -278,6 +278,22 @@
             .catch(reportError);
     });
     document.addEventListener("anki-editor-fields-change", scheduleRefresh);
+    document.addEventListener("click", event => {
+        // A tap inside either input returns to editing, even in the current field.
+        // Focus restoration by a native picker must not dismiss field options.
+        if (
+            inputEnabled &&
+            event
+                .composedPath()
+                .some(
+                    node =>
+                        node instanceof HTMLElement &&
+                        (node.isContentEditable || node.classList.contains("CodeMirror")),
+                )
+        ) {
+            send({ type: "fieldTap" });
+        }
+    });
     document.addEventListener("selectionchange", scheduleRefresh);
     document.addEventListener("anki-editor-fields-focus", event => {
         activeField = event.detail.field;

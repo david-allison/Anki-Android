@@ -68,6 +68,47 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun tappingCurrentOrDifferentFieldClosesOptions() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            runBlocking { web.focusField(1) }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
+            for (index in listOf(1, 0)) {
+                checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+                assertTrue(device.wait(Until.hasObject(By.text("Pin field")), 5_000))
+                // Restoring focus for a native control must not count as a field tap.
+                runBlocking { web.focusField(1) }
+                device.waitForIdle()
+                assertFalse(device.hasObject(bold))
+
+                val point =
+                    JSONObject(
+                        web.evaluate(
+                            """
+                            (() => {
+                                const bounds = ${richField(index)}.getBoundingClientRect();
+                                return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2,
+                                    scale: devicePixelRatio };
+                            })()
+                            """.trimIndent(),
+                        ),
+                    )
+                val location = IntArray(2)
+                scenario.onActivity { web.getLocationOnScreen(location) }
+                assertTrue(
+                    device.click(
+                        location[0] + (point.getDouble("x") * point.getDouble("scale")).toInt(),
+                        location[1] + (point.getDouble("y") * point.getDouble("scale")).toInt(),
+                    ),
+                )
+                assertTrue(device.wait(Until.hasObject(bold), 5_000), "Tapping field $index must restore formatting controls")
+            }
+        }
+    }
+
+    @Test
     fun fieldOptionsDisappearAfterDismissingKeyboardAndPressingBack() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
