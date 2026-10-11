@@ -75,6 +75,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun customButtonLibraryOpen() {
+        openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
+        composeRule.onNodeWithText("Ruby").assertIsDisplayed()
+        captureScreen("custom_button_library")
+    }
+
+    @Test
     fun customizedToolbar() {
         showEditor(
             toolbar =
@@ -174,8 +182,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     private fun openOptions(
         fieldName: String = "Back",
         noteTypeName: String = "Basic",
+        templates: List<EditorCustomToolbarButton> = emptyList(),
     ): Pair<AnkiActivity, View> {
-        val editor = showEditor(fieldName = fieldName, noteTypeName = noteTypeName)
+        val editor = showEditor(fieldName = fieldName, noteTypeName = noteTypeName, templates = templates)
         // The hidden sheet also composes its collapse button; choose the one beside the formatting controls.
         val bold = hasContentDescription(getResourceString(R.string.compose_editor_bold))
         composeRule
@@ -205,6 +214,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         deckName: String = "Default",
         formats: Set<WebEditorAction> = emptySet(),
         toolbar: EditorFieldToolbar = EditorFieldToolbar(),
+        templates: List<EditorCustomToolbarButton> = toolbar.customButtons,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -213,6 +223,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     state =
                         editorState(fieldName, noteTypeName, deckName).let { state ->
                             state.copy(
+                                customButtonTemplates = templates,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
                                         if (index ==

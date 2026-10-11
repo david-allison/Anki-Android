@@ -22,6 +22,7 @@ data class EditorState(
     val isCloze: Boolean,
     val fields: List<EditorFieldState>,
     val tags: List<String>,
+    val customButtonTemplates: List<EditorCustomToolbarButton> = emptyList(),
     val settings: WebEditorSettings = WebEditorSettings(),
     val baselineFieldMap: List<Int>? = null,
     val removedFields: List<EditorRemovedField> = emptyList(),

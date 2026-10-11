@@ -146,6 +146,7 @@ class EditorViewModel(
                         isCloze = note.notetype.isCloze,
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
+                        customButtonTemplates = toolbarPreferences.loadCustomButtons(),
                         settings =
                             WebEditorSettings(
                                 shrinkImages = config.get<Boolean>("shrinkEditorImages") ?: true,
@@ -338,6 +339,22 @@ class EditorViewModel(
         }
     }
 
+    suspend fun setCustomButtonTemplates(buttons: List<EditorCustomToolbarButton>) {
+        if (state.value?.isSaving != false) return
+        withContext(ioDispatcher) { toolbarPreferences.saveCustomButtons(buttons) }
+        val byId = buttons.associateBy { it.id }
+        mutableState.value =
+            state.value?.let { latest ->
+                latest.copy(
+                    customButtonTemplates = buttons,
+                    fields =
+                        latest.fields.map { field ->
+                            field.copy(toolbar = field.toolbar.copy(customButtons = field.toolbar.customButtons.mapNotNull { byId[it.id] }))
+                        },
+                )
+            }
+    }
+
     private suspend fun updateFieldSettings(
         target: EditorFieldTarget,
         update: Field.() -> Unit,
@@ -441,6 +458,7 @@ class EditorViewModel(
                                 field.copy(html = if (field.sticky) snapshotHtml[index] else "")
                             },
                         tags = note.tags.toList(),
+                        customButtonTemplates = toolbarPreferences.loadCustomButtons(),
                         isSaving = false,
                         hasMetadataChanges = false,
                     )
