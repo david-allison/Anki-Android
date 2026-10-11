@@ -2,6 +2,9 @@
 
 package com.ichi2.anki.noteeditor.web
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 /** Field HTML and the clean baseline remain in the WebView until explicitly requested. */
 data class WebEditorDocument(
     val sessionId: String,
@@ -29,6 +32,7 @@ data class WebEditorStatus(
     val composing: Boolean = false,
     val hasSelection: Boolean = false,
     val activeField: Int? = null,
+    val sourceMode: Boolean = false,
 )
 
 data class WebEditorSnapshot(
@@ -40,18 +44,38 @@ data class WebEditorSnapshot(
 )
 
 /** A conservative bookmark: edits to the destination field invalidate delayed commands. */
+@Parcelize
 data class WebEditorTarget(
     val sessionId: String,
     val generation: Int,
     val field: Int,
     val revision: Int,
     val bookmark: String,
-)
+) : Parcelable
 
 enum class WebEditorAction {
     BOLD,
     ITALIC,
     UNDERLINE,
+    SUPERSCRIPT,
+    SUBSCRIPT,
+    TEXT_COLOR,
+    HIGHLIGHT_COLOR,
+    REMOVE_FORMAT,
+    BULLETED_LIST,
+    NUMBERED_LIST,
+    ALIGN_LEFT,
+    ALIGN_CENTER,
+    ALIGN_RIGHT,
+    ALIGN_JUSTIFY,
+    INDENT,
+    OUTDENT,
+    MATHJAX_INLINE,
+    MATHJAX_BLOCK,
+    MATHJAX_CHEMISTRY,
+    LATEX,
+    LATEX_EQUATION,
+    LATEX_MATH,
     CLOZE_NEW,
     CLOZE_SAME,
     UNDO,

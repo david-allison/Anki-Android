@@ -149,7 +149,9 @@ fun NoteEditorScreen(
                         }
                     },
                     actions = {
-                        state?.let { EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings) }
+                        state?.let {
+                            EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings)
+                        }
                         if (tablet) {
                             TextButton(onClick = { showPreview = !showPreview }) {
                                 Text(
@@ -163,7 +165,10 @@ fun NoteEditorScreen(
                                 )
                             }
                         }
-                        TextButton(onClick = onSave, enabled = enabled) { Text(stringResource(CommonString.save)) }
+                        TextButton(
+                            onClick = onSave,
+                            enabled = enabled,
+                        ) { Text(stringResource(CommonString.save)) }
                     },
                 )
             },
@@ -201,6 +206,7 @@ fun NoteEditorScreen(
                             fieldTaps = fieldTaps,
                             onAction = onAction,
                             onMedia = { dialog = "media" },
+                            onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
                             modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
@@ -319,6 +325,7 @@ private fun EditorFieldArea(
     fieldTaps: Flow<Unit>,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
+    onRecordAudio: () -> Unit,
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     modifier: Modifier,
@@ -396,6 +403,12 @@ private fun EditorFieldArea(
                             onAction(WebEditorAction.SOURCE_MODE)
                         }
                         EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled, onMedia)
+                        ExtraFormattingButtons(
+                            enabled = formatEnabled,
+                            sourceMode = toolbarState.sourceMode,
+                            onAction = onAction,
+                            onRecordAudio = onRecordAudio,
+                        )
                     }
                     VerticalDivider(Modifier.height(32.dp))
                     IconButton(
@@ -602,7 +615,7 @@ private fun MetadataButton(
 }
 
 @Composable
-private fun EditorActionButton(
+internal fun EditorActionButton(
     icon: Int,
     label: Int,
     enabled: Boolean,

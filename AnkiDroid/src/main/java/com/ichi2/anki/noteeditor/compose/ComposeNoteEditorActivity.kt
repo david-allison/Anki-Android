@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.edit
 import androidx.core.os.BundleCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.doOnPreDraw
@@ -49,6 +50,7 @@ import com.ichi2.anki.noteeditor.compose.media.ComposeEditorMedia
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreview
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorView
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.startup.ensureStorageIsReady
 import com.ichi2.compose.theme.AnkiDroidTheme
 import kotlinx.coroutines.CancellationException
@@ -73,6 +75,7 @@ class ComposeNoteEditorActivity :
     private var changed = false
     private var changeTypeAfterSave = false
     private var languageHintTarget: EditorFieldTarget? = null
+    private var formattingRequest by mutableStateOf<EditorFormattingRequest?>(null)
     private lateinit var tagsFactory: TagsDialogFactory
     private var editorView by mutableStateOf<WebEditorView?>(null)
     private var collectionMediaDirectory: File? = null
@@ -102,6 +105,8 @@ class ComposeNoteEditorActivity :
             intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NOTEEDITOR_INTENT_ADD.value)
         }
         media.restore(savedInstanceState)
+        formattingRequest =
+            savedInstanceState?.let { BundleCompat.getParcelable(it, "editorFormatting", EditorFormattingRequest::class.java) }
         enableEdgeToEdge()
         setContent { AnkiDroidTheme { EditorContent() } }
         registerDeckSelectedHandler { deck ->
@@ -153,6 +158,22 @@ class ComposeNoteEditorActivity :
                         editorView =
                             WebEditorView(this, collectionMediaDirectory).also {
                                 it.onMediaPaste = media::paste
+                                it.onEditEquation = { target, text, block ->
+                                    val chemistry = !block && text.startsWith("\\ce{") && text.endsWith("}")
+                                    val action =
+                                        when {
+                                            block -> WebEditorAction.MATHJAX_BLOCK
+                                            chemistry -> WebEditorAction.MATHJAX_CHEMISTRY
+                                            else -> WebEditorAction.MATHJAX_INLINE
+                                        }
+                                    formattingRequest =
+                                        EditorFormattingRequest(
+                                            action,
+                                            target,
+                                            if (chemistry) text.substring(4, text.length - 1) else text,
+                                            editingEquation = true,
+                                        )
+                                }
                             }
                     }
                 }
@@ -264,6 +285,30 @@ class ComposeNoteEditorActivity :
                     ?: Spacer(modifier)
             },
         )
+        formattingRequest?.let { request ->
+            EditorFormattingDialog(
+                request = request,
+                recentColours = recentColours(),
+                onDismiss = { formattingRequest = null },
+                onApply = { action, value ->
+                    formattingRequest = null
+                    launchEditorTask {
+                        webSession.awaitReady()
+                        val command = if (request.editingEquation && value.isBlank()) WebEditorAction.INSERT_TEXT else action
+                        if (!requireNotNull(webSession.view).execute(command, request.target, value)) {
+                            reportError(getString(R.string.compose_editor_stale_command))
+                        } else if (action == WebEditorAction.TEXT_COLOR || action == WebEditorAction.HIGHLIGHT_COLOR) {
+                            Prefs.sharedPrefs.edit {
+                                putString(
+                                    "composeEditorRecentColours",
+                                    (listOf(value) + recentColours()).distinct().take(4).joinToString(","),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
         if (discardDialog) {
             ConfirmationDialog(
                 message = stringResource(R.string.compose_editor_discard),
@@ -395,8 +440,37 @@ class ComposeNoteEditorActivity :
             if (busy) return@launchEditorTask
             val editor = requireNotNull(webSession.view)
             val target = editor.captureTarget()
+            if (target == null) {
+                reportError(getString(R.string.compose_editor_stale_command))
+                return@launchEditorTask
+            }
+            if (action in
+                setOf(
+                    WebEditorAction.TEXT_COLOR,
+                    WebEditorAction.HIGHLIGHT_COLOR,
+                    WebEditorAction.ALIGN_LEFT,
+                    WebEditorAction.MATHJAX_INLINE,
+                )
+            ) {
+                val text =
+                    when (action) {
+                        WebEditorAction.TEXT_COLOR -> recentColours().firstOrNull() ?: "#000000"
+                        WebEditorAction.HIGHLIGHT_COLOR -> recentColours().firstOrNull() ?: "#ffff00"
+                        WebEditorAction.MATHJAX_INLINE -> editor.selectionText(target) ?: return@launchEditorTask
+                        else -> ""
+                    }
+                formattingRequest = EditorFormattingRequest(action, target, text)
+                return@launchEditorTask
+            }
             if (!editor.execute(action, target)) reportError(getString(R.string.compose_editor_stale_command))
         }
+
+    private fun recentColours(): List<String> =
+        Prefs.sharedPrefs
+            .getString("composeEditorRecentColours", null)
+            ?.split(",")
+            ?.filter(editorColourPattern::matches)
+            .orEmpty()
 
     private fun updateMetadata(block: suspend () -> Unit) =
         launchEditorTask {
@@ -472,6 +546,7 @@ class ComposeNoteEditorActivity :
         outState.putBoolean(STATE_CHANGED, changed)
         outState.putBoolean(STATE_CHANGE_TYPE, changeTypeAfterSave)
         outState.putParcelable(STATE_LANGUAGE_TARGET, languageHintTarget)
+        outState.putParcelable("editorFormatting", formattingRequest)
         media.save(outState)
         super.onSaveInstanceState(outState)
     }
