@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewInput
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorField
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorSnapshot
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import kotlinx.coroutines.CancellationException
@@ -49,6 +50,7 @@ class EditorWebSession(
     private var lastContentRevision: Int? = null
     private var documentToken: Pair<String, Int>? = null
     private var lastHostState: String? = null
+    private var lastSettings: WebEditorSettings? = null
     private var binding: Job? = null
     private var previewJob: Job? = null
     private val updates = Mutex()
@@ -59,6 +61,7 @@ class EditorWebSession(
         view = editor
         documentToken = null
         lastHostState = null
+        lastSettings = null
         lastContentRevision = null
         mutableReady.value = false
         editor.onChanged = {
@@ -177,10 +180,15 @@ class EditorWebSession(
                 resetBaseline = state.resetFieldBaseline,
             )
             documentToken = token
+            lastSettings = state.settings
             previewDirty = true
         } else if (lastHostState != hostState) {
             editor.updateHostState(hostState)
             previewDirty = true
+        }
+        if (lastSettings != state.settings) {
+            editor.updateSettings(state.settings)
+            lastSettings = state.settings
         }
         lastHostState = hostState
         editor.updateLanguageHints(state.fields.map { it.languageTag })
@@ -234,4 +242,5 @@ private fun EditorState.toWebDocument() =
                 WebEditorField(it.name, it.html, it.font, it.fontSize, it.rtl, it.languageTag, it.sticky, it.collapsed, it.sourceMode)
             },
         isCloze = isCloze,
+        settings = settings,
     )

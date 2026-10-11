@@ -78,6 +78,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -109,6 +110,7 @@ fun NoteEditorScreen(
     editor: @Composable (Modifier) -> Unit,
     preview: @Composable (Modifier) -> Unit,
     fieldTaps: Flow<Unit> = emptyFlow(),
+    onSettings: (WebEditorSettings) -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
@@ -147,6 +149,7 @@ fun NoteEditorScreen(
                         }
                     },
                     actions = {
+                        state?.let { EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings) }
                         if (tablet) {
                             TextButton(onClick = { showPreview = !showPreview }) {
                                 Text(

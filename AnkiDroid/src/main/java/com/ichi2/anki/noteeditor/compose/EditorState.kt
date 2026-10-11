@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.os.Parcelable
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import kotlinx.parcelize.Parcelize
 
 /** Values needed by the host and the field editor, without retaining a mutable libanki note. */
@@ -21,6 +22,7 @@ data class EditorState(
     val isCloze: Boolean,
     val fields: List<EditorFieldState>,
     val tags: List<String>,
+    val settings: WebEditorSettings = WebEditorSettings(),
     /** Type changes map the existing web baseline; starting the next Add note establishes a new one. */
     val resetFieldBaseline: Boolean = true,
     val isSaving: Boolean = false,

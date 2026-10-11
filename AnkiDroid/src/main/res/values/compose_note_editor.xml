@@ -32,4 +32,9 @@
     <string name="compose_editor_legacy">Open existing editor</string>
     <string name="compose_editor_stale_command">The insertion position changed. Select a field and try again.</string>
     <string name="compose_editor_save_type_change">Save this note before changing its note type?</string>
+    <string name="compose_editor_finish_composition">Finish entering text before changing editor options.</string>
+    <string name="compose_editor_options">Editor options</string>
+    <string name="compose_editor_shrink_images">Shrink images</string>
+    <string name="compose_editor_mathjax_preview">MathJax preview</string>
+    <string name="compose_editor_auto_close_tags">Auto-close HTML tags</string>
 </resources>

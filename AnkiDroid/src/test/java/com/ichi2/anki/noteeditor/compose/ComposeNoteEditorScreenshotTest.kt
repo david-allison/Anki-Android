@@ -41,6 +41,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     val composeRule = createEmptyComposeRule()
 
     @Test
+    fun globalOptionsOpen() {
+        showEditor()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_shrink_images)).assertIsDisplayed()
+        captureScreen("global_options")
+    }
+
+    @Test
     fun optionsOpen() {
         openOptions()
         captureScreen("options_open")

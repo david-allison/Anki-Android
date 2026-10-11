@@ -8,6 +8,7 @@ data class WebEditorDocument(
     val generation: Int,
     val fields: List<WebEditorField>,
     val isCloze: Boolean = false,
+    val settings: WebEditorSettings = WebEditorSettings(),
 )
 
 data class WebEditorField(
