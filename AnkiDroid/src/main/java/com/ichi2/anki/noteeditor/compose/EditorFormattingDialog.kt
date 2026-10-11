@@ -8,11 +8,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -26,10 +31,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -38,6 +45,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import kotlinx.parcelize.Parcelize
+import org.json.JSONArray
 
 /** The destination is captured before a native dialog takes focus. */
 @Parcelize
@@ -68,6 +76,17 @@ private val alignments =
         WebEditorAction.OUTDENT to R.string.compose_editor_outdent,
     )
 
+internal val editorRemovableFormats =
+    listOf(
+        WebEditorAction.BOLD to R.string.compose_editor_bold,
+        WebEditorAction.ITALIC to R.string.compose_editor_italic,
+        WebEditorAction.UNDERLINE to R.string.compose_editor_underline,
+        WebEditorAction.SUPERSCRIPT to R.string.compose_editor_superscript,
+        WebEditorAction.SUBSCRIPT to R.string.compose_editor_subscript,
+        WebEditorAction.TEXT_COLOR to R.string.compose_editor_text_color,
+        WebEditorAction.HIGHLIGHT_COLOR to R.string.compose_editor_highlight_color,
+    )
+
 private val palette = listOf("#000000", "#ffffff", "#d32f2f", "#f57c00", "#fbc02d", "#388e3c", "#1976d2", "#7b1fa2")
 internal val editorColourPattern = Regex("#[0-9a-fA-F]{6}")
 
@@ -80,15 +99,32 @@ internal fun EditorFormattingDialog(
 ) {
     var text by rememberSaveable(request) { mutableStateOf(request.text) }
     var action by rememberSaveable(request) { mutableStateOf(request.action) }
+    val removing = request.action == WebEditorAction.REMOVE_FORMAT_CHOICES
+    var removedFormats by rememberSaveable(request) {
+        mutableStateOf(
+            runCatching {
+                val choices = JSONArray(request.text)
+                editorRemovableFormats.map { it.first.name }.filter { name ->
+                    (0 until choices.length()).any { choices.optString(it) == name }
+                }
+            }.getOrDefault(editorRemovableFormats.map { it.first.name }),
+        )
+    }
     val colour = request.action in setOf(WebEditorAction.TEXT_COLOR, WebEditorAction.HIGHLIGHT_COLOR)
     val alignment = request.action == WebEditorAction.ALIGN_LEFT
-    val valid = if (colour) editorColourPattern.matches(text.trim()) else text.isNotBlank() || request.editingEquation
+    val valid =
+        when {
+            removing -> removedFormats.isNotEmpty()
+            colour -> editorColourPattern.matches(text.trim())
+            else -> text.isNotBlank() || request.editingEquation
+        }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
                 stringResource(
                     when {
+                        removing -> R.string.compose_editor_remove_format
                         alignment -> R.string.compose_editor_alignment
                         request.action == WebEditorAction.TEXT_COLOR -> R.string.compose_editor_text_color
                         colour -> R.string.compose_editor_highlight_color
@@ -98,8 +134,29 @@ internal fun EditorFormattingDialog(
             )
         },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(if (removing) 0.dp else 16.dp),
+            ) {
                 when {
+                    removing ->
+                        editorRemovableFormats.forEach { (format, label) ->
+                            val checked = format.name in removedFormats
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(
+                                        value = checked,
+                                        role = Role.Checkbox,
+                                        onValueChange = { selected ->
+                                            removedFormats = if (selected) removedFormats + format.name else removedFormats - format.name
+                                        },
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(checked = checked, onCheckedChange = null)
+                                Text(stringResource(label), Modifier.padding(start = 12.dp))
+                            }
+                        }
                     alignment ->
                         alignments.forEach { (command, label) ->
                             TextButton(onClick = { onApply(command, "") }) { Text(stringResource(label)) }
@@ -164,7 +221,16 @@ internal fun EditorFormattingDialog(
         },
         confirmButton = {
             if (!alignment) {
-                TextButton(onClick = { onApply(action, if (colour) text.trim() else text) }, enabled = valid) {
+                TextButton(onClick = {
+                    onApply(
+                        action,
+                        when {
+                            removing -> JSONArray(removedFormats).toString()
+                            colour -> text.trim()
+                            else -> text
+                        },
+                    )
+                }, enabled = valid) {
                     Text(stringResource(CommonString.dialog_ok))
                 }
             }

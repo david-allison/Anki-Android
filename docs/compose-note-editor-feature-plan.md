@@ -34,7 +34,7 @@ the native toolbar and the backend's fields-only entry point; see the source map
 | Bold, italic, underline | Rich text and HTML source, with selected toolbar states for rich text. | Mixed selections follow Chromium’s formatting command state. |
 | Superscript and subscript | Native toggle buttons; rich text and source wrapping. | — |
 | Text colour and highlighting | Native palette, recent colours and hex input; captured selection. | No desktop dropdown layout. |
-| Remove formatting | Eraser clears inline formatting in rich text, preserving links/media and list structure. | No selective-removal submenu. |
+| Remove formatting | Native checklist for selected text: bold, italic, underline, superscript, subscript, text colour and highlight colour. Choices persist; one Undo restores the edit. | Rich text only; the browser can normalize HTML in the edited field. |
 | Bulleted and numbered lists | Native toggle buttons in rich text. | Disabled in HTML source. |
 | Alignment and indentation | Native alignment dialog; indentation operates on list items. | Disabled in HTML source. |
 | Attachments | Image, camera, audio file, video file and recording via media menu. | — |
@@ -139,22 +139,26 @@ there is no additional startup RPC. Changing a preference does not save the note
 
 Changes are committed locally in separate steps: performance prerequisites,
 backend preferences, backend commands, native preferences, native controls, and
-native field/template navigation. The capability marker is now version 3; Android
+native field/template navigation. The capability marker is now version 4; Android
 rejects an older bundle rather than silently ignoring commands.
 
 The backend browser suite covers both entry points, including settings, source
 wrapping, captured/stale targets, rich formatting, equation insertion/editing,
-undo and large notes. The current run has **79 passing tests and one intentional
+undo and large notes. The current run has **103 passing tests and one intentional
 standalone-page navigation skip**. Svelte checking reports no errors or warnings.
-The latest full backend `just check` is blocked by the missing local ESLint executable in `out/node_modules/.bin`. Earlier attempts were blocked by Sass.
+The full backend `just check` remains blocked by missing local Sass/ESLint
+executables in `out/node_modules/.bin`; the latest attempt stops at Sass.
 
 All 30 editor state tests pass, including field identity mapping, deleted text
-recovery and template-only reloads. Three new emulator regressions pass: global
-preference persistence, colour/equation targeting, and field/template navigation
-with draft recovery. Roborazzi
-covers field options, help, both tooltips, keyboard/Back dismissal, long names and
-the global menu in light/dark themes. The colour/equation flow passes emulator
-instrumentation, with screenshots inspected. An attempted Robolectric dialog
+recovery and template-only reloads. Emulator regressions cover global preferences,
+colour/equation targeting,
+field/template navigation, formatting indicators and selective erasing. The
+selective-erasing case covers Cancel, restored choices and targets after recreation,
+focus changes and one-step Undo. Two session unit tests check readiness and avoid
+redundant settings updates that invalidate restored command targets. Roborazzi
+has 22 passing light/dark cases covering field options, help, both tooltips,
+keyboard/Back dismissal, long names, the global menu and selected toolbar states.
+The colour/equation flow passes emulator instrumentation, with screenshots inspected. An attempted Robolectric dialog
 capture gets stuck in window relayout in this environment; that failing test is
 not committed.
 
@@ -165,14 +169,37 @@ kept in the draft with Copy, Discard, and Keep draft and close actions. Saving i
 blocked until the deleted text is explicitly resolved. Recovery also handles a
 process death while field management is open.
 
+## Selective erasing and equation undo
+
+With text selected, tapping the eraser opens a native checklist. Cancel leaves the
+draft unchanged. The checked formats survive dialog recreation and are remembered
+after applying. The captured destination still goes through the existing session,
+generation, revision and bookmark checks. With only a caret, the eraser retains
+the browser's existing remove-format behavior.
+
+The backend lazily loads the eraser helper. It applies Anki's range-splitting
+engine to an inert copy of the active field, retains unselected formats and
+attributes, and inserts the result as one browser edit. Undo/Redo restore that
+operation. Links, images, list/paragraph structure and equations have browser
+coverage. Equation rendering is omitted from the copied HTML and equations count
+as single units when restoring the selection. Chromium may normalize markup in
+the edited field, and its rendered media/equations are recreated; other fields
+are untouched. Stylesheet-provided formatting is outside this operation.
+
+Testing also reproduced an existing equation redo defect using the original
+insertion command: replace a field containing an equation, Undo, then Redo could
+leave both the old and replacement equations. A separate backend fix preserves
+the intact MathJax frame/component when Undo reconnects it. Regression cases cover
+replacement, Undo and Redo in both entry points.
+
 ## Native UI and performance constraints
 
 The formatting toolbar scrolls horizontally; field options stay fixed at its end.
-Colours, alignment and equations open native dialogs. Editor options are separate
-from formatting so users can distinguish display preferences from changes to note
-content. Add
-accessible labels and selected/disabled states; the current toolbar state reports
-the active field and selection/composition, but does not report which formatting is active.
+Colours, selective removal, alignment and equations open native dialogs. Editor
+options remain separate from changes to note content. The toolbar reports the
+active field, selection/composition, source mode and active rich-text formats.
+Bold/italic/underline, superscript/subscript, lists and source use accessible
+checked states.
 
 Reuse the existing session, generation, revision and bookmark checks for delayed
 actions. A picker must apply to its captured target or report that it became stale.

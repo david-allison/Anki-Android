@@ -66,14 +66,20 @@ component changes, so desktop/add-on compatibility deserves review too.
 
 ## Editor controls and draft compatibility
 
-The version 3 fields API adds live formatting state to version 2’s preferences,
-formatting commands, selection text and native equation editing. Update the capability marker and generated web assets
+The version 4 fields API adds selective format removal to version 3’s live
+formatting state and version 2’s preferences, commands and native equation editing. Update the capability marker and generated web assets
 together when packaging the backend AAR; an older cached AAR is rejected.
 
 Global editor preferences use desktop's existing collection configuration keys.
 Toggling MathJax preview preserves content and focus but rebuilds inputs, resetting
 undo histories. List, alignment and eraser commands are restricted to rich text.
 LaTeX insertion adds wrappers; it does not introduce an Android LaTeX compiler.
+
+With selected text, the eraser opens a native checklist instead of immediately
+clearing every format. The chosen operation is one browser edit with Undo/Redo;
+Chromium can normalize markup and recreate media/equations in that field. Other
+fields are unchanged. The shared MathJax component now retains its intact frame
+when reconnected, fixing duplicated equations after Undo followed by Redo.
 
 Draft host metadata now records field identities and schema so field-management
 changes can preserve unsaved values after rename/reorder or process death. Old
@@ -92,7 +98,7 @@ resolved before the note can be saved.
 
 ## Existing boundaries, not new optimization regressions
 
-The new editor requires a backend exposing the version 3 fields page. It uses
+The new editor requires a backend exposing the version 4 fields page. It uses
 an app-private virtual HTTPS origin and a restricted field bridge, rather than
 exposing the full desktop editor environment. Image Occlusion and Aedict retain
 their existing flows. Preview deck placeholders and recovery across a collection
