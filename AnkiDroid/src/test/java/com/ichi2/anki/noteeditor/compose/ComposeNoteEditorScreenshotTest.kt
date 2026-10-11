@@ -68,9 +68,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun toolbarConfigurationOpen() {
-        openOptions()
+        openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_standard_buttons)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         captureScreen("toolbar_configuration")
     }
 
@@ -94,6 +95,32 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
         composeRule.onNodeWithText("Ruby").assertIsDisplayed()
         captureScreen("customized_toolbar")
+    }
+
+    @Test
+    fun mixedToolbarOrder() {
+        showEditor(
+            toolbar =
+                EditorFieldToolbar(
+                    customButtons = listOf(EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                    buttonOrder = listOf("BOLD", "custom:ruby", "ITALIC"),
+                ),
+        )
+        val bold =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_bold),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        val custom = composeRule.onNodeWithText("Ruby").fetchSemanticsNode().boundsInRoot
+        val italic =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_italic),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        kotlin.test.assertTrue(bold.right <= custom.left && custom.right <= italic.left)
+        captureScreen("mixed_toolbar_order")
     }
 
     @Test

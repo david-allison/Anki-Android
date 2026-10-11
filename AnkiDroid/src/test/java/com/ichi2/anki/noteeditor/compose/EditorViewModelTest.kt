@@ -73,7 +73,7 @@ class EditorViewModelTest : JvmTest() {
             val vm = loadAdd()
             val before = assertNotNull(vm.state.value)
             val target = EditorFieldTarget(before.sessionId, before.generation, 1)
-            val toolbar = EditorFieldToolbar(hiddenButtons = setOf("BOLD"))
+            val toolbar = EditorFieldToolbar(hiddenButtons = setOf("BOLD"), buttonOrder = listOf("ITALIC", "BOLD"))
             vm.setFieldToolbar(target, toolbar)
             assertEquals(before.notetypeJson, col.notetypes.get(before.noteTypeId).toString())
             assertEquals(before.generation, vm.state.value?.generation)

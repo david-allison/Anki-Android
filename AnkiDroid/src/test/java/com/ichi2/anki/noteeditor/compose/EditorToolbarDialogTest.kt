@@ -45,8 +45,26 @@ class EditorToolbarDialogTest : RobolectricTest() {
     }
 
     @Test
+    fun `reordering mixes templates and Anki buttons and keeps disabled positions`() {
+        showDialog()
+        val up = targetContext.getString(R.string.compose_editor_move_button_up, "Ruby")
+        val down = targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")
+        composeRule.onNodeWithContentDescription(up).assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription(down).performClick()
+        composeRule.onNodeWithContentDescription(up).assertIsEnabled()
+        composeRule.onNodeWithContentDescription(down).performClick()
+        composeRule.onNodeWithText("Ruby").performClick()
+        composeRule.onNodeWithText("Ruby").performClick()
+        composeRule.onNodeWithText("Ruby").performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        assertEquals(listOf("BOLD", "ITALIC", "custom:${ruby.id}"), saved?.buttonOrder?.take(3))
+        assertEquals(listOf(ruby), saved?.customButtons)
+    }
+
+    @Test
     fun `cancelling does not save changed visibility`() {
         showDialog(EditorFieldToolbar(customButtons = listOf(ruby)))
+        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")).performClick()
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
