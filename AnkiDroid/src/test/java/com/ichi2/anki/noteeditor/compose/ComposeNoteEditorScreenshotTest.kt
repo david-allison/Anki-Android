@@ -41,6 +41,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     val composeRule = createEmptyComposeRule()
 
     @Test
+    fun optionsOpen() {
+        openOptions()
+        captureScreen("options_open")
+    }
+
+    @Test
     fun optionsClosedAfterKeyboardDismissalAndBack() {
         val (activity, keyboard) = openOptions()
         composeRule.runOnIdle {
@@ -58,12 +64,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun optionsOpen() {
-        openOptions()
-        captureScreen("options_open")
-    }
-
-    @Test
     fun helpOpen() {
         openOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
@@ -72,6 +72,33 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 targetContext.getString(R.string.compose_editor_field_options_help_scope, "Back", "Basic"),
             ).assertIsDisplayed()
         captureScreen("help_open")
+    }
+
+    @Test
+    fun longFieldAndNoteTypeNames() {
+        openOptions(LONG_FIELD_NAME, LONG_NOTE_TYPE_NAME)
+        captureScreen("options_open_long_names")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        composeRule
+            .onNodeWithText(
+                targetContext.getString(R.string.compose_editor_field_options_help_scope, LONG_FIELD_NAME, LONG_NOTE_TYPE_NAME),
+            ).assertIsDisplayed()
+        captureScreen("help_open_long_names")
+    }
+
+    @Test
+    fun longDeckName() {
+        captureMetadataNames("long_deck_name", deckName = LONG_DECK_NAME)
+    }
+
+    @Test
+    fun longNoteTypeName() {
+        captureMetadataNames("long_note_type_name", noteTypeName = LONG_NOTE_TYPE_NAME)
+    }
+
+    @Test
+    fun longDeckAndNoteTypeNames() {
+        captureMetadataNames("long_deck_and_note_type_names", deckName = LONG_DECK_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
     }
 
     @Test
@@ -110,6 +137,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         composeRule.waitForIdle()
         return editor
+    }
+
+    private fun captureMetadataNames(
+        name: String,
+        deckName: String = "Default",
+        noteTypeName: String = "Basic",
+    ) {
+        showEditor(deckName = deckName, noteTypeName = noteTypeName)
+        composeRule.onNodeWithText(deckName).assertIsDisplayed()
+        composeRule.onNodeWithText(noteTypeName).assertIsDisplayed()
+        captureScreen(name)
     }
 
     private fun showEditor(
