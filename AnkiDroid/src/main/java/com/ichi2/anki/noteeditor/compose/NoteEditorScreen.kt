@@ -61,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
@@ -334,7 +335,8 @@ private fun EditorFieldArea(
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
     // The standard sheet shares the editor window, so opening it leaves the IME connected.
     BottomSheetScaffold(
-        modifier = modifier,
+        // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
+        modifier = modifier.clipToBounds(),
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
         sheetPeekHeight = 0.dp,
         sheetDragHandle = null,

@@ -68,6 +68,36 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldOptionsDisappearAfterDismissingKeyboardAndPressingBack() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            runBlocking { web.focusField(1) }
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+            val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+
+            device.pressBack()
+            waitUntil(message = { "Back did not dismiss the keyboard" }) { !keyboardVisible() }
+            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+            device.pressBack()
+            assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(R.string.compose_editor_bold))), 5_000))
+            captureScreenshot("field-options-closed-after-keyboard-back", web)
+            assertTrue(device.wait(Until.gone(backOptions), 5_000), "The closed sheet must not peek below the toolbar")
+        }
+    }
+
+    @Test
     fun fieldOptionsKeepTheirTargetAndApplyWithoutReloadingFields() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

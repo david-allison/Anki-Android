@@ -4,12 +4,14 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasContentDescription
@@ -23,7 +25,9 @@ import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.compose.theme.AnkiDroidTheme
+import com.ichi2.testutils.dispatchInsets
 import com.ichi2.testutils.simulateKeyboard
+import com.ichi2.utils.dp
 import org.junit.Rule
 import org.junit.Test
 
@@ -35,6 +39,23 @@ import org.junit.Test
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun optionsClosedAfterKeyboardDismissalAndBack() {
+        val (activity, keyboard) = openOptions()
+        composeRule.runOnIdle {
+            (keyboard.parent as ViewGroup).removeView(keyboard)
+            activity.dispatchInsets(navBarBottom = 48.dp)
+        }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
+        captureScreen("options_closed_after_keyboard_back")
+
+        val title = targetContext.getString(R.string.compose_editor_field_options_title, "Back")
+        val scope = targetContext.getString(R.string.compose_editor_field_options_scope, "Basic")
+        composeRule.onNodeWithContentDescription("$title. $scope").assertIsNotDisplayed()
+    }
 
     @Test
     fun optionsOpen() {
