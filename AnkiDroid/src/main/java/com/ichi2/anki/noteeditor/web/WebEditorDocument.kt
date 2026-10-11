@@ -85,6 +85,7 @@ enum class WebEditorAction {
     REDO,
     INSERT_TEXT,
     INSERT_HTML,
+    WRAP_HTML,
     SOURCE_MODE,
 }
 

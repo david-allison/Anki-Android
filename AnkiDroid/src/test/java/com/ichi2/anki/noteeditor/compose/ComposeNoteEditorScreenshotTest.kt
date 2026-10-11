@@ -67,6 +67,35 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarConfigurationOpen() {
+        openOptions()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_standard_buttons)).assertIsDisplayed()
+        captureScreen("toolbar_configuration")
+    }
+
+    @Test
+    fun customizedToolbar() {
+        showEditor(
+            toolbar =
+                EditorFieldToolbar(
+                    hiddenButtons = setOf("BOLD", "ITALIC", "UNDERLINE"),
+                    customButtons = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                ),
+        )
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+        composeRule.onNodeWithText("Ruby").assertIsDisplayed()
+        captureScreen("customized_toolbar")
+    }
+
+    @Test
+    fun allToolbarButtonsHidden() {
+        showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+        captureScreen("all_toolbar_buttons_hidden")
+    }
+
+    @Test
     fun optionsClosedAfterKeyboardDismissalAndBack() {
         val (activity, keyboard) = openOptions()
         composeRule.runOnIdle {
@@ -175,12 +204,27 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         noteTypeName: String = "Basic",
         deckName: String = "Default",
         formats: Set<WebEditorAction> = emptySet(),
+        toolbar: EditorFieldToolbar = EditorFieldToolbar(),
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
                 NoteEditorScreen(
-                    state = editorState(fieldName, noteTypeName, deckName),
+                    state =
+                        editorState(fieldName, noteTypeName, deckName).let { state ->
+                            state.copy(
+                                fields =
+                                    state.fields.mapIndexed { index, field ->
+                                        if (index ==
+                                            1
+                                        ) {
+                                            field.copy(toolbar = toolbar)
+                                        } else {
+                                            field
+                                        }
+                                    },
+                            )
+                        },
                     toolbarState =
                         remember {
                             mutableStateOf(

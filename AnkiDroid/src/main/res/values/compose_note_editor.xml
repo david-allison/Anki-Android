@@ -18,6 +18,12 @@
     <string name="compose_editor_audio">Choose audio</string>
     <string name="compose_editor_video">Choose video</string>
     <string name="compose_editor_field_options">Field options</string>
+    <string name="compose_editor_toolbar">Toolbar</string>
+    <string name="compose_editor_toolbar_scope">Use these buttons for this field on all notes of this note type.</string>
+    <string name="compose_editor_custom_buttons">Custom buttons</string>
+    <string name="compose_editor_standard_buttons">Anki buttons</string>
+    <string name="compose_editor_custom_button">Custom button</string>
+    <string name="compose_editor_remove_custom_button">Remove %s</string>
     <string name="compose_editor_field_options_title">%s — field options</string>
     <string name="compose_editor_field_options_scope">For this field in %s</string>
     <string name="compose_editor_field_options_help">About pinning and keyboard language</string>
