@@ -115,10 +115,27 @@ fun NoteEditorScreen(
     onSettings: (WebEditorSettings) -> Unit = {},
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
+    onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
+    onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
     val enabled = ready && !busy && state?.isSaving == false
+    toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
+        val current = requireNotNull(state)
+        EditorToolbarDialog(
+            target = target,
+            field = current.fields[target.field],
+            noteTypeName = current.noteTypeName,
+            isCloze = current.isCloze,
+            onDismiss = { toolbarTarget = null },
+            onSave = {
+                onToolbar(target, it)
+                toolbarTarget = null
+            },
+        )
+    }
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
     val hasTabletWidth by remember(windowInfo, density) {
@@ -213,6 +230,8 @@ fun NoteEditorScreen(
                             onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
+                            onToolbar = { toolbarTarget = it },
+                            onCustomAction = onCustomAction,
                             modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                         ) { modifier ->
                             EditorFields(
@@ -332,6 +351,8 @@ private fun EditorFieldArea(
     onRecordAudio: () -> Unit,
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
+    onToolbar: (EditorFieldTarget) -> Unit,
+    onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
     modifier: Modifier,
     fields: @Composable (Modifier) -> Unit,
 ) {
@@ -372,6 +393,7 @@ private fun EditorFieldArea(
                     enabled = enabled,
                     onPinned = { onPinned(target, it) },
                     onLanguageHint = { onLanguageHint(target) },
+                    onToolbar = { onToolbar(target) },
                     onCollapse = closeOptions,
                 )
             }
@@ -383,55 +405,14 @@ private fun EditorFieldArea(
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState)) {
-                        val formatEnabled = enabled && toolbarState.hasSelection && !toolbarState.composing
-                        EditorToggleButton(
-                            R.drawable.ic_format_bold_black_24dp,
-                            R.string.compose_editor_bold,
-                            formatEnabled,
-                            WebEditorAction.BOLD in toolbarState.activeFormats,
-                        ) {
-                            onAction(WebEditorAction.BOLD)
-                        }
-                        EditorToggleButton(
-                            R.drawable.ic_format_italic_black_24dp,
-                            R.string.compose_editor_italic,
-                            formatEnabled,
-                            WebEditorAction.ITALIC in toolbarState.activeFormats,
-                        ) {
-                            onAction(WebEditorAction.ITALIC)
-                        }
-                        EditorToggleButton(
-                            R.drawable.ic_format_underlined_black_24dp,
-                            R.string.compose_editor_underline,
-                            formatEnabled,
-                            WebEditorAction.UNDERLINE in toolbarState.activeFormats,
-                        ) {
-                            onAction(WebEditorAction.UNDERLINE)
-                        }
-                        if (editorState.isCloze) {
-                            EditorActionButton(R.drawable.ic_cloze_new_card, R.string.compose_editor_cloze_new, formatEnabled) {
-                                onAction(WebEditorAction.CLOZE_NEW)
-                            }
-                            EditorActionButton(R.drawable.ic_cloze_same_card, R.string.compose_editor_cloze_same, formatEnabled) {
-                                onAction(WebEditorAction.CLOZE_SAME)
-                            }
-                        }
-                        EditorActionButton(R.drawable.ic_undo_2, CommonString.undo, formatEnabled) { onAction(WebEditorAction.UNDO) }
-                        EditorActionButton(R.drawable.ic_redo_2, CommonString.redo, formatEnabled) { onAction(WebEditorAction.REDO) }
-                        EditorToggleButton(
-                            R.drawable.ic_code,
-                            R.string.compose_editor_source,
-                            enabled && toolbarState.hasSelection,
-                            toolbarState.sourceMode,
-                        ) {
-                            onAction(WebEditorAction.SOURCE_MODE)
-                        }
-                        EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled, onMedia)
-                        ExtraFormattingButtons(
-                            enabled = formatEnabled,
-                            sourceMode = toolbarState.sourceMode,
-                            activeFormats = toolbarState.activeFormats,
+                        EditorFormattingButtons(
+                            toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
+                            state = toolbarState,
+                            enabled = enabled,
+                            isCloze = editorState.isCloze,
                             onAction = onAction,
+                            onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
+                            onMedia = onMedia,
                             onRecordAudio = onRecordAudio,
                         )
                     }
@@ -458,6 +439,7 @@ private fun EditorFieldOptions(
     enabled: Boolean,
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
+    onToolbar: () -> Unit,
     onCollapse: () -> Unit,
 ) {
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
@@ -539,6 +521,11 @@ private fun EditorFieldOptions(
                     }
                 }
             }
+        }
+        TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+            Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
+            Spacer(Modifier.width(16.dp))
+            Text(stringResource(R.string.compose_editor_toolbar))
         }
     }
 }

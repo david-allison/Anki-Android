@@ -199,7 +199,7 @@ class ComposeNoteEditorActivity :
         }
         val fieldsAvailable =
             runCatching {
-                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 4 }
+                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 5 }
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
@@ -261,6 +261,23 @@ class ComposeNoteEditorActivity :
                 LocaleSelectionDialog.withDefaultOption().show(supportFragmentManager, LANGUAGE_DIALOG_TAG)
             },
             onAction = ::execute,
+            onToolbar = { target, toolbar -> updateMetadata { model.setFieldToolbar(target, toolbar) } },
+            onCustomAction = { field, button ->
+                launchEditorTask {
+                    if (busy || !field.matches(model.state.value)) return@launchEditorTask
+                    val editor = requireNotNull(webSession.view)
+                    val target = editor.captureTarget()
+                    if (target == null || target.field != field.field || !field.matches(model.state.value) ||
+                        !editor.execute(
+                            WebEditorAction.WRAP_HTML,
+                            target,
+                            JSONObject().put("prefix", button.prefix).put("suffix", button.suffix).toString(),
+                        )
+                    ) {
+                        reportError(getString(R.string.compose_editor_stale_command))
+                    }
+                }
+            },
             onFields = { openNoteTypeEditor(fields = true) },
             onCards = { openNoteTypeEditor(fields = false) },
             onSettings = { settings ->

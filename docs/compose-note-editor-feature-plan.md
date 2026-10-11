@@ -91,8 +91,29 @@ explicit hint; cancelling preserves it. Tapping the current or another field
 closes the panel and restores formatting controls. Programmatic focus restoration
 leaves it open. The picker captures its target when opened and retains it through
 focus changes and activity recreation. Both settings persist on the note type's field without
-rebuilding its inputs. Configurable actions beside individual fields and
-field-specific toolbar buttons remain future work.
+rebuilding its inputs. Configurable actions beside individual fields remain future work.
+
+### Per-field toolbars
+
+**Field options → Toolbar** configures the toolbar for this field on every note
+using the same note type. Users can add, edit and remove custom HTML buttons and
+hide individual Anki buttons. The toolbar follows the focused field; the fixed
+Field options control remains accessible even if every toolbar button is hidden.
+The configuration dialog saves all changes together; Cancel discards them.
+
+Settings currently live in SharedPreferences, keyed by collection, note type and
+field identity. Existing global custom buttons supply the defaults until a field
+is customized. Field rename/reorder preserves its configuration. A TODO records
+the future move into the Anki collection; these local preferences do not sync.
+
+Custom buttons wrap the selection in rich text or HTML source, with Undo/Redo.
+The backend exposes this through fields API version 5 and loads the rich-text
+helper on demand. Browser regressions cover formatting, empty carets, source
+selections, stale targets, equations and media. Native tests cover persistence,
+field changes and recreation; Roborazzi captures the toolbar configuration and
+customized/empty toolbars in light and dark themes.
+The custom-button text-entry dialog is covered by interaction and emulator tests;
+its Roborazzi capture currently hangs while measuring the outlined text fields.
 
 ### Gboard language picker regression (2026-10-11)
 

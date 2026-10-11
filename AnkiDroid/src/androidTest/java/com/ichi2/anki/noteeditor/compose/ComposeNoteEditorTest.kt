@@ -154,6 +154,66 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldToolbarFollowsFocusAndSurvivesRecreation() {
+        withEditor { scenario ->
+            var web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
+            runBlocking { web.focusField(0) }
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+            ).click()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
+            device.findObject(By.text(testContext.getString(com.ichi2.anki.CommonString.add_toolbar_item))).click()
+            assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
+            val inputs = device.findObjects(By.clazz("android.widget.EditText"))
+            assertEquals(3, inputs.size)
+            inputs[0].text = "Wrap"
+            inputs[1].text = "<b>"
+            inputs[2].text = "</b>"
+            val save = By.text(testContext.getString(com.ichi2.anki.CommonString.save))
+            device.findObjects(save).last().click()
+            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            device.findObjects(save).last().click()
+            waitUntil(message = { "The field toolbar did not save" }) {
+                scenario
+                    .editorState()
+                    .fields[0]
+                    .toolbar.customButtons
+                    .any { it.label == "Wrap" }
+            }
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
+            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            assertFalse(device.hasObject(bold))
+            web.setField(0, "alpha")
+            web.evaluate(
+                """
+                (() => {
+                    const field = ${richField(0)};
+                    field.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(field);
+                    const selection = field.getRootNode().getSelection();
+                    selection.removeAllRanges(); selection.addRange(range);
+                })()
+                """.trimIndent(),
+            )
+            device.findObject(By.text("Wrap")).click()
+            web.awaitJavascript("${richField(0)}.querySelector('b,strong')?.textContent === 'alpha'")
+            runBlocking { web.focusField(1) }
+            assertTrue(device.wait(Until.hasObject(bold), 5_000))
+            assertFalse(device.hasObject(By.text("Wrap")))
+            scenario.recreate()
+            web = scenario.awaitEditor()
+            runBlocking { web.focusField(0) }
+            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            assertFalse(device.hasObject(bold))
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
     fun selectiveEraserKeepsItsChoicesAndCapturedSelection() {
         Prefs.sharedPrefs
             .edit()
