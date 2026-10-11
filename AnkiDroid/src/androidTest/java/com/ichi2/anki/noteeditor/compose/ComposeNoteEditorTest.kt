@@ -27,6 +27,7 @@ import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
 import com.ichi2.anki.model.SelectableDeck
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
@@ -65,6 +66,43 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ensureWebViewIsSupported()
         CollectionManager.setColForTests(emptyCol)
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun globalOptionsPersistAcrossRecreationWithoutChangingTheDraft() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Unsaved <b>question</b>")
+            val before = runBlocking { web.snapshot().fields }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            for (label in listOf(
+                R.string.compose_editor_shrink_images,
+                R.string.compose_editor_mathjax_preview,
+                R.string.compose_editor_auto_close_tags,
+            )) {
+                checkNotNull(
+                    device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+                ).click()
+                checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(label))), 5_000)).click()
+                waitUntil(message = { "The option did not finish applying" }) {
+                    device.hasObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true))
+                }
+            }
+            waitUntil(message = { "Global editor options did not persist" }) {
+                scenario.editorState().settings ==
+                    WebEditorSettings(false, false, false)
+            }
+            assertEquals(before, runBlocking { web.snapshot().fields })
+            assertFalse(scenario.editorState().hasMetadataChanges)
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            assertEquals(before, runBlocking { restored.snapshot().fields })
+            assertEquals(
+                WebEditorSettings(false, false, false),
+                scenario.editorState().settings,
+            )
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
     }
 
     @Test
