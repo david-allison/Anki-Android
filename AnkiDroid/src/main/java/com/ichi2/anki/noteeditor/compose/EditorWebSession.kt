@@ -114,6 +114,7 @@ class EditorWebSession(
                                 draft.document.generation <= requireNotNull(model.state.value).generation,
                             ) { "The draft versions do not match." }
                             documentToken = draft.document.sessionId to draft.document.generation
+                            lastSettings = draft.document.settings
                             lastHostState = draft.hostStateJson
                         }
                         synchronize(editor, focusFirstField = !model.hasAttachedEditor && draft == null && current.isAdding)
