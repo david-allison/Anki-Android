@@ -68,6 +68,66 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun largeNotesKeepUnmountedFieldsThroughRecreationAndSave() {
+        val type = col.notetypes.basic.deepClone()
+        while (type.fields.size < 400) {
+            type.jsonObject.getJSONArray("flds").put(col.notetypes.newField("Field ${type.fields.size + 1}").jsonObject)
+        }
+        col.notetypes.save(type)
+        val note = col.newNote(type)
+        val expected = MutableList(400) { "<B data-field='$it'>Original&nbsp;$it</B>" }
+        expected.forEachIndexed { index, html -> note.fields[index] = html }
+        col.addNote(note, col.decks.id("Default"))
+        val arguments =
+            Bundle().apply {
+                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.EDIT.value)
+                putLong(NoteEditorFragment.EXTRA_CARD_ID, note.firstCard(col).id)
+            }
+        withEditor(arguments) { scenario ->
+            val web = scenario.awaitEditor()
+            // The viewport may be a phone or a tablet; distant inputs stay deferred.
+            web.awaitJavascript("${richField(199)} === undefined && ${richField(399)} === undefined")
+            assertEquals(expected, runBlocking { web.snapshot().fields })
+            assertFalse(runBlocking { web.snapshot().hasChanges })
+            for (index in listOf(0, 199, 399)) {
+                runBlocking { web.focusField(index) }
+                expected[index] = "<b>Unsaved $index 日本</b>"
+                web.setField(index, expected[index])
+            }
+            // Visiting an untouched distant field must not persist DOM normalization.
+            runBlocking { web.focusField(299) }
+            assertEquals(expected, runBlocking { web.snapshot().fields })
+            val model = scenario.editorModel()
+            runBlocking { web.updateHostState(withContext(Dispatchers.Main) { model.hostState() }) }
+
+            scenario.onActivity { activity ->
+                val state = Bundle()
+                InstrumentationRegistry.getInstrumentation().callActivityOnSaveInstanceState(activity, state)
+                val parcel = android.os.Parcel.obtain()
+                try {
+                    parcel.writeBundle(state)
+                    assertTrue(parcel.dataSize() < 16_384, "Field contents must stay out of Android saved state")
+                } finally {
+                    parcel.recycle()
+                }
+            }
+            scenario.moveToState(Lifecycle.State.CREATED)
+            scenario.moveToState(Lifecycle.State.RESUMED)
+            assertEquals(expected, runBlocking { web.snapshot().fields })
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            assertEquals(expected, runBlocking { restored.snapshot().fields })
+            assertTrue(runBlocking { restored.snapshot().hasChanges })
+            restored.awaitJavascript("${richField(199)} === undefined && ${richField(399)} === undefined")
+            clickText(testContext.getString(CommonString.save))
+            waitUntil(timeout = 30.seconds, message = { "Large note Save did not close the editor" }) {
+                scenario.state == Lifecycle.State.DESTROYED
+            }
+            assertEquals(expected, runBlocking { withCol { getNote(note.id).fields.toList() } })
+        }
+    }
+
+    @Test
     fun tappingCurrentOrDifferentFieldClosesOptions() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
