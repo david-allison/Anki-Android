@@ -94,6 +94,71 @@ focus changes and activity recreation. Both settings persist on the note type's 
 rebuilding its inputs. Configurable actions beside individual fields and
 field-specific toolbar buttons remain future work.
 
+### Gboard language picker regression (2026-10-11)
+
+Long-pressing Gboard's spacebar can briefly open its language picker and then
+close both the picker and keyboard. This reproduces outside AnkiDroid in a
+standalone WebView containing a plain `<textarea>`, with JavaScript disabled.
+The field's Chinese language hint is not required for the failure.
+
+The Pixel 9 Pro reproduced it with Android 17, WebView **155.0.8059.30** and
+Gboard **18.4.1.985164140-release-arm64-v8a**. Copying those runtime APK binaries
+to an Android 16 emulator reproduced it there too. No phone settings or regular
+AnkiDroid data were changed. All subsequent version changes were on the emulator.
+
+Keeping Gboard 18.4.1 and the editor APK unchanged:
+
+| Emulator case | Result |
+| --- | --- |
+| Editor, WebView 133.0.6943.137 | Picker stays open: empty field, Chinese text, unfinished Pinyin, HTML source. |
+| Editor, WebView 153.0.8010.36 | Same four cases pass. |
+| Editor, WebView 155.0.8059.30 | Picker and keyboard close. |
+| Native `EditText` in the same activity, Chinese hint | Picker stays open. |
+| Stock WebView outside Compose, plain textarea, WebView 155 | Picker and keyboard close, with or without a language hint. |
+| Standalone app, plain textarea, WebView 153 | Picker stays open. |
+| Standalone app, plain textarea, WebView 155 | Same failure, with or without a language hint. |
+| Standalone app, WebView 155, bypass focus-loss callback | Picker stays open. Diagnostic only. |
+
+The mechanism matches Chromium's
+[window-focus change](https://github.com/chromium/chromium/commit/f04844f7e01375c586b4ea223e6aa133026cd805):
+losing window focus now calls `resetAndHideKeyboard()`. Opening Gboard's picker
+takes window focus. The standalone trace records the focus loss, a keyboard-hide
+request **3 ms later**, and a null input connection. The picker then closes.
+The reset is present in the tested 155 source and absent in the tested 153 source.
+Bypassing that callback in the disposable probe prevents the failure; this is
+strong causal evidence, although intermediate Chromium builds have not been bisected.
+
+Do not ship a blanket suppression of `onWindowFocusChanged(false)` as the fix:
+it also suppresses legitimate provider handling when dialogs or other windows
+take focus. Production editor code remains unchanged. The appropriate next step
+is an upstream Chromium report with this reproduction, followed by verification
+of its fix. Nothing has been published remotely.
+
+The [standalone reproduction](../tools/webview-keyboard-probe/src/local/webviewkeyboardprobe/MainActivity.java)
+has no Anki or Compose dependencies, JavaScript, network permission, or collection
+access. Build with JDK, Android SDK platform 36, build-tools 35.0.0 and an existing
+Android debug keystore:
+
+```sh
+bash tools/webview-keyboard-probe/build.sh
+adb -s emulator-5554 install -r tools/webview-keyboard-probe/build/keyboard-probe.apk
+adb -s emulator-5554 shell am start -S -n local.webviewkeyboardprobe/.MainActivity
+```
+
+Set `ANDROID_SDK_ROOT` or `ANDROID_HOME` before building. With English and Chinese
+Pinyin already configured in Gboard, tap the textarea, then long-press spacebar.
+Expected: the language picker remains available. On the affected runtime, it
+briefly appears and disappears along with the keyboard. The optional intent
+extra `--ez hint true` supplies `EditorInfo.hintLocales = zh`.
+The diagnostic control `--ez skipFocusLoss true` skips the provider callback;
+it is deliberately confined to this probe. `KeyboardProbe` logcat entries record
+provider version, window focus and connection availability without recording text.
+Local screenshots, logs and the exploratory editor-test patch are retained in
+`AnkiDroid/build/reports/compose-editor/keyboard-language/`. The editor's four-case
+checks passed on 133 and 153, and failed on 155 before any production change.
+The exploratory tests are not added to the normal suite while the provider bug
+remains unresolved. The standalone probe and unchanged debug app both build.
+
 ## Three settings in the screenshot
 
 ### Shrink Images
