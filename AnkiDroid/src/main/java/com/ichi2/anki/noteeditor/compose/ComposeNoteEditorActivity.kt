@@ -199,7 +199,7 @@ class ComposeNoteEditorActivity :
         }
         val fieldsAvailable =
             runCatching {
-                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 3 }
+                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 4 }
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
@@ -327,6 +327,8 @@ class ComposeNoteEditorActivity :
                         val command = if (request.editingEquation && value.isBlank()) WebEditorAction.INSERT_TEXT else action
                         if (!requireNotNull(webSession.view).execute(command, request.target, value)) {
                             reportError(getString(R.string.compose_editor_stale_command))
+                        } else if (action == WebEditorAction.REMOVE_FORMAT_CHOICES) {
+                            Prefs.sharedPrefs.edit { putString("composeEditorRemovedFormats", value) }
                         } else if (action == WebEditorAction.TEXT_COLOR || action == WebEditorAction.HIGHLIGHT_COLOR) {
                             Prefs.sharedPrefs.edit {
                                 putString(
@@ -489,6 +491,16 @@ class ComposeNoteEditorActivity :
             val target = editor.captureTarget()
             if (target == null) {
                 reportError(getString(R.string.compose_editor_stale_command))
+                return@launchEditorTask
+            }
+            if (action == WebEditorAction.REMOVE_FORMAT && !editor.selectionText(target).isNullOrEmpty()) {
+                formattingRequest =
+                    EditorFormattingRequest(
+                        WebEditorAction.REMOVE_FORMAT_CHOICES,
+                        target,
+                        Prefs.sharedPrefs.getString("composeEditorRemovedFormats", null)
+                            ?: org.json.JSONArray(editorRemovableFormats.map { it.first.name }).toString(),
+                    )
                 return@launchEditorTask
             }
             if (action in

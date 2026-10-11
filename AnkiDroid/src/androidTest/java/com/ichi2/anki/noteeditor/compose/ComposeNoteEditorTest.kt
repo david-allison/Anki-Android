@@ -27,8 +27,10 @@ import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
 import com.ichi2.anki.model.SelectableDeck
+import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorView
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
 import com.ichi2.anki.testutil.awaitJavascript
@@ -147,6 +149,83 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             awaitChecked(R.string.compose_editor_source, true)
             awaitChecked(R.string.compose_editor_bold, false)
             web.awaitJavascript("document.querySelector('.CodeMirror')?.CodeMirror.hasFocus() === true")
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun selectiveEraserKeepsItsChoicesAndCapturedSelection() {
+        Prefs.sharedPrefs
+            .edit()
+            .remove("composeEditorRemovedFormats")
+            .commit()
+        withEditor { scenario ->
+            var web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "<b><i>alpha</i></b>")
+            web.setField(1, "beta")
+
+            fun selectFront() {
+                runBlocking { web.focusField(0) }
+                web.evaluate(
+                    """
+                    (() => {
+                        const field = ${richField(0)};
+                        const text = field.querySelector('i').firstChild;
+                        field.getRootNode().getSelection().setBaseAndExtent(text, 0, text, text.length);
+                    })()
+                    """.trimIndent(),
+                )
+            }
+
+            fun openEraser() {
+                val eraser = By.desc(testContext.getString(R.string.compose_editor_remove_format)).enabled(true)
+                repeat(6) {
+                    device.findObject(eraser)?.let { button ->
+                        button.click()
+                        return
+                    }
+                    val end =
+                        checkNotNull(
+                            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))),
+                        ).visibleBounds
+                    val start = end.left - end.width() * 2
+                    device.swipe(start, end.centerY(), start / 3, end.centerY(), 30)
+                    device.waitForIdle()
+                }
+                error("Eraser did not scroll into view")
+            }
+            selectFront()
+            openEraser()
+            captureScreenshot("format-remove-choices", web)
+            // A cancelled dialog must leave the draft untouched.
+            clickText(testContext.getString(CommonString.dialog_cancel))
+            assertEquals(listOf("<b><i>alpha</i></b>", "beta"), runBlocking { web.snapshot().fields })
+            selectFront()
+            openEraser()
+            for ((action, label) in editorRemovableFormats) {
+                if (action == WebEditorAction.BOLD) continue
+                val text = testContext.getString(label)
+                // Capturing the web selection opens the dialog asynchronously.
+                val choice = checkNotNull(device.wait(Until.findObject(By.text(text)), 5_000)).parent
+                assertTrue(choice.isCheckable, "$text must expose its checked state")
+                assertTrue(choice.isChecked)
+                choice.click()
+                waitUntil(message = { "$text did not become unchecked" }) {
+                    device.findObject(By.text(text))?.parent?.isChecked == false
+                }
+            }
+            scenario.recreate()
+            web = scenario.awaitEditor()
+            captureScreenshot("format-remove-restored", web)
+            runBlocking { web.focusField(1) }
+            clickText(testContext.getString(CommonString.dialog_ok))
+            captureScreenshot("format-remove-applied", web)
+            web.awaitJavascript("!${richField(0)}.querySelector('b,strong') && ${richField(0)}.querySelector('i')?.textContent === 'alpha'")
+            assertEquals("beta", runBlocking { web.snapshot().fields[1] })
+            assertEquals("[\"BOLD\"]", Prefs.sharedPrefs.getString("composeEditorRemovedFormats", null))
+            assertTrue(runBlocking { web.execute(WebEditorAction.UNDO, web.captureTarget()) })
+            assertEquals(listOf("<b><i>alpha</i></b>", "beta"), runBlocking { web.snapshot().fields })
             assertEquals(0, runBlocking { withCol { noteCount() } })
         }
     }
