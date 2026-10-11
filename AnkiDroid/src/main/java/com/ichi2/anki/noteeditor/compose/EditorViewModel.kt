@@ -163,9 +163,6 @@ class EditorViewModel(
     }
 
     /** Picker contents are read when opened, without delaying fields or changing the current note. */
-    suspend fun deckChoices(): List<EditorChoice> =
-        loadChoices { decks.allNamesAndIds(includeFiltered = false).map { EditorChoice(it.id, it.name) } }
-
     suspend fun noteTypeChoices(): List<EditorChoice> =
         loadChoices {
             notetypes

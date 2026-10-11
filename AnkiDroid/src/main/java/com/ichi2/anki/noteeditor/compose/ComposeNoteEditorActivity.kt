@@ -35,11 +35,14 @@ import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
 import com.ichi2.anki.dialogs.ChangeNoteTypeDialog
+import com.ichi2.anki.dialogs.registerDeckSelectedHandler
+import com.ichi2.anki.dialogs.startDeckSelection
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.mediaFolder
 import com.ichi2.anki.model.CardStateFilter
+import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.noteeditor.compose.media.ComposeEditorMedia
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreview
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -95,6 +98,11 @@ class ComposeNoteEditorActivity :
         media.restore(savedInstanceState)
         enableEdgeToEdge()
         setContent { AnkiDroidTheme { EditorContent() } }
+        registerDeckSelectedHandler { deck ->
+            if (deck is SelectableDeck.Deck) {
+                updateMetadata { model.selectDeck(deck.deckId) }
+            }
+        }
         supportFragmentManager.setFragmentResultListener(ChangeNoteTypeDialog.REQUEST_KEY_NOTE_TYPE_CHANGED, this) { _, _ ->
             changed = true
             launchEditorTask {
@@ -182,9 +190,8 @@ class ComposeNoteEditorActivity :
             snackbar = snackbar,
             onBack = ::requestClose,
             onSave = { save() },
-            loadDecks = model::deckChoices,
             loadNoteTypes = model::noteTypeChoices,
-            onDeck = { id -> updateMetadata { model.selectDeck(id) } },
+            onDeck = { startDeckSelection(allowAll = false, allowFiltered = false) },
             onType = { id ->
                 launchEditorTask {
                     try {

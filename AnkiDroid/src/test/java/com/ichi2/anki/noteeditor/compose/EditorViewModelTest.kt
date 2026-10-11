@@ -194,15 +194,10 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `picker choices reflect collection changes since the editor opened`() =
+    fun `note type choices reflect collection changes since the editor opened`() =
         runTest {
             val vm = loadAdd()
-            val newDeck = addDeck("Added after opening")
-            val filtered = addDynamicDeck("Not a destination")
             val newType = col.notetypes.copy(col.notetypes.basic)
-            val choices = vm.deckChoices()
-            assertTrue(choices.any { it.id == newDeck })
-            assertFalse(choices.any { it.id == filtered })
             val types = vm.noteTypeChoices()
             assertTrue(types.any { it.id == newType.id })
             assertFalse(types.any { it.id == col.notetypes.imageOcclusion.id })
@@ -210,12 +205,12 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `delayed picker choices preserve metadata changed while loading`() =
+    fun `delayed note type choices preserve metadata changed while loading`() =
         runTest {
             val vm = loadAdd()
             val previousQueue = CollectionManager.setTestDispatcher(StandardTestDispatcher(testScheduler), useReentrantLock = false)
             try {
-                val choices = async(start = CoroutineStart.UNDISPATCHED) { vm.deckChoices() }
+                val choices = async(start = CoroutineStart.UNDISPATCHED) { vm.noteTypeChoices() }
                 assertFalse(choices.isCompleted)
                 vm.setTags(listOf("typed while loading"))
                 val edited = vm.state.value

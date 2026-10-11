@@ -22,6 +22,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
+import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
@@ -58,6 +59,59 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ensureWebViewIsSupported()
         CollectionManager.setColForTests(emptyCol)
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun deckSelectionUsesTheSharedDialogAndSurvivesRecreation() {
+        val destination = col.decks.id("Study::Languages")
+        col.decks.newFiltered("Filtered destination")
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val originalDeck = scenario.editorState().deckId
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val deckList = UiSelector().resourceId("${testContext.packageName}:id/decks")
+            // Compose merges the label and selected deck into one accessibility node.
+            val deckButton = device.findObject(UiSelector().textStartsWith(testContext.getString(R.string.compose_editor_deck)))
+            assertTrue(deckButton.click())
+            waitUntil(timeout = 5.seconds, message = { "The shared deck selection dialog did not open" }) {
+                device.findObject(deckList).exists()
+            }
+            waitUntil(timeout = 5.seconds, message = { "The deck list did not finish loading" }) {
+                device.findObject(UiSelector().text("Study")).exists()
+            }
+            captureScreenshot("deck-picker", web)
+            assertFalse(device.findObject(UiSelector().text("Filtered destination")).exists())
+            assertFalse(device.findObject(UiSelector().text(SelectableDeck.AllDecks.getDisplayName(testContext))).exists())
+            checkNotNull(device.findObject(By.res("android", "button2"))).click()
+            waitUntil(timeout = 5.seconds, message = { "Cancel did not dismiss deck selection" }) { !device.findObject(deckList).exists() }
+            assertEquals(originalDeck, scenario.editorState().deckId)
+            assertFalse(scenario.editorState().hasMetadataChanges)
+
+            web.setField(0, "Keep this draft while choosing a deck")
+            assertTrue(deckButton.click())
+            waitUntil(timeout = 5.seconds, message = { "Deck selection did not reopen" }) { device.findObject(deckList).exists() }
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            waitUntil(timeout = 5.seconds, message = { "Deck selection was not restored" }) { device.findObject(deckList).exists() }
+            checkNotNull(device.findObject(By.res(testContext.packageName, "action_filter"))).click()
+            checkNotNull(device.findObject(By.res(testContext.packageName, "search_src_text"))).text = "Languages"
+            waitUntil(timeout = 5.seconds, message = { "Search did not find the subdeck" }) {
+                device.hasObject(By.text("Languages"))
+            }
+            checkNotNull(device.findObject(By.text("Languages").res(testContext.packageName, "deck_text_view"))).click()
+            waitUntil(timeout = 5.seconds, message = { "Deck selection did not reach the recreated editor" }) {
+                scenario.editorState().deckId == destination
+            }
+            assertEquals("Study::Languages", scenario.editorState().deckName)
+            assertTrue(scenario.editorState().hasMetadataChanges)
+            assertEquals("Keep this draft while choosing a deck", runBlocking { restored.snapshot().fields.first() })
+
+            clickText(testContext.getString(CommonString.save))
+            waitUntil(timeout = 30.seconds, message = { "Add did not save to the chosen deck" }) {
+                runBlocking { withCol { noteCount() == 1 } }
+            }
+            assertEquals(destination, runBlocking { withCol { getNote(findNotes("").single()).firstCard(this).did } })
+        }
     }
 
     @Test
