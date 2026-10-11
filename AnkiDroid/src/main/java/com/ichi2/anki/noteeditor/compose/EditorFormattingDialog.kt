@@ -28,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -131,7 +132,14 @@ internal fun EditorFormattingDialog(
                             TextButton(onClick = { expanded = true }) {
                                 Text(stringResource(equationKinds.first { it.first == action }.second))
                             }
-                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                containerColor =
+                                    MaterialTheme.colorScheme.surfaceContainer.compositeOver(
+                                        MaterialTheme.colorScheme.surface,
+                                    ),
+                            ) {
                                 equationKinds.forEach { (command, label) ->
                                     DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = {
                                         action = command

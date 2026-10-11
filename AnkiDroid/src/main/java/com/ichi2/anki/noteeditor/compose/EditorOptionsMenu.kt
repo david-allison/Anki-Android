@@ -9,12 +9,14 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.ichi2.anki.R
@@ -33,7 +35,11 @@ internal fun EditorOptionsMenu(
         IconButton(onClick = { expanded = true }, enabled = enabled) {
             Icon(painterResource(R.drawable.ic_settings_black), stringResource(R.string.compose_editor_options))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+        ) {
             fun change(value: WebEditorSettings) {
                 expanded = false
                 onSettings(value)
