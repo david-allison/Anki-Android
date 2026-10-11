@@ -22,6 +22,7 @@ import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.mediaFolder
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
 import com.ichi2.anki.settings.Prefs
@@ -144,6 +145,12 @@ class EditorViewModel(
                         isCloze = note.notetype.isCloze,
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
+                        settings =
+                            WebEditorSettings(
+                                shrinkImages = config.get<Boolean>("shrinkEditorImages") ?: true,
+                                mathjaxPreview = config.get<Boolean>("renderMathjax") ?: true,
+                                autoCloseTags = config.get<Boolean>("closeHTMLTags") ?: true,
+                            ),
                     )
                 }
             val target =
@@ -165,6 +172,17 @@ class EditorViewModel(
     }
 
     /** Picker contents are read when opened, without delaying fields or changing the current note. */
+    suspend fun setEditorSettings(settings: WebEditorSettings) {
+        requireNotNull(state.value)
+        withCol {
+            requireCurrentCollection()
+            config.set("shrinkEditorImages", settings.shrinkImages)
+            config.set("renderMathjax", settings.mathjaxPreview)
+            config.set("closeHTMLTags", settings.autoCloseTags)
+        }
+        mutableState.value = requireNotNull(state.value).copy(settings = settings)
+    }
+
     suspend fun noteTypeChoices(): List<EditorChoice> =
         loadChoices {
             notetypes

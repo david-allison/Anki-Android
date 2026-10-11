@@ -24,6 +24,7 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.utils.AssetHelper.guessMimeType
 import kotlinx.coroutines.CancellableContinuation
@@ -309,6 +310,12 @@ class WebEditorView(
             JSONObject().put("action", action.name).put("target", target?.toJson()).put("value", value),
         ).getBoolean("applied")
 
+    suspend fun updateSettings(settings: WebEditorSettings) {
+        check(request("setSettings", settings.toJson()).getBoolean("applied")) {
+            context.getString(R.string.compose_editor_finish_composition)
+        }
+    }
+
     suspend fun createDraft(
         draftId: String,
         hostStateJson: String,
@@ -494,6 +501,7 @@ private fun WebEditorDocument.toJson(): JSONObject =
         .put("sessionId", sessionId)
         .put("generation", generation)
         .put("isCloze", isCloze)
+        .put("settings", settings.toJson())
         .put(
             "fields",
             JSONArray().apply {
@@ -548,4 +556,5 @@ private fun JSONObject.toDocument(): WebEditorDocument =
             }
         },
         optBoolean("isCloze"),
+        WebEditorSettings.fromJson(optJSONObject("settings")),
     )

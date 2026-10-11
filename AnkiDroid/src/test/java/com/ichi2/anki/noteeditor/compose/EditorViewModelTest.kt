@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
+import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
 import com.ichi2.testutils.JvmTest
 import kotlinx.coroutines.CoroutineStart
@@ -29,6 +30,21 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
+    @Test
+    fun `global options persist without changing the note or draft generation`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val settings = WebEditorSettings(shrinkImages = false, mathjaxPreview = false, autoCloseTags = false)
+            vm.setEditorSettings(settings)
+            val after = assertNotNull(vm.state.value)
+            assertEquals(before.generation, after.generation)
+            assertEquals(before.fields, after.fields)
+            assertFalse(after.hasMetadataChanges)
+            assertEquals(settings, loadAdd().state.value?.settings)
+            assertEquals(0, col.noteCount())
+        }
+
     @Test
     fun `field settings persist on the note type without changing the draft generation`() =
         runTest {

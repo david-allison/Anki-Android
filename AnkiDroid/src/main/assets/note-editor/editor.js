@@ -110,7 +110,7 @@
         composing = false;
         lastTarget = null;
         activeField = null;
-        await api().load(model.fields, model.isCloze);
+        await api().load(model.fields, model.isCloze, model.settings);
         await api().setInputEnabled(inputEnabled);
         const rendered = await api().snapshot();
         fields = model.fields.map((spec, index) => ({
@@ -394,6 +394,21 @@
                     : undefined;
             await render(value, clean);
             return {};
+        },
+        async setSettings(settings) {
+            await reconcile();
+            if (!(await api().setSettings(settings))) return { applied: false };
+            model.settings = settings;
+            // MathJax can replace the input DOM; invalidate delayed picker targets.
+            fields.forEach(field => field.revision++);
+            lastTarget = null;
+            revision++;
+            checkpointNeeded = true;
+            await reconcile();
+            await checkpoint();
+            await captureTarget();
+            status();
+            return { applied: true };
         },
         async setInputEnabled({ enabled }) {
             inputEnabled = enabled;
