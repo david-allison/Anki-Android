@@ -415,10 +415,23 @@
         async loadDocument(value) {
             await writes;
             draftId = null;
+            const mapping = value.baselineFieldMap;
             const clean =
                 value.resetBaseline === false
-                    ? value.fields.map((_, index) => baseline[index] ?? "")
+                    ? value.fields.map((_, index) => baseline[mapping?.[index] ?? index] ?? "")
                     : undefined;
+            if (Array.isArray(mapping)) {
+                value.fields = value.fields.map((spec, index) => {
+                    const previous = fields[mapping[index]]?.spec;
+                    return previous
+                        ? {
+                              ...spec,
+                              collapsed: previous.collapsed,
+                              sourceMode: previous.sourceMode,
+                          }
+                        : spec;
+                });
+            }
             await render(value, clean);
             return {};
         },

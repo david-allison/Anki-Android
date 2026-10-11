@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -24,6 +25,8 @@ internal fun EditorOptionsMenu(
     settings: WebEditorSettings,
     enabled: Boolean,
     onSettings: (WebEditorSettings) -> Unit,
+    onFields: () -> Unit,
+    onCards: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -44,6 +47,15 @@ internal fun EditorOptionsMenu(
             EditorOption(R.string.compose_editor_auto_close_tags, settings.autoCloseTags) {
                 change(settings.copy(autoCloseTags = !settings.autoCloseTags))
             }
+            HorizontalDivider()
+            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_fields)) }, onClick = {
+                expanded = false
+                onFields()
+            })
+            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_cards)) }, onClick = {
+                expanded = false
+                onCards()
+            })
         }
     }
 }

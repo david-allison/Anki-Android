@@ -51,6 +51,7 @@ class EditorWebSession(
     private var documentToken: Pair<String, Int>? = null
     private var lastHostState: String? = null
     private var lastSettings: WebEditorSettings? = null
+    private var previewNoteType: String? = null
     private var binding: Job? = null
     private var previewJob: Job? = null
     private val updates = Mutex()
@@ -171,6 +172,10 @@ class EditorWebSession(
     ) {
         val state = requireNotNull(model.state.value)
         val token = state.sessionId to state.generation
+        if (previewNoteType != state.notetypeJson) {
+            previewNoteType = state.notetypeJson
+            previewDirty = true
+        }
         val hostState = model.hostState()
         if (documentToken != token) {
             mutableReady.value = false
@@ -245,4 +250,5 @@ private fun EditorState.toWebDocument() =
             },
         isCloze = isCloze,
         settings = settings,
+        baselineFieldMap = baselineFieldMap,
     )

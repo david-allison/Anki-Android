@@ -61,5 +61,10 @@
     <string name="compose_editor_formula">Formula</string>
     <string name="compose_editor_colour_hex">Colour (hex)</string>
     <string name="compose_editor_latex_help">Use Anki Desktop to generate images for LaTeX formulas.</string>
+    <string name="compose_editor_fields">Fields…</string>
+    <string name="compose_editor_cards">Cards…</string>
     <string name="compose_editor_rich_only">Available in rich text mode</string>
+    <string name="compose_editor_removed_fields">Text from removed fields</string>
+    <string name="compose_editor_removed_fields_explanation">These fields were removed from the note type. Copy any text you want to keep before discarding it, or close the editor to keep it in your draft.</string>
+    <string name="compose_editor_keep_draft_close">Keep draft and close</string>
 </resources>

@@ -46,6 +46,86 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `field management maps unsaved text by identity after rename reorder and add`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val type = col.notetypes.get(before.noteTypeId)!!.deepClone()
+            col.notetypes.renameField(type, type.fields[1], "Answer")
+            col.notetypes.repositionField(type, type.fields[1], 0)
+            col.notetypes.addField(type, col.notetypes.newField("Extra"))
+            col.notetypes.save(type)
+
+            assertTrue(vm.reloadNoteType(listOf("<b>unsaved question</b>", "unsaved answer")))
+            val after = assertNotNull(vm.state.value)
+            assertEquals(listOf("Answer", "Front", "Extra"), after.fields.map { it.name })
+            assertEquals(listOf("unsaved answer", "<b>unsaved question</b>", ""), after.fields.map { it.html })
+            assertEquals(listOf(1, 0, -1), after.baselineFieldMap)
+            assertEquals(before.generation + 1, after.generation)
+            assertTrue(after.removedFields.isEmpty())
+            assertFalse(vm.reloadNoteType(after.fields.map { it.html }))
+            assertEquals(0, col.noteCount())
+        }
+
+    @Test
+    fun `removed field text survives draft recovery and blocks Save until discarded`() =
+        runTest {
+            val vm = loadAdd()
+            val type = col.notetypes.get(vm.state.value!!.noteTypeId)!!.deepClone()
+            col.notetypes.removeField(type, type.fields[1])
+            col.notetypes.save(type)
+            vm.reloadNoteType(listOf("question", "unsaved answer"))
+            assertEquals(listOf(EditorRemovedField("Back", "unsaved answer")), vm.state.value?.removedFields)
+            assertIs<EditorSaveResult.Invalid>(vm.save(listOf("question")))
+            assertEquals(0, col.noteCount())
+            val recovered = loadAdd()
+            assertTrue(recovered.restoreHostState(vm.hostState(), listOf("question")))
+            assertEquals(vm.state.value?.removedFields, recovered.state.value?.removedFields)
+            recovered.discardRemovedFields()
+            assertIs<EditorSaveResult.Added>(recovered.save(listOf("question")))
+            assertNull(recovered.state.value?.baselineFieldMap)
+        }
+
+    @Test
+    fun `process death during field management restores the old draft into the new schema`() =
+        runTest {
+            val vm = loadAdd()
+            val host = vm.hostState()
+            val type = col.notetypes.get(vm.state.value!!.noteTypeId)!!.deepClone()
+            col.notetypes.repositionField(type, type.fields[1], 0)
+            col.notetypes.save(type)
+            val recovered = loadAdd()
+            assertTrue(recovered.restoreHostState(host, listOf("question", "answer")))
+            assertEquals(
+                listOf("answer", "question"),
+                recovered.state.value
+                    ?.fields
+                    ?.map { it.html },
+            )
+            assertEquals(listOf(1, 0), recovered.state.value?.baselineFieldMap)
+            assertEquals(vm.state.value!!.generation + 1, recovered.state.value?.generation)
+        }
+
+    @Test
+    fun `template changes refresh metadata without replacing fields`() =
+        runTest {
+            val vm = loadAdd()
+            val before = vm.state.value!!
+            val type = col.notetypes.get(before.noteTypeId)!!.deepClone()
+            type.css += "\n.card { color: red; }"
+            col.notetypes.save(type)
+            assertTrue(vm.reloadNoteType(listOf("question", "answer")))
+            assertEquals(before.generation, vm.state.value?.generation)
+            assertEquals(
+                listOf("question", "answer"),
+                vm.state.value
+                    ?.fields
+                    ?.map { it.html },
+            )
+            assertNull(vm.state.value?.baselineFieldMap)
+        }
+
+    @Test
     fun `field settings persist on the note type without changing the draft generation`() =
         runTest {
             val vm = loadAdd()
