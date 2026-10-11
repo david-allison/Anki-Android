@@ -78,6 +78,7 @@
             composing,
             hasSelection: !!lastTarget,
             activeField,
+            sourceMode: !!lastTarget && JSON.parse(lastTarget.bookmark).kind === "source",
         });
     }
 
@@ -187,10 +188,7 @@
         }).catch(reportError);
     }
 
-    async function execute({ action, target, value = "" }) {
-        if (!inputEnabled || (composing && action !== "SOURCE_MODE")) return { applied: false };
-        await reconcile();
-        target ??= await captureTarget();
+    function selectionFor(target) {
         const field = fields[target.field];
         if (
             target.sessionId !== model.sessionId ||
@@ -198,19 +196,28 @@
             !field ||
             target.revision !== field.revision
         )
-            return { applied: false };
+            return null;
         let selection;
         try {
             selection = JSON.parse(target.bookmark);
         } catch (_) {
-            return { applied: false };
+            return null;
         }
         if (
             selection.field !== target.field ||
             !["rich", "source"].includes(selection.kind) ||
             typeof selection.bookmark !== "string"
         )
-            return { applied: false };
+            return null;
+        return selection;
+    }
+
+    async function execute({ action, target, value = "" }) {
+        if (!inputEnabled || (composing && action !== "SOURCE_MODE")) return { applied: false };
+        await reconcile();
+        target ??= await captureTarget();
+        const selection = selectionFor(target);
+        if (!selection) return { applied: false };
         const applied = await api().execute(action, selection, value);
         if (applied) {
             await captureTarget();
@@ -278,6 +285,26 @@
             .catch(reportError);
     });
     document.addEventListener("anki-editor-fields-change", scheduleRefresh);
+    document.addEventListener("anki-editor-fields-edit-math", event => {
+        const { selection, text, block } = event.detail;
+        enqueue(async () => {
+            await reconcile();
+            const field = fields[selection.field];
+            if (!field) return;
+            send({
+                type: "editEquation",
+                text,
+                block,
+                target: {
+                    sessionId: model.sessionId,
+                    generation: model.generation,
+                    field: selection.field,
+                    revision: field.revision,
+                    bookmark: JSON.stringify(selection),
+                },
+            });
+        }).catch(reportError);
+    });
     document.addEventListener("click", event => {
         // A tap inside either input returns to editing, even in the current field.
         // Focus restoration by a native picker must not dismiss field options.
@@ -423,6 +450,11 @@
         },
         snapshot,
         captureTarget,
+        async selectionText(target) {
+            await reconcile();
+            const selection = selectionFor(target);
+            return { text: selection ? await api().selectionText(selection) : null };
+        },
         execute,
         async createDraft(value) {
             await writes;

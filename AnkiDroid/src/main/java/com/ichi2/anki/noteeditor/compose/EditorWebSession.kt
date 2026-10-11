@@ -70,14 +70,15 @@ class EditorWebSession(
                     composing = it.composing,
                     hasSelection = it.hasSelection,
                     activeField = it.activeField,
+                    sourceMode = it.sourceMode,
                 )
             if (lastContentRevision != it.revision) {
                 lastContentRevision = it.revision
                 previewDirty = true
             }
         }
-        editor.onFieldTap = { mutableFieldTaps.tryEmit(Unit) }
         editor.onError = reportError
+        editor.onFieldTap = { mutableFieldTaps.tryEmit(Unit) }
         editor.onRendererGone = {
             mutableReady.value = false
             binding?.cancel()
@@ -231,6 +232,7 @@ data class EditorToolbarState(
     val composing: Boolean = false,
     val hasSelection: Boolean = false,
     val activeField: Int? = null,
+    val sourceMode: Boolean = false,
 )
 
 private fun EditorState.toWebDocument() =

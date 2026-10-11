@@ -106,6 +106,75 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun nativeColourAndEquationDialogsKeepTheirCapturedDestination() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "alpha")
+            web.setField(1, "beta")
+
+            fun selectFront() {
+                runBlocking { web.focusField(0) }
+                web.evaluate(
+                    """
+                    (() => {
+                        const field = ${richField(0)};
+                        const range = new Range();
+                        range.selectNodeContents(field);
+                        const selection = field.getRootNode().getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    })()
+                    """.trimIndent(),
+                )
+            }
+
+            fun toolbar(label: Int) {
+                val target = By.desc(testContext.getString(label)).enabled(true)
+                repeat(5) {
+                    device.findObject(target)?.let { button ->
+                        button.click()
+                        return
+                    }
+                    val end =
+                        checkNotNull(
+                            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)),
+                        ).visibleBounds
+                    // The icon bounds are narrower than the fixed button's touch target.
+                    val start = end.left - end.width() * 2
+                    device.swipe(start, end.centerY(), start / 3, end.centerY(), 30)
+                    device.waitForIdle()
+                }
+                error("Toolbar item not found: ${testContext.getString(label)}")
+            }
+            selectFront()
+            toolbar(R.string.compose_editor_text_color)
+            checkNotNull(device.wait(Until.findObject(By.desc("#1976d2")), 5_000)).click()
+            captureScreenshot("format-colour", web)
+            runBlocking { web.focusField(1) }
+            clickText(testContext.getString(CommonString.dialog_ok))
+            web.awaitJavascript("getComputedStyle(${richField(0)}.querySelector('font,span')).color === 'rgb(25, 118, 210)'")
+            assertEquals("beta", runBlocking { web.snapshot().fields[1] })
+
+            web.setField(0, "alpha")
+            selectFront()
+            toolbar(R.string.compose_editor_equations)
+            val formula = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
+            formula.text = "x^2"
+            captureScreenshot("format-equation", web)
+            clickText(testContext.getString(CommonString.dialog_ok))
+            web.awaitJavascript("${richField(0)}.querySelector('anki-mathjax')?.dataset.mathjax === 'x^2'")
+            assertEquals(listOf("\\(x^2\\)", "beta"), runBlocking { web.snapshot().fields })
+            // A tap on the rendered formula reopens the same native editor.
+            web.evaluate("${richField(0)}.querySelector('anki-mathjax').click()")
+            checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "y^3"
+            clickText(testContext.getString(CommonString.dialog_ok))
+            web.awaitJavascript("${richField(0)}.querySelector('anki-mathjax')?.dataset.mathjax === 'y^3'")
+            assertEquals(listOf("\\(y^3\\)", "beta"), runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun largeNotesKeepUnmountedFieldsThroughRecreationAndSave() {
         val type = col.notetypes.basic.deepClone()
         while (type.fields.size < 400) {

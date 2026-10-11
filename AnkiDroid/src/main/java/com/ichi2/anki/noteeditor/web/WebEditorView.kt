@@ -58,6 +58,7 @@ class WebEditorView(
     var onReady: (() -> Unit)? = null
     var onChanged: ((WebEditorStatus) -> Unit)? = null
     var onFieldTap: (() -> Unit)? = null
+    var onEditEquation: ((WebEditorTarget, String, Boolean) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     var onRendererGone: (() -> Unit)? = null
     var onMediaPaste: ((WebEditorTarget, Uri) -> Unit)? = null
@@ -300,6 +301,9 @@ class WebEditorView(
         )
     }
 
+    suspend fun selectionText(target: WebEditorTarget): String? =
+        request("selectionText", target.toJson()).let { if (it.isNull("text")) null else it.getString("text") }
+
     suspend fun execute(
         action: WebEditorAction,
         target: WebEditorTarget? = null,
@@ -362,6 +366,12 @@ class WebEditorView(
     private fun handleMessage(message: JSONObject) {
         when (message.getString("type")) {
             "fieldTap" -> onFieldTap?.invoke()
+            "editEquation" ->
+                onEditEquation?.invoke(
+                    message.getJSONObject("target").toTarget(),
+                    message.getString("text"),
+                    message.getBoolean("block"),
+                )
             "ready" -> {
                 ready.complete(Unit)
                 onReady?.invoke()
@@ -382,6 +392,7 @@ class WebEditorView(
                         message.optBoolean("composing"),
                         message.optBoolean("hasSelection"),
                         message.optInt("activeField", -1).takeIf { it >= 0 },
+                        message.optBoolean("sourceMode"),
                     ),
                 )
             "error" -> {
