@@ -7,6 +7,9 @@ import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.ioDispatcher
+import com.ichi2.anki.noteeditor.web.WebEditorDocument
+import com.ichi2.anki.noteeditor.web.WebEditorDraft
+import com.ichi2.anki.noteeditor.web.WebEditorField
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.testutils.JvmTest
 import io.mockk.coEvery
@@ -14,6 +17,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,6 +27,55 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorWebSessionTest : JvmTest() {
+    @Test
+    fun `restoring a draft reapplies settings only when native preferences differ`() =
+        runTest {
+            val originalDispatcher = ioDispatcher
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+            val model = EditorViewModel(SavedStateHandle())
+            val store = ViewModelStore().apply { put("editor", model) }
+            val errors = mutableListOf<String>()
+            val session = EditorWebSession(model, backgroundScope, errors::add)
+            try {
+                model.load(NoteEditorFragment.addNoteArgs())
+                model.hasAttachedEditor = true
+                model.takeDraftRecoveryRequired()
+                val current = checkNotNull(model.state.value)
+                val document =
+                    WebEditorDocument(
+                        current.sessionId,
+                        current.generation,
+                        current.fields.map { WebEditorField(it.name, it.html) },
+                        settings = current.settings,
+                    )
+                val draft = WebEditorDraft(document, current.fields.map { it.html }, model.hostState())
+                val restored = mockk<WebEditorView>(relaxed = true)
+                coEvery { restored.restoreDraft(model.draftId) } returns draft
+                session.attach(restored)
+                runCurrent()
+                assertTrue(session.ready.value)
+                // Redundant setSettings invalidates every captured command target in the host.
+                coVerify(exactly = 0) { restored.updateSettings(any()) }
+                coVerify(exactly = 0) { restored.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                session.detach()
+
+                val older = mockk<WebEditorView>(relaxed = true)
+                coEvery { older.restoreDraft(model.draftId) } returns
+                    draft.copy(
+                        document = document.copy(settings = current.settings.copy(shrinkImages = !current.settings.shrinkImages)),
+                    )
+                session.attach(older)
+                runCurrent()
+                assertTrue(session.ready.value)
+                coVerify(exactly = 1) { older.updateSettings(current.settings) }
+                assertTrue(errors.isEmpty(), errors.joinToString())
+            } finally {
+                session.detach()
+                store.clear()
+                ioDispatcher = originalDispatcher
+            }
+        }
+
     @Test
     fun `native controls become ready only after draft persistence and initial focus`() =
         runTest {
