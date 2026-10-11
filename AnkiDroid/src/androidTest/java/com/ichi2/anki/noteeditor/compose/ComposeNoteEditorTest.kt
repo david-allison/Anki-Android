@@ -155,6 +155,16 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
     @Test
     fun fieldToolbarFollowsFocusAndSurvivesRecreation() {
+        // Global templates outlive the synthetic collection; start this test with a known library.
+        Prefs.sharedPrefs
+            .edit()
+            .apply {
+                Prefs.sharedPrefs.all.keys
+                    .filter { it.startsWith("composeEditorFieldToolbar:") }
+                    .forEach { remove(it) }
+                remove("composeEditorCustomButtonTemplates")
+                remove("note_editor_custom_buttons")
+            }.commit()
         withEditor { scenario ->
             var web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -166,7 +176,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
             ).click()
-            device.findObject(By.text(testContext.getString(com.ichi2.anki.CommonString.add_toolbar_item))).click()
+            checkNotNull(
+                device.wait(Until.findObject(By.text(testContext.getString(com.ichi2.anki.CommonString.add_toolbar_item))), 5_000),
+            ).click()
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
             val inputs = device.findObjects(By.clazz("android.widget.EditText"))
             assertEquals(3, inputs.size)
@@ -184,6 +196,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             device.findObject(By.text("Wrap")).click()
+            val moveDown = By.desc(testContext.getString(R.string.compose_editor_move_button_down, "Wrap"))
+            repeat(2) { device.findObject(moveDown).click() }
             device.findObjects(save).last().click()
             waitUntil(message = { "The field toolbar did not save" }) {
                 scenario
@@ -195,6 +209,10 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
             assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
             assertFalse(device.hasObject(bold))
+            assertTrue(
+                device.findObject(By.desc(testContext.getString(R.string.compose_editor_italic))).visibleBounds.right <=
+                    device.findObject(By.text("Wrap")).visibleBounds.left,
+            )
             web.setField(0, "alpha")
             web.evaluate(
                 """
@@ -213,11 +231,19 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             runBlocking { web.focusField(1) }
             assertTrue(device.wait(Until.hasObject(bold), 5_000))
             assertFalse(device.hasObject(By.text("Wrap")))
+            val configuredToolbar = scenario.editorState().fields[0].toolbar
             scenario.recreate()
             web = scenario.awaitEditor()
+            assertEquals(configuredToolbar, scenario.editorState().fields[0].toolbar)
+            // Mounted fields precede completion of draft restoration. Wait for native controls before focusing.
+            assertTrue(device.wait(Until.hasObject(save.enabled(true)), 5_000))
             runBlocking { web.focusField(0) }
             assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
             assertFalse(device.hasObject(bold))
+            assertTrue(
+                device.findObject(By.desc(testContext.getString(R.string.compose_editor_italic))).visibleBounds.right <=
+                    device.findObject(By.text("Wrap")).visibleBounds.left,
+            )
             assertEquals(0, runBlocking { withCol { noteCount() } })
         }
     }

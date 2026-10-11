@@ -20,7 +20,8 @@ class EditorToolbarPreferencesTest {
         val toolbar =
             EditorFieldToolbar(
                 setOf("BOLD", "MEDIA"),
-                listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                listOf(EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                listOf("ITALIC", "custom:ruby", "BOLD"),
             )
         store.saveCustomButtons(toolbar.customButtons)
         store.save("collection", 1, "id:front", toolbar)

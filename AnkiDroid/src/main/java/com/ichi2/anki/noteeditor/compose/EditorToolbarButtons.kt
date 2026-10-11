@@ -67,12 +67,15 @@ internal fun EditorFormattingButtons(
     onRecordAudio: () -> Unit,
 ) {
     val formatEnabled = enabled && state.hasSelection && !state.composing
-    toolbar.customButtons.forEach { button ->
-        TextButton(onClick = { onCustomAction(button) }, enabled = formatEnabled) {
-            Text(button.label, Modifier.widthIn(max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    toolbar.orderedItems().filter { it.appliesTo(isCloze) }.forEach { item ->
+        if (item is EditorToolbarItem.Custom) {
+            TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
+                Text(item.button.label, Modifier.widthIn(max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            return@forEach
         }
-    }
-    EditorToolbarButton.entries.filter { it.name !in toolbar.hiddenButtons && (!it.clozeOnly || isCloze) }.forEach { button ->
+        val button = (item as EditorToolbarItem.Builtin).button
+        if (button.name in toolbar.hiddenButtons) return@forEach
         val actionEnabled =
             if (button == EditorToolbarButton.SOURCE_MODE) {
                 enabled && state.hasSelection

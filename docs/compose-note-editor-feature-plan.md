@@ -95,11 +95,12 @@ rebuilding its inputs. Configurable actions beside individual fields remain futu
 
 ### Per-field toolbars
 
-**Field options → Toolbar** enables or hides Anki buttons and custom buttons for
+**Field options → Toolbar** enables, hides and reorders Anki buttons and custom buttons for
 this field on every note using the same note type. The adjacent **Custom Buttons**
 control manages global HTML button templates. Editing a template updates all fields
 using it; deleting one removes it from their toolbars. New templates start disabled
-until selected in Toolbar. Both dialogs save changes together; Cancel discards them.
+until selected in Toolbar. Up/down controls mix both kinds in one ordered list; hidden
+buttons retain their positions. Both dialogs save changes together; Cancel discards them.
 The toolbar follows the focused field; Field options remains accessible even when
 all toolbar buttons are hidden.
 
@@ -114,8 +115,8 @@ Custom buttons wrap the selection in rich text or HTML source, with Undo/Redo.
 The backend exposes this through fields API version 5 and loads the rich-text
 helper on demand. Browser regressions cover formatting, empty carets, source
 selections, stale targets, equations and media. Native tests cover persistence,
-field changes and recreation; Roborazzi captures the toolbar configuration and
-customized/empty toolbars in light and dark themes.
+field changes and recreation; Roborazzi captures the global template library, toolbar
+configuration, mixed button order and customized/empty toolbars in light and dark themes.
 The custom-button text-entry dialog is covered by interaction and emulator tests;
 its Roborazzi capture currently hangs while measuring the outlined text fields.
 

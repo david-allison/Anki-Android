@@ -22,6 +22,7 @@ data class EditorCustomToolbarButton(
 data class EditorFieldToolbar(
     val hiddenButtons: Set<String> = emptySet(),
     val customButtons: List<EditorCustomToolbarButton> = emptyList(),
+    val buttonOrder: List<String> = emptyList(),
 ) : Parcelable
 
 /** Device-local overrides for a field on all notes using the same note type. */
@@ -44,6 +45,7 @@ internal class EditorToolbarPreferences(
             EditorFieldToolbar(
                 hiddenButtons = json.getJSONArray("hidden").strings().toSet(),
                 customButtons = json.getJSONArray("customIds").strings().mapNotNull(buttons::get),
+                buttonOrder = json.optJSONArray("order")?.strings().orEmpty(),
             )
         }.getOrElse { defaults }
     }
@@ -75,6 +77,7 @@ internal class EditorToolbarPreferences(
             JSONObject()
                 .put("hidden", JSONArray(toolbar.hiddenButtons.toList()))
                 .put("customIds", JSONArray(toolbar.customButtons.map { it.id }))
+                .put("order", JSONArray(toolbar.buttonOrder))
         check(preferences.edit().putString(key(collection, noteType, field), json.toString()).commit()) {
             "Unable to save field toolbar settings."
         }
