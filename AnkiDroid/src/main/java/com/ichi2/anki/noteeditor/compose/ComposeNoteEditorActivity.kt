@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.os.BundleCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.Lifecycle
@@ -35,6 +36,7 @@ import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
 import com.ichi2.anki.dialogs.ChangeNoteTypeDialog
+import com.ichi2.anki.dialogs.LocaleSelectionDialog
 import com.ichi2.anki.dialogs.registerDeckSelectedHandler
 import com.ichi2.anki.dialogs.startDeckSelection
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
@@ -55,6 +57,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
+import java.util.Locale
 
 /** Development editor host. Collection Save is explicit; preview and drafts use web snapshots. */
 class ComposeNoteEditorActivity :
@@ -69,6 +72,7 @@ class ComposeNoteEditorActivity :
     private var clozeWarning by mutableStateOf<String?>(null)
     private var changed = false
     private var changeTypeAfterSave = false
+    private var languageHintTarget: EditorFieldTarget? = null
     private lateinit var tagsFactory: TagsDialogFactory
     private var editorView by mutableStateOf<WebEditorView?>(null)
     private var collectionMediaDirectory: File? = null
@@ -90,6 +94,8 @@ class ComposeNoteEditorActivity :
         if (!ensureStorageIsReady()) return
         changed = savedInstanceState?.getBoolean(STATE_CHANGED) ?: false
         changeTypeAfterSave = savedInstanceState?.getBoolean(STATE_CHANGE_TYPE) ?: false
+        languageHintTarget =
+            savedInstanceState?.let { BundleCompat.getParcelable(it, STATE_LANGUAGE_TARGET, EditorFieldTarget::class.java) }
         if (intent.getIntExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NO_CALLER.value) == NoteEditorCaller.NO_CALLER.value &&
             intent.action in setOf(Intent.ACTION_SEND, Intent.ACTION_PROCESS_TEXT, NoteEditorFragment.ACTION_CREATE_FLASHCARD)
         ) {
@@ -101,6 +107,17 @@ class ComposeNoteEditorActivity :
         registerDeckSelectedHandler { deck ->
             if (deck is SelectableDeck.Deck) {
                 updateMetadata { model.selectDeck(deck.deckId) }
+            }
+        }
+        supportFragmentManager.setFragmentResultListener(LocaleSelectionDialog.REQUEST_HINT_LOCALE_SELECTION, this) { _, result ->
+            val locale = BundleCompat.getSerializable(result, LocaleSelectionDialog.KEY_SELECTED_LOCALE, Locale::class.java)
+            val target = languageHintTarget
+            languageHintTarget = null
+            (supportFragmentManager.findFragmentByTag(LANGUAGE_DIALOG_TAG) as? LocaleSelectionDialog)?.dismiss()
+            if (target != null &&
+                (locale != null || result.getBoolean(LocaleSelectionDialog.KEY_USE_DEFAULT))
+            ) {
+                setLanguageHint(target, locale)
             }
         }
         supportFragmentManager.setFragmentResultListener(ChangeNoteTypeDialog.REQUEST_KEY_NOTE_TYPE_CHANGED, this) { _, _ ->
@@ -205,7 +222,11 @@ class ComposeNoteEditorActivity :
             },
             onEditType = { typeChangeDialog = true },
             onTags = { tagsFactory.show(this, checkedTags = ArrayList(state?.tags.orEmpty())) },
-            onSticky = { index -> updateMetadata { model.toggleSticky(index) } },
+            onPinned = { target, pinned -> updateMetadata { model.setFieldPinned(target, pinned) } },
+            onLanguageHint = { target ->
+                languageHintTarget = target
+                LocaleSelectionDialog.withDefaultOption().show(supportFragmentManager, LANGUAGE_DIALOG_TAG)
+            },
             onAction = ::execute,
             onMedia = media::launch,
             onLegacy = ::openLegacyEditor,
@@ -373,6 +394,15 @@ class ComposeNoteEditorActivity :
             }
         }
 
+    private fun setLanguageHint(
+        target: EditorFieldTarget,
+        locale: Locale?,
+    ) = updateMetadata {
+        webSession.awaitReady()
+        model.setFieldLanguageHint(target, locale)
+        webSession.synchronize()
+    }
+
     private fun requestClose() {
         if (busy || model.state.value?.isSaving == true) return
         if (model.state.value == null || !webSession.ready.value) {
@@ -426,6 +456,7 @@ class ComposeNoteEditorActivity :
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(STATE_CHANGED, changed)
         outState.putBoolean(STATE_CHANGE_TYPE, changeTypeAfterSave)
+        outState.putParcelable(STATE_LANGUAGE_TARGET, languageHintTarget)
         media.save(outState)
         super.onSaveInstanceState(outState)
     }
@@ -463,6 +494,8 @@ class ComposeNoteEditorActivity :
         const val EXTRA_USE_LEGACY = "composeEditorUseLegacy"
         private const val STATE_CHANGED = "composeEditorChanged"
         private const val STATE_CHANGE_TYPE = "composeEditorChangeType"
+        private const val STATE_LANGUAGE_TARGET = "composeEditorLanguageTarget"
+        private const val LANGUAGE_DIALOG_TAG = "composeEditorLanguageDialog"
     }
 }
 

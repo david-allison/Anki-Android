@@ -18,6 +18,7 @@ import com.ichi2.anki.checkNoteFieldsResponse
 import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.CollectionFiles
+import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.mediaFolder
@@ -34,6 +35,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.Locale
 
 /**
  * Owns native editor metadata and collection operations. Field HTML remains in the WebView until
@@ -249,20 +251,41 @@ class EditorViewModel(
         }
     }
 
-    suspend fun toggleSticky(index: Int) {
-        val current = state.value?.takeUnless { it.isSaving } ?: return
-        val field = current.fields.getOrNull(index) ?: return
+    suspend fun setFieldPinned(
+        target: EditorFieldTarget,
+        pinned: Boolean,
+    ) = updateFieldSettings(target) { sticky = pinned }
+
+    suspend fun setFieldLanguageHint(
+        target: EditorFieldTarget,
+        locale: Locale?,
+    ) = updateFieldSettings(target) { languageHint = locale }
+
+    private suspend fun updateFieldSettings(
+        target: EditorFieldTarget,
+        update: Field.() -> Unit,
+    ) {
+        val current = state.value?.takeIf { target.matches(it) && !it.isSaving } ?: return
         try {
-            withCol {
-                requireCurrentCollection()
-                val type = requireNotNull(notetypes.get(current.noteTypeId)).deepClone()
-                require(type.fields.map { it.name } == current.fields.map { it.name }) { "The note type changed; reopen the editor." }
-                type.fields[index].sticky = !field.sticky
-                notetypes.save(type)
-            }
-            state.value?.takeIf { it.generation == current.generation }?.let { latest ->
+            val updated =
+                withCol {
+                    requireCurrentCollection()
+                    if (!target.matches(state.value) || state.value?.isSaving != false) return@withCol null
+                    val type = requireNotNull(notetypes.get(current.noteTypeId)).deepClone()
+                    require(type.fields.map { it.name } == current.fields.map { it.name }) { "The note type changed; reopen the editor." }
+                    val field = type.fields[target.field]
+                    field.update()
+                    notetypes.save(type)
+                    field.sticky to field.languageHint?.toLanguageTag()
+                } ?: return
+            state.value?.takeIf(target::matches)?.let { latest ->
                 mutableState.value =
-                    latest.copy(fields = latest.fields.mapIndexed { i, f -> if (i == index) f.copy(sticky = !f.sticky) else f })
+                    latest.copy(
+                        fields =
+                            latest.fields.mapIndexed { i, f ->
+                                if (i == target.field) f.copy(sticky = updated.first, languageTag = updated.second) else f
+                            },
+                    )
             }
         } catch (e: CancellationException) {
             throw e

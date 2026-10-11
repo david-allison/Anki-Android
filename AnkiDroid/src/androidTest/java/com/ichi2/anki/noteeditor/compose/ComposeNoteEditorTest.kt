@@ -8,7 +8,10 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -16,6 +19,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
+import androidx.test.uiautomator.Until
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
@@ -41,10 +45,12 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -59,6 +65,155 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ensureWebViewIsSupported()
         CollectionManager.setColForTests(emptyCol)
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun fieldOptionsKeepTheirTargetAndApplyWithoutReloadingFields() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Unsaved front")
+            web.setField(1, "Retained back")
+            runBlocking { web.focusField(1) }
+            val caret = assertNotNull(runBlocking { web.captureTarget() })
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+
+            fun toggleOptions() = checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+
+            fun choose(label: Int) =
+                checkNotNull(device.wait(Until.findObject(By.descContains(testContext.getString(label)).enabled(true)), 5_000)).click()
+
+            val bounds = checkNotNull(device.wait(Until.findObject(options), 5_000)).visibleBounds
+            device.swipe(bounds.left - 20, bounds.centerY(), 20, bounds.centerY(), 15)
+            assertEquals(bounds, checkNotNull(device.findObject(options)).visibleBounds)
+            device.waitForIdle()
+            assertTrue(keyboardVisible(), "Scrolling the toolbar must keep the keyboard visible")
+            toggleOptions()
+            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+            val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
+            assertTrue(device.wait(Until.gone(bold), 5_000))
+            captureScreenshot("field-options", web)
+            device.waitForIdle()
+            assertTrue(keyboardVisible(), "Opening field options must keep the keyboard visible")
+            choose(R.string.compose_editor_field_options_help)
+            val pinExplanation = By.text(testContext.getString(R.string.compose_editor_pin_field_summary))
+            val languageExplanation = By.text(testContext.getString(R.string.compose_editor_language_hint_summary))
+            val scopeExplanation = By.text(testContext.getString(R.string.compose_editor_field_options_help_scope, "Back", "Basic"))
+            assertTrue(device.wait(Until.hasObject(pinExplanation), 5_000))
+            assertTrue(device.wait(Until.hasObject(languageExplanation), 5_000))
+            assertTrue(device.wait(Until.hasObject(scopeExplanation), 5_000))
+            assertTrue(keyboardVisible(), "Opening help must keep the keyboard visible")
+            assertFalse(scenario.editorState().fields[1].sticky, "Opening help must not toggle pinning")
+            assertEquals(null, scenario.editorState().fields[1].languageTag)
+            captureScreenshot("field-options-help", web)
+            choose(R.string.compose_editor_field_options_help)
+            assertTrue(device.wait(Until.gone(pinExplanation), 5_000))
+            choose(R.string.compose_editor_field_options_help)
+            assertTrue(device.wait(Until.hasObject(pinExplanation), 5_000))
+            checkNotNull(device.findObject(backOptions)).click()
+            assertTrue(device.wait(Until.gone(pinExplanation), 5_000), "Tapping outside must dismiss help")
+            assertTrue(keyboardVisible(), "Dismissing help must keep the keyboard visible")
+            assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+            for ((label, tooltip) in listOf(
+                R.string.compose_editor_language_hint to R.string.compose_editor_language_hint_summary,
+                R.string.compose_editor_pin_field to R.string.compose_editor_pin_field_summary,
+            )) {
+                checkNotNull(device.findObject(By.descContains(testContext.getString(label)))).longClick()
+                val tooltipText = By.text(testContext.getString(tooltip))
+                assertTrue(device.wait(Until.hasObject(tooltipText), 5_000), "Missing tooltip: ${testContext.getString(label)}")
+                assertTrue(keyboardVisible(), "Showing a field tooltip must keep the keyboard visible")
+                assertTrue(device.wait(Until.gone(tooltipText), 5_000))
+            }
+            toggleOptions()
+            assertTrue(device.wait(Until.gone(backOptions), 5_000))
+            assertTrue(device.wait(Until.hasObject(bold), 5_000))
+            assertTrue(keyboardVisible(), "Collapsing field options must keep the keyboard visible")
+            assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+
+            toggleOptions()
+            choose(R.string.compose_editor_pin_field)
+            waitUntil(message = { "Pin did not apply to Back" }) { scenario.editorState().fields[1].sticky }
+            assertFalse(scenario.editorState().fields[0].sticky)
+            val pin = By.checkable(true).hasDescendant(By.descContains(testContext.getString(R.string.compose_editor_pin_field)))
+            assertTrue(checkNotNull(device.wait(Until.findObject(pin), 5_000)).isChecked)
+            runBlocking { web.focusField(0) }
+            assertTrue(
+                device.wait(
+                    Until.hasObject(By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Front"))),
+                    5_000,
+                ),
+            )
+            assertFalse(checkNotNull(device.findObject(pin)).isChecked)
+            runBlocking { web.focusField(1) }
+            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+            assertTrue(checkNotNull(device.findObject(pin)).isChecked)
+            assertTrue(keyboardVisible(), "Using field options must keep the keyboard visible")
+            choose(R.string.compose_editor_language_hint)
+            assertTrue(device.wait(Until.hasObject(By.res(testContext.packageName, "locale_dialog_selection_list")), 5_000))
+
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            // Native dialog focus and a different active field must not retarget its result.
+            runBlocking { restored.focusField(0) }
+            restored.evaluate("window.originalBackInput = ${richField(1)}")
+            checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "locale_dialog_action_search")), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "search_src_text")), 5_000)).text =
+                Locale.JAPANESE.displayName
+            checkNotNull(
+                device.wait(
+                    Until.findObject(By.res(testContext.packageName, "locale_dialog_fragment_text_view").text(Locale.JAPANESE.displayName)),
+                    5_000,
+                ),
+            ).click()
+            waitUntil(message = { "Language picker did not apply to its original field" }) {
+                scenario.editorState().fields[1].languageTag == "ja"
+            }
+            assertEquals(null, scenario.editorState().fields[0].languageTag)
+            runBlocking { restored.focusField(1) }
+
+            fun inputHint(): String? {
+                var tag: String? = null
+                scenario.onActivity {
+                    tag =
+                        EditorInfo()
+                            .also { restored.onCreateInputConnection(it) }
+                            .hintLocales
+                            ?.get(0)
+                            ?.toLanguageTag()
+                }
+                return tag
+            }
+            waitUntil(message = { "Android input connection did not receive the language hint" }) { inputHint() == "ja" }
+            assertEquals("true", restored.evaluate("window.originalBackInput === ${richField(1)}"))
+            assertEquals(listOf("Unsaved front", "Retained back"), runBlocking { restored.snapshot().fields })
+
+            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+            captureScreenshot("field-options-language", restored)
+            choose(R.string.compose_editor_language_hint)
+            val localePicker = By.res(testContext.packageName, "locale_dialog_selection_list")
+            assertTrue(device.wait(Until.hasObject(localePicker), 5_000))
+            device.pressBack()
+            assertTrue(device.wait(Until.gone(localePicker), 5_000))
+            assertEquals("ja", scenario.editorState().fields[1].languageTag, "Cancel must not reset the language hint")
+            choose(R.string.compose_editor_language_hint)
+            checkNotNull(device.wait(Until.findObject(By.res("android", "button3")), 5_000)).click()
+            waitUntil(message = { "Default did not clear the keyboard language hint" }) {
+                scenario.editorState().fields[1].languageTag == null && inputHint() == null
+            }
+            clickText(testContext.getString(CommonString.save))
+            restored.awaitJavascript("${richField(0)}?.textContent === '' && ${richField(1)}?.textContent === 'Retained back'")
+            assertEquals(listOf("", "Retained back"), runBlocking { restored.snapshot().fields })
+        }
     }
 
     @Test

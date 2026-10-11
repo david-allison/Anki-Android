@@ -2,6 +2,9 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 /** Values needed by the host and the field editor, without retaining a mutable libanki note. */
 data class EditorState(
     val sessionId: String,
@@ -28,6 +31,17 @@ data class EditorChoice(
     val id: Long,
     val name: String,
 )
+
+/** A settings dialog keeps its field even when focus moves to native controls. */
+@Parcelize
+data class EditorFieldTarget(
+    val sessionId: String,
+    val generation: Int,
+    val field: Int,
+) : Parcelable {
+    fun matches(state: EditorState?): Boolean =
+        state != null && state.sessionId == sessionId && state.generation == generation && field in state.fields.indices
+}
 
 data class EditorFieldState(
     val name: String,

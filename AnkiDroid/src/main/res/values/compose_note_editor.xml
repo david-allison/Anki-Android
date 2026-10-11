@@ -17,7 +17,16 @@
     <string name="compose_editor_camera">Take photo</string>
     <string name="compose_editor_audio">Choose audio</string>
     <string name="compose_editor_video">Choose video</string>
-    <string name="compose_editor_sticky">Retain fields after adding</string>
+    <string name="compose_editor_field_options">Field options</string>
+    <string name="compose_editor_field_options_title">%s — field options</string>
+    <string name="compose_editor_field_options_scope">For this field in %s</string>
+    <string name="compose_editor_field_options_help">About pinning and keyboard language</string>
+    <string name="compose_editor_field_options_help_scope">These settings apply to the “%1$s” field on all notes using the “%2$s” note type.</string>
+    <string name="compose_editor_pin_field">Pin field</string>
+    <string name="compose_editor_pin_field_summary">Keep this field’s contents after adding a note.</string>
+    <string name="compose_editor_language_hint">Keyboard language hint</string>
+    <string name="compose_editor_language_hint_summary">The keyboard language used when editing this field or typing an answer.\n\nYour keyboard may ignore this setting.</string>
+    <string name="compose_editor_language_hint_default">Default</string>
     <string name="compose_editor_added">Note added</string>
     <string name="compose_editor_discard">Discard changes to this note?</string>
     <string name="compose_editor_legacy">Open existing editor</string>
