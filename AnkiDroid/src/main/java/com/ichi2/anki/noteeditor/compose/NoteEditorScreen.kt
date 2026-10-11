@@ -67,9 +67,8 @@ fun NoteEditorScreen(
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onSave: () -> Unit,
-    loadDecks: suspend () -> List<EditorChoice>,
     loadNoteTypes: suspend () -> List<EditorChoice>,
-    onDeck: (Long) -> Unit,
+    onDeck: () -> Unit,
     onType: (Long) -> Unit,
     onEditType: () -> Unit,
     onTags: () -> Unit,
@@ -153,7 +152,7 @@ fun NoteEditorScreen(
                             noteTypeName = state.noteTypeName,
                             tags = state.tags.joinToString(" "),
                             enabled = enabled,
-                            onDeck = { dialog = "deck" },
+                            onDeck = onDeck,
                             onType = {
                                 if (state.isAdding) dialog = "type" else onEditType()
                             },
@@ -193,17 +192,16 @@ fun NoteEditorScreen(
     }
     if (state != null && enabled) {
         when (dialog) {
-            "deck", "type" -> {
-                val deck = dialog == "deck"
-                var choices by remember(dialog) { mutableStateOf<List<EditorChoice>?>(null) }
-                LaunchedEffect(dialog) { choices = if (deck) loadDecks() else loadNoteTypes() }
+            "type" -> {
+                var choices by remember { mutableStateOf<List<EditorChoice>?>(null) }
+                LaunchedEffect(Unit) { choices = loadNoteTypes() }
                 ChoiceDialog(
-                    title = stringResource(if (deck) R.string.compose_editor_deck else R.string.compose_editor_type),
+                    title = stringResource(R.string.compose_editor_type),
                     choices = choices,
                     onDismiss = { dialog = null },
                     onSelect = {
                         dialog = null
-                        if (deck) onDeck(it) else onType(it)
+                        onType(it)
                     },
                 )
             }
