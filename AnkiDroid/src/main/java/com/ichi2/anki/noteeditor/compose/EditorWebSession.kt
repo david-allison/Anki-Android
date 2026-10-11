@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewInput
+import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorField
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
@@ -72,6 +73,7 @@ class EditorWebSession(
                     hasSelection = it.hasSelection,
                     activeField = it.activeField,
                     sourceMode = it.sourceMode,
+                    activeFormats = it.activeFormats,
                 )
             if (lastContentRevision != it.revision) {
                 lastContentRevision = it.revision
@@ -238,6 +240,7 @@ data class EditorToolbarState(
     val hasSelection: Boolean = false,
     val activeField: Int? = null,
     val sourceMode: Boolean = false,
+    val activeFormats: Set<WebEditorAction> = emptySet(),
 )
 
 private fun EditorState.toWebDocument() =

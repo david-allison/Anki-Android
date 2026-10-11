@@ -34,6 +34,7 @@ data class WebEditorStatus(
     val hasSelection: Boolean = false,
     val activeField: Int? = null,
     val sourceMode: Boolean = false,
+    val activeFormats: Set<WebEditorAction> = emptySet(),
 )
 
 data class WebEditorSnapshot(

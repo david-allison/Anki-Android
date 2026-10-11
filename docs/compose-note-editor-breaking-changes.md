@@ -66,8 +66,8 @@ component changes, so desktop/add-on compatibility deserves review too.
 
 ## Editor controls and draft compatibility
 
-The version 2 fields API adds preferences, formatting commands, selection text and
-native equation editing. Update the capability marker and generated web assets
+The version 3 fields API adds live formatting state to version 2’s preferences,
+formatting commands, selection text and native equation editing. Update the capability marker and generated web assets
 together when packaging the backend AAR; an older cached AAR is rejected.
 
 Global editor preferences use desktop's existing collection configuration keys.
@@ -92,7 +92,7 @@ resolved before the note can be saved.
 
 ## Existing boundaries, not new optimization regressions
 
-The new editor requires a backend exposing the version 2 fields page. It uses
+The new editor requires a backend exposing the version 3 fields page. It uses
 an app-private virtual HTTPS origin and a restricted field bridge, rather than
 exposing the full desktop editor environment. Image Occlusion and Aedict retain
 their existing flows. Preview deck placeholders and recovery across a collection

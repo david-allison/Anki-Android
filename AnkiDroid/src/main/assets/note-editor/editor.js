@@ -10,7 +10,8 @@
         composing = false,
         inputEnabled = true,
         lastTarget = null,
-        activeField = null;
+        activeField = null,
+        activeFormats = [];
     let draftId = null,
         hostStateJson = "",
         database;
@@ -78,6 +79,7 @@
             composing,
             hasSelection: !!lastTarget,
             activeField,
+            activeFormats,
             sourceMode: !!lastTarget && JSON.parse(lastTarget.bookmark).kind === "source",
         });
     }
@@ -111,6 +113,7 @@
         composing = false;
         lastTarget = null;
         activeField = null;
+        activeFormats = [];
         await api().load(model.fields, model.isCloze, model.settings);
         await api().setInputEnabled(inputEnabled);
         const rendered = await api().snapshot();
@@ -151,6 +154,7 @@
     async function captureTarget() {
         await reconcile();
         const selection = await api().captureSelection();
+        activeFormats = await api().formattingState();
         if (selection && fields[selection.field]) {
             lastTarget = {
                 sessionId: model.sessionId,
