@@ -23,6 +23,8 @@ data class EditorState(
     val fields: List<EditorFieldState>,
     val tags: List<String>,
     val settings: WebEditorSettings = WebEditorSettings(),
+    val baselineFieldMap: List<Int>? = null,
+    val removedFields: List<EditorRemovedField> = emptyList(),
     /** Type changes map the existing web baseline; starting the next Add note establishes a new one. */
     val resetFieldBaseline: Boolean = true,
     val isSaving: Boolean = false,

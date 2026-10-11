@@ -175,6 +175,52 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldAndTemplateManagementPreserveTheUnsavedDraft() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "<b>Unsaved question</b>")
+            web.setField(1, "Unsaved answer")
+            val before = runBlocking { web.snapshot().fields }
+            val generation = scenario.editorState().generation
+
+            fun openManagement(label: Int) {
+                checkNotNull(
+                    device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+                ).click()
+                captureScreenshot("management-options", web)
+                clickText(testContext.getString(label))
+            }
+            openManagement(R.string.compose_editor_fields)
+            clickText("Back")
+            clickText(testContext.getString(CommonString.model_field_editor_rename))
+            checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "Answer"
+            clickText(testContext.getString(CommonString.rename))
+            checkNotNull(device.wait(Until.findObject(By.text("Answer")), 5_000))
+            device.pressBack()
+            checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options))), 10_000))
+            waitUntil(message = { "The renamed field did not reload" }) {
+                scenario.editorState().fields[1].name == "Answer"
+            }
+            val returned = scenario.awaitEditor()
+            assertEquals(before, runBlocking { returned.snapshot().fields })
+            assertTrue(runBlocking { returned.snapshot().hasChanges })
+            assertEquals(generation + 1, scenario.editorState().generation)
+
+            openManagement(R.string.compose_editor_cards)
+            checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "sliding_tabs")), 10_000))
+            device.pressBack()
+            checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options))), 10_000))
+            val afterCards = scenario.awaitEditor()
+            assertEquals(before, runBlocking { afterCards.snapshot().fields })
+            assertEquals(generation + 1, scenario.editorState().generation)
+            scenario.recreate()
+            assertEquals(before, runBlocking { scenario.awaitEditor().snapshot().fields })
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
     fun largeNotesKeepUnmountedFieldsThroughRecreationAndSave() {
         val type = col.notetypes.basic.deepClone()
         while (type.fields.size < 400) {

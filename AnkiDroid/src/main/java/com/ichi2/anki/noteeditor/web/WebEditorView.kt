@@ -513,6 +513,7 @@ private fun WebEditorDocument.toJson(): JSONObject =
         .put("generation", generation)
         .put("isCloze", isCloze)
         .put("settings", settings.toJson())
+        .put("baselineFieldMap", baselineFieldMap?.let(::JSONArray))
         .put(
             "fields",
             JSONArray().apply {

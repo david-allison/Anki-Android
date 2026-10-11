@@ -12,6 +12,7 @@ data class WebEditorDocument(
     val fields: List<WebEditorField>,
     val isCloze: Boolean = false,
     val settings: WebEditorSettings = WebEditorSettings(),
+    val baselineFieldMap: List<Int>? = null,
 )
 
 data class WebEditorField(

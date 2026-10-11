@@ -111,6 +111,8 @@ fun NoteEditorScreen(
     preview: @Composable (Modifier) -> Unit,
     fieldTaps: Flow<Unit> = emptyFlow(),
     onSettings: (WebEditorSettings) -> Unit = {},
+    onFields: () -> Unit = {},
+    onCards: () -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
@@ -150,7 +152,7 @@ fun NoteEditorScreen(
                     },
                     actions = {
                         state?.let {
-                            EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings)
+                            EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings, onFields, onCards)
                         }
                         if (tablet) {
                             TextButton(onClick = { showPreview = !showPreview }) {
@@ -167,7 +169,7 @@ fun NoteEditorScreen(
                         }
                         TextButton(
                             onClick = onSave,
-                            enabled = enabled,
+                            enabled = enabled && state.removedFields.isEmpty(),
                         ) { Text(stringResource(CommonString.save)) }
                     },
                 )

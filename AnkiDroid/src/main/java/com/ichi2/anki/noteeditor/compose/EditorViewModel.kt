@@ -171,7 +171,36 @@ class EditorViewModel(
         }
     }
 
-    /** Picker contents are read when opened, without delaying fields or changing the current note. */
+    /** Reload field/template edits while preserving the unsaved values by field identity. */
+    suspend fun reloadNoteType(snapshotHtml: List<String>): Boolean {
+        val current = requireNotNull(state.value)
+        require(snapshotHtml.size == current.fields.size)
+        val oldType = NotetypeJson(current.notetypeJson)
+        val type =
+            withCol {
+                requireCurrentCollection()
+                requireNotNull(notetypes.get(current.noteTypeId))
+            }
+        if (type.toString() == current.notetypeJson) return false
+        val mapping = mapEditorFields(oldType.fields.map { it.editorKey() }, current.fields.map { it.name }, snapshotHtml, type)
+        val changedFields = oldType.jsonObject.getJSONArray("flds").toString() != type.jsonObject.getJSONArray("flds").toString()
+        mutableState.value =
+            current.copy(
+                generation = current.generation + if (changedFields) 1 else 0,
+                resetFieldBaseline = false,
+                baselineFieldMap = if (changedFields) mapping.indices else current.baselineFieldMap,
+                noteTypeName = type.name,
+                notetypeJson = type.toString(),
+                fields = type.editorFields(mapping.html),
+                removedFields = current.removedFields + mapping.removed,
+            )
+        return true
+    }
+
+    fun discardRemovedFields() {
+        mutableState.value = requireNotNull(state.value).copy(removedFields = emptyList())
+    }
+
     suspend fun setEditorSettings(settings: WebEditorSettings) {
         requireNotNull(state.value)
         withCol {
@@ -250,6 +279,7 @@ class EditorViewModel(
                     current.copy(
                         generation = current.generation + 1,
                         resetFieldBaseline = false,
+                        baselineFieldMap = null,
                         noteTypeId = type.id,
                         noteTypeName = type.name,
                         notetypeJson = type.toString(),
@@ -338,6 +368,7 @@ class EditorViewModel(
         allowMissingCloze: Boolean,
     ): EditorSaveResult {
         val current = state.value?.takeUnless { it.isSaving } ?: return EditorSaveResult.Invalid(null)
+        if (current.removedFields.isNotEmpty()) return EditorSaveResult.Invalid(null)
         if (snapshotHtml.size != current.fields.size) return EditorSaveResult.Invalid("The note fields changed; reopen the editor.")
         mutableState.value = current.copy(isSaving = true)
         try {
@@ -372,6 +403,7 @@ class EditorViewModel(
                     current.copy(
                         generation = current.generation + 1,
                         resetFieldBaseline = true,
+                        baselineFieldMap = null,
                         fields =
                             current.fields.mapIndexed {
                                 index,
@@ -409,6 +441,7 @@ class EditorViewModel(
                 current.copy(
                     generation = current.generation + 1,
                     resetFieldBaseline = true,
+                    baselineFieldMap = null,
                     fields = current.fields.mapIndexed { index, field -> field.copy(html = snapshotHtml[index]) },
                     tags = note.tags.toList(),
                     hasMetadataChanges = false,
@@ -440,6 +473,9 @@ class EditorViewModel(
             .put("card", current.cardId ?: 0L)
             .put("cards", JSONArray(affectedCardIds))
             .put("fields", JSONArray(current.fields.map { it.name }))
+            .put("fieldKeys", JSONArray(NotetypeJson(current.notetypeJson).fields.map { it.editorKey() }))
+            .put("fieldSchema", NotetypeJson(current.notetypeJson).jsonObject.getJSONArray("flds").toString())
+            .put("removedFields", JSONArray(current.removedFields.map { JSONObject().put("name", it.name).put("html", it.html) }))
             .put("current", current.metadata().json())
             .put("baseline", requireNotNull(baseline).json())
             .toString()
@@ -463,12 +499,33 @@ class EditorViewModel(
                 withCol {
                     requireCurrentCollection()
                     val type = requireNotNull(notetypes.get(metadata.noteTypeId))
-                    require(!type.isImageOcclusion && type.fields.size == snapshotHtml.size)
-                    require(type.fields.map { it.name } == stored.getJSONArray("fields").strings())
+                    require(!type.isImageOcclusion)
+                    val oldNames = stored.getJSONArray("fields").strings()
+                    val oldKeys = stored.optJSONArray("fieldKeys")?.strings()
+                    if (oldKeys == null) require(type.fields.map { it.name } == oldNames)
+                    stored.optString("fieldSchema").takeIf { it.isNotEmpty() }?.let { schema ->
+                        val fields = JSONArray(schema).let { array -> List(array.length()) { Field(array.getJSONObject(it)) } }
+                        require(fields.map { it.name } == oldNames && fields.map { it.editorKey() } == oldKeys)
+                    }
+                    val mapping = mapEditorFields(oldKeys ?: type.fields.map { it.editorKey() }, oldNames, snapshotHtml, type)
+                    val changedFields =
+                        stored.has("fieldSchema") &&
+                            stored.getString("fieldSchema") != type.jsonObject.getJSONArray("flds").toString()
+                    val removed =
+                        stored
+                            .optJSONArray("removedFields")
+                            ?.let { values ->
+                                List(values.length()) { index ->
+                                    val value = values.getJSONObject(index)
+                                    EditorRemovedField(value.getString("name"), value.getString("html"))
+                                }
+                            }.orEmpty()
                     if (!current.isAdding) require(getNote(current.noteId).noteTypeId == type.id)
                     require(decks.getLegacy(metadata.deckId)?.isFiltered == false)
                     current.copy(
-                        generation = stored.getInt("generation").also { require(it >= 0) },
+                        generation = stored.getInt("generation").also { require(it >= 0) } + if (changedFields) 1 else 0,
+                        baselineFieldMap = if (changedFields) mapping.indices else null,
+                        removedFields = removed + mapping.removed,
                         resetFieldBaseline = false,
                         deckId = metadata.deckId,
                         deckName = decks.name(metadata.deckId),
@@ -476,7 +533,7 @@ class EditorViewModel(
                         noteTypeName = type.name,
                         notetypeJson = type.toString(),
                         isCloze = type.isCloze,
-                        fields = type.editorFields(snapshotHtml),
+                        fields = type.editorFields(mapping.html),
                         tags = metadata.tags,
                         hasMetadataChanges = metadata != clean,
                     )

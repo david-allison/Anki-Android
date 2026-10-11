@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.AlertDialog
@@ -30,11 +31,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.webkit.WebViewFeature
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.CardTemplateEditor
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorActivity
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
+import com.ichi2.anki.NoteTypeFieldEditor
 import com.ichi2.anki.R
 import com.ichi2.anki.dialogs.ChangeNoteTypeDialog
 import com.ichi2.anki.dialogs.LocaleSelectionDialog
@@ -80,6 +83,14 @@ class ComposeNoteEditorActivity :
     private var editorView by mutableStateOf<WebEditorView?>(null)
     private var collectionMediaDirectory: File? = null
     private val webSession by lazy { EditorWebSession(model, lifecycleScope, ::reportError) }
+    private val noteTypeEditor =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            launchEditorTask {
+                webSession.awaitReady()
+                changed = model.reloadNoteType(webSession.snapshot().fields) || changed
+                webSession.checkpoint()
+            }
+        }
     private val media =
         ComposeEditorMedia(
             activity = this,
@@ -250,6 +261,8 @@ class ComposeNoteEditorActivity :
                 LocaleSelectionDialog.withDefaultOption().show(supportFragmentManager, LANGUAGE_DIALOG_TAG)
             },
             onAction = ::execute,
+            onFields = { openNoteTypeEditor(fields = true) },
+            onCards = { openNoteTypeEditor(fields = false) },
             onSettings = { settings ->
                 updateMetadata {
                     webSession.awaitReady()
@@ -285,6 +298,23 @@ class ComposeNoteEditorActivity :
                     ?: Spacer(modifier)
             },
         )
+        state?.removedFields?.takeIf { it.isNotEmpty() }?.let { removed ->
+            EditorRemovedFieldsDialog(
+                fields = removed,
+                onDiscard = {
+                    updateMetadata {
+                        model.discardRemovedFields()
+                        webSession.checkpoint()
+                    }
+                },
+                onKeepDraft = {
+                    launchEditorTask {
+                        webSession.checkpoint()
+                        closeEditor()
+                    }
+                },
+            )
+        }
         formattingRequest?.let { request ->
             EditorFormattingDialog(
                 request = request,
@@ -435,6 +465,23 @@ class ComposeNoteEditorActivity :
         }
     }
 
+    private fun openNoteTypeEditor(fields: Boolean) =
+        launchEditorTask {
+            if (busy || model.state.value?.isSaving == true) return@launchEditorTask
+            webSession.awaitReady()
+            webSession.checkpoint()
+            val state = requireNotNull(model.state.value)
+            val destination =
+                if (fields) {
+                    Intent(this, NoteTypeFieldEditor::class.java)
+                        .putExtra(NoteTypeFieldEditor.EXTRA_NOTETYPE_ID, state.noteTypeId)
+                        .putExtra(NoteTypeFieldEditor.EXTRA_NOTETYPE_NAME, state.noteTypeName)
+                } else {
+                    CardTemplateEditor.getIntent(this, state.noteTypeId, state.noteId.takeUnless { state.isAdding })
+                }
+            noteTypeEditor.launch(destination)
+        }
+
     private fun execute(action: WebEditorAction) =
         launchEditorTask {
             if (busy) return@launchEditorTask
@@ -502,7 +549,11 @@ class ComposeNoteEditorActivity :
             try {
                 setBusy(true)
                 val snapshot = webSession.snapshot()
-                if (snapshot.hasChanges || model.state.value?.hasMetadataChanges == true) {
+                if (snapshot.hasChanges || model.state.value?.hasMetadataChanges == true ||
+                    !model.state.value
+                        ?.removedFields
+                        .isNullOrEmpty()
+                ) {
                     discardDialog = true
                 } else {
                     webSession.discard()
