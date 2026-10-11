@@ -64,6 +64,7 @@ class EditorViewModel(
     internal var hasAttachedEditor: Boolean = false
 
     private val draftIds = EditorDraftIds(Prefs.sharedPrefs)
+    private val toolbarPreferences = EditorToolbarPreferences(Prefs.sharedPrefs)
 
     val draftId: String get() = requireNotNull(state.value).sessionId
 
@@ -308,6 +309,34 @@ class EditorViewModel(
         target: EditorFieldTarget,
         locale: Locale?,
     ) = updateFieldSettings(target) { languageHint = locale }
+
+    suspend fun setFieldToolbar(
+        target: EditorFieldTarget,
+        toolbar: EditorFieldToolbar,
+    ) {
+        val current = state.value?.takeIf { target.matches(it) && !it.isSaving } ?: return
+        val fieldKey = NotetypeJson(current.notetypeJson).fields[target.field].editorKey()
+        withCol {
+            requireCurrentCollection()
+            val type = requireNotNull(notetypes.get(current.noteTypeId))
+            check(target.field in 0 until type.fields.size && type.fields[target.field].editorKey() == fieldKey) {
+                "The field changed; reopen its options."
+            }
+        }
+        if (!target.matches(state.value)) return
+        withContext(ioDispatcher) {
+            toolbarPreferences.save(requireNotNull(collectionKey), current.noteTypeId, fieldKey, toolbar)
+        }
+        state.value?.takeIf(target::matches)?.let { latest ->
+            mutableState.value =
+                latest.copy(
+                    fields =
+                        latest.fields.mapIndexed { index, field ->
+                            if (index == target.field) field.copy(toolbar = toolbar) else field
+                        },
+                )
+        }
+    }
 
     private suspend fun updateFieldSettings(
         target: EditorFieldTarget,
@@ -568,6 +597,22 @@ class EditorViewModel(
         check(editorCollectionKey() == collectionKey) { "The collection changed; reopen the editor." }
     }
 
+    private fun NotetypeJson.editorFields(html: List<String>): List<EditorFieldState> =
+        fields.mapIndexed { index, field ->
+            EditorFieldState(
+                name = field.name,
+                html = html[index],
+                font = field.font,
+                fontSize = field.fontSize,
+                rtl = field.jsonObject.optBoolean("rtl"),
+                languageTag = field.languageHint?.toLanguageTag(),
+                sticky = field.sticky,
+                collapsed = field.jsonObject.optBoolean("collapsed"),
+                sourceMode = field.jsonObject.optBoolean("plainText"),
+                toolbar = toolbarPreferences.load(requireNotNull(collectionKey), id, field.editorKey()),
+            )
+        }
+
     private fun EditorState.metadata() = Metadata(deckId, noteTypeId, tags)
 
     private data class Metadata(
@@ -589,21 +634,6 @@ class EditorViewModel(
 
 private fun Collection.editorCollectionKey(): String =
     (collectionFiles as? CollectionFiles.FolderBasedCollection)?.colDb?.absolutePath ?: ":memory:"
-
-private fun NotetypeJson.editorFields(html: List<String>): List<EditorFieldState> =
-    fields.mapIndexed { index, field ->
-        EditorFieldState(
-            name = field.name,
-            html = html[index],
-            font = field.font,
-            fontSize = field.fontSize,
-            rtl = field.jsonObject.optBoolean("rtl"),
-            languageTag = field.languageHint?.toLanguageTag(),
-            sticky = field.sticky,
-            collapsed = field.jsonObject.optBoolean("collapsed"),
-            sourceMode = field.jsonObject.optBoolean("plainText"),
-        )
-    }
 
 private fun JSONArray.strings(): List<String> = List(length()) { getString(it) }
 
