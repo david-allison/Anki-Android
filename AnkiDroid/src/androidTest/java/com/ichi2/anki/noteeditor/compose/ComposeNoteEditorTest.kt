@@ -163,8 +163,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(
                 device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
             ).click()
-            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
-            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
+            checkNotNull(
+                device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
+            ).click()
             device.findObject(By.text(testContext.getString(com.ichi2.anki.CommonString.add_toolbar_item))).click()
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
             val inputs = device.findObjects(By.clazz("android.widget.EditText"))
@@ -175,6 +176,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val save = By.text(testContext.getString(com.ichi2.anki.CommonString.save))
             device.findObjects(save).last().click()
             assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            device.findObjects(save).last().click()
+            waitUntil(message = { "The global template did not save" }) {
+                scenario.editorState().customButtonTemplates.any { it.label == "Wrap" }
+            }
+            assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
+            device.findObject(By.text("Wrap")).click()
             device.findObjects(save).last().click()
             waitUntil(message = { "The field toolbar did not save" }) {
                 scenario

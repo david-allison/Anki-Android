@@ -31,6 +31,43 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `template changes refresh all enabled fields without changing note content`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
+            vm.setCustomButtonTemplates(listOf(ruby))
+            before.fields.indices.forEach { index ->
+                vm.setFieldToolbar(
+                    EditorFieldTarget(before.sessionId, before.generation, index),
+                    EditorFieldToolbar(customButtons = listOf(ruby)),
+                )
+            }
+            val updated = ruby.copy(label = "Heading", prefix = "<h1>", suffix = "</h1>")
+            vm.setCustomButtonTemplates(listOf(updated))
+            val after = assertNotNull(vm.state.value)
+            assertEquals(before.generation, after.generation)
+            assertEquals(before.fields.map { it.html }, after.fields.map { it.html })
+            assertEquals(before.notetypeJson, after.notetypeJson)
+            assertFalse(after.hasMetadataChanges)
+            assertTrue(after.fields.all { it.toolbar.customButtons == listOf(updated) })
+            assertEquals(listOf(updated), loadAdd().state.value?.customButtonTemplates)
+            assertTrue(
+                loadAdd()
+                    .state.value!!
+                    .fields
+                    .all { it.toolbar.customButtons == listOf(updated) },
+            )
+            vm.setCustomButtonTemplates(emptyList())
+            assertTrue(
+                vm.state.value!!
+                    .fields
+                    .all { it.toolbar.customButtons.isEmpty() },
+            )
+            assertEquals(0, col.noteCount())
+        }
+
+    @Test
     fun `toolbar settings follow field identity after rename and reorder without changing the note type`() =
         runTest {
             val vm = loadAdd()

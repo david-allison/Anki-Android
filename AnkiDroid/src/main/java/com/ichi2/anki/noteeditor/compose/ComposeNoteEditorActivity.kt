@@ -262,6 +262,7 @@ class ComposeNoteEditorActivity :
             },
             onAction = ::execute,
             onToolbar = { target, toolbar -> updateMetadata { model.setFieldToolbar(target, toolbar) } },
+            onCustomButtonTemplates = { buttons -> updateMetadata { model.setCustomButtonTemplates(buttons) } },
             onCustomAction = { field, button ->
                 launchEditorTask {
                     if (busy || !field.matches(model.state.value)) return@launchEditorTask

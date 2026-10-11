@@ -95,16 +95,20 @@ rebuilding its inputs. Configurable actions beside individual fields remain futu
 
 ### Per-field toolbars
 
-**Field options → Toolbar** configures the toolbar for this field on every note
-using the same note type. Users can add, edit and remove custom HTML buttons and
-hide individual Anki buttons. The toolbar follows the focused field; the fixed
-Field options control remains accessible even if every toolbar button is hidden.
-The configuration dialog saves all changes together; Cancel discards them.
+**Field options → Toolbar** enables or hides Anki buttons and custom buttons for
+this field on every note using the same note type. The adjacent **Custom Buttons**
+control manages global HTML button templates. Editing a template updates all fields
+using it; deleting one removes it from their toolbars. New templates start disabled
+until selected in Toolbar. Both dialogs save changes together; Cancel discards them.
+The toolbar follows the focused field; Field options remains accessible even when
+all toolbar buttons are hidden.
 
-Settings currently live in SharedPreferences, keyed by collection, note type and
-field identity. Existing global custom buttons supply the defaults until a field
-is customized. Field rename/reorder preserves its configuration. A TODO records
-the future move into the Anki collection; these local preferences do not sync.
+Settings currently live in SharedPreferences. Field overrides are keyed by collection,
+note type and stable field identity and reference the global templates by ID. Field
+rename/reorder preserves its configuration. Migration imports existing global defaults
+and field-specific copies, preserving differently edited variants as separate templates.
+Legacy editor preferences remain unchanged. A TODO records the future move into the
+Anki collection; these local preferences do not sync.
 
 Custom buttons wrap the selection in rich text or HTML source, with Undo/Redo.
 The backend exposes this through fields API version 5 and loads the rich-text

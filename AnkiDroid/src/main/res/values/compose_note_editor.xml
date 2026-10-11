@@ -20,7 +20,7 @@
     <string name="compose_editor_field_options">Field options</string>
     <string name="compose_editor_toolbar">Toolbar</string>
     <string name="compose_editor_toolbar_scope">Use these buttons for this field on all notes of this note type.</string>
-    <string name="compose_editor_custom_buttons">Custom buttons</string>
+    <string name="compose_editor_custom_buttons">Custom Buttons</string>
     <string name="compose_editor_standard_buttons">Anki buttons</string>
     <string name="compose_editor_custom_button">Custom button</string>
     <string name="compose_editor_remove_custom_button">Remove %s</string>
@@ -73,4 +73,5 @@
     <string name="compose_editor_removed_fields">Text from removed fields</string>
     <string name="compose_editor_removed_fields_explanation">These fields were removed from the note type. Copy any text you want to keep before discarding it, or close the editor to keep it in your draft.</string>
     <string name="compose_editor_keep_draft_close">Keep draft and close</string>
+    <string name="compose_editor_custom_buttons_scope">Create buttons to use in any field. Editing or deleting a button affects every field using it. Enable buttons for a field in Toolbar.</string>
 </resources>

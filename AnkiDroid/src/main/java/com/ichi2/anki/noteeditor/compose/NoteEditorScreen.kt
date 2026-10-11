@@ -116,10 +116,12 @@ fun NoteEditorScreen(
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
+    onCustomButtonTemplates: (List<EditorCustomToolbarButton>) -> Unit = {},
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
+    var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
     val enabled = ready && !busy && state?.isSaving == false
     toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
@@ -129,10 +131,21 @@ fun NoteEditorScreen(
             field = current.fields[target.field],
             noteTypeName = current.noteTypeName,
             isCloze = current.isCloze,
+            templates = current.customButtonTemplates,
             onDismiss = { toolbarTarget = null },
             onSave = {
                 onToolbar(target, it)
                 toolbarTarget = null
+            },
+        )
+    }
+    if (showCustomButtons && state != null) {
+        EditorCustomButtonsDialog(
+            templates = state.customButtonTemplates,
+            onDismiss = { showCustomButtons = false },
+            onSave = {
+                onCustomButtonTemplates(it)
+                showCustomButtons = false
             },
         )
     }
@@ -231,6 +244,7 @@ fun NoteEditorScreen(
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
                             onToolbar = { toolbarTarget = it },
+                            onCustomButtons = { showCustomButtons = true },
                             onCustomAction = onCustomAction,
                             modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                         ) { modifier ->
@@ -352,6 +366,7 @@ private fun EditorFieldArea(
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
+    onCustomButtons: () -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
     modifier: Modifier,
     fields: @Composable (Modifier) -> Unit,
@@ -394,6 +409,7 @@ private fun EditorFieldArea(
                     onPinned = { onPinned(target, it) },
                     onLanguageHint = { onLanguageHint(target) },
                     onToolbar = { onToolbar(target) },
+                    onCustomButtons = onCustomButtons,
                     onCollapse = closeOptions,
                 )
             }
@@ -440,6 +456,7 @@ private fun EditorFieldOptions(
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
     onToolbar: () -> Unit,
+    onCustomButtons: () -> Unit,
     onCollapse: () -> Unit,
 ) {
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
@@ -522,10 +539,17 @@ private fun EditorFieldOptions(
                 }
             }
         }
-        TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-            Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
-            Text(stringResource(R.string.compose_editor_toolbar))
+        Row(Modifier.fillMaxWidth()) {
+            TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.weight(1f)) {
+                Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.compose_editor_toolbar))
+            }
+            TextButton(onClick = onCustomButtons, enabled = enabled, modifier = Modifier.weight(1f)) {
+                Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.compose_editor_custom_buttons))
+            }
         }
     }
 }
