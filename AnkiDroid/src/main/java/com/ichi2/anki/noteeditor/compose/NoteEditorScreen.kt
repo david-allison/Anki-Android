@@ -78,6 +78,8 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -106,6 +108,7 @@ fun NoteEditorScreen(
     onPreviewVisibility: (Boolean) -> Unit,
     editor: @Composable (Modifier) -> Unit,
     preview: @Composable (Modifier) -> Unit,
+    fieldTaps: Flow<Unit> = emptyFlow(),
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
@@ -192,6 +195,7 @@ fun NoteEditorScreen(
                             editorState = state,
                             enabled = enabled,
                             state = toolbarState,
+                            fieldTaps = fieldTaps,
                             onAction = onAction,
                             onMedia = { dialog = "media" },
                             onPinned = onPinned,
@@ -309,6 +313,7 @@ private fun EditorFieldArea(
     editorState: EditorState,
     enabled: Boolean,
     state: State<EditorToolbarState>,
+    fieldTaps: Flow<Unit>,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
@@ -323,6 +328,9 @@ private fun EditorFieldArea(
             rememberModalBottomSheetState(skipPartiallyExpanded = true)
         }
     var fieldOptionsRequested by rememberSaveable(editorState.sessionId, editorState.generation) { mutableStateOf(false) }
+    LaunchedEffect(fieldTaps, editorState.sessionId, editorState.generation) {
+        fieldTaps.collect { fieldOptionsRequested = false }
+    }
     val showFieldOptions = fieldOptionsRequested || sheetState.isVisible
     val target =
         toolbarState.activeField?.takeIf { it in editorState.fields.indices }?.let {

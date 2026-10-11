@@ -11,7 +11,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -31,6 +33,8 @@ class EditorWebSession(
     val ready: StateFlow<Boolean> = mutableReady
     private val mutableToolbarState = MutableStateFlow(EditorToolbarState())
     val toolbarState: StateFlow<EditorToolbarState> = mutableToolbarState
+    private val mutableFieldTaps = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val fieldTaps: SharedFlow<Unit> = mutableFieldTaps
     private val mutablePreview = MutableStateFlow<EditorPreviewInput?>(null)
     val preview: StateFlow<EditorPreviewInput?> = mutablePreview
     var view: WebEditorView? = null
@@ -69,6 +73,7 @@ class EditorWebSession(
                 previewDirty = true
             }
         }
+        editor.onFieldTap = { mutableFieldTaps.tryEmit(Unit) }
         editor.onError = reportError
         editor.onRendererGone = {
             mutableReady.value = false
@@ -205,6 +210,7 @@ class EditorWebSession(
         binding?.cancel()
         previewJob?.cancel()
         view?.onChanged = null
+        view?.onFieldTap = null
         view?.onError = null
         view?.onRendererGone = null
         view = null

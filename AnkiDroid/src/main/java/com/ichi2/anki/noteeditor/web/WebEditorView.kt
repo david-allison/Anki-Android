@@ -56,6 +56,7 @@ class WebEditorView(
 ) : WebView(context) {
     var onReady: (() -> Unit)? = null
     var onChanged: ((WebEditorStatus) -> Unit)? = null
+    var onFieldTap: (() -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     var onRendererGone: (() -> Unit)? = null
     var onMediaPaste: ((WebEditorTarget, Uri) -> Unit)? = null
@@ -353,6 +354,7 @@ class WebEditorView(
 
     private fun handleMessage(message: JSONObject) {
         when (message.getString("type")) {
+            "fieldTap" -> onFieldTap?.invoke()
             "ready" -> {
                 ready.complete(Unit)
                 onReady?.invoke()

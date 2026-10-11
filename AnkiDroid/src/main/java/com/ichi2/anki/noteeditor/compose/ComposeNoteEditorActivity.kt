@@ -201,6 +201,7 @@ class ComposeNoteEditorActivity :
         NoteEditorScreen(
             state = state,
             toolbarState = toolbarState,
+            fieldTaps = webSession.fieldTaps,
             ready = ready,
             busy = busy || state?.isSaving == true,
             error = error,
