@@ -31,6 +31,64 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `toolbar settings follow field identity after rename and reorder without changing the note type`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 1)
+            val toolbar = EditorFieldToolbar(hiddenButtons = setOf("BOLD"))
+            vm.setFieldToolbar(target, toolbar)
+            assertEquals(before.notetypeJson, col.notetypes.get(before.noteTypeId).toString())
+            assertEquals(before.generation, vm.state.value?.generation)
+            assertFalse(vm.state.value!!.hasMetadataChanges)
+            assertEquals(
+                toolbar,
+                loadAdd()
+                    .state.value!!
+                    .fields[1]
+                    .toolbar,
+            )
+            assertEquals(
+                EditorFieldToolbar(),
+                vm.state.value!!
+                    .fields[0]
+                    .toolbar,
+            )
+
+            val type = col.notetypes.get(before.noteTypeId)!!.deepClone()
+            col.notetypes.renameField(type, type.fields[1], "Answer")
+            col.notetypes.repositionField(type, type.fields[1], 0)
+            col.notetypes.save(type)
+            vm.reloadNoteType(listOf("question", "answer"))
+            assertEquals(
+                toolbar,
+                vm.state.value!!
+                    .fields[0]
+                    .toolbar,
+            )
+            assertEquals(
+                EditorFieldToolbar(),
+                vm.state.value!!
+                    .fields[1]
+                    .toolbar,
+            )
+            vm.setFieldToolbar(target, EditorFieldToolbar(hiddenButtons = setOf("ITALIC")))
+            assertEquals(
+                toolbar,
+                vm.state.value!!
+                    .fields[0]
+                    .toolbar,
+            )
+            assertEquals(
+                EditorFieldToolbar(),
+                vm.state.value!!
+                    .fields[1]
+                    .toolbar,
+            )
+            assertEquals(0, col.noteCount())
+        }
+
+    @Test
     fun `global options persist without changing the note or draft generation`() =
         runTest {
             val vm = loadAdd()

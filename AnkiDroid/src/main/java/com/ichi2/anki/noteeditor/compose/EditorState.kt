@@ -57,6 +57,7 @@ data class EditorFieldState(
     val sticky: Boolean,
     val collapsed: Boolean,
     val sourceMode: Boolean,
+    val toolbar: EditorFieldToolbar = EditorFieldToolbar(),
 )
 
 sealed interface EditorSaveResult {
