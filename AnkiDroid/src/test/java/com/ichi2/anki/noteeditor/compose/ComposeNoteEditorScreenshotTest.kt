@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasContentDescription
@@ -24,6 +26,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
+import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.compose.theme.AnkiDroidTheme
 import com.ichi2.testutils.dispatchInsets
 import com.ichi2.testutils.simulateKeyboard
@@ -39,6 +42,15 @@ import org.junit.Test
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun selectedFormatting() {
+        showEditor(formats = setOf(WebEditorAction.BOLD, WebEditorAction.UNDERLINE))
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsOn()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_italic)).assertIsOff()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_underline)).assertIsOn()
+        captureScreen("selected_formatting")
+    }
 
     @Test
     fun globalOptionsOpen() {
@@ -162,13 +174,19 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         fieldName: String = "Back",
         noteTypeName: String = "Basic",
         deckName: String = "Default",
+        formats: Set<WebEditorAction> = emptySet(),
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
                 NoteEditorScreen(
                     state = editorState(fieldName, noteTypeName, deckName),
-                    toolbarState = remember { mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1)) },
+                    toolbarState =
+                        remember {
+                            mutableStateOf(
+                                EditorToolbarState(hasSelection = true, activeField = 1, activeFormats = formats),
+                            )
+                        },
                     ready = true,
                     busy = false,
                     error = null,

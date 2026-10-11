@@ -30,6 +30,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PlainTooltip
@@ -382,13 +384,28 @@ private fun EditorFieldArea(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState)) {
                         val formatEnabled = enabled && toolbarState.hasSelection && !toolbarState.composing
-                        EditorActionButton(R.drawable.ic_format_bold_black_24dp, R.string.compose_editor_bold, formatEnabled) {
+                        EditorToggleButton(
+                            R.drawable.ic_format_bold_black_24dp,
+                            R.string.compose_editor_bold,
+                            formatEnabled,
+                            WebEditorAction.BOLD in toolbarState.activeFormats,
+                        ) {
                             onAction(WebEditorAction.BOLD)
                         }
-                        EditorActionButton(R.drawable.ic_format_italic_black_24dp, R.string.compose_editor_italic, formatEnabled) {
+                        EditorToggleButton(
+                            R.drawable.ic_format_italic_black_24dp,
+                            R.string.compose_editor_italic,
+                            formatEnabled,
+                            WebEditorAction.ITALIC in toolbarState.activeFormats,
+                        ) {
                             onAction(WebEditorAction.ITALIC)
                         }
-                        EditorActionButton(R.drawable.ic_format_underlined_black_24dp, R.string.compose_editor_underline, formatEnabled) {
+                        EditorToggleButton(
+                            R.drawable.ic_format_underlined_black_24dp,
+                            R.string.compose_editor_underline,
+                            formatEnabled,
+                            WebEditorAction.UNDERLINE in toolbarState.activeFormats,
+                        ) {
                             onAction(WebEditorAction.UNDERLINE)
                         }
                         if (editorState.isCloze) {
@@ -401,13 +418,19 @@ private fun EditorFieldArea(
                         }
                         EditorActionButton(R.drawable.ic_undo_2, CommonString.undo, formatEnabled) { onAction(WebEditorAction.UNDO) }
                         EditorActionButton(R.drawable.ic_redo_2, CommonString.redo, formatEnabled) { onAction(WebEditorAction.REDO) }
-                        EditorActionButton(R.drawable.ic_code, R.string.compose_editor_source, enabled && toolbarState.hasSelection) {
+                        EditorToggleButton(
+                            R.drawable.ic_code,
+                            R.string.compose_editor_source,
+                            enabled && toolbarState.hasSelection,
+                            toolbarState.sourceMode,
+                        ) {
                             onAction(WebEditorAction.SOURCE_MODE)
                         }
                         EditorActionButton(R.drawable.ic_attachment, R.string.compose_editor_media, formatEnabled, onMedia)
                         ExtraFormattingButtons(
                             enabled = formatEnabled,
                             sourceMode = toolbarState.sourceMode,
+                            activeFormats = toolbarState.activeFormats,
                             onAction = onAction,
                             onRecordAudio = onRecordAudio,
                         )
@@ -624,6 +647,27 @@ internal fun EditorActionButton(
     onClick: () -> Unit,
 ) {
     IconButton(onClick = onClick, enabled = enabled) { Icon(painterResource(icon), stringResource(label)) }
+}
+
+/** Checked semantics expose the selected format to TalkBack as well as sighted users. */
+@Composable
+internal fun EditorToggleButton(
+    icon: Int,
+    label: Int,
+    enabled: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    IconToggleButton(
+        checked = selected,
+        onCheckedChange = { onClick() },
+        enabled = enabled,
+        colors =
+            IconButtonDefaults.iconToggleButtonColors(
+                checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+    ) { Icon(painterResource(icon), stringResource(label)) }
 }
 
 @Composable

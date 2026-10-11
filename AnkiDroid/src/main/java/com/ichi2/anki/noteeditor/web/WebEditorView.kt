@@ -393,6 +393,15 @@ class WebEditorView(
                         message.optBoolean("hasSelection"),
                         message.optInt("activeField", -1).takeIf { it >= 0 },
                         message.optBoolean("sourceMode"),
+                        message
+                            .optJSONArray("activeFormats")
+                            ?.let { formats ->
+                                buildSet {
+                                    for (index in 0 until formats.length()) {
+                                        WebEditorAction.entries.firstOrNull { it.name == formats.optString(index) }?.let(::add)
+                                    }
+                                }
+                            }.orEmpty(),
                     ),
                 )
             "error" -> {

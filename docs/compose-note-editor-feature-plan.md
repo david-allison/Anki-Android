@@ -31,11 +31,11 @@ the native toolbar and the backend's fields-only entry point; see the source map
 
 | Desktop control | Current Compose editor | Remaining difference |
 | --- | --- | --- |
-| Bold, italic, underline | Rich text and HTML source. | Active formatting indicators are not yet exposed. |
-| Superscript and subscript | Native buttons; rich text and source wrapping. | — |
+| Bold, italic, underline | Rich text and HTML source, with selected toolbar states for rich text. | Mixed selections follow Chromium’s formatting command state. |
+| Superscript and subscript | Native toggle buttons; rich text and source wrapping. | — |
 | Text colour and highlighting | Native palette, recent colours and hex input; captured selection. | No desktop dropdown layout. |
 | Remove formatting | Eraser clears inline formatting in rich text, preserving links/media and list structure. | No selective-removal submenu. |
-| Bulleted and numbered lists | Native buttons in rich text. | Disabled in HTML source. |
+| Bulleted and numbered lists | Native toggle buttons in rich text. | Disabled in HTML source. |
 | Alignment and indentation | Native alignment dialog; indentation operates on list items. | Disabled in HTML source. |
 | Attachments | Image, camera, audio file, video file and recording via media menu. | — |
 | Record audio | Direct microphone shortcut and media-menu entry. | — |
@@ -47,9 +47,14 @@ the native toolbar and the backend's fields-only entry point; see the source map
 | Cards… | Existing template editor; refreshes the tablet preview on return. | Its own preview uses its existing note/template behavior. |
 | Collapse field | Field label toggles collapse. | — |
 | Sticky pin | Field-options pin retains content after adding a note. | Configurable actions beside fields are deferred. |
-| HTML source button | Per field and native toolbar, with live rich-text view. | — |
+| HTML source button | Per field and native toolbar, with live rich-text view and selected toolbar state. | — |
 
-The toolbar also retains cloze insertion and undo/redo.
+The toolbar also retains cloze insertion and undo/redo. Rich formatting indicators
+read the current selection without moving focus or editing HTML. Source mode
+clears rich indicators because those buttons insert HTML wrappers there. Checked
+states are exposed to accessibility services. Browser tests cover caret/mixed
+selections and field/source changes; an emulator test exercises the native bridge
+and commands, and light/dark Roborazzi captures the selected buttons.
 
 The fixed **Field options** button sits at the logical end of the toolbar, outside
 the scrolling buttons. It opens a standard Material bottom sheet above the
@@ -134,14 +139,14 @@ there is no additional startup RPC. Changing a preference does not save the note
 
 Changes are committed locally in separate steps: performance prerequisites,
 backend preferences, backend commands, native preferences, native controls, and
-native field/template navigation. The capability marker is now version 2; Android
+native field/template navigation. The capability marker is now version 3; Android
 rejects an older bundle rather than silently ignoring commands.
 
 The backend browser suite covers both entry points, including settings, source
 wrapping, captured/stale targets, rich formatting, equation insertion/editing,
-undo and large notes. The current run has **75 passing tests and one intentional
+undo and large notes. The current run has **79 passing tests and one intentional
 standalone-page navigation skip**. Svelte checking reports no errors or warnings.
-The full backend `just check` remains blocked by the local missing Sass executable.
+The latest full backend `just check` is blocked by the missing local ESLint executable in `out/node_modules/.bin`. Earlier attempts were blocked by Sass.
 
 All 30 editor state tests pass, including field identity mapping, deleted text
 recovery and template-only reloads. Three new emulator regressions pass: global

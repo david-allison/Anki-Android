@@ -12,12 +12,23 @@ private data class FormattingButton(
     val label: Int,
     val action: WebEditorAction,
     val richOnly: Boolean = false,
+    val toggle: Boolean = false,
 )
 
 private val formattingButtons =
     listOf(
-        FormattingButton(R.drawable.ic_editor_format_superscript, R.string.compose_editor_superscript, WebEditorAction.SUPERSCRIPT),
-        FormattingButton(R.drawable.ic_editor_format_subscript, R.string.compose_editor_subscript, WebEditorAction.SUBSCRIPT),
+        FormattingButton(
+            R.drawable.ic_editor_format_superscript,
+            R.string.compose_editor_superscript,
+            WebEditorAction.SUPERSCRIPT,
+            toggle = true,
+        ),
+        FormattingButton(
+            R.drawable.ic_editor_format_subscript,
+            R.string.compose_editor_subscript,
+            WebEditorAction.SUBSCRIPT,
+            toggle = true,
+        ),
         FormattingButton(R.drawable.ic_editor_format_color_text, R.string.compose_editor_text_color, WebEditorAction.TEXT_COLOR),
         FormattingButton(
             R.drawable.ic_editor_format_color_highlight,
@@ -35,12 +46,14 @@ private val formattingButtons =
             R.string.compose_editor_bulleted_list,
             WebEditorAction.BULLETED_LIST,
             richOnly = true,
+            toggle = true,
         ),
         FormattingButton(
             R.drawable.ic_editor_format_list_numbered,
             R.string.compose_editor_numbered_list,
             WebEditorAction.NUMBERED_LIST,
             richOnly = true,
+            toggle = true,
         ),
         FormattingButton(
             R.drawable.ic_editor_format_align_left,
@@ -55,11 +68,17 @@ private val formattingButtons =
 internal fun ExtraFormattingButtons(
     enabled: Boolean,
     sourceMode: Boolean,
+    activeFormats: Set<WebEditorAction>,
     onAction: (WebEditorAction) -> Unit,
     onRecordAudio: () -> Unit,
 ) {
     formattingButtons.forEach { button ->
-        EditorActionButton(button.icon, button.label, enabled && (!sourceMode || !button.richOnly)) { onAction(button.action) }
+        val actionEnabled = enabled && (!sourceMode || !button.richOnly)
+        if (button.toggle) {
+            EditorToggleButton(button.icon, button.label, actionEnabled, button.action in activeFormats) { onAction(button.action) }
+        } else {
+            EditorActionButton(button.icon, button.label, actionEnabled) { onAction(button.action) }
+        }
     }
     EditorActionButton(R.drawable.ic_action_mic, CommonString.multimedia_editor_popup_audio, enabled, onRecordAudio)
 }

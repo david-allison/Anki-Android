@@ -106,6 +106,52 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun formattingIndicatorsFollowSelectionCommandsAndSourceMode() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "<b><i>formatted</i></b> plain")
+            runBlocking { web.focusField(0) }
+            web.evaluate(
+                """
+                (() => {
+                    const field = ${richField(0)};
+                    const text = field.querySelector('i').firstChild;
+                    field.getRootNode().getSelection().setBaseAndExtent(text, 0, text, text.length);
+                })()
+                """.trimIndent(),
+            )
+
+            fun awaitChecked(
+                label: Int,
+                checked: Boolean,
+            ) {
+                val description = testContext.getString(label)
+                waitUntil(message = { "$description did not become checked=$checked" }) {
+                    val icon = device.findObject(By.desc(description)) ?: return@waitUntil false
+                    (if (icon.isCheckable) icon else icon.parent)?.isChecked == checked
+                }
+            }
+            awaitChecked(R.string.compose_editor_bold, true)
+            awaitChecked(R.string.compose_editor_italic, true)
+            awaitChecked(R.string.compose_editor_underline, false)
+            captureScreenshot("selected-formatting", web)
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_bold))).click()
+            awaitChecked(R.string.compose_editor_bold, false)
+            awaitChecked(R.string.compose_editor_italic, true)
+            web.awaitJavascript("!${richField(0)}.querySelector('b,strong')")
+
+            runBlocking { web.focusField(1) }
+            awaitChecked(R.string.compose_editor_italic, false)
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_source))).click()
+            awaitChecked(R.string.compose_editor_source, true)
+            awaitChecked(R.string.compose_editor_bold, false)
+            web.awaitJavascript("document.querySelector('.CodeMirror')?.CodeMirror.hasFocus() === true")
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
     fun nativeColourAndEquationDialogsKeepTheirCapturedDestination() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
