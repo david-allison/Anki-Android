@@ -173,7 +173,7 @@ fun NoteEditorScreen(
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview) { onPreviewVisibility(tablet && showPreview) }
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbar, Modifier.imePadding()) },
+            snackbarHost = { if (state == null) SnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
                 TopAppBar(
                     title = {
@@ -248,6 +248,7 @@ fun NoteEditorScreen(
                         // metadata and top bar out of its changing layout constraints.
                         EditorFieldArea(
                             editorState = state,
+                            snackbar = snackbar,
                             tablet = tablet,
                             enabled = enabled,
                             state = toolbarState,
@@ -365,6 +366,7 @@ private fun EditorFields(
 @Composable
 private fun EditorFieldArea(
     editorState: EditorState,
+    snackbar: SnackbarHostState,
     tablet: Boolean,
     enabled: Boolean,
     state: State<EditorToolbarState>,
@@ -411,6 +413,7 @@ private fun EditorFieldArea(
         // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
         modifier = modifier.clipToBounds(),
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
+        snackbarHost = { if (showFieldOptions) SnackbarHost(snackbar) },
         sheetPeekHeight = 0.dp,
         sheetDragHandle = null,
         sheetSwipeEnabled = false,
@@ -432,7 +435,11 @@ private fun EditorFieldArea(
         },
     ) {
         Column(Modifier.fillMaxSize()) {
-            fields(Modifier.weight(1f).fillMaxWidth())
+            // Overlay feedback above the footer without resizing or obscuring the tags and toolbar.
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                fields(Modifier.fillMaxSize())
+                if (!showFieldOptions) SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
             if (!showFieldOptions) {
                 HorizontalDivider()
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
