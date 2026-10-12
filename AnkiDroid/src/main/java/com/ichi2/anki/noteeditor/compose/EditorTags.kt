@@ -69,7 +69,12 @@ internal fun EditorTags(
             shape = RectangleShape,
             contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
-            Icon(painterResource(R.drawable.ic_tag), contentDescription = null, Modifier.size(20.dp))
+            Icon(
+                painterResource(R.drawable.ic_tag),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.compose_editor_no_tags))
             Spacer(Modifier.weight(1f))

@@ -32,6 +32,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.CommonString
@@ -46,7 +47,9 @@ import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import kotlin.math.roundToInt
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -141,6 +144,26 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 ).fetchSemanticsNode()
                 .boundsInRoot.left
         assertEquals(populatedLeft, emptyLeft, "The leading icon and label must stay aligned when the last tag is removed")
+    }
+
+    @Test
+    fun removingTheLastTagKeepsTheIconColor() {
+        val tags = mutableStateListOf("Japanese")
+        val (activity, keyboard) = showEditor(tags = tags)
+        hideKeyboard(activity, keyboard)
+
+        fun iconColor(label: String): Int {
+            val text = composeRule.onNodeWithText(label, useUnmergedTree = true).fetchSemanticsNode().boundsInWindow
+            val image = activity.window.decorView.drawToBitmap()
+            val y = text.center.y.roundToInt()
+            val color = image.getPixel((text.left - 18.dp.toPx(activity)).roundToInt(), y)
+            assertNotEquals(image.getPixel(0, y), color, "The sampled pixel must be inside the tag icon")
+            return color
+        }
+        val populatedColor = iconColor(getResourceString(CommonString.card_details_tags))
+        composeRule.runOnIdle { tags.clear() }
+        val emptyColor = iconColor(getResourceString(R.string.compose_editor_no_tags))
+        assertEquals(populatedColor, emptyColor, "The tag icon must keep its color when the last tag is removed")
     }
 
     @Test
