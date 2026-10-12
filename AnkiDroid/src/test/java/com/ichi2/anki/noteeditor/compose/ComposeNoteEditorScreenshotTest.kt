@@ -516,11 +516,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun nestedDeckShowsItsParentsAboveTheSelectedName() {
-        val (activity, keyboard) = showEditor(deckName = "Languages::Japanese::Everyday conversation")
+    fun nestedDeckUsesAnkiSeparators() {
+        val deckName = "Languages::Japanese::Everyday conversation"
+        val (activity, keyboard) = showEditor(deckName = deckName)
         hideKeyboard(activity, keyboard)
-        composeRule.onNodeWithText("Languages › Japanese").assertIsDisplayed()
-        composeRule.onNodeWithText("Everyday conversation").assertIsDisplayed()
+        composeRule.onNodeWithText(deckName).assertIsDisplayed()
         captureScreen("nested_deck_name")
     }
 
@@ -528,15 +528,16 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun metadataUsesTheEditorPaneWidthWhenTabletPreviewIsToggled() {
         setTabletQualifiers()
         RuntimeEnvironment.setQualifiers("+w1000dp-h800dp")
-        val (activity, keyboard) = showEditor(deckName = "Languages::Japanese::Everyday conversation")
+        val deckName = "Languages::Japanese::Everyday conversation"
+        val (activity, keyboard) = showEditor(deckName = deckName)
         hideKeyboard(activity, keyboard)
 
         fun bounds(text: String) = composeRule.onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
-        assertTrue(bounds("Everyday conversation").bottom < bounds("Basic").top)
+        assertTrue(bounds(deckName).bottom < bounds("Basic").top)
         captureScreen("metadata_tablet_preview")
         composeRule.onNodeWithText(getResourceString(CommonString.note_editor_hide_previewer)).performClick()
-        assertTrue(bounds("Everyday conversation").right < bounds("Basic").left)
+        assertTrue(bounds(deckName).right < bounds("Basic").left)
         captureScreen("metadata_tablet_wide")
     }
 
@@ -629,10 +630,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         noteTypeName: String = "Basic",
     ) {
         showEditor(deckName = deckName, noteTypeName = noteTypeName)
-        composeRule.onNodeWithText(deckName.substringAfterLast("::")).assertIsDisplayed()
-        if ("::" in deckName) {
-            composeRule.onNodeWithText(deckName.substringBeforeLast("::").replace("::", " › ")).assertIsDisplayed()
-        }
+        composeRule.onNodeWithText(deckName).assertIsDisplayed()
         composeRule.onNodeWithText(noteTypeName).assertIsDisplayed()
         captureScreen(name)
     }
