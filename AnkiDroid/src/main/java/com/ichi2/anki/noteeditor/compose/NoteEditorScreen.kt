@@ -433,15 +433,11 @@ private fun EditorFieldArea(
                         )
                     }
                     VerticalDivider(Modifier.height(32.dp))
-                    IconButton(
-                        onClick = { fieldOptionsRequested = true },
-                        enabled = enabled && target != null,
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_more_vertical),
-                            stringResource(R.string.compose_editor_field_options),
-                        )
-                    }
+                    EditorActionButton(
+                        R.drawable.ic_more_vertical,
+                        R.string.compose_editor_field_options,
+                        enabled && target != null,
+                    ) { fieldOptionsRequested = true }
                 }
             }
         }
@@ -478,7 +474,7 @@ private fun EditorFieldOptions(
         }
         HorizontalDivider(Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            FieldOptionTooltip(
+            EditorTooltip(
                 text = stringResource(R.string.compose_editor_pin_field_summary),
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
@@ -506,7 +502,7 @@ private fun EditorFieldOptions(
                 }
             }
             VerticalDivider(Modifier.fillMaxHeight().padding(horizontal = 16.dp))
-            FieldOptionTooltip(
+            EditorTooltip(
                 text = stringResource(R.string.compose_editor_language_hint_summary),
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
@@ -618,7 +614,7 @@ private fun FieldOptionsHelp(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FieldOptionTooltip(
+internal fun EditorTooltip(
     text: String,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -657,7 +653,10 @@ internal fun EditorActionButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled) { Icon(painterResource(icon), stringResource(label)) }
+    val text = stringResource(label)
+    EditorTooltip(text) {
+        IconButton(onClick = onClick, enabled = enabled) { Icon(painterResource(icon), text) }
+    }
 }
 
 /** Checked semantics expose the selected format to TalkBack as well as sighted users. */
@@ -669,16 +668,19 @@ internal fun EditorToggleButton(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    IconToggleButton(
-        checked = selected,
-        onCheckedChange = { onClick() },
-        enabled = enabled,
-        colors =
-            IconButtonDefaults.iconToggleButtonColors(
-                checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ),
-    ) { Icon(painterResource(icon), stringResource(label)) }
+    val text = stringResource(label)
+    EditorTooltip(text) {
+        IconToggleButton(
+            checked = selected,
+            onCheckedChange = { onClick() },
+            enabled = enabled,
+            colors =
+                IconButtonDefaults.iconToggleButtonColors(
+                    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+        ) { Icon(painterResource(icon), text) }
+    }
 }
 
 @Composable

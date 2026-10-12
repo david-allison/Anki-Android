@@ -69,8 +69,10 @@ internal fun EditorFormattingButtons(
     val formatEnabled = enabled && state.hasSelection && !state.composing
     toolbar.orderedItems().filter { it.appliesTo(isCloze) }.forEach { item ->
         if (item is EditorToolbarItem.Custom) {
-            TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
-                Text(item.button.label, Modifier.widthIn(max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            EditorTooltip(item.button.label) {
+                TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
+                    Text(item.button.label, Modifier.widthIn(max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             return@forEach
         }

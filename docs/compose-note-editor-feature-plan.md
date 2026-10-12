@@ -104,7 +104,8 @@ Drag handles mix both kinds in one ordered list, using the same drag and edge-sc
 behavior as Manage columns. Accessibility actions also move buttons up/down; hidden
 buttons retain their positions. Both dialogs save changes together; Cancel discards them.
 The toolbar follows the focused field; Field options remains accessible even when
-all toolbar buttons are hidden.
+all toolbar buttons are hidden. Long-pressing an Anki or custom button shows its full
+label, including when disabled, without applying the action or taking keyboard focus.
 
 Settings currently live in SharedPreferences. Field overrides are keyed by collection,
 note type and stable field identity and reference the global templates by ID. Field
@@ -249,8 +250,12 @@ field/template navigation, formatting indicators and selective erasing. The
 selective-erasing case covers Cancel, restored choices and targets after recreation,
 focus changes and one-step Undo. Two session unit tests check readiness and avoid
 redundant settings updates that invalidate restored command targets. Roborazzi
-has 22 passing light/dark cases covering field options, help, both tooltips,
-keyboard/Back dismissal, long names, the global menu and selected toolbar states.
+has 42 passing light/dark cases covering field options, help, toolbar and field-option
+tooltips, keyboard/Back dismissal, long names, the global menu and configured toolbar states.
+Three tooltip regression tests cover every Anki button, disabled actions and complete
+custom labels; long-press must not execute an action. Pixel testing confirms the keyboard
+stays open while tooltips appear. Full Play debug lint currently reports 22 existing
+editor errors outside the tooltip changes, including API-style checks, logging and resources.
 The colour/equation flow passes emulator instrumentation, with screenshots inspected. An attempted Robolectric dialog
 capture gets stuck in window relayout in this environment; that failing test is
 not committed.
