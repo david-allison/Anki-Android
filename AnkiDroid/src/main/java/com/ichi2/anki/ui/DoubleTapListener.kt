@@ -62,6 +62,10 @@ abstract class DoubleTapListener(
      */
     abstract fun onDoubleTap(e: MotionEvent?)
 
+    open fun onLongPress(e: MotionEvent) {
+        // Optional: touch listeners consume ACTION_DOWN before View can detect a long click.
+    }
+
     private val detector =
         object : GestureDetector(
             context,
@@ -79,6 +83,10 @@ abstract class DoubleTapListener(
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                     this@DoubleTapListener.onConfirmedSingleTap(e)
                     return super.onSingleTapConfirmed(e)
+                }
+
+                override fun onLongPress(e: MotionEvent) {
+                    this@DoubleTapListener.onLongPress(e)
                 }
 
                 override fun onDown(e: MotionEvent): Boolean {

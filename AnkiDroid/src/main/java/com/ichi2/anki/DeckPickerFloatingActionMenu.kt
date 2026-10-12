@@ -14,8 +14,12 @@ import androidx.annotation.VisibleForTesting
 import com.google.android.material.color.MaterialColors
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.common.android.animationEnabled
+import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.databinding.ActivityHomescreenBinding
 import com.ichi2.anki.databinding.IncludeFloatingAddButtonBinding
+import com.ichi2.anki.noteeditor.compose.ComposeNoteEditorActivity
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.DoubleTapListener
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import timber.log.Timber
@@ -315,6 +319,10 @@ class DeckPickerFloatingActionMenu(
                     addNote()
                 }
 
+                override fun onLongPress(e: MotionEvent) {
+                    binding.fabMain.performLongClick()
+                }
+
                 override fun onUnconfirmedSingleTap(e: MotionEvent?) {
                     // we use an unconfirmed tap as we don't want any visual delay in tapping the +
                     // and opening the menu.
@@ -432,6 +440,20 @@ class DeckPickerFloatingActionMenu(
                 }
             }
         binding.fabMain.setOnClickListener(fabMainClickListener)
+
+        if (Prefs.isComposeNoteEditorEnabled) {
+            binding.fabMain.setOnLongClickListener {
+                closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                with(deckPicker) {
+                    navigate(
+                        NoteEditorDestination.PassArguments(
+                            NoteEditorFragment.addNoteArgs().apply { putBoolean(ComposeNoteEditorActivity.EXTRA_USE_LEGACY, true) },
+                        ),
+                    )
+                }
+                true
+            }
+        }
 
         if (initiallyOpen) {
             showFloatingActionMenu()
