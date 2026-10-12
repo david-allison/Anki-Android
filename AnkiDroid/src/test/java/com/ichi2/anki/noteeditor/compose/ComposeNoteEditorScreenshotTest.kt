@@ -16,11 +16,9 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -64,7 +62,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun optionsOpen() {
-        openOptions()
+        showEditor()
+        val pin = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field))
+        pin.assertDoesNotExist()
+        fieldOptionsButton().performClick()
+        pin.assertIsDisplayed()
+        fieldOptionsButton().performClick()
+        pin.assertDoesNotExist()
+        fieldOptionsButton().performClick()
+        pin.assertIsDisplayed()
         captureScreen("options_open")
     }
 
@@ -268,11 +274,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         return editor
     }
 
-    private fun fieldOptionsButton() =
-        composeRule.onAllNodesWithContentDescription(getResourceString(R.string.compose_editor_field_options)).let { buttons ->
-            // The hidden sheet also composes its collapse button; only the toolbar button is visible.
-            (0 until buttons.fetchSemanticsNodes().size).map { buttons[it] }.single { it.isDisplayed() }
-        }
+    private fun fieldOptionsButton() = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options))
 
     private fun captureMetadataNames(
         name: String,

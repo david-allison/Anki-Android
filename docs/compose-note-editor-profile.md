@@ -770,3 +770,59 @@ traces, source maps, APKs, and reports remain local.
 Tool references: [Android trace generation](https://developer.android.com/studio/profile/generate-trace-logs),
 [ART trace format implementation](https://android.googlesource.com/platform/art/+/master/runtime/trace.cc),
 [WebView tracing configuration](https://developer.android.com/reference/androidx/webkit/TracingConfig.Builder).
+
+## Keyboard opening: missed frame deadlines 20.7% → 2.8%
+
+Pixel 9 Pro, 2026-10-12, `com.ichi2.anki.composefieldsprobe`, debug APK,
+Basic note with two empty fields and a Chinese keyboard hint. These measurements
+cover reopening Gboard in an already loaded editor, separately from screen startup.
+
+| Warm keyboard openings | Before | After |
+| --- | ---: | ---: |
+| Frames missing their deadline, both trials | 77 / 372 (20.7%) | 14 / 499 (2.8%) |
+| Median of each opening's median frame time | 21 ms | 12 ms |
+| Median of each opening's p99 frame time | 33 ms | 22 ms |
+| Recomposition per opening, median in each trial | 67 / 66 ms | 16 / 16 ms |
+| Keyboard animation duration, median in each trial | 306 / 305 ms | 300 / 300 ms |
+
+The hidden field-options sheet was doing work during every keyboard resize.
+`EditorFieldArea` read `sheetState.hasExpandedState` directly in composition.
+That getter observes the anchors, whose positions change with the keyboard's
+height even when expansion remains available. This recomposed the field area
+and the hidden Pin, Keyboard, Toolbar and Custom Buttons controls. The hidden
+controls also remained in the layout and semantics tree.
+
+The fix observes expansion availability through `derivedStateOf` and composes
+options only while requested or still visible. Keeping them until the closing
+animation finishes preserves normal sheet dismissal. Toolbar tooltips remain.
+The regression asserts that closed options leave the tree and that opening,
+closing and reopening still work.
+
+Measurements were collected in old → new → old → new order, with six warm
+openings per build in each comparison. The reversal reproduced the regression:
+missed-deadline shares were **18.7% → 2.0%**, then **22.9% → 3.6%**. Each comparison
+series followed at least six earlier keyboard openings; warm-up captures are
+retained separately. Frame counts increase because the improved build delivers
+more frames during the animation. Counts and frame percentiles come from
+`dumpsys gfxinfo` reset before each opening, with a roughly 1.6-second observation
+window including settling. Recomposition and animation spans come from Perfetto.
+
+An additional ART sample identified the hidden options in the expensive call
+stacks. ART sampling was stopped before comparison measurements; its timings
+are not used in the table. The longer reversal traces use a ring buffer that
+lost initial process metadata; analysis identifies the app from its activity's
+FrameTimeline layer. All six compared warm openings remain within each trace.
+
+This improves repeated-opening smoothness. It does not eliminate the normal
+keyboard animation, establish input-to-first-visible-key latency, or demonstrate
+jank-free first use. The first reopening after installing the fixed debug APK
+still had slow frames; first-use performance needs a separate measurement.
+
+Validation: regression failed before the fix; all **42 light/dark editor screenshot
+cases pass** after it. Screenshot comparison showed the hidden sheet's bottom
+edge disappearing; fourteen light references were refreshed. On the Pixel, options open with Gboard still
+visible, and tapping the field removes options and restores the regular toolbar.
+No phone settings or regular AnkiDroid data were changed. The fixed debug APK is
+installed; no profiling hooks were added to production code.
+
+[Local captures, scripts, APKs and comparison JSON](../AnkiDroid/build/reports/compose-editor/keyboard-opening/).
