@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -81,6 +82,7 @@ internal fun EditorTags(
             Text(stringResource(R.string.compose_editor_no_tags))
             Spacer(Modifier.weight(1f))
         }
+        HorizontalDivider()
         return
     }
 
@@ -125,4 +127,5 @@ internal fun EditorTags(
         }
         EditorActionButton(R.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
     }
+    HorizontalDivider()
 }
