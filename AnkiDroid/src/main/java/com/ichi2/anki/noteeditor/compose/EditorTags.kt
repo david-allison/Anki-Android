@@ -67,7 +67,7 @@ internal fun EditorTags(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             shape = RectangleShape,
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
             Icon(painterResource(R.drawable.ic_tag), contentDescription = null, Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
