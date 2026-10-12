@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
@@ -26,6 +28,7 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.lifecycleScope
@@ -98,11 +101,20 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun emptyTagsOpenExistingDialog() {
-        var opened = false
-        val (activity, keyboard) = showEditor(onTags = { opened = true })
+        var opened = 0
+        val (activity, keyboard) = showEditor(onTags = { opened++ })
         hideKeyboard(activity, keyboard)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_no_tags)).performClick()
-        assertTrue(opened)
+        val addTags = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_no_tags))
+        val centerY =
+            addTags
+                .fetchSemanticsNode()
+                .boundsInRoot.center.y
+        composeRule.onRoot().performTouchInput { click(Offset(width - 1f, centerY)) }
+        assertEquals(1, opened, "The far end of the empty row must open the tags dialog")
+        composeRule.onRoot().performTouchInput { click(Offset(1f, centerY)) }
+        assertEquals(2, opened, "The start of the empty row must open the tags dialog")
+        addTags.performClick()
+        assertEquals(3, opened)
         captureScreen("tags_empty")
     }
 
