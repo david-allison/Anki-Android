@@ -28,12 +28,15 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.R
-import com.ichi2.anki.libanki.Decks
 
-/** Keep the selected deck visible even when its parent path is too long to fit. */
+/** Show the collection's deck path syntax with subdued separators. */
 @Composable
 internal fun EditorMetadata(
     deckName: String,
@@ -42,13 +45,23 @@ internal fun EditorMetadata(
     onDeck: () -> Unit,
     onType: () -> Unit,
 ) {
-    val deckPath = remember(deckName) { Decks.path(deckName) }
-    val parentPath = remember(deckPath) { deckPath.dropLast(1).joinToString(" › ") }
+    val separatorColor = MaterialTheme.colorScheme.outline
+    val deckLabel =
+        remember(deckName, separatorColor) {
+            buildAnnotatedString {
+                deckName.split("::").forEachIndexed { index, name ->
+                    if (index > 0) {
+                        withStyle(SpanStyle(color = separatorColor)) { append("::") }
+                    }
+                    append(name)
+                }
+            }
+        }
     val deck: @Composable (Modifier) -> Unit = { modifier ->
-        MetadataRow(stringResource(R.string.compose_editor_deck), deckPath.last(), parentPath, enabled, onDeck, modifier)
+        MetadataRow(stringResource(R.string.compose_editor_deck), deckLabel, enabled, onDeck, modifier)
     }
     val type: @Composable (Modifier) -> Unit = { modifier ->
-        MetadataRow(stringResource(R.string.compose_editor_type), noteTypeName, "", enabled, onType, modifier)
+        MetadataRow(stringResource(R.string.compose_editor_type), AnnotatedString(noteTypeName), enabled, onType, modifier)
     }
     BoxWithConstraints(
         Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
@@ -88,8 +101,7 @@ internal fun EditorMetadata(
 @Composable
 private fun MetadataRow(
     label: String,
-    value: String,
-    parentPath: String,
+    value: AnnotatedString,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier,
@@ -106,15 +118,6 @@ private fun MetadataRow(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (parentPath.isNotEmpty()) {
-                Text(
-                    parentPath,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
             Text(value, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Icon(painterResource(R.drawable.ic_expand_more_black), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
