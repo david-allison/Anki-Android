@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -59,49 +61,57 @@ internal fun EditorTags(
     }
     if (keyboardVisible && (!tablet || !enoughHeight)) return
 
+    if (tags.isEmpty()) {
+        TextButton(
+            onClick = onManage,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            shape = RectangleShape,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+        ) {
+            Icon(painterResource(R.drawable.ic_tag), contentDescription = null, Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.compose_editor_no_tags))
+            Spacer(Modifier.weight(1f))
+        }
+        return
+    }
+
     Row(
         Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (tags.isEmpty()) {
-            TextButton(onClick = onManage, enabled = enabled) {
-                Icon(painterResource(R.drawable.ic_tag), contentDescription = null, Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.compose_editor_no_tags))
-            }
-        } else {
-            Icon(
-                painterResource(R.drawable.ic_tag),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(stringResource(CommonString.card_details_tags), style = MaterialTheme.typography.labelMedium)
-            LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tags, key = { it }) { tag ->
-                    EditorTooltip(tag) {
-                        InputChip(
-                            selected = false,
-                            enabled = enabled,
-                            onClick = onManage,
-                            label = {
-                                // Material's chip layout top-aligns the label beside a taller trailing icon.
-                                Box(Modifier.heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
-                                    Text(tag, Modifier.widthIn(max = 160.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            },
-                            trailingIcon = {
-                                val removeLabel = stringResource(R.string.compose_editor_remove_tag, tag)
-                                IconButton(onClick = { onRemove(tag) }, enabled = enabled, modifier = Modifier.size(40.dp)) {
-                                    Icon(painterResource(R.drawable.close_icon), removeLabel, Modifier.size(18.dp))
-                                }
-                            },
-                        )
-                    }
+        Icon(
+            painterResource(R.drawable.ic_tag),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(stringResource(CommonString.card_details_tags), style = MaterialTheme.typography.labelMedium)
+        LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(tags, key = { it }) { tag ->
+                EditorTooltip(tag) {
+                    InputChip(
+                        selected = false,
+                        enabled = enabled,
+                        onClick = onManage,
+                        label = {
+                            // Material's chip layout top-aligns the label beside a taller trailing icon.
+                            Box(Modifier.heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
+                                Text(tag, Modifier.widthIn(max = 160.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        },
+                        trailingIcon = {
+                            val removeLabel = stringResource(R.string.compose_editor_remove_tag, tag)
+                            IconButton(onClick = { onRemove(tag) }, enabled = enabled, modifier = Modifier.size(40.dp)) {
+                                Icon(painterResource(R.drawable.close_icon), removeLabel, Modifier.size(18.dp))
+                            }
+                        },
+                    )
                 }
             }
-            EditorActionButton(R.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
         }
+        EditorActionButton(R.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
     }
 }
