@@ -204,6 +204,38 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun boldCanBeTurnedOffBeforeTypingInAnEmptyField() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            runBlocking { web.focusField(1) }
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "Keyboard did not open" }) { keyboardVisible() }
+            device.pressBack()
+            waitUntil(message = { "Keyboard did not close" }) { !keyboardVisible() }
+
+            val bold = By.desc(testContext.getString(R.string.compose_editor_bold)).enabled(true)
+            for (enabled in listOf(true, false, true, false)) {
+                checkNotNull(device.wait(Until.findObject(bold), 5_000)).click()
+                waitUntil(message = { "Bold did not become checked=$enabled in an empty field" }) {
+                    val icon = device.findObject(bold) ?: return@waitUntil false
+                    (if (icon.isCheckable) icon else icon.parent)?.isChecked == enabled
+                }
+            }
+            val target = assertNotNull(runBlocking { web.captureTarget() })
+            assertTrue(runBlocking { web.execute(WebEditorAction.INSERT_TEXT, target, "plain text") })
+            assertEquals(listOf("", "plain text"), runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun formattingIndicatorsFollowSelectionCommandsAndSourceMode() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
