@@ -645,7 +645,6 @@ class ComposeNoteEditorActivity :
             if (snackbar.showSnackbar(
                     message = getString(R.string.compose_editor_tag_removed, tag),
                     actionLabel = getString(CommonString.undo),
-                    withDismissAction = true,
                     duration = SnackbarDuration.Short,
                 ) ==
                 SnackbarResult.ActionPerformed

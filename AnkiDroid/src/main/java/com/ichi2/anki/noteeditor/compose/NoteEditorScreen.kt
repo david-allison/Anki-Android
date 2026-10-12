@@ -37,7 +37,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -173,7 +172,7 @@ fun NoteEditorScreen(
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview) { onPreviewVisibility(tablet && showPreview) }
         Scaffold(
-            snackbarHost = { if (state == null) SnackbarHost(snackbar, Modifier.imePadding()) },
+            snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
                 TopAppBar(
                     title = {
@@ -413,7 +412,7 @@ private fun EditorFieldArea(
         // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
         modifier = modifier.clipToBounds(),
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
-        snackbarHost = { if (showFieldOptions) SnackbarHost(snackbar) },
+        snackbarHost = { if (showFieldOptions) EditorSnackbarHost(snackbar) },
         sheetPeekHeight = 0.dp,
         sheetDragHandle = null,
         sheetSwipeEnabled = false,
@@ -438,7 +437,7 @@ private fun EditorFieldArea(
             // Overlay feedback above the footer without resizing or obscuring the tags and toolbar.
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 fields(Modifier.fillMaxSize())
-                if (!showFieldOptions) SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                if (!showFieldOptions) EditorSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             if (!showFieldOptions) {
                 HorizontalDivider()
