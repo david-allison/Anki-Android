@@ -453,8 +453,7 @@ private fun EditorFieldArea(
                             onRecordAudio = onRecordAudio,
                         )
                     }
-                    // The final 4dp before the divider contain a 2dp fade and 2dp clear space.
-                    VerticalDivider(Modifier.padding(start = 2.dp).height(32.dp))
+                    VerticalDivider(Modifier.height(32.dp))
                     EditorActionButton(
                         R.drawable.ic_more_vertical,
                         R.string.compose_editor_field_options,
@@ -472,7 +471,7 @@ private fun Modifier.toolbarEndFade(
     background: Color,
 ): Modifier =
     drawWithCache {
-        val width = 2.dp.toPx().coerceAtMost(size.width)
+        val width = 4.dp.toPx().coerceAtMost(size.width)
         val rtl = layoutDirection == LayoutDirection.Rtl
         val left = if (rtl) 0f else size.width - width
         val brush =
