@@ -10,15 +10,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,18 +45,23 @@ internal fun EditorMetadata(
     val type: @Composable (Modifier) -> Unit = { modifier ->
         MetadataRow(stringResource(R.string.compose_editor_type), noteTypeName, "", enabled, onType, modifier)
     }
-    // The preview may leave a tablet's editor pane narrower than a phone landscape window.
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 600.dp) {
-            Row {
-                deck(Modifier.weight(1f))
-                type(Modifier.weight(1f))
-            }
-        } else {
-            Column {
-                deck(Modifier.fillMaxWidth())
-                HorizontalDivider()
-                type(Modifier.fillMaxWidth())
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+    ) {
+        // The preview may leave a tablet's editor pane narrower than a phone landscape window.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 600.dp) {
+                Row {
+                    deck(Modifier.weight(1f))
+                    type(Modifier.weight(1f))
+                }
+            } else {
+                Column {
+                    deck(Modifier.fillMaxWidth())
+                    type(Modifier.fillMaxWidth())
+                }
             }
         }
     }
@@ -80,7 +86,7 @@ private fun MetadataRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (parentPath.isNotEmpty()) {
                 Text(
                     parentPath,
@@ -90,7 +96,7 @@ private fun MetadataRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(value, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(value, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Icon(painterResource(R.drawable.ic_expand_more_black), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
