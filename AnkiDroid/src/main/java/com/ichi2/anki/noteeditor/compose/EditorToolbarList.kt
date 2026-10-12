@@ -23,11 +23,11 @@ import androidx.recyclerview.widget.RecyclerView
 /** The same handle dragging, item animation and edge scrolling as Manage columns, with Compose rows. */
 @Composable
 internal fun EditorToolbarList(
-    items: List<EditorToolbarItem>,
+    items: List<String>,
     onMove: (String, String) -> Unit,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit,
-    row: @Composable (EditorToolbarItem, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
+    row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) {
     val composition = rememberCompositionContext()
     val currentHeader by rememberUpdatedState(header)
@@ -77,13 +77,13 @@ internal fun EditorToolbarList(
 }
 
 private class EditorToolbarAdapter(
-    initialItems: List<EditorToolbarItem>,
+    initialItems: List<String>,
     private val composition: CompositionContext,
     private val onMove: (String, String) -> Unit,
     private val header: @Composable () -> Unit,
-    private val row: @Composable (EditorToolbarItem, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
+    private val row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) : RecyclerView.Adapter<EditorToolbarAdapter.Holder>() {
-    private val items = mutableStateListOf<EditorToolbarItem>().apply { addAll(initialItems) }
+    private val items = mutableStateListOf<String>().apply { addAll(initialItems) }
     private var draggingKey by mutableStateOf<String?>(null)
     val touchHelper =
         ItemTouchHelper(
@@ -110,7 +110,7 @@ private class EditorToolbarAdapter(
                     actionState: Int,
                 ) {
                     super.onSelectedChanged(viewHolder, actionState)
-                    draggingKey = (viewHolder as? Holder)?.item?.key
+                    draggingKey = (viewHolder as? Holder)?.item
                 }
 
                 override fun onSwiped(
@@ -130,7 +130,7 @@ private class EditorToolbarAdapter(
         items.add(to, items.removeAt(from))
         // Rebinding during a drag can end it early. Compose observes the order/checkbox state directly.
         notifyItemMoved(from + 1, to + 1)
-        onMove(source.key, destination.key)
+        onMove(source, destination)
         return true
     }
 
@@ -161,7 +161,7 @@ private class EditorToolbarAdapter(
         view: ComposeView,
         isHeader: Boolean,
     ) : RecyclerView.ViewHolder(view) {
-        var item by mutableStateOf<EditorToolbarItem?>(null)
+        var item by mutableStateOf<String?>(null)
 
         init {
             view.setContent {
@@ -171,11 +171,11 @@ private class EditorToolbarAdapter(
                     item?.let { button ->
                         row(
                             button,
-                            items.indexOfFirst { it.key == button.key },
-                            draggingKey == button.key,
+                            items.indexOfFirst { it == button },
+                            draggingKey == button,
                             { touchHelper.startDrag(this@Holder) },
                             { offset ->
-                                val index = items.indexOfFirst { it.key == button.key }
+                                val index = items.indexOfFirst { it == button }
                                 move(index, index + offset)
                             },
                         )
