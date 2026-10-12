@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -63,12 +64,13 @@ internal fun EditorTags(
         derivedStateOf { window.containerSize.height - ime.getBottom(density) >= with(density) { 480.dp.toPx() } }
     }
     if (keyboardVisible && (!tablet || !enoughHeight)) return
+    val background = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
 
     if (tags.isEmpty()) {
         TextButton(
             onClick = onManage,
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).background(background),
             shape = RectangleShape,
             contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
         ) {
@@ -82,7 +84,6 @@ internal fun EditorTags(
             Text(stringResource(R.string.compose_editor_no_tags))
             Spacer(Modifier.weight(1f))
         }
-        HorizontalDivider()
         return
     }
 
@@ -90,6 +91,7 @@ internal fun EditorTags(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .background(background)
             .clickable(enabled = enabled, role = Role.Button, onClick = onManage)
             .padding(start = 16.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -127,5 +129,4 @@ internal fun EditorTags(
         }
         EditorActionButton(R.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
     }
-    HorizontalDivider()
 }

@@ -409,7 +409,6 @@ private fun EditorFieldArea(
                 if (!showFieldOptions) EditorSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             if (!showFieldOptions) {
-                HorizontalDivider()
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Row(
