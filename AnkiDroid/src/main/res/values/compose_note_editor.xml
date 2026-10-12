@@ -21,6 +21,9 @@
     <string name="compose_editor_video">Choose video</string>
     <string name="compose_editor_field_options">Field options</string>
     <string name="compose_editor_toolbar">Toolbar</string>
+    <string name="compose_editor_toolbar_scroll">Scroll</string>
+    <string name="compose_editor_toolbar_stack">Stack</string>
+    <string name="compose_editor_toolbar_hidden">Hidden</string>
     <string name="compose_editor_toolbar_scope">Use these buttons for this field on all notes of this note type.</string>
     <string name="compose_editor_custom_buttons">Custom Buttons</string>
     <string name="compose_editor_custom_button">Custom button</string>

@@ -147,6 +147,10 @@ class EditorViewModel(
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
                         customButtonTemplates = toolbarPreferences.loadCustomButtons(),
+                        toolbarDisplay =
+                            EditorToolbarDisplay.entries.firstOrNull {
+                                it.name == Prefs.sharedPrefs.getString("composeEditorToolbarDisplay", null)
+                            } ?: EditorToolbarDisplay.SCROLL,
                         settings =
                             WebEditorSettings(
                                 shrinkImages = config.get<Boolean>("shrinkEditorImages") ?: true,
@@ -227,6 +231,19 @@ class EditorViewModel(
             )
         }
         mutableState.value = requireNotNull(state.value).copy(settings = settings)
+    }
+
+    suspend fun setToolbarDisplay(display: EditorToolbarDisplay) {
+        requireNotNull(state.value)
+        withContext(ioDispatcher) {
+            check(
+                Prefs.sharedPrefs
+                    .edit()
+                    .putString("composeEditorToolbarDisplay", display.name)
+                    .commit(),
+            )
+        }
+        mutableState.value = requireNotNull(state.value).copy(toolbarDisplay = display)
     }
 
     suspend fun noteTypeChoices(): List<EditorChoice> =
