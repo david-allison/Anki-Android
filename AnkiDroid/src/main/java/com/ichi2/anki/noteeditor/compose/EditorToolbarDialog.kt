@@ -2,11 +2,13 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -101,6 +103,11 @@ internal fun EditorToolbarDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Checkbox(checked, onCheckedChange = null)
+                                Box(Modifier.padding(start = 12.dp).size(20.dp)) {
+                                    if (item is EditorToolbarItem.Builtin) {
+                                        Icon(painterResource(item.button.icon), contentDescription = null)
+                                    }
+                                }
                                 Text(label, Modifier.padding(start = 12.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
                             }
                             IconButton(
