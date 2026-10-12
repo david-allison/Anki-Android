@@ -496,8 +496,26 @@
             await api().setInputEnabled(enabled);
             return {};
         },
-        async focusField({ index }) {
+        async focusField({ index, highlightError = false }) {
             await api().focusField(index);
+            if (highlightError) {
+                const element = document.querySelector(
+                    `.field-container[data-index="${index}"] .editor-field`,
+                );
+                if (element) {
+                    element.scrollIntoView({ block: "nearest" });
+                    for (const animation of element.getAnimations()) {
+                        if (animation.id === "field-error") animation.cancel();
+                    }
+                    // Animate the surrounding field chrome, leaving its HTML and undo history alone.
+                    const outline = "2px solid var(--accent-danger)";
+                    const animation = element.animate(
+                        [{ outline, offset: 0 }, { outline, offset: 0.65 }, { offset: 1 }],
+                        { duration: 1800, easing: "ease-out" },
+                    );
+                    animation.id = "field-error";
+                }
+            }
             await captureTarget();
             status();
             return {};
