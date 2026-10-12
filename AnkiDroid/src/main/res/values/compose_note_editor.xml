@@ -6,6 +6,8 @@
     <string name="compose_editor_deck">Deck</string>
     <string name="compose_editor_type">Note type</string>
     <string name="compose_editor_no_tags">Add tags</string>
+    <string name="compose_editor_remove_tag">Remove tag %s</string>
+    <string name="compose_editor_tag_removed">Removed tag “%s”</string>
     <string name="compose_editor_bold">Bold</string>
     <string name="compose_editor_italic">Italic</string>
     <string name="compose_editor_underline">Underline</string>

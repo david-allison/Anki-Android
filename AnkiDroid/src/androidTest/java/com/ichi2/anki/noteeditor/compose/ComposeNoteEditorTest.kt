@@ -73,6 +73,48 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun tagsHideWhileTypingAndSupportRemovalUndoAndTheExistingDialog() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "Unsaved question")
+            scenario.onActivity { ViewModelProvider(it)[EditorViewModel::class.java].setTags(listOf("Japanese", "Vocabulary")) }
+            runBlocking { web.focusField(0) }
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "Keyboard did not open" }) { keyboardVisible() }
+            val remove = By.desc(testContext.getString(R.string.compose_editor_remove_tag, "Japanese"))
+            assertFalse(device.hasObject(remove), "Tags must not consume space while typing on a phone")
+            captureScreenshot("tags-hidden-while-typing", web)
+            device.pressBack()
+            waitUntil(message = { "Keyboard did not close" }) { !keyboardVisible() }
+            val selection = runBlocking { web.captureTarget() }
+            captureScreenshot("tags-bottom", web)
+            checkNotNull(device.wait(Until.findObject(remove), 5_000)).click()
+            waitUntil(message = { "Inline removal did not update the draft" }) { scenario.editorState().tags == listOf("Vocabulary") }
+            assertEquals(selection, runBlocking { web.captureTarget() })
+            assertFalse(keyboardVisible())
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.undo))), 5_000)).click()
+            waitUntil(message = { "Undo did not restore the tag" }) { scenario.editorState().tags == listOf("Japanese", "Vocabulary") }
+            checkNotNull(device.wait(Until.findObject(By.text("Japanese")), 5_000)).click()
+            assertTrue(device.wait(Until.hasObject(By.res(testContext.packageName, "tags_list")), 5_000))
+            checkNotNull(device.wait(Until.findObject(By.res("android", "button2")), 5_000)).click()
+            assertTrue(device.wait(Until.gone(By.res(testContext.packageName, "tags_list")), 5_000))
+            assertEquals(listOf("Unsaved question", ""), runBlocking { web.snapshot().fields })
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            assertEquals(listOf("Japanese", "Vocabulary"), scenario.editorState().tags)
+            assertEquals(listOf("Unsaved question", ""), runBlocking { restored.snapshot().fields })
+        }
+    }
+
+    @Test
     fun globalOptionsPersistAcrossRecreationWithoutChangingTheDraft() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
