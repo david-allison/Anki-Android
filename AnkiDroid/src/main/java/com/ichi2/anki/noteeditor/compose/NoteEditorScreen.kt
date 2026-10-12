@@ -386,9 +386,11 @@ private fun EditorFieldArea(
         toolbarState.activeField?.takeIf { it in editorState.fields.indices }?.let {
             EditorFieldTarget(editorState.sessionId, editorState.generation, it)
         }
+    // IME animation moves the anchors every frame. Only observe whether expansion is available.
+    val hasExpandedState by remember(sheetState) { derivedStateOf { sheetState.hasExpandedState } }
     // After recreation, the field data and sheet anchors become available after composition.
-    LaunchedEffect(sheetState, fieldOptionsRequested, sheetState.hasExpandedState) {
-        if (fieldOptionsRequested && sheetState.hasExpandedState) sheetState.expand() else sheetState.hide()
+    LaunchedEffect(sheetState, fieldOptionsRequested, hasExpandedState) {
+        if (fieldOptionsRequested && hasExpandedState) sheetState.expand() else sheetState.hide()
     }
     val closeOptions: () -> Unit = { fieldOptionsRequested = false }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
@@ -401,7 +403,8 @@ private fun EditorFieldArea(
         sheetDragHandle = null,
         sheetSwipeEnabled = false,
         sheetContent = {
-            if (target != null) {
+            // Retain the controls through dismissal, then remove their layout and semantics work.
+            if (showFieldOptions && target != null) {
                 EditorFieldOptions(
                     field = editorState.fields[target.field],
                     noteTypeName = editorState.noteTypeName,
