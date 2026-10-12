@@ -75,7 +75,7 @@ internal fun EditorTags(
             Icon(
                 painterResource(R.drawable.ic_tag),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(width = 32.dp, height = 20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(8.dp))
@@ -98,7 +98,7 @@ internal fun EditorTags(
         Icon(
             painterResource(R.drawable.ic_tag),
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(width = 32.dp, height = 20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(stringResource(CommonString.card_details_tags), style = MaterialTheme.typography.labelMedium)
