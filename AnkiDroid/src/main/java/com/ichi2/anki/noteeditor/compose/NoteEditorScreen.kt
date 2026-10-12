@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -177,6 +178,7 @@ fun NoteEditorScreen(
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview) { onPreviewVisibility(tablet && showPreview) }
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
             snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
                 TopAppBar(
@@ -236,7 +238,13 @@ fun NoteEditorScreen(
                     }
                 }
             } else {
-                Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding)
+                        .background(MaterialTheme.colorScheme.surface),
+                ) {
                     Column(Modifier.weight(1f)) {
                         EditorMetadata(
                             deckName = state.deckName,
@@ -374,12 +382,12 @@ private fun EditorFieldArea(
     }
     val closeOptions: () -> Unit = { fieldOptionsRequested = false }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
-    val toolbarBackground = MaterialTheme.colorScheme.surface
+    val toolbarBackground = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
     // The standard sheet shares the editor window, so opening it leaves the IME connected.
     BottomSheetScaffold(
         // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
         modifier = modifier.clipToBounds(),
-        containerColor = toolbarBackground,
+        containerColor = MaterialTheme.colorScheme.surface,
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
         snackbarHost = { if (showFieldOptions) EditorSnackbarHost(snackbar) },
         sheetPeekHeight = 0.dp,
@@ -410,7 +418,7 @@ private fun EditorFieldArea(
             }
             if (!showFieldOptions) {
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().background(toolbarBackground), verticalAlignment = Alignment.CenterVertically) {
                     Row(
                         Modifier
                             .weight(1f)
