@@ -40,7 +40,9 @@ import com.ichi2.anki.testutil.evaluate
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.anki.testutil.waitUntil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -70,6 +72,54 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ensureWebViewIsSupported()
         CollectionManager.setColForTests(emptyCol)
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun pinningKeepsControlsVisuallyEnabledWhileGuardingSave() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Front text")
+            web.setField(1, "Back text")
+            runBlocking { web.focusField(1) }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+            ).click()
+            val pin = checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_pin_field))), 5_000))
+            val entered = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val holdingCollection =
+                CoroutineScope(Dispatchers.IO).async {
+                    withCol {
+                        entered.countDown()
+                        check(release.await(30, TimeUnit.SECONDS)) { "The pin test did not release the collection" }
+                    }
+                }
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                pin.click()
+                val drawn = CountDownLatch(1)
+                scenario.onActivity { activity ->
+                    val decor = activity.window.decorView
+                    decor.postOnAnimation { decor.postOnAnimation { drawn.countDown() } }
+                }
+                assertTrue(drawn.await(5, TimeUnit.SECONDS))
+                var save = checkNotNull(device.findObject(By.text(testContext.getString(CommonString.save))))
+                while (!save.isClickable) save = checkNotNull(save.parent)
+                var pinButton = checkNotNull(device.findObject(By.text(testContext.getString(R.string.compose_editor_pin_field))))
+                while (!pinButton.isCheckable) pinButton = checkNotNull(pinButton.parent)
+                assertTrue(save.isEnabled, "Pinning must not grey out the editor controls")
+                assertTrue(pinButton.isEnabled, "The pin control must retain its normal appearance")
+                save.click()
+            } finally {
+                release.countDown()
+                runBlocking { holdingCollection.await() }
+            }
+            waitUntil(message = { "Pin did not finish updating Back" }) { scenario.editorState().fields[1].sticky }
+            assertEquals(0, runBlocking { withCol { noteCount() } }, "Save must not race an in-flight metadata change")
+            assertEquals(listOf("Front text", "Back text"), runBlocking { web.snapshot().fields })
+            captureScreenshot("pinned-with-enabled-controls", web)
+        }
     }
 
     @Test

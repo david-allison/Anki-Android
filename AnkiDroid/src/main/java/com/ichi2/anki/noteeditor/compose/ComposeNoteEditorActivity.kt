@@ -73,7 +73,8 @@ class ComposeNoteEditorActivity :
     TagsDialogListener {
     private val model: EditorViewModel by viewModels()
     private val snackbar = SnackbarHostState()
-    private var busy by mutableStateOf(false)
+    private var busy = false
+    private var showBusyState by mutableStateOf(false)
     private var error by mutableStateOf<String?>(null)
     private var discardDialog by mutableStateOf(false)
     private var typeChangeDialog by mutableStateOf(false)
@@ -239,7 +240,7 @@ class ComposeNoteEditorActivity :
             toolbarState = toolbarState,
             fieldTaps = webSession.fieldTaps,
             ready = ready,
-            busy = busy || state?.isSaving == true,
+            busy = showBusyState || state?.isSaving == true,
             error = error,
             snackbar = snackbar,
             onBack = ::requestClose,
@@ -477,6 +478,7 @@ class ComposeNoteEditorActivity :
 
     private suspend fun setBusy(value: Boolean) {
         busy = value
+        showBusyState = value
         webSession.view?.setInputEnabled(!value)
     }
 
