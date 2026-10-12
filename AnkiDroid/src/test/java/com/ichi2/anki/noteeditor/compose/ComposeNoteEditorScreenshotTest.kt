@@ -36,6 +36,9 @@ import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.utils.dp
 import org.junit.Rule
 import org.junit.Test
+import org.robolectric.RuntimeEnvironment
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Native field options above the keyboard; Robolectric does not render the web fields.
@@ -45,6 +48,90 @@ import org.junit.Test
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun tagsHideWhileTypingAndReturnAboveToolbar() {
+        val (activity, keyboard) = showEditor(tags = listOf("Japanese", "Vocabulary"))
+        composeRule.onNodeWithText("Japanese").assertDoesNotExist()
+        captureScreen("tags_hidden_while_typing")
+        hideKeyboard(activity, keyboard)
+        val tag =
+            composeRule
+                .onNodeWithText("Japanese")
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val bold =
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).fetchSemanticsNode().boundsInRoot
+        assertTrue(tag.bottom <= bold.top && bold.top - tag.bottom < 80.dp.toPx(activity))
+        captureScreen("tags_above_toolbar")
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText("Vocabulary").assertDoesNotExist()
+    }
+
+    @Test
+    fun emptyTagsOpenExistingDialog() {
+        var opened = false
+        val (activity, keyboard) = showEditor(onTags = { opened = true })
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_no_tags)).performClick()
+        assertTrue(opened)
+        captureScreen("tags_empty")
+    }
+
+    @Test
+    fun tagRemovalDoesNotOpenDialog() {
+        var opened = 0
+        var removed: String? = null
+        val (activity, keyboard) = showEditor(tags = listOf("Japanese"), onTags = { opened++ }, onRemoveTag = { removed = it })
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_remove_tag, "Japanese")).performClick()
+        assertEquals("Japanese", removed)
+        assertEquals(0, opened)
+        composeRule.onNodeWithText("Japanese").performClick()
+        assertEquals(1, opened)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags)).performClick()
+        assertEquals(2, opened)
+    }
+
+    @Test
+    fun longTagsKeepAddButtonVisible() {
+        val (activity, keyboard) = showEditor(tags = listOf(LONG_TAG) + (1..100).map { "Vocabulary::Lesson$it" })
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags)).assertIsDisplayed()
+        captureScreen("tags_long_names")
+        composeRule.onNodeWithText(LONG_TAG).performTouchInput { longClick() }
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        captureScreen("tag_long_press")
+    }
+
+    @Test
+    fun tagsRemainVisibleOnTallTabletWhileTyping() {
+        setTabletQualifiers()
+        showEditor(tags = listOf("Japanese", "Vocabulary"))
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+        captureScreen("tags_tablet_keyboard")
+    }
+
+    @Test
+    fun tagsHideInShortTabletWindowWhileTyping() {
+        setTabletQualifiers()
+        RuntimeEnvironment.setQualifiers("+w800dp-h600dp")
+        showEditor(tags = listOf("Japanese", "Vocabulary"))
+        composeRule.onNodeWithText("Japanese").assertDoesNotExist()
+        captureScreen("tags_tablet_compact_keyboard")
+    }
+
+    private fun hideKeyboard(
+        activity: AnkiActivity,
+        keyboard: View,
+    ) {
+        composeRule.runOnIdle {
+            (keyboard.parent as ViewGroup).removeView(keyboard)
+            activity.dispatchInsets(navBarBottom = 48.dp)
+        }
+        composeRule.waitForIdle()
+    }
 
     @Test
     fun selectedFormatting() {
@@ -316,6 +403,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         formats: Set<WebEditorAction> = emptySet(),
         toolbar: EditorFieldToolbar = EditorFieldToolbar(),
         templates: List<EditorCustomToolbarButton> = toolbar.customButtons,
+        tags: List<String> = emptyList(),
+        onTags: () -> Unit = {},
+        onRemoveTag: (String) -> Unit = {},
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -324,6 +414,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     state =
                         editorState(fieldName, noteTypeName, deckName).let { state ->
                             state.copy(
+                                tags = tags,
                                 customButtonTemplates = templates,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
@@ -353,7 +444,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onDeck = {},
                     onType = {},
                     onEditType = {},
-                    onTags = {},
+                    onTags = onTags,
+                    onRemoveTag = onRemoveTag,
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
                     onAction = {},
@@ -406,6 +498,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     )
 
     private companion object {
+        const val LONG_TAG = "Languages::Japanese::AdvancedVocabulary::WordsToRevisitBeforeTheNextProficiencyExam"
         const val LONG_FIELD_NAME = "Japanese reading, pronunciation, pitch accent and detailed usage notes"
         const val LONG_NOTE_TYPE_NAME =
             "Japanese vocabulary with readings, pitch accent, audio, example sentences and detailed grammar explanations"

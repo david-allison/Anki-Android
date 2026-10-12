@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -257,6 +258,7 @@ class ComposeNoteEditorActivity :
             },
             onEditType = { typeChangeDialog = true },
             onTags = { tagsFactory.show(this, checkedTags = ArrayList(state?.tags.orEmpty())) },
+            onRemoveTag = ::removeTag,
             onPinned = { target, pinned -> updateMetadata { model.setFieldPinned(target, pinned) } },
             onLanguageHint = { target ->
                 languageHintTarget = target
@@ -632,6 +634,19 @@ class ComposeNoteEditorActivity :
             ).setClass(this, NoteEditorActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT).putExtra(EXTRA_USE_LEGACY, true),
         )
         finish()
+    }
+
+    private fun removeTag(tag: String) {
+        if (busy) return
+        val removed = model.removeTag(tag) ?: return
+        lifecycleScope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            if (snackbar.showSnackbar(getString(R.string.compose_editor_tag_removed, tag), getString(CommonString.undo)) ==
+                SnackbarResult.ActionPerformed
+            ) {
+                model.restoreTag(removed)
+            }
+        }
     }
 
     override fun onSelectedTags(

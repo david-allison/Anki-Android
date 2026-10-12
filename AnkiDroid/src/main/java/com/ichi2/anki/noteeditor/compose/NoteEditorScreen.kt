@@ -103,6 +103,7 @@ fun NoteEditorScreen(
     onType: (Long) -> Unit,
     onEditType: () -> Unit,
     onTags: () -> Unit,
+    onRemoveTag: (String) -> Unit,
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onAction: (WebEditorAction) -> Unit,
@@ -236,19 +237,18 @@ fun NoteEditorScreen(
                         EditorMetadata(
                             deckName = state.deckName,
                             noteTypeName = state.noteTypeName,
-                            tags = state.tags.joinToString(" "),
                             enabled = enabled,
                             onDeck = onDeck,
                             onType = {
                                 if (state.isAdding) dialog = "type" else onEditType()
                             },
-                            onTags = onTags,
                         )
                         HorizontalDivider()
                         // Only the field area and toolbar follow the keyboard. Keep the
                         // metadata and top bar out of its changing layout constraints.
                         EditorFieldArea(
                             editorState = state,
+                            tablet = tablet,
                             enabled = enabled,
                             state = toolbarState,
                             fieldTaps = fieldTaps,
@@ -261,6 +261,8 @@ fun NoteEditorScreen(
                             onQuickActions = { quickActionsTarget = it },
                             onCustomButtons = { showCustomButtons = true },
                             onCustomAction = onCustomAction,
+                            onTags = onTags,
+                            onRemoveTag = onRemoveTag,
                             modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                         ) { modifier ->
                             EditorFields(
@@ -327,22 +329,13 @@ fun NoteEditorScreen(
 private fun EditorMetadata(
     deckName: String,
     noteTypeName: String,
-    tags: String,
     enabled: Boolean,
     onDeck: () -> Unit,
     onType: () -> Unit,
-    onTags: () -> Unit,
 ) {
-    Row(Modifier.padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         MetadataButton(stringResource(R.string.compose_editor_deck), deckName, enabled, onDeck, Modifier.weight(1f))
         MetadataButton(stringResource(R.string.compose_editor_type), noteTypeName, enabled, onType, Modifier.weight(1f))
-    }
-    TextButton(onClick = onTags, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            stringResource(CommonString.card_details_tags) + ": " + tags.ifEmpty { stringResource(R.string.compose_editor_no_tags) },
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -372,6 +365,7 @@ private fun EditorFields(
 @Composable
 private fun EditorFieldArea(
     editorState: EditorState,
+    tablet: Boolean,
     enabled: Boolean,
     state: State<EditorToolbarState>,
     fieldTaps: Flow<Unit>,
@@ -384,6 +378,8 @@ private fun EditorFieldArea(
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomButtons: () -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
+    onTags: () -> Unit,
+    onRemoveTag: (String) -> Unit,
     modifier: Modifier,
     fields: @Composable (Modifier) -> Unit,
 ) {
@@ -439,6 +435,7 @@ private fun EditorFieldArea(
             fields(Modifier.weight(1f).fillMaxWidth())
             if (!showFieldOptions) {
                 HorizontalDivider()
+                EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState)) {
                         EditorFormattingButtons(
