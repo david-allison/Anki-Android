@@ -9,6 +9,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.test.core.app.ApplicationProvider
 import com.ichi2.anki.R
 import org.junit.Test
@@ -16,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -67,6 +69,26 @@ class ThemeTest {
             black.surface.toArgb(),
             "Black theme should be visually distinct from Dark theme on surface color",
         )
+    }
+
+    @Test
+    fun `primary containers use the app selection palette with readable content`() {
+        val containers =
+            mapOf(
+                R.style.Theme_Light to 0xFFC1E7FF,
+                R.style.Theme_Dark to 0xFF3C5A6E,
+                R.style.Theme_Light_Plain to 0xFFDDDDDD,
+                R.style.Theme_Dark_Black to 0xFF252525,
+                R.style.Theme_Light_Eink to 0xFFCCCCCC,
+            )
+        containers.forEach { (theme, expected) ->
+            val scheme = themed(theme).toMaterial3ColorScheme()
+            assertEquals(expected.toInt(), scheme.primaryContainer.toArgb(), "Selected container for theme $theme")
+            assertTrue(
+                ColorUtils.calculateContrast(scheme.onPrimaryContainer.toArgb(), scheme.primaryContainer.toArgb()) >= 4.5,
+                "Selected text must remain readable for theme $theme",
+            )
+        }
     }
 
     @Test

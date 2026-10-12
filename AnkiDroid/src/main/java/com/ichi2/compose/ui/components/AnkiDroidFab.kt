@@ -11,7 +11,7 @@ import com.ichi2.compose.theme.ankiColors
 
 /**
  * Extended FAB tinted with the app's fab_normal accent, like the View FABs.
- * Prefer this over the bare Material3 one, which renders baseline purple.
+ * Keeps Compose and View FABs on the same accent.
  */
 @Composable
 fun AnkiDroidExtendedFab(
