@@ -2,23 +2,28 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,23 +50,36 @@ internal fun EditorMetadata(
     val type: @Composable (Modifier) -> Unit = { modifier ->
         MetadataRow(stringResource(R.string.compose_editor_type), noteTypeName, "", enabled, onType, modifier)
     }
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+    BoxWithConstraints(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
     ) {
         // The preview may leave a tablet's editor pane narrower than a phone landscape window.
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth >= 600.dp) {
-                Row {
-                    deck(Modifier.weight(1f))
-                    type(Modifier.weight(1f))
-                }
-            } else {
-                Column {
-                    deck(Modifier.fillMaxWidth())
-                    type(Modifier.fillMaxWidth())
-                }
+        // Match reminder troubleshooting: 16dp outer corners, 4dp inner corners and a 2dp gap.
+        if (maxWidth >= 600.dp) {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                deck(
+                    Modifier.weight(1f).fillMaxHeight().clip(
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 4.dp, bottomStart = 16.dp),
+                    ),
+                )
+                type(
+                    Modifier.weight(1f).fillMaxHeight().clip(
+                        RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp),
+                    ),
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                deck(
+                    Modifier.fillMaxWidth().clip(
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 4.dp, bottomStart = 4.dp),
+                    ),
+                )
+                type(
+                    Modifier.fillMaxWidth().clip(
+                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 16.dp),
+                    ),
+                )
             }
         }
     }
@@ -78,6 +96,7 @@ private fun MetadataRow(
 ) {
     Row(
         modifier
+            .background(MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .heightIn(min = 56.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp)
