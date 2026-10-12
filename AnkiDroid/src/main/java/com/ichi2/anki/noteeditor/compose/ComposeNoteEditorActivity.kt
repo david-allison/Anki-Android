@@ -464,6 +464,7 @@ class ComposeNoteEditorActivity :
                     model.consumeSaveResult()
                     setBusy(false)
                     if (result.canSaveAnyway) clozeWarning = result.message else result.message?.let(::reportError)
+                    result.fieldIndex?.let { webSession.view?.focusField(it, highlightError = true) }
                 }
             }
         } catch (e: CancellationException) {

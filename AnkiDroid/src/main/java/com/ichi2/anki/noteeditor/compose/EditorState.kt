@@ -74,5 +74,6 @@ sealed interface EditorSaveResult {
     data class Invalid(
         val message: String?,
         val canSaveAnyway: Boolean = false,
+        val fieldIndex: Int? = null,
     ) : EditorSaveResult
 }

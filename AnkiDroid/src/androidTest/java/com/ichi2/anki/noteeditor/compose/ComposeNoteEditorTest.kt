@@ -985,6 +985,74 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun emptyFirstFieldIsBrieflyHighlightedAfterSave() {
+        assertEmptyFirstFieldHighlight(sourceMode = false)
+    }
+
+    @Test
+    fun emptyFirstFieldIsBrieflyHighlightedInHtmlMode() {
+        assertEmptyFirstFieldHighlight(sourceMode = true)
+    }
+
+    private fun assertEmptyFirstFieldHighlight(sourceMode: Boolean) {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(1, "Keep this back")
+            if (sourceMode) {
+                runBlocking {
+                    web.focusField(0)
+                    assertTrue(web.execute(WebEditorAction.SOURCE_MODE))
+                }
+            }
+            runBlocking { web.focusField(1) }
+            val first = "document.querySelector('.field-container[data-index=\"0\"] .editor-field')"
+            val animation = "$first?.getAnimations().find(animation => animation.id === 'field-error')"
+            clickText(testContext.getString(CommonString.save))
+            web.awaitJavascript("!!($animation)")
+            // Hold the cue for a deterministic screenshot, then verify it expires naturally.
+            web.evaluate("($animation).pause(); ($animation).currentTime = 0;")
+            val mode = if (sourceMode) "source" else "rich"
+            captureScreenshot("empty-first-field-$mode", web)
+            assertEquals(
+                "true",
+                web.evaluate(
+                    """
+                    (() => {
+                        const field = $first;
+                        const bounds = field.getBoundingClientRect();
+                        const style = getComputedStyle(field);
+                        const color = style.outlineColor.match(/\d+/g).map(Number);
+                        return field.matches(':focus-within') && bounds.top >= 0 && bounds.bottom <= innerHeight
+                            && style.outlineStyle === 'solid' && parseFloat(style.outlineWidth) >= 1.5
+                            && color[0] > color[1] && color[0] > color[2];
+                    })()
+                    """.trimIndent(),
+                ),
+                "The first field should be visible, focused and outlined in red (allowing for pixel rounding)",
+            )
+            assertEquals(
+                "0",
+                web.evaluate("document.querySelector('.field-container[data-index=\"1\"] .editor-field').getAnimations().length"),
+            )
+            assertEquals(listOf("", "Keep this back"), runBlocking { web.snapshot().fields })
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            assertTrue(device.hasObject(By.text(CollectionManager.TR.addingTheFirstFieldIsEmpty())))
+            val errorColor = web.evaluate("getComputedStyle($first).outlineColor")
+            web.evaluate("($animation).play()")
+            web.awaitJavascript("!($animation)")
+            assertFalse(errorColor == web.evaluate("getComputedStyle($first).outlineColor"), "The error outline must clear automatically")
+            // A retry must show the cue again, and correcting the note must still permit Save.
+            clickText(testContext.getString(CommonString.save))
+            web.awaitJavascript("!!($animation)")
+            runBlocking { assertTrue(web.execute(WebEditorAction.INSERT_TEXT, value = "Now filled")) }
+            clickText(testContext.getString(CommonString.save))
+            waitUntil(message = { "Correcting the first field did not allow Save" }) { runBlocking { withCol { noteCount() == 1 } } }
+            assertEquals(listOf("Now filled", "Keep this back"), runBlocking { withCol { getNote(findNotes("").single()).fields } })
+        }
+    }
+
+    @Test
     fun addingSavesTheSnapshotAndStartsTheNextNoteWithStickyFields() {
         val type = col.notetypes.basic.deepClone()
         type.fields[0].sticky = true

@@ -460,7 +460,9 @@ class EditorViewModel(
                 val check = checkNoteFieldsResponse(note)
                 if (check is NoteFieldsCheckResult.Failure) {
                     val missingCloze = check.localizedMessage == TR.addingYouHaveAClozeDeletionNote()
-                    if (!allowMissingCloze || !missingCloze) return EditorSaveResult.Invalid(check.localizedMessage, missingCloze)
+                    if (!allowMissingCloze || !missingCloze) {
+                        return EditorSaveResult.Invalid(check.localizedMessage, missingCloze, check.fieldIndex)
+                    }
                 }
                 val changes =
                     undoableOp {

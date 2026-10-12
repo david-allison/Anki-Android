@@ -406,7 +406,9 @@ class EditorViewModelTest : JvmTest() {
             vm.selectNoteType(col.notetypes.cloze.id, listOf("", ""))
             val warning = assertIs<EditorSaveResult.Invalid>(vm.save(listOf("no deletion", "")))
             assertTrue(warning.canSaveAnyway)
-            assertIs<EditorSaveResult.Invalid>(vm.save(listOf("", ""), allowMissingCloze = true))
+            assertNull(warning.fieldIndex)
+            val empty = assertIs<EditorSaveResult.Invalid>(vm.save(listOf("<br>", "back"), allowMissingCloze = true))
+            assertEquals(0, empty.fieldIndex)
             assertIs<EditorSaveResult.Added>(vm.save(listOf("no deletion", ""), allowMissingCloze = true))
             assertEquals(1, col.noteCount())
         }

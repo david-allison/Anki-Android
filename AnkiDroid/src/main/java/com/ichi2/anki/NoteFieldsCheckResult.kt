@@ -24,6 +24,7 @@ sealed interface NoteFieldsCheckResult {
     /** @property localizedMessage user-readable error message */
     data class Failure(
         val localizedMessage: String?,
+        val fieldIndex: Int? = null,
     ) : NoteFieldsCheckResult
 }
 
@@ -45,7 +46,7 @@ suspend fun checkNoteFieldsResponse(note: Note): NoteFieldsCheckResult {
             if (note.notetype.isImageOcclusion) {
                 Failure(TR.notetypesNoOcclusionCreated2())
             } else {
-                Failure(TR.addingTheFirstFieldIsEmpty())
+                Failure(TR.addingTheFirstFieldIsEmpty(), fieldIndex = 0)
             }
 
         NoteFieldsCheckResponse.State.MISSING_CLOZE ->

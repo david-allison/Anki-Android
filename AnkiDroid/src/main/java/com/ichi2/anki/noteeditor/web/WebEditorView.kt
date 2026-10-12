@@ -271,10 +271,13 @@ class WebEditorView(
         context.getSystemService<InputMethodManager>()?.restartInput(this)
     }
 
-    suspend fun focusField(index: Int = 0) {
+    suspend fun focusField(
+        index: Int = 0,
+        highlightError: Boolean = false,
+    ) {
         withContext(Dispatchers.Main.immediate) {
             requestFocus()
-            request("focusField", JSONObject().put("index", index))
+            request("focusField", JSONObject().put("index", index).put("highlightError", highlightError))
             SoftwareKeyboardControllerCompat(this@WebEditorView).show()
         }
     }
