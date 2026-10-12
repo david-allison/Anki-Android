@@ -246,7 +246,6 @@ fun NoteEditorScreen(
                                 if (state.isAdding) dialog = "type" else onEditType()
                             },
                         )
-                        HorizontalDivider()
                         // Only the field area and toolbar follow the keyboard. Keep the
                         // metadata and top bar out of its changing layout constraints.
                         EditorFieldArea(
