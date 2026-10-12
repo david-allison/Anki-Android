@@ -111,13 +111,13 @@ internal fun EditorTags(
                         onClick = onManage,
                         label = {
                             // Material's chip layout top-aligns the label beside a taller trailing icon.
-                            Box(Modifier.heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.heightIn(min = 32.dp), contentAlignment = Alignment.Center) {
                                 Text(tag, Modifier.widthIn(max = 160.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         },
                         trailingIcon = {
                             val removeLabel = stringResource(R.string.compose_editor_remove_tag, tag)
-                            IconButton(onClick = { onRemove(tag) }, enabled = enabled, modifier = Modifier.size(40.dp)) {
+                            IconButton(onClick = { onRemove(tag) }, enabled = enabled, modifier = Modifier.size(32.dp)) {
                                 Icon(painterResource(R.drawable.close_icon), removeLabel, Modifier.size(18.dp))
                             }
                         },

@@ -217,6 +217,37 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun shortTagHasBalancedPaddingAndSeparateRemoveAction() {
+        var opened = 0
+        var removed: String? = null
+        val (activity, keyboard) = showEditor(tags = listOf("y"), onTags = { opened++ }, onRemoveTag = { removed = it })
+        hideKeyboard(activity, keyboard)
+        val chip = composeRule.onNodeWithText("y").fetchSemanticsNode().boundsInRoot
+        val label = composeRule.onNodeWithText("y", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val remove =
+            composeRule
+                .onNodeWithContentDescription(
+                    targetContext.getString(R.string.compose_editor_remove_tag, "y"),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        assertEquals(
+            label.left - chip.left,
+            chip.right - remove.right,
+            absoluteTolerance = 4.dp.toPx(activity).toFloat(),
+            "The remove icon should not leave a much larger end inset than the label's start inset",
+        )
+        composeRule.onRoot().performTouchInput { click(label.center) }
+        assertEquals(1, opened, "Tapping a short tag's text must open the dialog")
+        assertEquals(null, removed)
+        composeRule.onRoot().performTouchInput { click(remove.center) }
+        assertEquals("y", removed)
+        assertEquals(1, opened, "The remove action must not open the dialog")
+        assertTagTextCentered("y")
+        captureScreen("tag_short_balanced_padding")
+    }
+
+    @Test
     fun threeLongNestedTagSectionsRemainReadable() {
         val (activity, keyboard) = showEditor(tags = listOf(LONG_NESTED_TAG))
         hideKeyboard(activity, keyboard)
