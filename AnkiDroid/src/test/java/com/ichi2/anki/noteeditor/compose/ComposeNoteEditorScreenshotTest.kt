@@ -70,7 +70,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun toolbarConfigurationOpen() {
         openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")).performClick()
+        composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         captureScreen("toolbar_configuration")
     }

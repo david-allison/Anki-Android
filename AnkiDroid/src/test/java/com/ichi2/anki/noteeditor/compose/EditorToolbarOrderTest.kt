@@ -29,8 +29,8 @@ class EditorToolbarOrderTest {
     fun `moving a disabled template across Anki buttons does not enable it`() {
         val toolbar =
             EditorFieldToolbar()
-                .moveButton(rubyKey, 1, listOf(ruby), false)
-                .moveButton("ITALIC", -1, listOf(ruby), false)
+                .moveButtonTo(rubyKey, "BOLD", listOf(ruby), false)
+                .moveButtonTo("ITALIC", rubyKey, listOf(ruby), false)
         assertEquals(listOf("BOLD", "ITALIC", rubyKey, "UNDERLINE"), toolbar.buttonOrder.take(4))
         assertEquals(emptyList(), toolbar.customButtons)
         assertEquals(listOf("BOLD", "ITALIC", "UNDERLINE"), toolbar.orderedItems().take(3).map { it.key })
@@ -46,17 +46,26 @@ class EditorToolbarOrderTest {
 
     @Test
     fun `moving across inapplicable cloze commands retains their slots`() {
-        val moved = EditorFieldToolbar().moveButton("UNDERLINE", 1, emptyList(), false)
+        val moved = EditorFieldToolbar().moveButtonTo("UNDERLINE", "UNDO", emptyList(), false)
         assertEquals(listOf("BOLD", "ITALIC", "UNDO", "CLOZE_NEW", "CLOZE_SAME", "UNDERLINE"), moved.buttonOrder.take(6))
-        val cloze = EditorFieldToolbar().moveButton("UNDERLINE", 1, emptyList(), true)
+        val cloze = EditorFieldToolbar().moveButtonTo("UNDERLINE", "CLOZE_NEW", emptyList(), true)
         assertEquals(listOf("BOLD", "ITALIC", "CLOZE_NEW", "UNDERLINE", "CLOZE_SAME", "UNDO"), cloze.buttonOrder.take(6))
     }
 
     @Test
-    fun `boundary and absent button moves leave the configuration unchanged`() {
+    fun `a drag across multiple rows shifts intervening buttons in order`() {
+        val toolbar = EditorFieldToolbar(customButtons = listOf(ruby))
+        val moved = toolbar.moveButtonTo(rubyKey, "UNDO", listOf(ruby), false)
+        assertEquals(listOf("BOLD", "ITALIC", "UNDERLINE", "UNDO", "CLOZE_NEW", "CLOZE_SAME", rubyKey), moved.buttonOrder.take(7))
+        assertEquals(listOf(ruby), moved.customButtons)
+        assertEquals(toolbar.orderedItems(), moved.moveButtonTo(rubyKey, "BOLD", listOf(ruby), false).orderedItems())
+    }
+
+    @Test
+    fun `self moves and absent buttons leave the configuration unchanged`() {
         val toolbar = EditorFieldToolbar()
-        assertSame(toolbar, toolbar.moveButton("BOLD", -1, emptyList(), false))
-        assertSame(toolbar, toolbar.moveButton("RECORD_AUDIO", 1, emptyList(), false))
-        assertSame(toolbar, toolbar.moveButton("CLOZE_NEW", 1, emptyList(), false))
+        assertSame(toolbar, toolbar.moveButtonTo("BOLD", "BOLD", emptyList(), false))
+        assertSame(toolbar, toolbar.moveButtonTo("RECORD_AUDIO", "missing", emptyList(), false))
+        assertSame(toolbar, toolbar.moveButtonTo("CLOZE_NEW", "BOLD", emptyList(), false))
     }
 }

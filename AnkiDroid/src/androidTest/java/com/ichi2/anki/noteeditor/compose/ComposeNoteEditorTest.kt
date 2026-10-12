@@ -196,8 +196,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             device.findObject(By.text("Wrap")).click()
-            val moveDown = By.desc(testContext.getString(R.string.compose_editor_move_button_down, "Wrap"))
-            repeat(2) { device.findObject(moveDown).click() }
+            val handle =
+                checkNotNull(
+                    device.findObject(By.desc(testContext.getString(R.string.compose_editor_reorder_button, "Wrap"))),
+                ).visibleCenter
+            val destination = checkNotNull(device.findObject(By.text(testContext.getString(R.string.compose_editor_italic)))).visibleBounds
+            assertTrue(device.swipe(handle.x, handle.y, handle.x, destination.bottom, 30))
             device.findObjects(save).last().click()
             waitUntil(message = { "The field toolbar did not save" }) {
                 scenario

@@ -75,4 +75,5 @@
     <string name="compose_editor_custom_buttons_scope">Create buttons to use in any field. Editing or deleting a button affects every field using it. Enable buttons for a field in Toolbar.</string>
     <string name="compose_editor_move_button_up">Move %s up</string>
     <string name="compose_editor_move_button_down">Move %s down</string>
+    <string name="compose_editor_reorder_button">Reorder %s</string>
 </resources>

@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import androidx.activity.compose.setContent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -49,10 +50,10 @@ class EditorToolbarDialogTest : RobolectricTest() {
         showDialog()
         val up = targetContext.getString(R.string.compose_editor_move_button_up, "Ruby")
         val down = targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")
-        composeRule.onNodeWithContentDescription(up).assertIsNotEnabled()
-        composeRule.onNodeWithContentDescription(down).performClick()
-        composeRule.onNodeWithContentDescription(up).assertIsEnabled()
-        composeRule.onNodeWithContentDescription(down).performClick()
+        assertEquals(listOf(down), reorderActions("Ruby").map { it.label })
+        composeRule.moveToolbarButton("Ruby", down)
+        assertEquals(listOf(up, down), reorderActions("Ruby").map { it.label })
+        composeRule.moveToolbarButton("Ruby", down)
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText("Ruby").performClick()
@@ -64,7 +65,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
     @Test
     fun `cancelling does not save changed visibility`() {
         showDialog(EditorFieldToolbar(customButtons = listOf(ruby)))
-        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_move_button_down, "Ruby")).performClick()
+        composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
@@ -108,6 +109,13 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
         assertNull(savedTemplates)
     }
+
+    private fun reorderActions(label: String) =
+        composeRule
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_reorder_button, label),
+            ).fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
 
     private fun showLibrary(templates: List<EditorCustomToolbarButton> = emptyList()) {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())

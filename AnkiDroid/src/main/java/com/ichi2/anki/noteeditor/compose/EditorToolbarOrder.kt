@@ -31,23 +31,19 @@ internal fun EditorFieldToolbar.orderedItems(templates: List<EditorCustomToolbar
 
 internal fun EditorToolbarItem.appliesTo(isCloze: Boolean): Boolean = this !is EditorToolbarItem.Builtin || !button.clozeOnly || isCloze
 
-/** Swap displayed neighbors, retaining slots belonging to currently inapplicable buttons. */
-internal fun EditorFieldToolbar.moveButton(
+/** Move within the displayed buttons, retaining slots belonging to currently inapplicable commands. */
+internal fun EditorFieldToolbar.moveButtonTo(
     key: String,
-    offset: Int,
+    destination: String,
     templates: List<EditorCustomToolbarButton>,
     isCloze: Boolean,
 ): EditorFieldToolbar {
-    require(offset == -1 || offset == 1)
     val items = orderedItems(templates)
-    val displayed = items.filter { it.appliesTo(isCloze) }
-    val index = displayed.indexOfFirst { it.key == key }
-    if (index == -1) return this
-    val neighbor = displayed.getOrNull(index + offset) ?: return this
-    val order = items.map { it.key }.toMutableList()
-    val from = order.indexOf(key)
-    val to = order.indexOf(neighbor.key)
-    order[from] = neighbor.key
-    order[to] = key
-    return copy(buttonOrder = order)
+    val displayed = items.filter { it.appliesTo(isCloze) }.map { it.key }.toMutableList()
+    val from = displayed.indexOf(key)
+    val to = displayed.indexOf(destination)
+    if (from == -1 || to == -1 || from == to) return this
+    displayed.add(to, displayed.removeAt(from))
+    val reordered = displayed.iterator()
+    return copy(buttonOrder = items.map { if (it.appliesTo(isCloze)) reordered.next() else it.key })
 }
