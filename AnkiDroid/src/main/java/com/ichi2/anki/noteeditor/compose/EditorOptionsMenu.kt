@@ -3,19 +3,26 @@
 package com.ichi2.anki.noteeditor.compose
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 
@@ -28,6 +35,28 @@ internal fun EditorOptionsMenu(
     onCards: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
+    fontSize?.let { value ->
+        AlertDialog(
+            onDismissRequest = { fontSize = null },
+            title = { Text(stringResource(CommonString.menu_font_size)) },
+            text = {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) fontSize = it },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            },
+            confirmButton = {
+                TextButton(enabled = value.toIntOrNull() in 1..99, onClick = {
+                    onSettings(settings.copy(fontSize = value.toInt()))
+                    fontSize = null
+                }) { Text(stringResource(CommonString.dialog_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { fontSize = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
+        )
+    }
     Box {
         EditorActionButton(R.drawable.ic_settings_black, R.string.compose_editor_options, enabled) { expanded = true }
         DropdownMenu(
@@ -48,6 +77,11 @@ internal fun EditorOptionsMenu(
             EditorOption(R.string.compose_editor_auto_close_tags, settings.autoCloseTags) {
                 change(settings.copy(autoCloseTags = !settings.autoCloseTags))
             }
+            HorizontalDivider()
+            DropdownMenuItem(text = { Text(stringResource(CommonString.menu_font_size)) }, onClick = {
+                expanded = false
+                fontSize = (settings.fontSize ?: 20).toString()
+            })
             HorizontalDivider()
             DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_fields)) }, onClick = {
                 expanded = false

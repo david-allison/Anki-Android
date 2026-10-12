@@ -164,7 +164,7 @@ class EditorViewModelTest : JvmTest() {
         runTest {
             val vm = loadAdd()
             val before = assertNotNull(vm.state.value)
-            val settings = WebEditorSettings(shrinkImages = false, mathjaxPreview = false, autoCloseTags = false)
+            val settings = WebEditorSettings(shrinkImages = false, mathjaxPreview = false, autoCloseTags = false, fontSize = 28)
             vm.setEditorSettings(settings)
             val after = assertNotNull(vm.state.value)
             assertEquals(before.generation, after.generation)
