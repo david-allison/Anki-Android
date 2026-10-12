@@ -826,3 +826,72 @@ No phone settings or regular AnkiDroid data were changed. The fixed debug APK is
 installed; no profiling hooks were added to production code.
 
 [Local captures, scripts, APKs and comparison JSON](../AnkiDroid/build/reports/compose-editor/keyboard-opening/).
+
+## Per-field quick actions: first-load cost (12 October 2026)
+
+**Two fields: 24.0 ms before → 24.4 ms with Pin and Gallery enabled.**
+This measures binding a fresh document, creating its draft and focusing the first
+field in desktop Chromium. It is a component benchmark, not a new Pixel
+screen-opening or app-startup measurement.
+
+| Fields | Previous build | New build, no actions | Pin + Gallery on every field |
+| --- | ---: | ---: | ---: |
+| 2 | 24.0 ms | 24.4 ms | 24.4 ms |
+| 400 | 83.9 ms | 87.7 ms | 85.3 ms |
+
+Medians of 12 interleaved fresh-page samples per case, 390 × 700 viewport,
+using the production Android bridge and built backend assets. The benchmark
+supplies translation RPC responses locally. It includes the real SVG path data,
+draft creation and initial focus, but excludes Android activity creation,
+collection reads and native preference loading. Treat differences of a few
+milliseconds as provisional; there is no new full-device latency claim here.
+With 400 fields, the taller action headers also reduce the number of nearby
+mounted inputs from 18 to 14.
+
+The first implementation created off-screen buttons eagerly and added roughly
+30 ms in the 400-field case. The final implementation reuses the existing
+viewport observer. Collapsed fields can expose their actions without mounting a
+rich-text or HTML editor. Empty action lists render no controls. Initial loading
+still fetches one JavaScript module, with no CodeMirror or MathJax initialization
+for plain rich-text fields. The entry module grew from 278,983 to 282,523 bytes;
+the HTML with inline styles grew from 26,825 to 27,869 bytes. Initial actions travel
+with the existing document message, without another startup bridge request.
+
+Configure a field through **Field options → Quick actions**. Pin, Gallery,
+Camera, Drawing, Record audio, Audio clip and Video clip are independently enabled
+and draggable. Storage uses the existing collection/note-type/stable-field
+SharedPreferences key, with a TODO to move it into the Anki collection. Defaults
+are empty. The backend requires fields API version 6.
+
+Pinning and opening a picker preserve the existing selection. Media uses the
+current caret for the active field, or the end of an inactive field. A picker
+retains that explicit session/generation/field/revision target; intervening edits
+cannot silently redirect its result. Applying media uses the existing editor
+selection restoration and undo support. Cancelling preserves the original
+selection. Pinning is also allowed during IME composition because it changes
+metadata only.
+
+Validation:
+
+- Browser suite: 62 passed; the existing native-host navigation case is explicitly
+  skipped. Covers deferred/collapsed fields, rich and source append targets,
+  focus preservation, undo, narrow headers and active-icon contrast in both themes.
+- Production-bridge checks cover stale media targets, live configuration,
+  disabled controls, collapsed HTML fields and pinning during composition.
+- Native preferences tests and 44 light/dark screenshot cases cover configuration
+  and the existing toolbar/field-options UI.
+- API 35 emulator, WebView 124.0.6367.219: configuration → Back quick pin while Front stays
+  focused → direct Gallery → cancellation → recreation passed. Uses a synthetic
+  collection and only `com.ichi2.anki.composefieldsprobe`. The phone was unavailable
+  for this final check and was not used.
+
+Reproduce the bridge checks from the AnkiDroid root:
+
+```sh
+node tools/editor-field-actions/check.mjs /path/to/Anki-Android-Backend-compose-editor
+```
+
+An optional second argument supplies an extracted previous `sveltekit` assets
+folder, with `baseline-editor.js` beside it, to run the startup comparison.
+Local raw results and emulator screenshots are in
+`AnkiDroid/build/reports/compose-editor/quick-actions/`.
