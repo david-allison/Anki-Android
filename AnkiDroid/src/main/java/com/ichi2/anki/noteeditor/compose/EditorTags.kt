@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -84,7 +85,12 @@ internal fun EditorTags(
                             selected = false,
                             enabled = enabled,
                             onClick = onManage,
-                            label = { Text(tag, Modifier.widthIn(max = 160.dp), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            label = {
+                                // Material's chip layout top-aligns the label beside a taller trailing icon.
+                                Box(Modifier.heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
+                                    Text(tag, Modifier.widthIn(max = 160.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            },
                             trailingIcon = {
                                 val removeLabel = stringResource(R.string.compose_editor_remove_tag, tag)
                                 IconButton(onClick = { onRemove(tag) }, enabled = enabled, modifier = Modifier.size(40.dp)) {

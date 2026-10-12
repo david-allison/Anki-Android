@@ -122,6 +122,41 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun tagTextIsCenteredWithTheRemoveIcon() {
+        val (activity, keyboard) = showEditor(tags = listOf("Japanese"))
+        hideKeyboard(activity, keyboard)
+        assertTagTextCentered("Japanese")
+        captureScreen("tag_centered_text")
+    }
+
+    @Test
+    fun threeLongNestedTagSectionsRemainReadable() {
+        val (activity, keyboard) = showEditor(tags = listOf(LONG_NESTED_TAG))
+        hideKeyboard(activity, keyboard)
+        assertTagTextCentered(LONG_NESTED_TAG)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags)).assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_remove_tag, LONG_NESTED_TAG))
+            .assertIsDisplayed()
+        captureScreen("tag_three_long_sections")
+        composeRule.onNodeWithText(LONG_NESTED_TAG).performTouchInput { longClick() }
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        captureScreen("tag_three_long_sections_tooltip")
+    }
+
+    private fun assertTagTextCentered(tag: String) {
+        val label = composeRule.onNodeWithText(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val remove =
+            composeRule
+                .onNodeWithContentDescription(
+                    targetContext.getString(R.string.compose_editor_remove_tag, tag),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        assertEquals(remove.center.y, label.center.y, absoluteTolerance = 1f, "Tag text must be centered beside its remove icon")
+    }
+
+    @Test
     fun longTagsKeepAddButtonVisible() {
         val (activity, keyboard) = showEditor(tags = listOf(LONG_TAG) + (1..100).map { "Vocabulary::Lesson$it" })
         hideKeyboard(activity, keyboard)
@@ -526,6 +561,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     )
 
     private companion object {
+        const val LONG_NESTED_TAG =
+            "AdvancedJapaneseVocabularyAndExpressions::" +
+                "ReadingPracticeForLiteratureAndNewspapers::" +
+                "WordsToRevisitBeforeTheNextProficiencyExam"
         const val LONG_TAG = "Languages::Japanese::AdvancedVocabulary::WordsToRevisitBeforeTheNextProficiencyExam"
         const val LONG_FIELD_NAME = "Japanese reading, pronunciation, pitch accent and detailed usage notes"
         const val LONG_NOTE_TYPE_NAME =
