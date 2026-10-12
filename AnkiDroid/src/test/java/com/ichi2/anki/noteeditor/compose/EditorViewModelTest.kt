@@ -31,6 +31,40 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `removing a tag changes the draft and undo preserves later edits`() =
+        runTest {
+            val note = addBasicNote()
+            note.tags = mutableListOf("first", "second", "third")
+            col.updateNote(note)
+            val vm = loadEdit(note.firstCard().id)
+            val removed = assertNotNull(vm.removeTag("second"))
+            assertEquals(listOf("first", "third"), vm.state.value?.tags)
+            assertTrue(vm.state.value!!.hasMetadataChanges)
+            assertEquals(listOf("first", "second", "third"), col.getNote(note.id).tags)
+            vm.setTags(listOf("first", "third", "new"))
+            vm.restoreTag(removed)
+            assertEquals(listOf("first", "second", "third", "new"), vm.state.value?.tags)
+            vm.restoreTag(removed)
+            assertEquals(
+                4,
+                vm.state.value!!
+                    .tags.size,
+            )
+            assertNull(vm.removeTag("absent"))
+        }
+
+    @Test
+    fun `undoing a tag removal cannot change the next added note`() =
+        runTest {
+            val vm = loadAdd()
+            vm.setTags(listOf("removed", "retained"))
+            val removed = assertNotNull(vm.removeTag("removed"))
+            assertIs<EditorSaveResult.Added>(vm.save(listOf("front", "back")))
+            vm.restoreTag(removed)
+            assertEquals(listOf("retained"), vm.state.value?.tags)
+        }
+
+    @Test
     fun `template changes refresh all enabled fields without changing note content`() =
         runTest {
             val vm = loadAdd()
