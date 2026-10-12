@@ -449,6 +449,31 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun nestedDeckShowsItsParentsAboveTheSelectedName() {
+        val (activity, keyboard) = showEditor(deckName = "Languages::Japanese::Everyday conversation")
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithText("Languages › Japanese").assertIsDisplayed()
+        composeRule.onNodeWithText("Everyday conversation").assertIsDisplayed()
+        captureScreen("nested_deck_name")
+    }
+
+    @Test
+    fun metadataUsesTheEditorPaneWidthWhenTabletPreviewIsToggled() {
+        setTabletQualifiers()
+        RuntimeEnvironment.setQualifiers("+w1000dp-h800dp")
+        val (activity, keyboard) = showEditor(deckName = "Languages::Japanese::Everyday conversation")
+        hideKeyboard(activity, keyboard)
+
+        fun bounds(text: String) = composeRule.onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+
+        assertTrue(bounds("Everyday conversation").bottom < bounds("Basic").top)
+        captureScreen("metadata_tablet_preview")
+        composeRule.onNodeWithText(getResourceString(CommonString.note_editor_hide_previewer)).performClick()
+        assertTrue(bounds("Everyday conversation").right < bounds("Basic").left)
+        captureScreen("metadata_tablet_wide")
+    }
+
+    @Test
     fun pinLongPress() {
         captureLongPress(R.string.compose_editor_pin_field, R.string.compose_editor_pin_field_summary, "pin_long_press")
     }
@@ -537,7 +562,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         noteTypeName: String = "Basic",
     ) {
         showEditor(deckName = deckName, noteTypeName = noteTypeName)
-        composeRule.onNodeWithText(deckName).assertIsDisplayed()
+        composeRule.onNodeWithText(deckName.substringAfterLast("::")).assertIsDisplayed()
+        if ("::" in deckName) {
+            composeRule.onNodeWithText(deckName.substringBeforeLast("::").replace("::", " › ")).assertIsDisplayed()
+        }
         composeRule.onNodeWithText(noteTypeName).assertIsDisplayed()
         captureScreen(name)
     }

@@ -33,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Scaffold
@@ -73,7 +72,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -322,20 +320,6 @@ fun NoteEditorScreen(
                     dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
                 )
         }
-    }
-}
-
-@Composable
-private fun EditorMetadata(
-    deckName: String,
-    noteTypeName: String,
-    enabled: Boolean,
-    onDeck: () -> Unit,
-    onType: () -> Unit,
-) {
-    Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        MetadataButton(stringResource(R.string.compose_editor_deck), deckName, enabled, onDeck, Modifier.weight(1f))
-        MetadataButton(stringResource(R.string.compose_editor_type), noteTypeName, enabled, onType, Modifier.weight(1f))
     }
 }
 
@@ -656,22 +640,6 @@ internal fun EditorTooltip(
             focusable = false,
             content = content,
         )
-    }
-}
-
-@Composable
-private fun MetadataButton(
-    label: String,
-    value: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier,
-) {
-    OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Column {
-            Text(label, style = MaterialTheme.typography.labelSmall)
-            Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
     }
 }
 
