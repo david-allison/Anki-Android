@@ -70,7 +70,7 @@ internal fun EditorTags(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             shape = RectangleShape,
-            contentPadding = PaddingValues(horizontal = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
         ) {
             Icon(
                 painterResource(R.drawable.ic_tag),
@@ -91,7 +91,7 @@ internal fun EditorTags(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = onManage)
-            .padding(horizontal = 8.dp),
+            .padding(start = 16.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
