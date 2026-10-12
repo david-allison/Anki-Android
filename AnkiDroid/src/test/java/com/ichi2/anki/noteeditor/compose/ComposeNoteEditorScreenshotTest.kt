@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +34,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -116,6 +118,29 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         addTags.performClick()
         assertEquals(3, opened)
         captureScreen("tags_empty")
+    }
+
+    @Test
+    fun removingTheLastTagKeepsTheLeadingContentAligned() {
+        val tags = mutableStateListOf("Japanese")
+        val (activity, keyboard) = showEditor(tags = tags)
+        hideKeyboard(activity, keyboard)
+        val populatedLeft =
+            composeRule
+                .onNodeWithText(
+                    getResourceString(CommonString.card_details_tags),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNode()
+                .boundsInRoot.left
+        composeRule.runOnIdle { tags.clear() }
+        val emptyLeft =
+            composeRule
+                .onNodeWithText(
+                    getResourceString(R.string.compose_editor_no_tags),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNode()
+                .boundsInRoot.left
+        assertEquals(populatedLeft, emptyLeft, "The leading icon and label must stay aligned when the last tag is removed")
     }
 
     @Test
