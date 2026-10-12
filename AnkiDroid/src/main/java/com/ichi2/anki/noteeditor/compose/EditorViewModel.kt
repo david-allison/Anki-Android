@@ -263,6 +263,28 @@ class EditorViewModel(
         updateMetadata(current.copy(tags = normalized))
     }
 
+    internal data class RemovedTag(
+        val sessionId: String,
+        val generation: Int,
+        val name: String,
+        val index: Int,
+    )
+
+    internal fun removeTag(name: String): RemovedTag? {
+        val current = state.value?.takeUnless { it.isSaving } ?: return null
+        val index = current.tags.indexOf(name).takeIf { it >= 0 } ?: return null
+        updateMetadata(current.copy(tags = current.tags.filterNot { it == name }))
+        return RemovedTag(current.sessionId, current.generation, name, index)
+    }
+
+    /** Undo only this removal, preserving subsequent tag edits and never changing the next Add note. */
+    internal fun restoreTag(removed: RemovedTag) {
+        val current = state.value?.takeUnless { it.isSaving } ?: return
+        if (current.sessionId != removed.sessionId || current.generation != removed.generation || removed.name in current.tags) return
+        val tags = current.tags.toMutableList().apply { add(removed.index.coerceAtMost(size), removed.name) }
+        updateMetadata(current.copy(tags = tags))
+    }
+
     /** Add-mode type changes retain values by ordinal, like the existing note editor. */
     suspend fun selectNoteType(
         id: Long,
