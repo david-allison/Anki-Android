@@ -2887,7 +2887,7 @@ class NoteEditorFragment :
         private const val PREF_NOTE_EDITOR_SHOW_TOOLBAR = "noteEditorShowToolbar"
         private const val PREF_NOTE_EDITOR_NEWLINE_REPLACE = "noteEditorNewlineReplace"
         private const val PREF_NOTE_EDITOR_CAPITALIZE = "note_editor_capitalize"
-        private const val PREF_NOTE_EDITOR_FONT_SIZE = "note_editor_font_size"
+        internal const val PREF_NOTE_EDITOR_FONT_SIZE = "note_editor_font_size"
         private const val PREF_NOTE_EDITOR_CUSTOM_BUTTONS = "note_editor_custom_buttons"
 
         fun newInstance(args: Bundle): NoteEditorFragment =

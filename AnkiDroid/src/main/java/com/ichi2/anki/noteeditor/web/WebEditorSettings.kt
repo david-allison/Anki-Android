@@ -9,12 +9,14 @@ data class WebEditorSettings(
     val shrinkImages: Boolean = true,
     val mathjaxPreview: Boolean = true,
     val autoCloseTags: Boolean = true,
+    val fontSize: Int? = null,
 ) {
     fun toJson(): JSONObject =
         JSONObject()
             .put("shrinkImages", shrinkImages)
             .put("mathjaxPreview", mathjaxPreview)
             .put("autoCloseTags", autoCloseTags)
+            .put("fontSize", fontSize ?: JSONObject.NULL)
 
     companion object {
         fun fromJson(value: JSONObject?) =
@@ -22,6 +24,7 @@ data class WebEditorSettings(
                 shrinkImages = value?.optBoolean("shrinkImages", true) ?: true,
                 mathjaxPreview = value?.optBoolean("mathjaxPreview", true) ?: true,
                 autoCloseTags = value?.optBoolean("autoCloseTags", true) ?: true,
+                fontSize = value?.optInt("fontSize")?.takeIf { it in 1..99 },
             )
     }
 }

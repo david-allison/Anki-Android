@@ -152,6 +152,12 @@ class EditorViewModel(
                                 shrinkImages = config.get<Boolean>("shrinkEditorImages") ?: true,
                                 mathjaxPreview = config.get<Boolean>("renderMathjax") ?: true,
                                 autoCloseTags = config.get<Boolean>("closeHTMLTags") ?: true,
+                                fontSize =
+                                    Prefs.sharedPrefs
+                                        .getInt(
+                                            NoteEditorFragment.PREF_NOTE_EDITOR_FONT_SIZE,
+                                            0,
+                                        ).takeIf { it in 1..99 },
                             ),
                     )
                 }
@@ -205,11 +211,20 @@ class EditorViewModel(
 
     suspend fun setEditorSettings(settings: WebEditorSettings) {
         requireNotNull(state.value)
+        require(settings.fontSize == null || settings.fontSize in 1..99)
         withCol {
             requireCurrentCollection()
             config.set("shrinkEditorImages", settings.shrinkImages)
             config.set("renderMathjax", settings.mathjaxPreview)
             config.set("closeHTMLTags", settings.autoCloseTags)
+        }
+        withContext(ioDispatcher) {
+            check(
+                Prefs.sharedPrefs
+                    .edit()
+                    .putInt(NoteEditorFragment.PREF_NOTE_EDITOR_FONT_SIZE, settings.fontSize ?: 0)
+                    .commit(),
+            )
         }
         mutableState.value = requireNotNull(state.value).copy(settings = settings)
     }
