@@ -82,6 +82,47 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun undoAndRedoUseTheSelectedFieldsHistory() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Front")
+            web.setField(1, "Back")
+            runBlocking {
+                web.focusField(0)
+                assertTrue(web.execute(WebEditorAction.INSERT_TEXT, checkNotNull(web.captureTarget()), " first"))
+                web.focusField(1)
+                assertTrue(web.execute(WebEditorAction.INSERT_TEXT, checkNotNull(web.captureTarget()), " second"))
+                web.focusField(0)
+            }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+
+            fun command(label: Int) = checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(label))), 5_000)).click()
+            command(CommonString.undo)
+            waitUntil(message = { "Undo must change Front and leave Back alone" }) {
+                runBlocking { web.snapshot().fields } == listOf("Front", "Back second")
+            }
+            runBlocking {
+                web.focusField(1)
+                assertTrue(web.execute(WebEditorAction.INSERT_TEXT, checkNotNull(web.captureTarget()), " third"))
+                web.focusField(0)
+            }
+            command(CommonString.redo)
+            waitUntil(message = { "An edit to Back must not discard Front's redo" }) {
+                runBlocking { web.snapshot().fields } == listOf("Front first", "Back second third")
+            }
+            command(R.string.compose_editor_source)
+            web.awaitJavascript("document.querySelectorAll('.CodeMirror').length === 1")
+            runBlocking {
+                assertTrue(web.execute(WebEditorAction.INSERT_TEXT, checkNotNull(web.captureTarget()), " source"))
+            }
+            command(CommonString.undo)
+            waitUntil(message = { "HTML mode undo must also leave Back alone" }) {
+                runBlocking { web.snapshot().fields } == listOf("Front first", "Back second third")
+            }
+        }
+    }
+
+    @Test
     fun attachMediaUsesTheSharedSheetAndRetainsItsDestination() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val launched = AtomicReference<MultimediaActivityExtra>()
