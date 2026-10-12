@@ -14,11 +14,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasAnySibling
-import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -195,6 +197,54 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureLongPress(R.string.compose_editor_language_hint, R.string.compose_editor_language_hint_summary, "keyboard_long_press")
     }
 
+    @Test
+    fun formattingButtonLongPress() {
+        captureToolbarLongPress(R.string.compose_editor_bold, "formatting_button_long_press")
+    }
+
+    @Test
+    fun toolbarActionLongPress() {
+        captureToolbarLongPress(com.ichi2.anki.CommonString.undo, "toolbar_action_long_press")
+    }
+
+    @Test
+    fun editorOptionsLongPress() {
+        captureToolbarLongPress(R.string.compose_editor_options, "editor_options_long_press")
+    }
+
+    @Test
+    fun fieldOptionsLongPress() {
+        showEditor()
+        fieldOptionsButton().performTouchInput { longClick() }
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).assertIsDisplayed()
+        captureScreen("field_options_long_press")
+    }
+
+    @Test
+    fun customButtonLongPress() {
+        val label = "Wrap the selection in ruby annotation with pronunciation"
+        showEditor(
+            toolbar =
+                EditorFieldToolbar(
+                    customButtons = listOf(EditorCustomToolbarButton(label = label, prefix = "<ruby>", suffix = "</ruby>")),
+                ),
+        )
+        composeRule.onNodeWithText(label).performTouchInput { longClick() }
+        composeRule.onNode(hasText(label) and hasAnyAncestor(isPopup())).assertIsDisplayed()
+        captureScreen("custom_button_long_press")
+    }
+
+    private fun captureToolbarLongPress(
+        label: Int,
+        name: String,
+    ) {
+        showEditor()
+        val text = getResourceString(label)
+        composeRule.onNodeWithContentDescription(text).performTouchInput { longClick() }
+        composeRule.onNodeWithText(text).assertIsDisplayed()
+        captureScreen(name)
+    }
+
     private fun captureLongPress(
         label: Int,
         explanation: Int,
@@ -212,17 +262,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         templates: List<EditorCustomToolbarButton> = emptyList(),
     ): Pair<AnkiActivity, View> {
         val editor = showEditor(fieldName = fieldName, noteTypeName = noteTypeName, templates = templates)
-        // The hidden sheet also composes its collapse button; choose the one beside the formatting controls.
-        val bold = hasContentDescription(getResourceString(R.string.compose_editor_bold))
-        composeRule
-            .onNode(
-                hasContentDescription(getResourceString(R.string.compose_editor_field_options)) and
-                    hasAnySibling(bold or hasAnyDescendant(bold)),
-            ).performClick()
+        fieldOptionsButton().performClick()
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         composeRule.waitForIdle()
         return editor
     }
+
+    private fun fieldOptionsButton() =
+        composeRule.onAllNodesWithContentDescription(getResourceString(R.string.compose_editor_field_options)).let { buttons ->
+            // The hidden sheet also composes its collapse button; only the toolbar button is visible.
+            (0 until buttons.fetchSemanticsNodes().size).map { buttons[it] }.single { it.isDisplayed() }
+        }
 
     private fun captureMetadataNames(
         name: String,
