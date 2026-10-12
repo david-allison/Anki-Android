@@ -2,6 +2,8 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.app.Activity
+import android.app.Instrumentation
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -26,7 +28,12 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
+import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableExtraCompat
 import com.ichi2.anki.model.SelectableDeck
+import com.ichi2.anki.multimedia.MultimediaActivity
+import com.ichi2.anki.multimedia.MultimediaActivityExtra
+import com.ichi2.anki.multimedia.MultimediaArgsStorage
+import com.ichi2.anki.multimedia.MultimediaBottomSheet
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
@@ -72,6 +79,72 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ensureWebViewIsSupported()
         CollectionManager.setColForTests(emptyCol)
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun attachMediaUsesTheSharedSheetAndRetainsItsDestination() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val launched = AtomicReference<MultimediaActivityExtra>()
+        val monitor =
+            object : Instrumentation.ActivityMonitor() {
+                override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                    if (intent.component?.className != MultimediaActivity::class.java.name) return null
+                    val file = checkNotNull(intent.getSerializableExtraCompat<File>(MultimediaActivity.EXTRA_FRAGMENT_ARGS))
+                    launched.set(MultimediaArgsStorage.create(testContext).read(file))
+                    file.delete()
+                    return Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null)
+                }
+            }
+        instrumentation.addMonitor(monitor)
+        try {
+            withEditor { scenario ->
+                var web = scenario.awaitEditor()
+                web.setField(0, "Front text")
+                web.setField(1, "Back text")
+                val state = scenario.editorState()
+                val model = scenario.editorModel()
+                runBlocking {
+                    withContext(Dispatchers.Main) {
+                        for (index in state.fields.indices) {
+                            model.setFieldToolbar(
+                                EditorFieldTarget(state.sessionId, state.generation, index),
+                                EditorFieldToolbar(buttonOrder = listOf(EditorToolbarButton.MEDIA.name)),
+                            )
+                        }
+                    }
+                    web.focusField(1)
+                }
+                val device = UiDevice.getInstance(instrumentation)
+
+                fun openSheet() {
+                    checkNotNull(
+                        device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_media))), 5_000),
+                    ).click()
+                    assertNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "multimedia_action_drawing")), 5_000))
+                    scenario.onActivity { activity ->
+                        assertTrue(activity.supportFragmentManager.fragments.any { it is MultimediaBottomSheet })
+                    }
+                }
+                openSheet()
+                captureScreenshot("native-media-sheet", web)
+                scenario.recreate()
+                web = scenario.awaitEditor()
+                assertNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "multimedia_action_image")), 5_000))
+                runBlocking { web.focusField(0) }
+                device.findObject(By.res(testContext.packageName, "multimedia_action_image")).click()
+                waitUntil(message = { "Gallery was not launched" }) { launched.get() != null }
+                assertEquals(1, launched.get().index, "Recreating the sheet or moving focus must not redirect its attachment")
+                assertEquals(listOf("Front text", "Back text"), runBlocking { web.snapshot().fields })
+                // Cancellation must allow the next attachment to use the newly selected field.
+                launched.set(null)
+                openSheet()
+                device.findObject(By.res(testContext.packageName, "multimedia_action_drawing")).click()
+                waitUntil(message = { "Drawing was not launched" }) { launched.get() != null }
+                assertEquals(0, launched.get().index)
+            }
+        } finally {
+            instrumentation.removeMonitor(monitor)
+        }
     }
 
     @Test

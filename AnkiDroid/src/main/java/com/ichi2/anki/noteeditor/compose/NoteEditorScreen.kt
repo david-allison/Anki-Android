@@ -111,6 +111,7 @@ fun NoteEditorScreen(
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onAction: (WebEditorAction) -> Unit,
     onMedia: (MultimediaActionHandler) -> Unit,
+    onAttachMedia: () -> Unit,
     onLegacy: () -> Unit,
     onPreviewVisibility: (Boolean) -> Unit,
     editor: @Composable (Modifier) -> Unit,
@@ -256,7 +257,7 @@ fun NoteEditorScreen(
                             state = toolbarState,
                             fieldTaps = fieldTaps,
                             onAction = onAction,
-                            onMedia = { dialog = "media" },
+                            onMedia = onAttachMedia,
                             onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
@@ -301,29 +302,6 @@ fun NoteEditorScreen(
                     },
                 )
             }
-            "media" ->
-                AlertDialog(
-                    onDismissRequest = { dialog = null },
-                    title = { Text(stringResource(R.string.compose_editor_media)) },
-                    text = {
-                        Column {
-                            listOf(
-                                R.string.compose_editor_image to MultimediaActionHandler.ImageFile,
-                                R.string.compose_editor_camera to MultimediaActionHandler.Camera,
-                                CommonString.multimedia_editor_popup_audio to MultimediaActionHandler.AudioRecording,
-                                R.string.compose_editor_audio to MultimediaActionHandler.AudioFile,
-                                R.string.compose_editor_video to MultimediaActionHandler.VideoFile,
-                            ).forEach { (label, handler) ->
-                                TextButton(onClick = {
-                                    dialog = null
-                                    onMedia(handler)
-                                }) { Text(stringResource(label)) }
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                    dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
-                )
         }
     }
 }
