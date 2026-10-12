@@ -99,7 +99,8 @@ rebuilding its inputs. Configurable actions beside individual fields remain futu
 this field on every note using the same note type. The adjacent **Custom Buttons**
 control manages global HTML button templates. Editing a template updates all fields
 using it; deleting one removes it from their toolbars. New templates start disabled
-until selected in Toolbar. Drag handles mix both kinds in one ordered list, using the same drag and edge-scrolling
+until selected in Toolbar. Toolbar configuration uses a fullscreen dialog with Cancel and Save in the top bar.
+Drag handles mix both kinds in one ordered list, using the same drag and edge-scrolling
 behavior as Manage columns. Accessibility actions also move buttons up/down; hidden
 buttons retain their positions. Both dialogs save changes together; Cancel discards them.
 The toolbar follows the focused field; Field options remains accessible even when

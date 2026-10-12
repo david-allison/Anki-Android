@@ -6,19 +6,22 @@ import android.view.MotionEvent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,9 +40,12 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EditorToolbarDialog(
     target: EditorFieldTarget,
@@ -53,14 +59,30 @@ internal fun EditorToolbarDialog(
     var toolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     val allItems = toolbar.orderedItems(templates)
     val items = allItems.filter { it.appliesTo(isCloze) }
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.compose_editor_toolbar)) },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.compose_editor_toolbar)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = { onSave(toolbar) }) { Text(stringResource(CommonString.save)) }
+                    },
+                )
+            },
+        ) { insets ->
             EditorToolbarList(
                 items = items,
                 onMove = { from, to -> toolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
                     Column {
                         Text(field.name, style = MaterialTheme.typography.titleMedium)
@@ -111,10 +133,8 @@ internal fun EditorToolbarDialog(
                     moveDown = if (index < items.lastIndex) ({ move(1) }) else null,
                 )
             }
-        },
-        confirmButton = { TextButton(onClick = { onSave(toolbar) }) { Text(stringResource(CommonString.save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
-    )
+        }
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -132,7 +152,7 @@ private fun EditorToolbarRow(
     val upLabel = stringResource(R.string.compose_editor_move_button_up, label)
     val downLabel = stringResource(R.string.compose_editor_move_button_down, label)
     val dragLabel = stringResource(R.string.compose_editor_reorder_button, label)
-    Surface(color = AlertDialogDefaults.containerColor, tonalElevation = if (dragging) 4.dp else 0.dp) {
+    Surface(tonalElevation = if (dragging) 4.dp else 0.dp) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier.weight(1f).heightIn(min = 48.dp).toggleable(checked, role = Role.Checkbox, onValueChange = onCheckedChange),
