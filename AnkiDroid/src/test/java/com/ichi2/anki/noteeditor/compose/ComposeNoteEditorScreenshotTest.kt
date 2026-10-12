@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -31,6 +33,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
@@ -391,6 +394,39 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
         captureScreen("all_toolbar_buttons_hidden")
+    }
+
+    @Test
+    fun toolbarEndFade() {
+        captureToolbarEndFade(rtl = false)
+    }
+
+    @Test
+    fun toolbarEndFadeRtl() {
+        captureToolbarEndFade(rtl = true)
+    }
+
+    private fun captureToolbarEndFade(rtl: Boolean) {
+        // Place the edge through an icon, rather than through the gap between buttons.
+        RuntimeEnvironment.setQualifiers("+${if (rtl) "ldrtl" else "ldltr"}-w420dp")
+        showEditor()
+        val bold =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_bold),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        val options = fieldOptionsButton().fetchSemanticsNode().boundsInRoot
+        assertEquals(rtl, bold.center.x > options.center.x)
+        val name = if (rtl) "toolbar_end_fade_rtl" else "toolbar_end_fade"
+        captureScreen(name)
+        val toolbar = composeRule.onNode(hasScrollAction())
+        toolbar.performSemanticsAction(SemanticsActions.ScrollBy) { it(10_000f, 0f) }
+        val axis = toolbar.fetchSemanticsNode().config[SemanticsProperties.HorizontalScrollAxisRange]
+        assertEquals(axis.maxValue(), axis.value())
+        captureScreen("${name}_fully_scrolled")
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
     }
 
     @Test
