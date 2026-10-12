@@ -29,6 +29,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
+import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.tests.InstrumentedTest
@@ -51,6 +52,7 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -150,6 +152,85 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             awaitChecked(R.string.compose_editor_bold, false)
             web.awaitJavascript("document.querySelector('.CodeMirror')?.CodeMirror.hasFocus() === true")
             assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun quickActionsPinAndOpenGalleryWithoutSelectingTheDestination() {
+        withEditor { scenario ->
+            var web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val current = scenario.editorState()
+            val model = scenario.editorModel()
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    model.setFieldToolbar(
+                        EditorFieldTarget(current.sessionId, current.generation, 1),
+                        current.fields[1].toolbar.copy(quickActions = emptyList()),
+                    )
+                }
+                web.focusField(1)
+            }
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+            ).click()
+            clickText(testContext.getString(R.string.compose_editor_quick_actions))
+            device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
+            clickText(testContext.getString(R.string.multimedia_editor_image_field_editing_galery))
+            device.findObjects(By.text(testContext.getString(CommonString.save))).last().click()
+            waitUntil(message = { "Quick actions did not save for Back" }) {
+                scenario
+                    .editorState()
+                    .fields[1]
+                    .toolbar.quickActions == listOf("pin", "gallery")
+            }
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
+            web.setField(0, "Keep the Front caret here")
+            web.setField(1, "Insert media in Back")
+            runBlocking { web.focusField(0) }
+            val before = runBlocking { web.snapshot().fields }
+            val selection = runBlocking { web.captureTarget() }
+            val wasPinned = scenario.editorState().fields[1].sticky
+            val pinLabel = testContext.getString(if (wasPinned) R.string.compose_editor_unpin_field else R.string.compose_editor_pin_field)
+            captureScreenshot("quick-actions-before-pin", web)
+            checkNotNull(device.wait(Until.findObject(By.text("$pinLabel: Back")), 5_000)).click()
+            waitUntil(message = { "Quick pin did not update Back" }) {
+                scenario.editorState().fields[1].sticky != wasPinned
+            }
+            assertEquals(selection, runBlocking { web.captureTarget() })
+            assertEquals(before, runBlocking { web.snapshot().fields })
+            captureScreenshot("quick-actions-back-pinned-front-focused", web)
+
+            val mediaTarget = AtomicReference<WebEditorTarget>()
+            scenario.onActivity {
+                val nativeHandler = web.onQuickAction
+                web.onQuickAction = { action, target ->
+                    if (action == "gallery") mediaTarget.set(target)
+                    nativeHandler?.invoke(action, target)
+                }
+            }
+            val gallery = testContext.getString(R.string.multimedia_editor_image_field_editing_galery)
+            checkNotNull(device.wait(Until.findObject(By.text("$gallery: Back")), 5_000)).click()
+            waitUntil(message = { "Gallery did not open directly" }) {
+                mediaTarget.get() != null && device.currentPackageName != testContext.packageName
+            }
+            assertEquals(1, mediaTarget.get().field)
+            device.pressBack()
+            waitUntil(message = { "Cancelling Gallery did not return to the editor" }) {
+                scenario.state == Lifecycle.State.RESUMED && device.currentPackageName == testContext.packageName
+            }
+            assertEquals(before, runBlocking { web.snapshot().fields })
+            assertEquals(selection, runBlocking { web.captureTarget() })
+            scenario.recreate()
+            web = scenario.awaitEditor()
+            assertEquals(
+                listOf("pin", "gallery"),
+                scenario
+                    .editorState()
+                    .fields[1]
+                    .toolbar.quickActions,
+            )
+            assertEquals(before, runBlocking { web.snapshot().fields })
         }
     }
 

@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -81,6 +84,25 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         captureScreen("toolbar_configuration")
+    }
+
+    @Test
+    fun quickActionsConfigurationOpen() {
+        showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")))
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        composeRule.moveToolbarButton(
+            getResourceString(R.string.compose_editor_pin_field),
+            targetContext.getString(R.string.compose_editor_move_button_up, getResourceString(R.string.compose_editor_pin_field)),
+        )
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_pin_field)) and
+                    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox),
+            ).assertIsOn()
+        composeRule.onNodeWithText(getResourceString(R.string.multimedia_editor_image_field_editing_galery)).assertIsOn()
+        composeRule.onNodeWithText(getResourceString(R.string.drawing)).assertIsOff()
+        captureScreen("quick_actions_configuration")
     }
 
     @Test
