@@ -23,13 +23,14 @@ data class EditorFieldToolbar(
     val hiddenButtons: Set<String> = emptySet(),
     val customButtons: List<EditorCustomToolbarButton> = emptyList(),
     val buttonOrder: List<String> = emptyList(),
+    val quickActions: List<String> = emptyList(),
 ) : Parcelable
 
 /** Device-local overrides for a field on all notes using the same note type. */
 internal class EditorToolbarPreferences(
     private val preferences: SharedPreferences,
 ) {
-    // TODO: Move field toolbar configuration and custom templates into the Anki collection for sync.
+    // TODO: Move field toolbar/quick-action configuration and custom templates into the Anki collection for sync.
     // Keep collection, note type and stable field identity separate from the temporary storage format.
     fun load(
         collection: String,
@@ -46,6 +47,12 @@ internal class EditorToolbarPreferences(
                 hiddenButtons = json.getJSONArray("hidden").strings().toSet(),
                 customButtons = json.getJSONArray("customIds").strings().mapNotNull(buttons::get),
                 buttonOrder = json.optJSONArray("order")?.strings().orEmpty(),
+                quickActions =
+                    json
+                        .optJSONArray("quickActions")
+                        ?.strings()
+                        .orEmpty()
+                        .distinct(),
             )
         }.getOrElse { defaults }
     }
@@ -78,6 +85,7 @@ internal class EditorToolbarPreferences(
                 .put("hidden", JSONArray(toolbar.hiddenButtons.toList()))
                 .put("customIds", JSONArray(toolbar.customButtons.map { it.id }))
                 .put("order", JSONArray(toolbar.buttonOrder))
+                .put("quickActions", JSONArray(toolbar.quickActions.distinct()))
         check(preferences.edit().putString(key(collection, noteType, field), json.toString()).commit()) {
             "Unable to save field toolbar settings."
         }
