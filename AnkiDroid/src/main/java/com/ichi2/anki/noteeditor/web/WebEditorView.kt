@@ -61,6 +61,7 @@ class WebEditorView(
     var onEditEquation: ((WebEditorTarget, String, Boolean) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     var onRendererGone: (() -> Unit)? = null
+    var onQuickAction: ((String, WebEditorTarget) -> Unit)? = null
     var onMediaPaste: ((WebEditorTarget, Uri) -> Unit)? = null
 
     private val ready = CompletableDeferred<Unit>()
@@ -314,6 +315,10 @@ class WebEditorView(
             JSONObject().put("action", action.name).put("target", target?.toJson()).put("value", value),
         ).getBoolean("applied")
 
+    suspend fun updateFieldActions(actions: List<List<WebEditorFieldAction>>) {
+        request("setFieldActions", JSONObject().put("actions", JSONArray(actions.map { it.toJsonActions() })))
+    }
+
     suspend fun updateSettings(settings: WebEditorSettings) {
         check(request("setSettings", settings.toJson()).getBoolean("applied")) {
             context.getString(R.string.compose_editor_finish_composition)
@@ -409,6 +414,7 @@ class WebEditorView(
                 if (message.optBoolean("fatal")) fail(error) else onError?.invoke(error.message.orEmpty())
             }
             "hostRequest" -> handleHostRequest(message)
+            "quickAction" -> onQuickAction?.invoke(message.getString("action"), message.getJSONObject("target").toTarget())
             "mediaPaste" -> {
                 val target = message.getJSONObject("target").toTarget()
                 val uri = Uri.parse(message.getString("uri"))
@@ -537,11 +543,24 @@ private fun WebEditorDocument.toJson(): JSONObject =
                             .put("languageTag", field.languageTag)
                             .put("sticky", field.sticky)
                             .put("collapsed", field.collapsed)
-                            .put("sourceMode", field.sourceMode),
+                            .put("sourceMode", field.sourceMode)
+                            .apply { if (field.quickActions.isNotEmpty()) put("quickActions", field.quickActions.toJsonActions()) },
                     )
                 }
             },
         )
+
+private fun List<WebEditorFieldAction>.toJsonActions(): JSONArray =
+    JSONArray(
+        map { action ->
+            JSONObject()
+                .put("id", action.id)
+                .put("label", action.label)
+                .put("iconPath", action.iconPath)
+                .put("iconViewBox", action.iconViewBox)
+                .put("active", action.active)
+        },
+    )
 
 private fun WebEditorTarget.toJson(): JSONObject =
     JSONObject()

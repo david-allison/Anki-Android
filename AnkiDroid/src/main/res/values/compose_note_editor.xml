@@ -76,4 +76,8 @@
     <string name="compose_editor_move_button_up">Move %s up</string>
     <string name="compose_editor_move_button_down">Move %s down</string>
     <string name="compose_editor_reorder_button">Reorder %s</string>
+    <string name="compose_editor_quick_actions">Quick actions</string>
+    <string name="compose_editor_quick_actions_scope">Show these buttons beside this field on all notes of this note type. Drag to reorder.</string>
+    <string name="compose_editor_quick_actions_insertion">Media goes at the cursor in the active field, or at the end of an inactive field.</string>
+    <string name="compose_editor_unpin_field">Unpin field</string>
 </resources>
