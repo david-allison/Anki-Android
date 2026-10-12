@@ -25,6 +25,16 @@ data class WebEditorField(
     val sticky: Boolean = false,
     val collapsed: Boolean = false,
     val sourceMode: Boolean = false,
+    val quickActions: List<WebEditorFieldAction> = emptyList(),
+)
+
+/** Host-defined controls; these never become part of the field HTML. */
+data class WebEditorFieldAction(
+    val id: String,
+    val label: String,
+    val iconPath: String,
+    val iconViewBox: String = "0 0 24 24",
+    val active: Boolean? = null,
 )
 
 data class WebEditorStatus(

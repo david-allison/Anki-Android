@@ -6,6 +6,7 @@ import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewInput
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorField
+import com.ichi2.anki.noteeditor.web.WebEditorFieldAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorSnapshot
 import com.ichi2.anki.noteeditor.web.WebEditorView
@@ -51,6 +52,7 @@ class EditorWebSession(
     private var lastContentRevision: Int? = null
     private var documentToken: Pair<String, Int>? = null
     private var lastHostState: String? = null
+    private var lastFieldActions: List<List<WebEditorFieldAction>>? = null
     private var lastSettings: WebEditorSettings? = null
     private var previewNoteType: String? = null
     private var binding: Job? = null
@@ -64,6 +66,7 @@ class EditorWebSession(
         documentToken = null
         lastHostState = null
         lastSettings = null
+        lastFieldActions = null
         lastContentRevision = null
         mutableReady.value = false
         editor.onChanged = {
@@ -180,16 +183,18 @@ class EditorWebSession(
             previewDirty = true
         }
         val hostState = model.hostState()
+        val fieldActions = state.fieldActions(editor.context)
         if (documentToken != token) {
             mutableReady.value = false
             editor.loadDocumentAndCreateDraft(
-                state.toWebDocument(),
+                state.toWebDocument(fieldActions),
                 model.draftId,
                 hostState,
                 resetBaseline = state.resetFieldBaseline,
             )
             documentToken = token
             lastSettings = state.settings
+            lastFieldActions = fieldActions
             previewDirty = true
         } else if (lastHostState != hostState) {
             editor.updateHostState(hostState)
@@ -198,6 +203,10 @@ class EditorWebSession(
         if (lastSettings != state.settings) {
             editor.updateSettings(state.settings)
             lastSettings = state.settings
+        }
+        if (lastFieldActions != fieldActions) {
+            editor.updateFieldActions(fieldActions)
+            lastFieldActions = fieldActions
         }
         lastHostState = hostState
         editor.updateLanguageHints(state.fields.map { it.languageTag })
@@ -244,13 +253,24 @@ data class EditorToolbarState(
     val activeFormats: Set<WebEditorAction> = emptySet(),
 )
 
-private fun EditorState.toWebDocument() =
+private fun EditorState.toWebDocument(actions: List<List<WebEditorFieldAction>>) =
     WebEditorDocument(
         sessionId = sessionId,
         generation = generation,
         fields =
-            fields.map {
-                WebEditorField(it.name, it.html, it.font, it.fontSize, it.rtl, it.languageTag, it.sticky, it.collapsed, it.sourceMode)
+            fields.mapIndexed { index, field ->
+                WebEditorField(
+                    field.name,
+                    field.html,
+                    field.font,
+                    field.fontSize,
+                    field.rtl,
+                    field.languageTag,
+                    field.sticky,
+                    field.collapsed,
+                    field.sourceMode,
+                    actions[index],
+                )
             },
         isCloze = isCloze,
         settings = settings,

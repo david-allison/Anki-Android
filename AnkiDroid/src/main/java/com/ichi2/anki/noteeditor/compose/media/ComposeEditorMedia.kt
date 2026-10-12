@@ -61,7 +61,10 @@ class ComposeEditorMedia(
             }
         }
 
-    fun launch(handler: MultimediaActionHandler) {
+    fun launch(
+        handler: MultimediaActionHandler,
+        capturedTarget: WebEditorTarget? = null,
+    ) {
         if (job?.isActive == true || pending != null) return
         job =
             activity.lifecycleScope.launch {
@@ -69,7 +72,7 @@ class ComposeEditorMedia(
                     whenReady()
                     val web = checkNotNull(getWeb())
                     val state = checkNotNull(getState())
-                    val target = web.captureTarget()
+                    val target = capturedTarget ?: web.captureTarget()
                     if (target == null) {
                         reportError(activity.getString(CommonString.card_template_editor_select_field))
                         return@launch

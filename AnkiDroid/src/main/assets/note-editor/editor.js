@@ -288,6 +288,35 @@
             })
             .catch(reportError);
     });
+    document.addEventListener("anki-editor-fields-quick-action", event => {
+        const { field: index, action } = event.detail;
+        if (!inputEnabled || (composing && action !== "pin")) return;
+        // Capture identity before queuing: a document replacement must not retarget this tap.
+        const document = model;
+        enqueue(async () => {
+            if (model !== document || !inputEnabled || (composing && action !== "pin")) return;
+            await reconcile();
+            const field = fields[index];
+            if (!field?.spec.quickActions?.some(item => item.id === action)) return;
+            let selection = null;
+            if (action !== "pin") {
+                const current = await api().captureSelection();
+                selection = current?.field === index ? current : await api().captureFieldEnd(index);
+                if (!selection) return;
+            }
+            send({
+                type: "quickAction",
+                action,
+                target: {
+                    sessionId: model.sessionId,
+                    generation: model.generation,
+                    field: index,
+                    revision: field.revision,
+                    bookmark: selection ? JSON.stringify(selection) : "",
+                },
+            });
+        }).catch(reportError);
+    });
     document.addEventListener("anki-editor-fields-change", scheduleRefresh);
     document.addEventListener("anki-editor-fields-edit-math", event => {
         const { selection, text, block } = event.detail;
@@ -437,6 +466,14 @@
                 });
             }
             await render(value, clean);
+            return {};
+        },
+        async setFieldActions({ actions }) {
+            fields.forEach((field, index) => {
+                field.spec.quickActions = actions[index] || [];
+                model.fields[index].quickActions = actions[index] || [];
+            });
+            await api().setFieldActions(actions);
             return {};
         },
         async setSettings(settings) {

@@ -52,6 +52,7 @@ import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.noteeditor.compose.media.ComposeEditorMedia
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreview
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.startup.ensureStorageIsReady
@@ -169,6 +170,7 @@ class ComposeNoteEditorActivity :
                         editorView =
                             WebEditorView(this, collectionMediaDirectory).also {
                                 it.onMediaPaste = media::paste
+                                it.onQuickAction = ::quickAction
                                 it.onEditEquation = { target, text, block ->
                                     val chemistry = !block && text.startsWith("\\ce{") && text.endsWith("}")
                                     val action =
@@ -199,7 +201,7 @@ class ComposeNoteEditorActivity :
         }
         val fieldsAvailable =
             runCatching {
-                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 5 }
+                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 6 }
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
@@ -295,7 +297,7 @@ class ComposeNoteEditorActivity :
                     }
                 }
             },
-            onMedia = media::launch,
+            onMedia = { media.launch(it) },
             onLegacy = ::openLegacyEditor,
             onPreviewVisibility = { webSession.previewEnabled = it },
             editor = { modifier ->
@@ -548,6 +550,23 @@ class ComposeNoteEditorActivity :
             ?.split(",")
             ?.filter(editorColourPattern::matches)
             .orEmpty()
+
+    private fun quickAction(
+        id: String,
+        target: WebEditorTarget,
+    ) {
+        val state = model.state.value ?: return
+        val fieldTarget = EditorFieldTarget(target.sessionId, target.generation, target.field)
+        if (busy || state.isSaving || !fieldTarget.matches(state)) return
+        val field = state.fields[target.field]
+        if (id !in field.toolbar.quickActions) return
+        val action = EditorQuickAction.fromId(id) ?: return
+        if (action == EditorQuickAction.PIN) {
+            updateMetadata { model.setFieldPinned(fieldTarget, !field.sticky) }
+        } else {
+            action.media?.let { media.launch(it, target) }
+        }
+    }
 
     private fun updateMetadata(block: suspend () -> Unit) =
         launchEditorTask {
