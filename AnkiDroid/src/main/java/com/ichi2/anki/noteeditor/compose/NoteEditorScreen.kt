@@ -455,7 +455,7 @@ private fun EditorFieldArea(
                             onRecordAudio = onRecordAudio,
                         )
                     }
-                    VerticalDivider(Modifier.height(32.dp))
+                    VerticalDivider(Modifier.padding(start = 2.dp).height(32.dp))
                     EditorActionButton(
                         R.drawable.ic_more_vertical,
                         R.string.compose_editor_field_options,
