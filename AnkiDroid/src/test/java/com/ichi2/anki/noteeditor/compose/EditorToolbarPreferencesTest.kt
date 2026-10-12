@@ -16,12 +16,29 @@ class EditorToolbarPreferencesTest {
     private val store = EditorToolbarPreferences(preferences)
 
     @Test
+    fun `old field settings have no quick actions and toolbar edits preserve enabled order`() {
+        preferences
+            .edit()
+            .putString(
+                "composeEditorFieldToolbar:[\"collection\",1,\"front\"]",
+                "{\"hidden\":[],\"customIds\":[],\"order\":[]}",
+            ).commit()
+        val original = store.load("collection", 1, "front")
+        assertTrue(original.quickActions.isEmpty())
+        store.save("collection", 1, "front", original.copy(quickActions = listOf("gallery", "pin")))
+        val configured = store.load("collection", 1, "front")
+        store.save("collection", 1, "front", configured.copy(hiddenButtons = setOf("BOLD")))
+        assertEquals(listOf("gallery", "pin"), store.load("collection", 1, "front").quickActions)
+    }
+
+    @Test
     fun `an override is isolated by collection note type and field and survives reopening`() {
         val toolbar =
             EditorFieldToolbar(
                 setOf("BOLD", "MEDIA"),
                 listOf(EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
                 listOf("ITALIC", "custom:ruby", "BOLD"),
+                quickActions = listOf("gallery", "pin"),
             )
         store.saveCustomButtons(toolbar.customButtons)
         store.save("collection", 1, "id:front", toolbar)
