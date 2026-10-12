@@ -71,7 +71,7 @@ internal fun EditorFormattingButtons(
         if (item is EditorToolbarItem.Custom) {
             EditorTooltip(item.button.label) {
                 TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
-                    Text(item.button.label, Modifier.widthIn(max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(item.button.label, Modifier.widthIn(max = 60.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             return@forEach
