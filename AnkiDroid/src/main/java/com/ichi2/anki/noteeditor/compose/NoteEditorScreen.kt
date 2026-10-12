@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
@@ -72,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -391,10 +397,12 @@ private fun EditorFieldArea(
     }
     val closeOptions: () -> Unit = { fieldOptionsRequested = false }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
+    val toolbarBackground = MaterialTheme.colorScheme.surface
     // The standard sheet shares the editor window, so opening it leaves the IME connected.
     BottomSheetScaffold(
         // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
         modifier = modifier.clipToBounds(),
+        containerColor = toolbarBackground,
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
         snackbarHost = { if (showFieldOptions) EditorSnackbarHost(snackbar) },
         sheetPeekHeight = 0.dp,
@@ -427,7 +435,13 @@ private fun EditorFieldArea(
                 HorizontalDivider()
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState).padding(horizontal = 8.dp)) {
+                    Row(
+                        Modifier
+                            .weight(1f)
+                            .toolbarEndFade(toolbarScrollState, toolbarBackground)
+                            .horizontalScroll(toolbarScrollState)
+                            .padding(horizontal = 8.dp),
+                    ) {
                         EditorFormattingButtons(
                             toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
                             state = toolbarState,
@@ -439,6 +453,7 @@ private fun EditorFieldArea(
                             onRecordAudio = onRecordAudio,
                         )
                     }
+                    // The final 4dp before the divider contain a 2dp fade and 2dp clear space.
                     VerticalDivider(Modifier.padding(start = 2.dp).height(32.dp))
                     EditorActionButton(
                         R.drawable.ic_more_vertical,
@@ -450,6 +465,29 @@ private fun EditorFieldArea(
         }
     }
 }
+
+/** Fade clipped buttons into the solid toolbar surface without allocating an offscreen layer. */
+private fun Modifier.toolbarEndFade(
+    scrollState: ScrollState,
+    background: Color,
+): Modifier =
+    drawWithCache {
+        val width = 2.dp.toPx().coerceAtMost(size.width)
+        val rtl = layoutDirection == LayoutDirection.Rtl
+        val left = if (rtl) 0f else size.width - width
+        val brush =
+            Brush.horizontalGradient(
+                colors = listOf(background.copy(alpha = 0f), background),
+                startX = if (rtl) width else left,
+                endX = if (rtl) 0f else size.width,
+            )
+        onDrawWithContent {
+            drawContent()
+            if (scrollState.canScrollForward) {
+                drawRect(brush, topLeft = Offset(left, 0f), size = Size(width, size.height))
+            }
+        }
+    }
 
 @Composable
 private fun EditorFieldOptions(
