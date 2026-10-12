@@ -443,7 +443,7 @@ private fun EditorFieldArea(
                 HorizontalDivider()
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState)) {
+                    Row(Modifier.weight(1f).horizontalScroll(toolbarScrollState).padding(horizontal = 8.dp)) {
                         EditorFormattingButtons(
                             toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
                             state = toolbarState,
