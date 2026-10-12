@@ -690,6 +690,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onLanguageHint = {},
                     onAction = {},
                     onMedia = {},
+                    onAttachMedia = {},
                     onLegacy = {},
                     onPreviewVisibility = {},
                     editor = { Box(it) },

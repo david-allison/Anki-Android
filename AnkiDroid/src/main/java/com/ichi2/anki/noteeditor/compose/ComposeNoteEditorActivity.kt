@@ -302,6 +302,7 @@ class ComposeNoteEditorActivity :
                 }
             },
             onMedia = { media.launch(it) },
+            onAttachMedia = { if (!busy) media.showPicker() },
             onLegacy = ::openLegacyEditor,
             onPreviewVisibility = { webSession.previewEnabled = it },
             editor = { modifier ->

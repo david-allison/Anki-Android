@@ -5,6 +5,8 @@ package com.ichi2.anki.noteeditor.compose.media
 import android.content.ClipDescription
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.os.BundleCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import anki.config.ConfigKey
 import com.ichi2.anki.AnkiActivity
@@ -16,9 +18,11 @@ import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.mediaFolder
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.multimedia.MultimediaActivityExtra
+import com.ichi2.anki.multimedia.MultimediaBottomSheet
 import com.ichi2.anki.multimedia.MultimediaBottomSheet.MultimediaAction
 import com.ichi2.anki.multimedia.MultimediaResult
 import com.ichi2.anki.multimedia.MultimediaResultContract
+import com.ichi2.anki.multimedia.MultimediaViewModel
 import com.ichi2.anki.multimediacard.fields.IField
 import com.ichi2.anki.noteeditor.compose.EditorState
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -26,7 +30,9 @@ import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.servicelayer.NoteService
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import timber.log.Timber
@@ -44,6 +50,8 @@ class ComposeEditorMedia(
 ) {
     private var pending: PendingEditorMedia? = null
     private var job: Job? = null
+    private var pickerTarget: WebEditorTarget? = null
+    private var pickerJob: Job? = null
     private val launcher =
         activity.registerForActivityResult(MultimediaResultContract()) { result ->
             val operation = pending
@@ -60,6 +68,40 @@ class ComposeEditorMedia(
                 }
             }
         }
+
+    fun showPicker() {
+        if (job?.isActive == true || pending != null || activity.supportFragmentManager.findFragmentByTag(PICKER) != null) return
+        job =
+            activity.lifecycleScope.launch {
+                try {
+                    whenReady()
+                    val target = getWeb()?.captureTarget()
+                    if (target == null) {
+                        reportError(activity.getString(CommonString.card_template_editor_select_field))
+                        return@launch
+                    }
+                    check(target.matches(getState())) { invalidTarget }
+                    checkpoint()
+                    awaitPickerAction(target)
+                    MultimediaBottomSheet().show(activity.supportFragmentManager, PICKER)
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    reportFailure(exception)
+                }
+            }
+    }
+
+    private fun awaitPickerAction(target: WebEditorTarget) {
+        pickerTarget = target
+        pickerJob?.cancel()
+        pickerJob =
+            activity.lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                val action = ViewModelProvider(activity)[MultimediaViewModel::class.java].multimediaAction.first()
+                pickerTarget = null
+                launch(MultimediaActionHandler.forAction(action), target)
+            }
+    }
 
     fun launch(
         handler: MultimediaActionHandler,
@@ -159,9 +201,11 @@ class ComposeEditorMedia(
 
     fun save(state: Bundle) {
         pending?.let { state.putString(PENDING_MEDIA, it.toJson().toString()) }
+        pickerTarget?.let { state.putParcelable(PICKER_TARGET, it) }
     }
 
     fun restore(state: Bundle?) {
+        state?.let { BundleCompat.getParcelable(it, PICKER_TARGET, WebEditorTarget::class.java) }?.let(::awaitPickerAction)
         val json = state?.getString(PENDING_MEDIA) ?: return
         try {
             pending = PendingEditorMedia.fromJson(JSONObject(json))
@@ -217,6 +261,8 @@ class ComposeEditorMedia(
 
     companion object {
         private const val PENDING_MEDIA = "composeEditorPendingMedia"
+        private const val PICKER_TARGET = "composeEditorMediaPickerTarget"
+        private const val PICKER = "MultimediaBottomSheet"
     }
 }
 
