@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
@@ -41,6 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -60,17 +62,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val message = targetContext.getString(R.string.compose_editor_tag_removed, "Japanese")
         composeRule.runOnIdle {
             activity.lifecycleScope.launch {
-                snackbar.showSnackbar(message, actionLabel = "Undo", withDismissAction = true, duration = SnackbarDuration.Indefinite)
+                snackbar.showSnackbar(message, actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
             }
         }
-        val feedback =
-            composeRule
-                .onNodeWithText(message)
-                .assertIsDisplayed()
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val tag = composeRule.onNodeWithText("Vocabulary").fetchSemanticsNode().boundsInRoot
-        assertTrue(feedback.bottom < tag.top, "Removal feedback must sit above the tags")
+        composeRule.waitForIdle()
+        val feedback = activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        assertNotNull(feedback, "The editor must use the standard snackbar wrapper")
+        assertEquals(message, feedback.text.toString())
+        val location = IntArray(2)
+        feedback.getLocationInWindow(location)
+        val tag = composeRule.onNodeWithText("Vocabulary").fetchSemanticsNode().boundsInWindow
+        assertTrue(location[1] + feedback.height < tag.top, "Removal feedback must sit above the tags")
         captureScreen("tag_removed_snackbar")
     }
 

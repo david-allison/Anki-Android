@@ -75,10 +75,18 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     @Test
     fun tagRemovalSnackbarCanBeDismissed() {
         withTagRemovalSnackbar { scenario, device, message ->
-            val dismiss = device.wait(Until.findObject(By.desc("Dismiss")), 2_000)
-            assertNotNull(dismiss, "Tag removal needs a close button as well as Undo")
-            dismiss.click()
-            assertTrue(device.wait(Until.gone(By.text(message)), 2_000))
+            waitUntil(message = { "Snackbar entrance animation did not finish" }) {
+                var settled = false
+                scenario.onActivity { activity ->
+                    val text = activity.findViewById<View>(com.google.android.material.R.id.snackbar_text)
+                    val bar = text?.parent?.parent as? View
+                    settled = bar != null && bar.height > 0 && bar.translationY == 0f && bar.alpha == 1f
+                }
+                settled
+            }
+            val feedback = checkNotNull(device.findObject(By.text(message))).visibleBounds
+            device.swipe(feedback.left + 8, feedback.centerY(), device.displayWidth - 8, feedback.centerY(), 20)
+            assertTrue(device.wait(Until.gone(By.text(message)), 2_000), "Swiping must dismiss tag feedback")
             assertEquals(listOf("Vocabulary"), scenario.editorState().tags)
         }
     }
