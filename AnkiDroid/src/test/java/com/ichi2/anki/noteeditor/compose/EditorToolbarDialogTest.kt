@@ -68,7 +68,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
-        composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
         assertNull(saved)
     }
 
