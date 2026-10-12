@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
@@ -34,6 +36,7 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import com.ichi2.testutils.dispatchInsets
 import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.utils.dp
+import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
@@ -48,6 +51,28 @@ import kotlin.test.assertTrue
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun snackbarAppearsAboveTags() {
+        val snackbar = SnackbarHostState()
+        val (activity, keyboard) = showEditor(tags = listOf("Vocabulary"), snackbarHost = snackbar)
+        hideKeyboard(activity, keyboard)
+        val message = targetContext.getString(R.string.compose_editor_tag_removed, "Japanese")
+        composeRule.runOnIdle {
+            activity.lifecycleScope.launch {
+                snackbar.showSnackbar(message, actionLabel = "Undo", withDismissAction = true, duration = SnackbarDuration.Indefinite)
+            }
+        }
+        val feedback =
+            composeRule
+                .onNodeWithText(message)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val tag = composeRule.onNodeWithText("Vocabulary").fetchSemanticsNode().boundsInRoot
+        assertTrue(feedback.bottom < tag.top, "Removal feedback must sit above the tags")
+        captureScreen("tag_removed_snackbar")
+    }
 
     @Test
     fun tagsHideWhileTypingAndReturnAboveToolbar() {
@@ -406,6 +431,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         tags: List<String> = emptyList(),
         onTags: () -> Unit = {},
         onRemoveTag: (String) -> Unit = {},
+        snackbarHost: SnackbarHostState = SnackbarHostState(),
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -437,7 +463,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     ready = true,
                     busy = false,
                     error = null,
-                    snackbar = remember { SnackbarHostState() },
+                    snackbar = snackbarHost,
                     onBack = {},
                     onSave = {},
                     loadNoteTypes = { emptyList() },

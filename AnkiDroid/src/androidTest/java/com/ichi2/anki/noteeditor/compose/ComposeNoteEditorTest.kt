@@ -73,6 +73,50 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun tagRemovalSnackbarCanBeDismissed() {
+        withTagRemovalSnackbar { scenario, device, message ->
+            val dismiss = device.wait(Until.findObject(By.desc("Dismiss")), 2_000)
+            assertNotNull(dismiss, "Tag removal needs a close button as well as Undo")
+            dismiss.click()
+            assertTrue(device.wait(Until.gone(By.text(message)), 2_000))
+            assertEquals(listOf("Vocabulary"), scenario.editorState().tags)
+        }
+    }
+
+    @Test
+    fun tagRemovalSnackbarExpires() {
+        withTagRemovalSnackbar { scenario, device, message ->
+            assertTrue(device.wait(Until.gone(By.text(message)), 8_000), "Tag removal feedback must expire without interaction")
+            assertEquals(listOf("Vocabulary"), scenario.editorState().tags)
+        }
+    }
+
+    private fun withTagRemovalSnackbar(block: (ActivityScenario<ComposeNoteEditorActivity>, UiDevice, String) -> Unit) {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            scenario.onActivity { ViewModelProvider(it)[EditorViewModel::class.java].setTags(listOf("Japanese", "Vocabulary")) }
+            runBlocking { web.focusField(0) }
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "Keyboard did not open" }) { keyboardVisible() }
+            device.pressBack()
+            waitUntil(message = { "Keyboard did not close" }) { !keyboardVisible() }
+            val remove = By.desc(testContext.getString(R.string.compose_editor_remove_tag, "Japanese"))
+            checkNotNull(device.wait(Until.findObject(remove), 5_000)).click()
+            val message = testContext.getString(R.string.compose_editor_tag_removed, "Japanese")
+            assertTrue(device.wait(Until.hasObject(By.text(message)), 2_000))
+            block(scenario, device, message)
+        }
+    }
+
+    @Test
     fun tagsHideWhileTypingAndSupportRemovalUndoAndTheExistingDialog() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
