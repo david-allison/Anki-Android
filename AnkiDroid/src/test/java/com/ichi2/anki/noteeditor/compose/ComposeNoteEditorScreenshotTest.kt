@@ -167,17 +167,41 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun populatedTagLabelAndUnusedSpaceOpenExistingDialog() {
+        var opened = 0
+        val (activity, keyboard) = showEditor(tags = listOf("Japanese"), onTags = { opened++ })
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithText(getResourceString(CommonString.card_details_tags), useUnmergedTree = true).performTouchInput { click() }
+        assertEquals(1, opened, "Tapping Tags must open the dialog")
+        val tag = composeRule.onNodeWithText("Japanese").fetchSemanticsNode().boundsInRoot
+        val add =
+            composeRule
+                .onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags))
+                .fetchSemanticsNode()
+                .boundsInRoot
+        assertTrue(tag.right < add.left, "There must be unused space after the tag in this fixture")
+        composeRule.onRoot().performTouchInput { click(Offset((tag.right + add.left) / 2, tag.center.y)) }
+        assertEquals(2, opened, "Tapping unused space after the tags must open the dialog")
+        captureScreen("tags_populated_clickable")
+    }
+
+    @Test
     fun tagRemovalDoesNotOpenDialog() {
         var opened = 0
         var removed: String? = null
         val (activity, keyboard) = showEditor(tags = listOf("Japanese"), onTags = { opened++ }, onRemoveTag = { removed = it })
         hideKeyboard(activity, keyboard)
-        composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_remove_tag, "Japanese")).performClick()
+        composeRule
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_remove_tag, "Japanese"),
+            ).performTouchInput {
+                click()
+            }
         assertEquals("Japanese", removed)
         assertEquals(0, opened)
-        composeRule.onNodeWithText("Japanese").performClick()
+        composeRule.onNodeWithText("Japanese").performTouchInput { click() }
         assertEquals(1, opened)
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_no_tags)).performTouchInput { click() }
         assertEquals(2, opened)
     }
 
