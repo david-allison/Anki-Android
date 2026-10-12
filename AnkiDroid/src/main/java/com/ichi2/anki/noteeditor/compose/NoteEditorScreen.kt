@@ -120,6 +120,7 @@ fun NoteEditorScreen(
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var quickActionsTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
@@ -136,6 +137,19 @@ fun NoteEditorScreen(
             onSave = {
                 onToolbar(target, it)
                 toolbarTarget = null
+            },
+        )
+    }
+    quickActionsTarget?.takeIf { it.matches(state) }?.let { target ->
+        val current = requireNotNull(state)
+        EditorQuickActionsDialog(
+            target = target,
+            field = current.fields[target.field],
+            noteTypeName = current.noteTypeName,
+            onDismiss = { quickActionsTarget = null },
+            onSave = {
+                onToolbar(target, it)
+                quickActionsTarget = null
             },
         )
     }
@@ -244,6 +258,7 @@ fun NoteEditorScreen(
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
                             onToolbar = { toolbarTarget = it },
+                            onQuickActions = { quickActionsTarget = it },
                             onCustomButtons = { showCustomButtons = true },
                             onCustomAction = onCustomAction,
                             modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
@@ -366,6 +381,7 @@ private fun EditorFieldArea(
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
+    onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomButtons: () -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
     modifier: Modifier,
@@ -412,6 +428,7 @@ private fun EditorFieldArea(
                     onPinned = { onPinned(target, it) },
                     onLanguageHint = { onLanguageHint(target) },
                     onToolbar = { onToolbar(target) },
+                    onQuickActions = { onQuickActions(target) },
                     onCustomButtons = onCustomButtons,
                     onCollapse = closeOptions,
                 )
@@ -455,6 +472,7 @@ private fun EditorFieldOptions(
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
     onToolbar: () -> Unit,
+    onQuickActions: () -> Unit,
     onCustomButtons: () -> Unit,
     onCollapse: () -> Unit,
 ) {
@@ -537,6 +555,11 @@ private fun EditorFieldOptions(
                     }
                 }
             }
+        }
+        TextButton(onClick = onQuickActions, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+            Icon(painterResource(R.drawable.ic_touch), null, Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.compose_editor_quick_actions))
         }
         Row(Modifier.fillMaxWidth()) {
             TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.weight(1f)) {
