@@ -80,7 +80,7 @@ internal fun EditorToolbarDialog(
             },
         ) { insets ->
             EditorToolbarList(
-                items = items,
+                items = items.map { it.key },
                 onMove = { from, to -> toolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
@@ -90,7 +90,8 @@ internal fun EditorToolbarDialog(
                         Text(stringResource(R.string.compose_editor_toolbar_scope), Modifier.padding(vertical = 12.dp))
                     }
                 },
-            ) { item, index, dragging, startDrag, move ->
+            ) { key, index, dragging, startDrag, move ->
+                val item = items.first { it.key == key }
                 val label =
                     when (item) {
                         is EditorToolbarItem.Builtin -> stringResource(item.button.label)
@@ -102,7 +103,7 @@ internal fun EditorToolbarDialog(
                         is EditorToolbarItem.Custom -> toolbar.customButtons.any { it.id == item.button.id }
                     }
                 EditorToolbarRow(
-                    item,
+                    (item as? EditorToolbarItem.Builtin)?.button?.icon,
                     label,
                     checked,
                     dragging,
@@ -139,8 +140,8 @@ internal fun EditorToolbarDialog(
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun EditorToolbarRow(
-    item: EditorToolbarItem,
+internal fun EditorToolbarRow(
+    icon: Int?,
     label: String,
     checked: Boolean,
     dragging: Boolean,
@@ -160,7 +161,7 @@ private fun EditorToolbarRow(
             ) {
                 Checkbox(checked, onCheckedChange = null)
                 Box(Modifier.padding(start = 12.dp).size(20.dp)) {
-                    if (item is EditorToolbarItem.Builtin) Icon(painterResource(item.button.icon), contentDescription = null)
+                    if (icon != null) Icon(painterResource(icon), contentDescription = null)
                 }
                 Text(label, Modifier.padding(start = 12.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
