@@ -421,6 +421,38 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun stackedToolbarWrapsButtons() {
+        showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
+        val first =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_bold),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        val nextRow =
+            composeRule
+                .onNodeWithContentDescription(getResourceString(R.string.compose_editor_superscript))
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        assertTrue(nextRow.top >= first.bottom)
+        fieldOptionsButton().assertIsDisplayed()
+        captureScreen("toolbar_stacked")
+    }
+
+    @Test
+    fun hiddenToolbarKeepsFieldOptionsAccessible() {
+        showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+        fieldOptionsButton().assertDoesNotExist()
+        captureScreen("toolbar_hidden")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+        captureScreen("hidden_toolbar_field_options")
+    }
+
+    @Test
     fun allToolbarButtonsHidden() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
@@ -646,6 +678,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         onTags: () -> Unit = {},
         onRemoveTag: (String) -> Unit = {},
         snackbarHost: SnackbarHostState = SnackbarHostState(),
+        toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -655,6 +688,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                         editorState(fieldName, noteTypeName, deckName).let { state ->
                             state.copy(
                                 tags = tags,
+                                toolbarDisplay = toolbarDisplay,
                                 customButtonTemplates = templates,
                                 fields =
                                     state.fields.mapIndexed { index, field ->

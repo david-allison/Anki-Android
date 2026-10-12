@@ -9,6 +9,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
@@ -119,6 +122,7 @@ fun NoteEditorScreen(
     preview: @Composable (Modifier) -> Unit,
     fieldTaps: Flow<Unit> = emptyFlow(),
     onSettings: (WebEditorSettings) -> Unit = {},
+    onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
@@ -130,6 +134,7 @@ fun NoteEditorScreen(
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
+    var fieldOptionsRequested by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
     val enabled = ready && !busy && state?.isSaving == false
     toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
         val current = requireNotNull(state)
@@ -205,7 +210,17 @@ fun NoteEditorScreen(
                     },
                     actions = {
                         state?.let {
-                            EditorOptionsMenu(it.settings, enabled && !toolbarState.value.composing, onSettings, onFields, onCards)
+                            EditorOptionsMenu(
+                                settings = it.settings,
+                                enabled = enabled && !toolbarState.value.composing,
+                                onSettings = onSettings,
+                                onFields = onFields,
+                                onCards = onCards,
+                                toolbarDisplay = it.toolbarDisplay,
+                                onToolbarDisplay = onToolbarDisplay,
+                                fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
+                                onFieldOptions = { fieldOptionsRequested = true },
+                            )
                         }
                         if (tablet) {
                             TextButton(onClick = { showPreview = !showPreview }) {
@@ -264,6 +279,8 @@ fun NoteEditorScreen(
                             enabled = enabled,
                             state = toolbarState,
                             fieldTaps = fieldTaps,
+                            fieldOptionsRequested = fieldOptionsRequested,
+                            onFieldOptionsRequested = { fieldOptionsRequested = it },
                             onAction = onAction,
                             onMedia = onAttachMedia,
                             onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
@@ -336,7 +353,7 @@ private fun EditorFields(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun EditorFieldArea(
     editorState: EditorState,
@@ -345,6 +362,8 @@ private fun EditorFieldArea(
     enabled: Boolean,
     state: State<EditorToolbarState>,
     fieldTaps: Flow<Unit>,
+    fieldOptionsRequested: Boolean,
+    onFieldOptionsRequested: (Boolean) -> Unit,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
     onRecordAudio: () -> Unit,
@@ -365,9 +384,8 @@ private fun EditorFieldArea(
         key(editorState.sessionId, editorState.generation) {
             rememberModalBottomSheetState(skipPartiallyExpanded = true)
         }
-    var fieldOptionsRequested by rememberSaveable(editorState.sessionId, editorState.generation) { mutableStateOf(false) }
     LaunchedEffect(fieldTaps, editorState.sessionId, editorState.generation) {
-        fieldTaps.collect { fieldOptionsRequested = false }
+        fieldTaps.collect { onFieldOptionsRequested(false) }
     }
     val showFieldOptions = fieldOptionsRequested || sheetState.isVisible
     val target =
@@ -380,7 +398,7 @@ private fun EditorFieldArea(
     LaunchedEffect(sheetState, fieldOptionsRequested, hasExpandedState) {
         if (fieldOptionsRequested && hasExpandedState) sheetState.expand() else sheetState.hide()
     }
-    val closeOptions: () -> Unit = { fieldOptionsRequested = false }
+    val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
     val toolbarBackground = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
     // The standard sheet shares the editor window, so opening it leaves the IME connected.
@@ -418,31 +436,44 @@ private fun EditorFieldArea(
             }
             if (!showFieldOptions) {
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
-                Row(Modifier.fillMaxWidth().background(toolbarBackground), verticalAlignment = Alignment.CenterVertically) {
-                    Row(
-                        Modifier
-                            .weight(1f)
-                            .toolbarEndFade(toolbarScrollState, toolbarBackground)
-                            .horizontalScroll(toolbarScrollState)
-                            .padding(horizontal = 8.dp),
-                    ) {
-                        EditorFormattingButtons(
-                            toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
-                            state = toolbarState,
-                            enabled = enabled,
-                            isCloze = editorState.isCloze,
-                            onAction = onAction,
-                            onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
-                            onMedia = onMedia,
-                            onRecordAudio = onRecordAudio,
-                        )
+                if (editorState.toolbarDisplay != EditorToolbarDisplay.HIDDEN) {
+                    Row(Modifier.fillMaxWidth().background(toolbarBackground), verticalAlignment = Alignment.CenterVertically) {
+                        val buttons: @Composable () -> Unit = {
+                            EditorFormattingButtons(
+                                toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
+                                state = toolbarState,
+                                enabled = enabled,
+                                isCloze = editorState.isCloze,
+                                onAction = onAction,
+                                onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
+                                onMedia = onMedia,
+                                onRecordAudio = onRecordAudio,
+                            )
+                        }
+                        if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
+                            FlowRow(
+                                Modifier
+                                    .weight(1f)
+                                    .heightIn(max = 144.dp)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 8.dp),
+                            ) { buttons() }
+                        } else {
+                            Row(
+                                Modifier
+                                    .weight(1f)
+                                    .toolbarEndFade(toolbarScrollState, toolbarBackground)
+                                    .horizontalScroll(toolbarScrollState)
+                                    .padding(horizontal = 8.dp),
+                            ) { buttons() }
+                        }
+                        VerticalDivider(Modifier.height(32.dp))
+                        EditorActionButton(
+                            R.drawable.ic_more_vertical,
+                            R.string.compose_editor_field_options,
+                            enabled && target != null,
+                        ) { onFieldOptionsRequested(true) }
                     }
-                    VerticalDivider(Modifier.height(32.dp))
-                    EditorActionButton(
-                        R.drawable.ic_more_vertical,
-                        R.string.compose_editor_field_options,
-                        enabled && target != null,
-                    ) { fieldOptionsRequested = true }
                 }
             }
         }

@@ -160,6 +160,21 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `toolbar layout persists without changing the note`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            for (display in EditorToolbarDisplay.entries) {
+                vm.setToolbarDisplay(display)
+                assertEquals(display, loadAdd().state.value?.toolbarDisplay)
+                assertEquals(before.fields, vm.state.value?.fields)
+                assertEquals(before.generation, vm.state.value?.generation)
+                assertFalse(assertNotNull(vm.state.value).hasMetadataChanges)
+            }
+            assertEquals(0, col.noteCount())
+        }
+
+    @Test
     fun `global options persist without changing the note or draft generation`() =
         runTest {
             val vm = loadAdd()
