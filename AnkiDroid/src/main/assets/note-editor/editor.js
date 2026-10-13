@@ -290,16 +290,21 @@
     });
     document.addEventListener("anki-editor-fields-quick-action", event => {
         const { field: index, action } = event.detail;
-        if (!inputEnabled || (composing && action !== "pin")) return;
+        const fieldOnly = action === "pin" || action === "editHtml";
+        if (!inputEnabled || (composing && !fieldOnly)) return;
         // Capture identity before queuing: a document replacement must not retarget this tap.
         const document = model;
         enqueue(async () => {
-            if (model !== document || !inputEnabled || (composing && action !== "pin")) return;
+            if (model !== document || !inputEnabled || (composing && !fieldOnly)) return;
             await reconcile();
             const field = fields[index];
             if (!field?.spec.quickActions?.some(item => item.id === action)) return;
             let selection = null;
-            if (action !== "pin") {
+            if (action === "editHtml") {
+                // SOURCE_MODE changes the input UI, without restoring or editing a range.
+                // Like the toolbar command, it can commit composition by focusing that UI.
+                selection = { field: index, kind: "rich", bookmark: "" };
+            } else if (action !== "pin") {
                 const current = await api().captureSelection();
                 selection = current?.field === index ? current : await api().captureFieldEnd(index);
                 if (!selection) return;
