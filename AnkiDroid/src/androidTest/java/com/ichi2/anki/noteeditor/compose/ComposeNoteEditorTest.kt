@@ -467,6 +467,75 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldControlsAlignWithAppBarButtons() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val current = scenario.editorState()
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    scenario.editorModel().setFieldToolbar(
+                        EditorFieldTarget(current.sessionId, current.generation, 1),
+                        current.fields[1].toolbar.copy(quickActions = listOf("pin", "gallery")),
+                    )
+                }
+            }
+            web.awaitJavascript("document.querySelectorAll('.field-quick-actions .quick-action').length === 2")
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val back =
+                checkNotNull(
+                    device.wait(
+                        Until.findObject(By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_bar_up_description))),
+                        5_000,
+                    ),
+                )
+            val save = checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(CommonString.save))), 5_000))
+            val location = IntArray(2)
+            scenario.onActivity { web.getLocationOnScreen(location) }
+            val geometry =
+                JSONObject(
+                    web.evaluate(
+                        """
+                        ({
+                            ratio: devicePixelRatio,
+                            viewport: innerWidth,
+                            root: document.querySelector('.fields-only').getBoundingClientRect().width,
+                            fields: [...document.querySelectorAll('.field-container')].map(field => {
+                                const collapse = field.querySelector('.collapse-badge').getBoundingClientRect();
+                                const source = field.querySelector('.plain-text-badge').getBoundingClientRect();
+                                const border = field.querySelector('.editor-field').getBoundingClientRect();
+                                return {collapse: collapse.x + collapse.width / 2, source: source.x + source.width / 2,
+                                    left: border.left, right: border.right};
+                            })
+                        })
+                        """.trimIndent(),
+                    ),
+                )
+            val ratio = geometry.getDouble("ratio")
+            // WebView rounds its CSS viewport at fractional densities; allow 1dp against native bounds.
+            val fields = geometry.getJSONArray("fields")
+            assertEquals(2, fields.length())
+            for (index in 0 until fields.length()) {
+                val field = fields.getJSONObject(index)
+                assertEquals(
+                    back.visibleCenter.x.toDouble(),
+                    location[0] + ratio * field.getDouble("collapse"),
+                    ratio,
+                    "Field $index collapse alignment",
+                )
+                assertEquals(
+                    save.visibleCenter.x.toDouble(),
+                    location[0] + ratio * field.getDouble("source"),
+                    ratio,
+                    "Field $index source alignment (WebView width=${web.width}, geometry=$geometry)",
+                )
+                assertEquals(16.0, field.getDouble("left"), 0.5, "Field $index start margin")
+                assertEquals(16.0, geometry.getDouble("root") - field.getDouble("right"), 0.5, "Field $index end margin")
+            }
+            captureScreenshot("field_controls_aligned_with_app_bar", web)
+        }
+    }
+
+    @Test
     fun quickActionsPinAndOpenGalleryWithoutSelectingTheDestination() {
         withEditor { scenario ->
             var web = scenario.awaitEditor()
