@@ -142,6 +142,52 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun headerFollowsUserScrollingButNotFocusOrProgrammaticScroll() =
+        withEditor {
+            val visibility = LinkedBlockingQueue<Boolean>()
+            getInstrumentation().runOnMainSync { onHeaderVisibility = { visibility.add(it) } }
+            loadDocument(document("<div>Long field content</div>".repeat(100)))
+            val area = "document.querySelector('.scroll-area')"
+            evaluate("$area.scrollTop = 200")
+            awaitJavascript("$area.scrollTop >= 199")
+            focusField(1)
+            assertNull(visibility.poll(300, TimeUnit.MILLISECONDS), "Loading and focusing must keep the header visible")
+            UiDevice.getInstance(getInstrumentation()).pressBack()
+            evaluate("$area.scrollTop = 0")
+            awaitJavascript("$area.scrollTop === 0")
+            captureRenderedScreenshot("editor-before-header-scroll")
+            val location = IntArray(2)
+            var x = 0
+            var top = 0
+            var bottom = 0
+            getInstrumentation().runOnMainSync {
+                getLocationOnScreen(location)
+                x = location[0] + width / 2
+                top = location[1] + height / 4
+                bottom = location[1] + height * 3 / 4
+            }
+            val device = UiDevice.getInstance(getInstrumentation())
+            device.swipe(x, bottom, x, top, 30)
+            assertEquals(false, visibility.poll(5, TimeUnit.SECONDS), "Scrolling down hides the header")
+            device.swipe(x, bottom, x, top, 30)
+            assertNull(visibility.poll(300, TimeUnit.MILLISECONDS), "Do not send bridge messages for every scroll pixel")
+            device.swipe(x, top, x, bottom, 30)
+            assertEquals(true, visibility.poll(5, TimeUnit.SECONDS), "Scrolling up reveals the header")
+
+            // Removing the header can make a nearly fitting document stop overflowing.
+            // Reproduce that viewport change without letting it emit a scroll gesture.
+            device.swipe(x, bottom, x, top, 30)
+            assertEquals(false, visibility.poll(5, TimeUnit.SECONDS))
+            evaluate("$area.style.height = '10000px'")
+            awaitJavascript("$area.scrollTop === 0")
+            assertNull(visibility.poll(300, TimeUnit.MILLISECONDS), "A viewport resize is not an upward gesture")
+            device.swipe(x, top, x, bottom, 30)
+            assertEquals(true, visibility.poll(5, TimeUnit.SECONDS), "Controls must be recoverable even without overflow")
+            device.swipe(x, bottom, x, top, 30)
+            assertNull(visibility.poll(300, TimeUnit.MILLISECONDS), "A swipe with no actual scroll must not hide the controls")
+        }
+
+    @Test
     fun fieldWidthsStayStableWhenTheScrollbarAppearsAndDisappears() =
         withEditor {
             loadDocument(document("Short field"))

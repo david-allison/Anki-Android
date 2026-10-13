@@ -105,6 +105,44 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun scrollingFieldsCollapsesTheHeaderAndKeepsSaveReachable() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val content = (1..100).joinToString("") { "<div>Line $it of a long field</div>" }
+            web.setField(0, content)
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val deck = By.text(testContext.getString(R.string.compose_editor_deck))
+            val save = By.desc(testContext.getString(CommonString.save))
+            assertNotNull(device.wait(Until.findObject(deck), 5_000))
+            val saveBounds = checkNotNull(device.findObject(save)).visibleBounds
+            captureScreenshot("scroll-header-expanded", web)
+
+            fun swipe(down: Boolean) {
+                val location = IntArray(2)
+                var x = 0
+                var top = 0
+                var bottom = 0
+                scenario.onActivity {
+                    web.getLocationOnScreen(location)
+                    x = location[0] + web.width / 2
+                    top = location[1] + web.height / 4
+                    bottom = location[1] + web.height * 3 / 4
+                }
+                device.swipe(x, if (down) bottom else top, x, if (down) top else bottom, 30)
+            }
+            swipe(down = true)
+            assertTrue(device.wait(Until.gone(deck), 5_000), "Deck and Type should hide when scrolling down")
+            assertEquals(saveBounds, checkNotNull(device.findObject(save)).visibleBounds)
+            captureScreenshot("scroll-header-collapsed", web)
+            swipe(down = false)
+            assertNotNull(device.wait(Until.findObject(deck), 5_000), "Scrolling up should restore the controls")
+            assertEquals(saveBounds, checkNotNull(device.findObject(save)).visibleBounds)
+            captureScreenshot("scroll-header-restored", web)
+            assertEquals(content, runBlocking { web.snapshot().fields.first() })
+        }
+    }
+
+    @Test
     fun undoAndRedoUseTheSelectedFieldsHistory() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

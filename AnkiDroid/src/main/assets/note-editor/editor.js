@@ -32,6 +32,88 @@
     const reportError = error =>
         send({ type: "error", message: String(error?.message || error), fatal: !fieldsReady });
 
+    // Observe the one field-list scroller, not each field or CodeMirror's inner scrollbars.
+    // Only notify native code when visibility changes. Focus/IME scrolling is not a gesture.
+    let scrollGesture = null,
+        headerVisible = true;
+    function showHeader(visible) {
+        if (visible === headerVisible) return;
+        headerVisible = visible;
+        send({ type: "headerVisibility", visible });
+    }
+    function startScrollGesture(event) {
+        const area = event.composedPath().find(node => node.classList?.contains("scroll-area"));
+        scrollGesture = area
+            ? { area, top: area.scrollTop, direction: 0, distance: 0, travel: 0, until: 0 }
+            : null;
+    }
+    function scrollIntent(delta) {
+        const direction = Math.sign(delta);
+        if (!scrollGesture || !direction) return;
+        if (direction !== scrollGesture.direction) {
+            scrollGesture.distance = 0;
+            scrollGesture.travel = 0;
+        }
+        scrollGesture.direction = direction;
+        scrollGesture.travel += Math.abs(delta);
+        scrollGesture.until = performance.now() + 250;
+        // Collapsing can make a short document fit. An upward gesture must still
+        // reveal the controls even when there is no remaining content to scroll.
+        if (direction < 0 && scrollGesture.travel >= 32) showHeader(true);
+    }
+    let touchY = 0;
+    document.addEventListener(
+        "touchstart",
+        event => {
+            startScrollGesture(event);
+            // The header animation moves the WebView underneath the finger.
+            // Screen coordinates keep that movement out of the gesture direction.
+            touchY = event.touches[0].screenY;
+        },
+        { passive: true },
+    );
+    document.addEventListener(
+        "touchmove",
+        event => {
+            if (event.touches.length !== 1) {
+                scrollGesture = null;
+                return;
+            }
+            const y = event.touches[0].screenY;
+            scrollIntent(touchY - y);
+            touchY = y;
+        },
+        { passive: true },
+    );
+    document.addEventListener(
+        "wheel",
+        event => {
+            if (!scrollGesture || performance.now() > scrollGesture.until)
+                startScrollGesture(event);
+            scrollIntent(event.deltaY);
+        },
+        { passive: true },
+    );
+    document.addEventListener(
+        "scroll",
+        event => {
+            const gesture = scrollGesture;
+            if (!gesture || event.target !== gesture.area) return;
+            const top = gesture.area.scrollTop;
+            const delta = top - gesture.top;
+            gesture.top = top;
+            if (
+                !inputEnabled ||
+                performance.now() > gesture.until ||
+                Math.sign(delta) !== gesture.direction
+            )
+                return;
+            gesture.distance += Math.abs(delta);
+            if (top <= 0 || gesture.distance >= 32) showHeader(gesture.direction < 0);
+        },
+        { capture: true, passive: true },
+    );
+
     function hostRequest(method, args = {}) {
         const id = ++nextHostRequest;
         return new Promise((resolve, reject) => {
@@ -104,6 +186,8 @@
         savedRevision = 0,
     ) {
         validateDocument(value);
+        scrollGesture = null;
+        showHeader(true);
         if (clean.length !== value.fields.length || clean.some(html => typeof html !== "string")) {
             throw new Error("Invalid editor baseline.");
         }
@@ -361,6 +445,7 @@
     });
     document.addEventListener("selectionchange", scheduleRefresh);
     document.addEventListener("anki-editor-fields-focus", event => {
+        scrollGesture = null;
         activeField = event.detail.field;
         send({ type: "focus", field: activeField, languageTag: event.detail.languageTag || "" });
         scheduleRefresh();

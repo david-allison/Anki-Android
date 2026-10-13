@@ -251,6 +251,7 @@ class ComposeNoteEditorActivity :
             state = state,
             toolbarState = toolbarState,
             fieldTaps = webSession.fieldTaps,
+            headerVisibility = webSession.headerVisibility,
             ready = ready,
             busy = showBusyState || state?.isSaving == true,
             error = error,

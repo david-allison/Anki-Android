@@ -58,6 +58,7 @@ class WebEditorView(
     var onReady: (() -> Unit)? = null
     var onChanged: ((WebEditorStatus) -> Unit)? = null
     var onFieldTap: (() -> Unit)? = null
+    var onHeaderVisibility: ((Boolean) -> Unit)? = null
     var onEditEquation: ((WebEditorTarget, String, Boolean) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     var onRendererGone: (() -> Unit)? = null
@@ -381,6 +382,7 @@ class WebEditorView(
     private fun handleMessage(message: JSONObject) {
         when (message.getString("type")) {
             "fieldTap" -> onFieldTap?.invoke()
+            "headerVisibility" -> onHeaderVisibility?.invoke(message.getBoolean("visible"))
             "editEquation" ->
                 onEditEquation?.invoke(
                     message.getJSONObject("target").toTarget(),

@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -39,6 +40,7 @@ import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -58,6 +60,9 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import com.ichi2.testutils.dispatchInsets
 import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.utils.dp
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
@@ -905,6 +910,46 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun scrollingHidesHeaderAndKeepsSaveInPlace() {
+        val visibility = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+        var saves = 0
+        showEditor(headerVisibility = visibility, onSave = { saves++ })
+        val save = composeRule.onNodeWithContentDescription(getResourceString(CommonString.save))
+        val saveBounds = save.fetchSemanticsNode().boundsInRoot
+        val fields = composeRule.onNodeWithTag("editor_fields")
+        val originalBounds = fields.fetchSemanticsNode().boundsInRoot
+        composeRule.runOnIdle { visibility.tryEmit(false) }
+        composeRule.onNodeWithText("Default").assertDoesNotExist()
+        composeRule.onNodeWithText("Basic").assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(CommonString.menu_add_note)).assertDoesNotExist()
+        val expandedBounds = fields.fetchSemanticsNode().boundsInRoot
+        assertTrue(expandedBounds.top < originalBounds.top, "The fields must gain the header space")
+        assertEquals(originalBounds.bottom, expandedBounds.bottom, "Keep the toolbar above the keyboard")
+        assertEquals(saveBounds, save.fetchSemanticsNode().boundsInRoot, "Save must not move during collapse")
+        save.performClick()
+        assertEquals(1, saves)
+        captureScreen("header_hidden_keyboard")
+        composeRule.runOnIdle { visibility.tryEmit(true) }
+        composeRule.onNodeWithText("Default").assertIsDisplayed()
+        composeRule.onNodeWithText("Basic").assertIsDisplayed()
+        assertEquals(originalBounds, fields.fetchSemanticsNode().boundsInRoot)
+        assertEquals(saveBounds, save.fetchSemanticsNode().boundsInRoot)
+        captureScreen("header_revealed_keyboard")
+    }
+
+    @Test
+    fun collapsedHeaderWithoutKeyboard() {
+        val visibility = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+        val (activity, keyboard) = showEditor(headerVisibility = visibility, tags = listOf("Japanese"))
+        hideKeyboard(activity, keyboard)
+        composeRule.runOnIdle { visibility.tryEmit(false) }
+        composeRule.onNodeWithText("Default").assertDoesNotExist()
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertIsDisplayed()
+        captureScreen("header_hidden_no_keyboard")
+    }
+
+    @Test
     fun filledSaveButton() {
         var saves = 0
         showEditor(onSave = { saves++ })
@@ -1018,6 +1063,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
         textColor: String = "#000000",
         highlightColor: String = "#ffff00",
+        headerVisibility: Flow<Boolean> = emptyFlow(),
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1070,7 +1116,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onLegacy = {},
                     onPreviewVisibility = {},
                     onToolbarDisplay = { display.value = it },
-                    editor = { Box(it) },
+                    headerVisibility = headerVisibility,
+                    editor = { Box(it.testTag("editor_fields")) },
                     preview = { Box(it) },
                 )
             }
