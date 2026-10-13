@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -751,6 +752,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val picker = assertNotNull(ShadowDialog.getLatestDialog() as? AlertDialog)
         assertEquals(0, picker.listView.checkedItemPosition)
         captureScreen("note_type_picker")
+        val standardRow =
+            LayoutInflater.from(picker.context).inflate(
+                com.google.android.material.R.layout.mtrl_alert_select_dialog_singlechoice,
+                picker.listView,
+                false,
+            )
+        val firstRow = picker.listView.getChildAt(0)
+        assertEquals(standardRow.paddingStart, firstRow.paddingStart, "Use Material dialog list insets, not spinner insets")
+        assertEquals(standardRow.paddingEnd, firstRow.paddingEnd, "Leave the standard dialog margin after each choice")
         composeRule.runOnIdle { picker.listView.performItemClick(picker.listView.getChildAt(1), 1, 1) }
         composeRule.waitForIdle()
         assertEquals(2L, selected)
