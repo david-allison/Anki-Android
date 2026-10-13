@@ -192,6 +192,7 @@ fun NoteEditorScreen(
         }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+            contentColor = MaterialTheme.colorScheme.onSurface,
             snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
                 TopAppBar(

@@ -35,6 +35,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
@@ -64,6 +65,24 @@ import kotlin.test.assertTrue
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun tintedBackgroundKeepsMetadataReadable() {
+        val (activity, _) = showEditor()
+        val image = activity.window.decorView.drawToBitmap()
+        for (label in listOf("Default", "Basic")) {
+            val bounds = composeRule.onNodeWithText(label, useUnmergedTree = true).fetchSemanticsNode().boundsInWindow
+            val background = image.getPixel(bounds.center.x.roundToInt(), bounds.top.toInt() - 1)
+            val contrast =
+                (bounds.left.toInt() until bounds.right.toInt()).maxOf { x ->
+                    (bounds.top.toInt() until bounds.bottom.toInt()).maxOf { y ->
+                        ColorUtils.calculateContrast(image.getPixel(x, y), background)
+                    }
+                }
+            assertTrue(contrast >= 4.5, "$label must remain readable on the tinted background: contrast=$contrast")
+        }
+        captureScreen("tinted_metadata_contrast")
+    }
 
     @Test
     fun snackbarAppearsAboveTags() {
