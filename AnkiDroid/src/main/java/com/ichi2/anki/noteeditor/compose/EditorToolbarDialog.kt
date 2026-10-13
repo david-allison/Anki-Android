@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -158,7 +159,18 @@ internal fun EditorToolbarRow(
     val upLabel = stringResource(R.string.compose_editor_move_button_up, label)
     val downLabel = stringResource(R.string.compose_editor_move_button_down, label)
     val dragLabel = stringResource(R.string.compose_editor_reorder_button, label)
-    Surface(tonalElevation = if (dragging) 4.dp else 0.dp) {
+    Surface(
+        color =
+            if (checked) {
+                MaterialTheme.colorScheme.primary
+                    .copy(
+                        alpha = 0.06f,
+                    ).compositeOver(MaterialTheme.colorScheme.surface)
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        tonalElevation = if (dragging) 4.dp else 0.dp,
+    ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
