@@ -2,11 +2,28 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
@@ -61,6 +78,8 @@ internal fun EditorFormattingButtons(
     state: EditorToolbarState,
     enabled: Boolean,
     isCloze: Boolean,
+    textColor: String = "#000000",
+    highlightColor: String = "#ffff00",
     onAction: (WebEditorAction) -> Unit,
     onCustomAction: (EditorCustomToolbarButton) -> Unit,
     onMedia: () -> Unit,
@@ -94,8 +113,36 @@ internal fun EditorFormattingButtons(
         if (button.toggle) {
             val selected = if (button == EditorToolbarButton.SOURCE_MODE) state.sourceMode else button.action in state.activeFormats
             EditorToggleButton(button.icon, button.label, actionEnabled, selected, click)
+        } else if (button == EditorToolbarButton.TEXT_COLOR || button == EditorToolbarButton.HIGHLIGHT_COLOR) {
+            EditorColorButton(button, if (button == EditorToolbarButton.TEXT_COLOR) textColor else highlightColor, actionEnabled, click)
         } else {
             EditorActionButton(button.icon, button.label, actionEnabled, click)
+        }
+    }
+}
+
+@Composable
+private fun EditorColorButton(
+    button: EditorToolbarButton,
+    color: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val label = stringResource(button.label)
+    val shape = RoundedCornerShape(1.dp)
+    EditorTooltip(label) {
+        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.semantics { stateDescription = color }) {
+            Box(Modifier.size(24.dp)) {
+                Icon(painterResource(button.icon), label, Modifier.fillMaxSize())
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(Color(android.graphics.Color.parseColor(color)).copy(alpha = if (enabled) 1f else 0.38f), shape)
+                        .border(0.5.dp, MaterialTheme.colorScheme.outline, shape),
+                )
+            }
         }
     }
 }

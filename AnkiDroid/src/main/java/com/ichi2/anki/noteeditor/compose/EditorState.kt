@@ -25,6 +25,8 @@ data class EditorState(
     val customButtonTemplates: List<EditorCustomToolbarButton> = emptyList(),
     val settings: WebEditorSettings = WebEditorSettings(),
     val toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
+    val toolbarTextColor: String = "#000000",
+    val toolbarHighlightColor: String = "#ffff00",
     val baselineFieldMap: List<Int>? = null,
     val removedFields: List<EditorRemovedField> = emptyList(),
     /** Type changes map the existing web baseline; starting the next Add note establishes a new one. */

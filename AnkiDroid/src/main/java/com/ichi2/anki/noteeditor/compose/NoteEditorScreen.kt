@@ -463,6 +463,8 @@ private fun EditorFieldArea(
                                 state = toolbarState,
                                 enabled = enabled,
                                 isCloze = editorState.isCloze,
+                                textColor = editorState.toolbarTextColor,
+                                highlightColor = editorState.toolbarHighlightColor,
                                 onAction = onAction,
                                 onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
                                 onMedia = onMedia,

@@ -372,12 +372,7 @@ class ComposeNoteEditorActivity :
                         } else if (action == WebEditorAction.REMOVE_FORMAT_CHOICES) {
                             Prefs.sharedPrefs.edit { putString("composeEditorRemovedFormats", value) }
                         } else if (action == WebEditorAction.TEXT_COLOR || action == WebEditorAction.HIGHLIGHT_COLOR) {
-                            Prefs.sharedPrefs.edit {
-                                putString(
-                                    "composeEditorRecentColours",
-                                    (listOf(value) + recentColours()).distinct().take(4).joinToString(","),
-                                )
-                            }
+                            model.rememberToolbarColor(action, value)
                         }
                     }
                 },
@@ -559,8 +554,8 @@ class ComposeNoteEditorActivity :
             ) {
                 val text =
                     when (action) {
-                        WebEditorAction.TEXT_COLOR -> recentColours().firstOrNull() ?: "#000000"
-                        WebEditorAction.HIGHLIGHT_COLOR -> recentColours().firstOrNull() ?: "#ffff00"
+                        WebEditorAction.TEXT_COLOR -> requireNotNull(model.state.value).toolbarTextColor
+                        WebEditorAction.HIGHLIGHT_COLOR -> requireNotNull(model.state.value).toolbarHighlightColor
                         WebEditorAction.MATHJAX_INLINE -> editor.selectionText(target) ?: return@launchEditorTask
                         else -> ""
                     }
@@ -574,13 +569,6 @@ class ComposeNoteEditorActivity :
                 reportError(getString(R.string.compose_editor_stale_command))
             }
         }
-
-    private fun recentColours(): List<String> =
-        Prefs.sharedPrefs
-            .getString("composeEditorRecentColours", null)
-            ?.split(",")
-            ?.filter(editorColourPattern::matches)
-            .orEmpty()
 
     private fun quickAction(
         id: String,
