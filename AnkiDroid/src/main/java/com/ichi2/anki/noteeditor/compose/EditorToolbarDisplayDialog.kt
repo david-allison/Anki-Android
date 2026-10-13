@@ -116,7 +116,7 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
         if (display != EditorToolbarDisplay.HIDDEN) {
             Column(Modifier.fillMaxWidth().background(colors.surfaceContainer.compositeOver(colors.surface)).padding(4.dp)) {
                 if (display == EditorToolbarDisplay.STACK) {
-                    icons.chunked(4).forEach { row ->
+                    icons.chunked(4).asReversed().forEach { row ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             row.forEach { PreviewIcon(it.icon) }
                         }

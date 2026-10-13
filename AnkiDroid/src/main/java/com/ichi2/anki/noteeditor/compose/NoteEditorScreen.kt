@@ -82,6 +82,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
@@ -474,9 +475,10 @@ private fun EditorFieldArea(
                                 Modifier
                                     .weight(1f)
                                     .heightIn(max = 144.dp)
-                                    .verticalScroll(rememberScrollState())
+                                    .verticalScroll(rememberScrollState(), reverseScrolling = true)
                                     .padding(horizontal = 8.dp),
                                 horizontalArrangement = Arrangement.Start,
+                                verticalArrangement = ToolbarRowsFromBottom,
                             ) { buttons() }
                         } else {
                             Row(
@@ -496,6 +498,21 @@ private fun EditorFieldArea(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Keep the first configured buttons nearest the keyboard, preserving each row's reading order. */
+private object ToolbarRowsFromBottom : Arrangement.Vertical {
+    override fun Density.arrange(
+        totalSize: Int,
+        sizes: IntArray,
+        outPositions: IntArray,
+    ) {
+        var bottom = totalSize
+        sizes.forEachIndexed { index, height ->
+            bottom -= height
+            outPositions[index] = bottom
         }
     }
 }
