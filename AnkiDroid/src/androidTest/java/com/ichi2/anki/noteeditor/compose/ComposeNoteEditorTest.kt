@@ -34,6 +34,7 @@ import com.ichi2.anki.multimedia.MultimediaActivity
 import com.ichi2.anki.multimedia.MultimediaActivityExtra
 import com.ichi2.anki.multimedia.MultimediaArgsStorage
 import com.ichi2.anki.multimedia.MultimediaBottomSheet
+import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewFragment
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
@@ -1402,6 +1403,52 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals(listOf("recovered-tag", "日本語"), scenario.editorState().tags)
             assertTrue(scenario.editorState().hasMetadataChanges)
             assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun phonePreviewRendersTheDraftAndReturnsToTheSameEditor() {
+        withEditor { scenario ->
+            scenario.onActivity { assumeTrue(it.resources.configuration.smallestScreenWidthDp < 600) }
+            val editor = scenario.awaitEditor()
+            scenario.onActivity { activity ->
+                assertFalse(activity.supportFragmentManager.fragments.any { it is EditorPreviewFragment })
+            }
+            editor.setField(0, "Phone unsaved question")
+            editor.setField(1, "Phone unsaved answer")
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 10_000),
+            ).click()
+            clickText(testContext.getString(CommonString.card_editor_preview_card))
+            var cardWebView: WebView? = null
+            waitUntil(timeout = 30.seconds, message = { "Phone preview did not appear" }) {
+                scenario.onActivity { activity ->
+                    cardWebView =
+                        activity.supportFragmentManager.fragments
+                            .filterIsInstance<EditorPreviewFragment>()
+                            .firstOrNull()
+                            ?.view
+                            ?.webViews()
+                            ?.firstOrNull()
+                }
+                cardWebView != null
+            }
+            val preview = checkNotNull(cardWebView)
+            preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Phone unsaved question') === true")
+            clickText(testContext.getString(CommonString.show_answer))
+            preview.awaitJavascript("document.getElementById('qa')?.textContent.includes('Phone unsaved answer') === true")
+            captureScreenshot("phone-preview-answer", editor, preview)
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+            device.pressBack()
+            waitUntil(message = { "Phone preview did not close" }) {
+                var closed = false
+                scenario.onActivity { activity -> closed = activity.supportFragmentManager.fragments.none { it is EditorPreviewFragment } }
+                closed
+            }
+            assertTrue(editor === scenario.awaitEditor())
+            assertEquals(listOf("Phone unsaved question", "Phone unsaved answer"), runBlocking { editor.snapshot().fields })
+            captureScreenshot("phone-preview-dismissed", editor)
         }
     }
 
