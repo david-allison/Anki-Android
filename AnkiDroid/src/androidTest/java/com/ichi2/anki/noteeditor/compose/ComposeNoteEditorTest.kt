@@ -85,6 +85,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertTrue
@@ -1464,13 +1465,20 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun freshActivityDiscoversTheDraftAndRestoresItsCompleteState() {
+    fun freshAddDoesNotRestoreAnAbandonedCheckpoint() = assertDraftReopening(keepForNextLaunch = false)
+
+    @Test
+    fun explicitlyKeptDraftRestoresItsCompleteStateAndSavingEndsRetention() = assertDraftReopening(keepForNextLaunch = true)
+
+    private fun assertDraftReopening(keepForNextLaunch: Boolean) {
         val deckId = col.decks.id("Recovered draft deck")
         lateinit var previousModel: EditorViewModel
         lateinit var session: String
+        lateinit var initial: EditorState
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             previousModel = scenario.editorModel()
+            initial = scenario.editorState()
             web.setField(0, "Recovered front 日本")
             web.setField(1, "<b>Recovered back</b>")
             runBlocking {
@@ -1479,7 +1487,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     previousModel.setTags(listOf("recovered-tag", "日本語"))
                 }
                 web.updateHostState(withContext(Dispatchers.Main) { previousModel.hostState() })
-                previousModel.rememberDraft()
+                previousModel.rememberDraft(keepForNextLaunch)
             }
             session = scenario.editorState().sessionId
             // Closing the scenario finishes the host without taking its explicit discard path.
@@ -1488,13 +1496,36 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             assertNotSame(previousModel, scenario.editorModel())
-            assertEquals(session, scenario.editorState().sessionId)
-            assertEquals(listOf("Recovered front 日本", "<b>Recovered back</b>"), runBlocking { web.snapshot().fields })
-            assertTrue(runBlocking { web.snapshot().hasChanges })
-            assertEquals(deckId, scenario.editorState().deckId)
-            assertEquals(listOf("recovered-tag", "日本語"), scenario.editorState().tags)
-            assertTrue(scenario.editorState().hasMetadataChanges)
+            if (keepForNextLaunch) {
+                assertEquals(session, scenario.editorState().sessionId)
+                assertEquals(listOf("Recovered front 日本", "<b>Recovered back</b>"), runBlocking { web.snapshot().fields })
+                assertTrue(runBlocking { web.snapshot().hasChanges })
+                assertEquals(deckId, scenario.editorState().deckId)
+                assertEquals(listOf("recovered-tag", "日本語"), scenario.editorState().tags)
+                assertTrue(scenario.editorState().hasMetadataChanges)
+            } else {
+                assertNotEquals(session, scenario.editorState().sessionId)
+                assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
+                assertFalse(runBlocking { web.snapshot().hasChanges })
+                assertEquals(initial.deckId, scenario.editorState().deckId)
+                assertEquals(initial.tags, scenario.editorState().tags)
+                assertFalse(scenario.editorState().hasMetadataChanges)
+            }
             assertEquals(0, runBlocking { withCol { noteCount() } })
+            if (keepForNextLaunch) {
+                clickSave()
+                waitUntil(message = { "The recovered draft was not saved and cleared" }) {
+                    runBlocking { withCol { noteCount() } } == 1 && runBlocking { web.snapshot().fields } == listOf("", "")
+                }
+            }
+        }
+        if (keepForNextLaunch) {
+            withEditor { scenario ->
+                val web = scenario.awaitEditor()
+                assertNotEquals(session, scenario.editorState().sessionId)
+                assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
+                assertEquals(1, runBlocking { withCol { noteCount() } })
+            }
         }
     }
 

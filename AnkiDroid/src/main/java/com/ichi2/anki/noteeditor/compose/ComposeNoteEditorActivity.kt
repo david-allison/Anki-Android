@@ -351,6 +351,7 @@ class ComposeNoteEditorActivity :
                 onKeepDraft = {
                     launchEditorTask {
                         webSession.checkpoint()
+                        model.rememberDraft(keepForNextLaunch = true)
                         closeEditor()
                     }
                 },
@@ -465,6 +466,8 @@ class ComposeNoteEditorActivity :
                 }
                 is EditorSaveResult.Added -> {
                     changed = true
+                    // "Keep draft" applies to the saved note, not the next Add in this session.
+                    model.forgetDraft()
                     val caller = intent.getIntExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NO_CALLER.value)
                     if (caller == NoteEditorCaller.NOTEEDITOR.value || caller == NoteEditorCaller.NOTEEDITOR_INTENT_ADD.value) {
                         webSession.discard()

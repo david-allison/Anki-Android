@@ -12,8 +12,8 @@ import java.security.MessageDigest
 import java.util.UUID
 
 /**
- * Native discovery pointers contain only draft IDs. Fields and recovery metadata remain together
- * in IndexedDB. A second active editor receives its own ID instead of sharing a live web draft.
+ * Native preferences identify drafts and whether they were explicitly kept. Fields and recovery
+ * metadata remain in IndexedDB. A second active editor never shares a live web draft.
  */
 internal class EditorDraftIds(
     private val preferences: SharedPreferences,
@@ -27,11 +27,15 @@ internal class EditorDraftIds(
         collection: String,
         target: String,
         savedId: String?,
+        recoverCheckpoint: Boolean = true,
     ): String =
         synchronized(activeIds) {
             check(id == null) { "This editor already has a draft ID." }
             val preferenceKey = "composeEditorDraft:" + draftKeyHash("$collection\u0000$target")
-            val candidate = savedId ?: preferences.getString(preferenceKey, null)
+            val candidate =
+                savedId ?: preferences.getString(preferenceKey, null)?.takeIf {
+                    recoverCheckpoint || preferences.getBoolean("$preferenceKey:kept", false)
+                }
             val reusable = candidate?.takeUnless { it in activeIds }
             val selected = reusable ?: UUID.randomUUID().toString()
             activeIds.add(selected)
@@ -52,14 +56,20 @@ internal class EditorDraftIds(
         }
 
     /** Called after an IndexedDB checkpoint commits. The small pointer write must also complete. */
-    fun remember() =
+    fun remember(keepForNextLaunch: Boolean = false) =
         synchronized(activeIds) {
             val key = checkNotNull(key)
             val id = checkNotNull(id)
             recoveryRequired = true
             val previous = preferences.getString(key, null)
-            if (previous == id || previous in activeIds) return@synchronized
-            check(preferences.edit().putString(key, id).commit()) { "Could not record the note editor draft." }
+            if (previous == id && !keepForNextLaunch) return@synchronized
+            if (previous != id && previous in activeIds) {
+                check(!keepForNextLaunch) { "Another open editor already owns this draft. Close it before keeping this one." }
+                return@synchronized
+            }
+            val edit = preferences.edit().putString(key, id)
+            if (keepForNextLaunch) edit.putBoolean("$key:kept", true) else edit.remove("$key:kept")
+            check(edit.commit()) { "Could not record the note editor draft." }
         }
 
     /** An old editor must never remove a discovery pointer subsequently owned by another editor. */
@@ -67,7 +77,13 @@ internal class EditorDraftIds(
         synchronized(activeIds) {
             val key = checkNotNull(key)
             if (preferences.getString(key, null) == id) {
-                check(preferences.edit().remove(key).commit()) { "Could not clear the note editor draft." }
+                check(
+                    preferences
+                        .edit()
+                        .remove(key)
+                        .remove("$key:kept")
+                        .commit(),
+                ) { "Could not clear the note editor draft." }
             }
         }
 
