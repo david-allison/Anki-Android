@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:interpolator/fast_out_linear_in"
+    android:shareInterpolator="true">
+    <translate
+        android:duration="150"
+        android:fromYDelta="0"
+        android:toYDelta="8%" />
+    <alpha
+        android:duration="150"
+        android:fromAlpha="1"
+        android:toAlpha="0" />
+</set>
