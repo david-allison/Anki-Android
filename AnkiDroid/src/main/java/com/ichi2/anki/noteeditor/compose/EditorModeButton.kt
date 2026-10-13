@@ -2,6 +2,9 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,6 +18,7 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -40,6 +44,11 @@ internal fun EditorModeButton(
     val action = stringResource(if (sourceMode) R.string.compose_editor_rich_text else R.string.compose_editor_source)
     val mode = stringResource(if (sourceMode) R.string.compose_editor_mode_html else R.string.compose_editor_mode_rich_text)
     val colors = MaterialTheme.colorScheme
+    val selectionOffset by animateDpAsState(
+        targetValue = if (sourceMode) 2.dp else 22.dp,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "Editing mode",
+    )
     EditorTooltip(action) {
         IconToggleButton(
             checked = !sourceMode,
@@ -62,7 +71,7 @@ internal fun EditorModeButton(
                 ) {
                     Box(
                         Modifier
-                            .offset(x = if (sourceMode) 2.dp else 22.dp, y = 2.dp)
+                            .offset(x = selectionOffset, y = 2.dp)
                             .size(20.dp, 24.dp)
                             .background(colors.primaryContainer, RoundedCornerShape(6.dp)),
                     )
