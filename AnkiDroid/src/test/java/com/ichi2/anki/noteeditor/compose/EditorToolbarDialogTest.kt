@@ -41,6 +41,46 @@ class EditorToolbarDialogTest : RobolectricTest() {
         )
 
     @Test
+    fun `removed toolbar buttons move to the top of available and added buttons to the end of enabled`() {
+        showDialog(shortToolbar.copy(buttonOrder = listOf("UNDERLINE", "ITALIC", "BOLD", "custom:${ruby.id}")))
+        val bold = getResourceString(R.string.compose_editor_bold)
+        val italic = getResourceString(R.string.compose_editor_italic)
+        val underline = getResourceString(R.string.compose_editor_underline)
+        composeRule.onNodeWithText(bold).performClick()
+        assertAbove(italic, bold)
+        assertAbove(bold, underline)
+        composeRule.onNodeWithText("Ruby").performClick()
+        assertAbove(italic, "Ruby")
+        composeRule.onNodeWithText(italic).performClick()
+        assertAbove("Ruby", italic)
+        assertAbove(italic, bold)
+        composeRule.onNodeWithText(bold).performClick()
+        assertAbove("Ruby", bold)
+        assertAbove(bold, italic)
+        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        assertEquals(listOf("custom:${ruby.id}", "BOLD", "ITALIC", "UNDERLINE"), saved?.buttonOrder?.take(4))
+    }
+
+    @Test
+    fun `removed quick actions go to the start of available and added actions append`() {
+        showDialog(EditorFieldToolbar(quickActions = listOf("pin", "gallery")), quickActions = true)
+        val gallery = getResourceString(CommonString.multimedia_editor_image_field_editing_galery)
+        val pin = getResourceString(R.string.compose_editor_pin_field)
+        val attach = getResourceString(CommonString.multimedia_editor_attach_tooltip)
+        composeRule.onNodeWithText(pin).performClick()
+        assertAbove(gallery, pin)
+        assertAbove(pin, attach)
+        composeRule.onNodeWithText(gallery).performClick()
+        assertAbove(gallery, pin)
+        composeRule.onNodeWithText(attach).performClick()
+        composeRule.onNodeWithText(pin).performClick()
+        assertAbove(attach, pin)
+        assertAbove(pin, gallery)
+        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        assertEquals(listOf("attachMedia", "pin"), saved?.quickActions)
+    }
+
+    @Test
     fun `enabled toolbar rows precede available rows after toggling`() {
         showDialog(shortToolbar)
         val bold = getResourceString(R.string.compose_editor_bold)
@@ -51,7 +91,6 @@ class EditorToolbarDialogTest : RobolectricTest() {
         assertAbove(italic, bold)
         composeRule.onNodeWithText("Ruby").performClick()
         assertAbove("Ruby", bold)
-        composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         assertAbove(italic, "Ruby")
         assertAbove("Ruby", bold)
         assertEquals(
