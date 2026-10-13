@@ -76,9 +76,13 @@ class WebEditorView(
     private val collectionReady = CompletableDeferred<Unit>()
     private val hostBackgroundColor = getColorFromAttr(context, android.R.attr.colorBackground)
     private val hostForegroundColor = getColorFromAttr(context, com.google.android.material.R.attr.colorOnSurface)
+
+    // Compose maps this selected surface to primaryContainer for toolbar toggles.
+    private val hostSelectedColor = getColorFromAttr(context, com.google.android.material.R.attr.colorSecondaryContainer)
     private val hostStyle =
         ":root { --editor-host-background: ${hostBackgroundColor.toCssRgb()}; " +
-            "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; }"
+            "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; " +
+            "--editor-host-selected-background: ${hostSelectedColor.toCssRgb()}; }"
 
     @Volatile
     private var mediaRoot: File? = null
