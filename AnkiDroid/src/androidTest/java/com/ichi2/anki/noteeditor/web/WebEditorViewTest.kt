@@ -728,6 +728,43 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun modeQuickActionsFollowEachFieldsActualMode() =
+        withEditor {
+            val mode = EditorQuickAction.EDIT_HTML.toWeb(context, pinned = false)
+            val fields =
+                document("<b>front</b>").fields.mapIndexed { index, field ->
+                    field.copy(sourceMode = index == 1, quickActions = listOf(mode))
+                }
+            loadDocument(document("").copy(fields = fields))
+            val front = "document.querySelectorAll('.quick-action')[0]"
+            val back = "document.querySelectorAll('.quick-action')[1]"
+            awaitJavascript("$back?.getAttribute('aria-label') === 'Edit rich text: Back'")
+            assertEquals("true", evaluate("$front.getAttribute('aria-checked') === 'true'"))
+            assertEquals("false", evaluate("$back.getAttribute('aria-checked') === 'true'"))
+            val width = evaluate("$front.getBoundingClientRect().width")
+            focusField(0)
+            assertTrue(execute(WebEditorAction.SOURCE_MODE))
+            awaitJavascript("$front.getAttribute('aria-label') === 'Edit rich text: Front'")
+            assertEquals(width, evaluate("$front.getBoundingClientRect().width"), "Switching must not move adjacent controls")
+            updateFieldActions(fields.map { it.quickActions })
+            assertEquals(
+                "false",
+                evaluate("$front.getAttribute('aria-checked') === 'true'"),
+                "Configuration updates must preserve live mode",
+            )
+            assertTrue(execute(WebEditorAction.SOURCE_MODE))
+            awaitJavascript("$front.getAttribute('aria-label') === 'Edit HTML: Front'")
+            assertEquals("false", evaluate("$back.getAttribute('aria-checked') === 'true'"), "Other fields keep their own mode")
+            assertEquals(listOf("<b>front</b>", "back"), snapshot().fields)
+            captureRenderedScreenshot("editor-mode-switches")
+            assertEquals(
+                "true",
+                evaluate("$front.getAttribute('aria-checked') === 'true'"),
+                "Rich mode must remain selected after rendering",
+            )
+        }
+
+    @Test
     fun sourceModeUsesAnkiCodeMirrorAndDoesNotExposeCollectionRpc() =
         withEditor {
             loadDocument(document("front"))

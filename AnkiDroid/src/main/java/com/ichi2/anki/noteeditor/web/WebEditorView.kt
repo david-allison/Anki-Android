@@ -79,10 +79,13 @@ class WebEditorView(
 
     // Compose maps this selected surface to primaryContainer for toolbar toggles.
     private val hostSelectedColor = getColorFromAttr(context, com.google.android.material.R.attr.colorSecondaryContainer)
+    private val hostModeColor = getColorFromAttr(context, com.google.android.material.R.attr.colorSurfaceContainerHighest)
     private val hostStyle =
         ":root { --editor-host-background: ${hostBackgroundColor.toCssRgb()}; " +
             "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; " +
-            "--editor-host-selected-background: ${hostSelectedColor.toCssRgb()}; }"
+            "--editor-host-selected-background: ${hostSelectedColor.toCssRgb()}; " +
+            "--editor-host-selected-foreground: ${hostForegroundColor.toCssRgb()}; " +
+            "--editor-host-mode-background: ${hostModeColor.toCssRgba()}; }"
 
     @Volatile
     private var mediaRoot: File? = null
@@ -516,6 +519,8 @@ class WebEditorView(
 
 private fun Int.toCssRgb(): String = "rgb(${Color.red(this)}, ${Color.green(this)}, ${Color.blue(this)})"
 
+private fun Int.toCssRgba(): String = "rgba(${Color.red(this)}, ${Color.green(this)}, ${Color.blue(this)}, ${Color.alpha(this) / 255f})"
+
 /** Most packaged scripts contain no end tags, so avoid scanning every character with case folding. */
 internal fun escapeInlineEditorScript(script: String): String =
     if ("</" in script) script.replace("</script", "<\\/script", ignoreCase = true) else script
@@ -566,6 +571,17 @@ private fun List<WebEditorFieldAction>.toJsonActions(): JSONArray =
                 .put("iconPath", action.iconPath)
                 .put("iconViewBox", action.iconViewBox)
                 .put("active", action.active)
+                .apply {
+                    action.richText?.let {
+                        put(
+                            "richText",
+                            JSONObject()
+                                .put("label", it.label)
+                                .put("iconPath", it.iconPath)
+                                .put("iconViewBox", it.iconViewBox),
+                        )
+                    }
+                }
         },
     )
 

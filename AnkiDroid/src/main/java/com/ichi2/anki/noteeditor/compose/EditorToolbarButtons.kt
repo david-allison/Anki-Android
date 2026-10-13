@@ -110,8 +110,10 @@ internal fun EditorFormattingButtons(
                 else -> onAction(requireNotNull(button.action))
             }
         }
-        if (button.toggle) {
-            val selected = if (button == EditorToolbarButton.SOURCE_MODE) state.sourceMode else button.action in state.activeFormats
+        if (button == EditorToolbarButton.SOURCE_MODE) {
+            EditorModeButton(state.sourceMode, actionEnabled, click)
+        } else if (button.toggle) {
+            val selected = button.action in state.activeFormats
             EditorToggleButton(button.icon, button.label, actionEnabled, selected, click)
         } else if (button == EditorToolbarButton.TEXT_COLOR || button == EditorToolbarButton.HIGHLIGHT_COLOR) {
             EditorColorButton(button, if (button == EditorToolbarButton.TEXT_COLOR) textColor else highlightColor, actionEnabled, click)
