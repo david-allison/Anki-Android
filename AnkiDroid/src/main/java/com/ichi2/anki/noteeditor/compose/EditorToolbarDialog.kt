@@ -107,7 +107,13 @@ internal fun EditorToolbarDialog(
                     checked,
                     dragging,
                     onCheckedChange = { shown ->
-                        val ordered = toolbar.copy(buttonOrder = allItems.map { it.key })
+                        // A toggle crosses the boundary: append to enabled, or prepend to available.
+                        val (enabled, available) = items.filterNot { it.key == key }.partition { toolbar.isEnabled(it) }
+                        val displayed = (enabled + item + available).iterator()
+                        val ordered =
+                            toolbar.copy(
+                                buttonOrder = allItems.map { if (it.appliesTo(isCloze)) displayed.next().key else it.key },
+                            )
                         toolbar =
                             when (item) {
                                 is EditorToolbarItem.Builtin ->

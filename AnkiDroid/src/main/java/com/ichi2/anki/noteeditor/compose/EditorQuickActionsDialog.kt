@@ -91,6 +91,8 @@ internal fun EditorQuickActionsDialog(
                     checked,
                     dragging,
                     onCheckedChange = { shown ->
+                        val (selected, available) = items.filterNot { it == key }.partition { it in toolbar.quickActions }
+                        order = selected + key + available
                         val enabled = if (shown) toolbar.quickActions + key else toolbar.quickActions - key
                         toolbar = toolbar.copy(quickActions = order.filter { it in enabled })
                     },
