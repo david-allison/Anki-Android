@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +42,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
 @Composable
@@ -56,7 +54,7 @@ internal fun EditorToolbarDisplayDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp),
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        title = { Text(stringResource(R.string.compose_editor_toolbar)) },
+        title = { Text(stringResource(R.string.compose_editor_toolbar_layout)) },
         text = {
             BoxWithConstraints(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 // All three fit on a phone. At large font sizes, scroll instead of squeezing the labels.
@@ -88,7 +86,6 @@ internal fun EditorToolbarDisplayDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }
 
