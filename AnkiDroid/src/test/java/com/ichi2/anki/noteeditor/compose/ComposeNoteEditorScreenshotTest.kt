@@ -858,6 +858,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarRichTextMode() {
+        showEditor(toolbar = EditorFieldToolbar(buttonOrder = listOf("SOURCE_MODE")))
+        captureScreen("toolbar_rich_text_mode")
+    }
+
+    @Test
+    fun toolbarHtmlMode() {
+        showEditor(toolbar = EditorFieldToolbar(buttonOrder = listOf("SOURCE_MODE")), sourceMode = true)
+        captureScreen("toolbar_html_mode")
+    }
+
+    @Test
     fun toolbarColorIndicators() = captureToolbarColorIndicators("toolbar_color_indicators", "#e91e63", "#ffc107")
 
     @Test
@@ -993,6 +1005,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         noteTypeName: String = "Basic",
         deckName: String = "Default",
         formats: Set<WebEditorAction> = emptySet(),
+        sourceMode: Boolean = false,
         toolbar: EditorFieldToolbar = EditorFieldToolbar(),
         templates: List<EditorCustomToolbarButton> = toolbar.customButtons,
         tags: List<String> = emptyList(),
@@ -1034,7 +1047,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     toolbarState =
                         remember {
                             mutableStateOf(
-                                EditorToolbarState(hasSelection = true, activeField = 1, activeFormats = formats),
+                                EditorToolbarState(hasSelection = true, activeField = 1, activeFormats = formats, sourceMode = sourceMode),
                             )
                         },
                     ready = true,

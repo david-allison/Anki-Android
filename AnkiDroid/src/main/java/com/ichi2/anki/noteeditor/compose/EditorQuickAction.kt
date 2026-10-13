@@ -9,6 +9,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.web.WebEditorFieldAction
+import com.ichi2.anki.noteeditor.web.WebEditorFieldActionAppearance
 import org.xmlpull.v1.XmlPullParser
 
 /** Stable IDs are stored per field, independently of the formatting toolbar. */
@@ -41,26 +42,40 @@ internal enum class EditorQuickAction(
 
     // Read each existing vector once, and only if enabled. No extra startup assets or duplicate icons.
     private var vector: Pair<String, String>? = null
+    private var richTextVector: Pair<String, String>? = null
 
     fun toWeb(
         context: Context,
         pinned: Boolean,
     ): WebEditorFieldAction {
         val (path, viewBox) = vector ?: readVector(context).also { vector = it }
+        val richText =
+            if (this == EDIT_HTML) {
+                val (richPath, richViewBox) =
+                    richTextVector
+                        ?: readVector(context, R.drawable.ic_editor_rich_text).also { richTextVector = it }
+                WebEditorFieldActionAppearance(context.getString(R.string.compose_editor_rich_text), richPath, richViewBox)
+            } else {
+                null
+            }
         return WebEditorFieldAction(
             id,
             context.getString(if (this == PIN && pinned) R.string.compose_editor_unpin_field else label),
             path,
             viewBox,
             if (this == PIN) pinned else null,
+            richText,
         )
     }
 
-    private fun readVector(context: Context): Pair<String, String> {
+    private fun readVector(
+        context: Context,
+        @DrawableRes drawable: Int = icon,
+    ): Pair<String, String> {
         val namespace = "http://schemas.android.com/apk/res/android"
         val paths = mutableListOf<String>()
         var viewBox = "0 0 24 24"
-        context.resources.getXml(icon).use { xml ->
+        context.resources.getXml(drawable).use { xml ->
             while (xml.next() != XmlPullParser.END_DOCUMENT) {
                 if (xml.eventType != XmlPullParser.START_TAG) continue
                 when (xml.name) {

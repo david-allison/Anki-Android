@@ -1,0 +1,8 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Icons from Pictogrammers Material Design Icons; vertically centered for a mode switch. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="@android:color/white"
+        android:pathData="M9.62,14L12,7.67L14.37,14M11,5L5.5,19H7.75L8.87,16H15.12L16.25,19H18.5L13,5H11Z" />
+</vector>

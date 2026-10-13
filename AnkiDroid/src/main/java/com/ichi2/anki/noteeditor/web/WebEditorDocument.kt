@@ -35,6 +35,14 @@ data class WebEditorFieldAction(
     val iconPath: String,
     val iconViewBox: String = "0 0 24 24",
     val active: Boolean? = null,
+    val richText: WebEditorFieldActionAppearance? = null,
+)
+
+/** Alternate appearance; the web editor supplies the current field mode. */
+data class WebEditorFieldActionAppearance(
+    val label: String,
+    val iconPath: String,
+    val iconViewBox: String = "0 0 24 24",
 )
 
 data class WebEditorStatus(

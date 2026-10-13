@@ -14,6 +14,9 @@
     <string name="compose_editor_cloze_new">New cloze number</string>
     <string name="compose_editor_cloze_same">Same cloze number</string>
     <string name="compose_editor_source">Edit HTML</string>
+    <string name="compose_editor_rich_text">Edit rich text</string>
+    <string name="compose_editor_mode_html">HTML</string>
+    <string name="compose_editor_mode_rich_text">Rich text</string>
     <string name="compose_editor_media">Attach media</string>
     <string name="compose_editor_image">Choose image</string>
     <string name="compose_editor_camera">Take photo</string>
