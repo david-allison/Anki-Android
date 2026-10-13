@@ -588,6 +588,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
             composeRule.onNodeWithText(getResourceString(display.label)).assertIsSelected()
+            assertToolbarChoicesAreSideBySide()
             captureScreen("toolbar_layout_${display.name.lowercase()}")
             val backgrounds =
                 EditorToolbarDisplay.entries.associateWith { layout ->
@@ -597,7 +598,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 }
             for (other in EditorToolbarDisplay.entries - display) {
                 composeRule.onNodeWithText(getResourceString(other.label)).assertIsNotSelected()
-                assertNotEquals(backgrounds[other], backgrounds[display], "The selected $display row needs a visible background highlight")
+                assertNotEquals(
+                    backgrounds[other],
+                    backgrounds[display],
+                    "The selected $display choice needs a visible background highlight",
+                )
             }
             val next = EditorToolbarDisplay.entries[(display.ordinal + 1) % EditorToolbarDisplay.entries.size]
             composeRule.onNodeWithText(getResourceString(next.label)).performClick()
@@ -613,6 +618,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_scroll)).assertIsSelected()
+        assertToolbarChoicesAreSideBySide()
         captureScreen("toolbar_layout_small_screen")
     }
 
@@ -625,6 +631,24 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden)).performScrollTo().assertIsDisplayed()
         captureScreen("toolbar_layout_large_text")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_scroll)).performScrollTo().assertIsDisplayed()
+        captureScreen("toolbar_layout_large_text_start")
+    }
+
+    private fun assertToolbarChoicesAreSideBySide() {
+        val bounds =
+            EditorToolbarDisplay.entries.map { display ->
+                composeRule
+                    .onNodeWithText(getResourceString(display.label))
+                    .assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+            }
+        bounds.zipWithNext().forEach { (left, right) ->
+            assertEquals(left.top, right.top, "Keep the choices in one horizontal row")
+            assertEquals(left.bottom, right.bottom, "Give each choice the same height")
+            assertTrue(left.right < right.left, "Leave a gap between choices")
+        }
     }
 
     @Test
