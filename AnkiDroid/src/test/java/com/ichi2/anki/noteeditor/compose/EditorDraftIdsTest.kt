@@ -6,6 +6,7 @@ import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import org.junit.Test
 import java.security.MessageDigest
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -28,9 +29,63 @@ class EditorDraftIdsTest {
     @Test
     fun `saved instance ID requires recovery even without a discovery pointer`() {
         val draft = editor()
-        assertEquals("saved-instance", draft.acquire("collection", "add", "saved-instance"))
+        assertEquals("saved-instance", draft.acquire("collection", "add", "saved-instance", recoverCheckpoint = false))
         assertTrue(preferences.all.isEmpty())
         assertTrue(draft.takeRecoveryRequired())
+    }
+
+    @Test
+    fun `fresh Add after process death ignores automatic checkpoints`() {
+        val first = editor()
+        val id = first.acquire("collection", "add", null, recoverCheckpoint = false)
+        first.remember()
+
+        val afterProcessDeath = EditorDraftIds(preferences, mutableSetOf())
+        assertNotEquals(id, afterProcessDeath.acquire("collection", "add", null, recoverCheckpoint = false))
+        assertFalse(afterProcessDeath.takeRecoveryRequired())
+    }
+
+    @Test
+    fun `explicitly kept Add is recovered until discarded`() {
+        val first = editor()
+        val id = first.acquire("collection", "add", null, recoverCheckpoint = false)
+        first.remember()
+        first.remember(keepForNextLaunch = true)
+        first.release()
+
+        val recovered = editor()
+        assertEquals(id, recovered.acquire("collection", "add", null, recoverCheckpoint = false))
+        assertTrue(recovered.takeRecoveryRequired())
+        recovered.remember()
+        recovered.forget()
+        assertTrue(preferences.all.isEmpty())
+    }
+
+    @Test
+    fun `a replacement pointer does not inherit explicit retention`() {
+        val first = editor()
+        first.acquire("collection", "add", null)
+        first.remember(keepForNextLaunch = true)
+        first.release()
+
+        val replacement = editor()
+        replacement.acquire("collection", "add", "replacement")
+        replacement.remember()
+        first.forget()
+        assertEquals(listOf("replacement"), preferences.all.values.toList())
+        replacement.release()
+        assertNotEquals("replacement", editor().acquire("collection", "add", null, recoverCheckpoint = false))
+    }
+
+    @Test
+    fun `keeping a second live draft fails without replacing the first`() {
+        val first = editor()
+        val id = first.acquire("collection", "add", null)
+        first.remember()
+        val second = editor()
+        second.acquire("collection", "add", null)
+        assertFailsWith<IllegalStateException> { second.remember(keepForNextLaunch = true) }
+        assertEquals(listOf(id), preferences.all.values.toList())
     }
 
     @Test

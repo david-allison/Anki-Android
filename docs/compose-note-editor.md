@@ -20,7 +20,11 @@ retained. Tablets show the unsaved card preview alongside the fields.
 
 Field HTML remains in the WebView. Snapshots serve Save and the approximately
 100 ms live preview. IndexedDB stores fields, their clean baseline, and opaque
-native recovery metadata together; native preferences store only discovery IDs.
+native recovery metadata together; native preferences store discovery IDs and
+whether a draft was explicitly kept.
+Starting a fresh Add does not reopen an abandoned checkpoint. Saved Android
+instances still recover their session, and **Keep draft and close** explicitly
+retains a draft for the next launch. Saving that note ends this explicit retention.
 Delayed insertions retain the original field and selection, and fail visibly
 if that field or note has changed.
 

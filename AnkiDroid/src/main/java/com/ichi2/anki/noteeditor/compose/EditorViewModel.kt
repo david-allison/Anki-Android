@@ -71,7 +71,7 @@ class EditorViewModel(
     /** Consume before the first web request, including when attachment may be canceled. */
     internal fun takeDraftRecoveryRequired(): Boolean = draftIds.takeRecoveryRequired()
 
-    suspend fun rememberDraft() = withContext(ioDispatcher) { draftIds.remember() }
+    suspend fun rememberDraft(keepForNextLaunch: Boolean = false) = withContext(ioDispatcher) { draftIds.remember(keepForNextLaunch) }
 
     suspend fun forgetDraft() = withContext(ioDispatcher) { draftIds.forget() }
 
@@ -171,7 +171,9 @@ class EditorViewModel(
                 } else {
                     "edit:${loaded.noteId}:${loaded.cardId}:${affectedCardIds.joinToString(",")}"
                 }
-            val sessionId = draftIds.acquire(requireNotNull(collectionKey), target, savedState[SESSION_KEY])
+            // A new Add starts empty. Restore only this saved instance or an explicitly kept draft.
+            val sessionId =
+                draftIds.acquire(requireNotNull(collectionKey), target, savedState[SESSION_KEY], recoverCheckpoint = !loaded.isAdding)
             savedState[SESSION_KEY] = sessionId
             baseline = loaded.metadata()
             mutableState.value = loaded.copy(sessionId = sessionId)

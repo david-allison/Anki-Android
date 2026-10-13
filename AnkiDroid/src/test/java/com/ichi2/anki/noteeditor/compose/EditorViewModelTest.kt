@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import android.os.Bundle
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
@@ -25,6 +26,7 @@ import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -579,6 +581,44 @@ class EditorViewModelTest : JvmTest() {
             assertEquals(original.generation + 1, next.generation)
             assertFalse(next.resetFieldBaseline)
             assertTrue(next.hasMetadataChanges)
+        }
+
+    @Test
+    fun `fresh Add does not reopen the previous checkpoint`() =
+        runTest {
+            val previous = loadAdd()
+            val previousId = previous.draftId
+            previous.rememberDraft()
+            ViewModelStore().apply { put("editor", previous) }.clear()
+
+            val fresh = loadAdd()
+            try {
+                assertNotEquals(previousId, fresh.draftId)
+                assertFalse(fresh.takeDraftRecoveryRequired())
+            } finally {
+                ViewModelStore().apply { put("editor", fresh) }.clear()
+            }
+        }
+
+    @Test
+    fun `restored Android instance still reuses its Add checkpoint`() =
+        runTest {
+            val savedState = SavedStateHandle()
+            val previous = EditorViewModel(savedState)
+            previous.load(NoteEditorFragment.addNoteArgs())
+            previous.rememberDraft()
+            val previousId = previous.draftId
+            val restoredState = SavedStateHandle(savedState.keys().associateWith { savedState.get<Any?>(it) })
+            ViewModelStore().apply { put("editor", previous) }.clear()
+
+            val restored = EditorViewModel(restoredState)
+            try {
+                restored.load(NoteEditorFragment.addNoteArgs())
+                assertEquals(previousId, restored.draftId)
+                assertTrue(restored.takeDraftRecoveryRequired())
+            } finally {
+                ViewModelStore().apply { put("editor", restored) }.clear()
+            }
         }
 
     @Test
