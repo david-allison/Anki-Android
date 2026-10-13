@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,6 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
 internal fun EditorToolbarList(
     items: List<String>,
     onMove: (String, String) -> Unit,
+    canMove: (String, String) -> Boolean = { _, _ -> true },
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit,
     row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
@@ -33,6 +35,7 @@ internal fun EditorToolbarList(
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
     val currentMove by rememberUpdatedState(onMove)
+    val currentCanMove by rememberUpdatedState(canMove)
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
     var firstOffset by rememberSaveable { mutableIntStateOf(0) }
     AndroidView(
@@ -46,6 +49,7 @@ internal fun EditorToolbarList(
                         items,
                         composition,
                         onMove = { from, to -> currentMove(from, to) },
+                        canMove = { from, to -> currentCanMove(from, to) },
                         header = { currentHeader() },
                         row = { item, index, dragging, startDrag, move -> currentRow(item, index, dragging, startDrag, move) },
                     )
@@ -69,6 +73,7 @@ internal fun EditorToolbarList(
                 )
             }
         },
+        update = { list -> (list.adapter as EditorToolbarAdapter).updateItems(items) },
         onRelease = { list ->
             (list.adapter as EditorToolbarAdapter).touchHelper.attachToRecyclerView(null)
             list.adapter = null
@@ -80,6 +85,7 @@ private class EditorToolbarAdapter(
     initialItems: List<String>,
     private val composition: CompositionContext,
     private val onMove: (String, String) -> Unit,
+    private val canMove: (String, String) -> Boolean,
     private val header: @Composable () -> Unit,
     private val row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) : RecyclerView.Adapter<EditorToolbarAdapter.Holder>() {
@@ -97,7 +103,11 @@ private class EditorToolbarAdapter(
                     recyclerView: RecyclerView,
                     current: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder,
-                ): Boolean = target.bindingAdapterPosition > 0
+                ): Boolean {
+                    val from = items.getOrNull(current.bindingAdapterPosition - 1) ?: return false
+                    val to = items.getOrNull(target.bindingAdapterPosition - 1) ?: return false
+                    return canMove(from, to)
+                }
 
                 override fun onMove(
                     recyclerView: RecyclerView,
@@ -127,11 +137,43 @@ private class EditorToolbarAdapter(
         if (from !in items.indices || to !in items.indices || from == to) return false
         val source = items[from]
         val destination = items[to]
+        if (!canMove(source, destination)) return false
         items.add(to, items.removeAt(from))
         // Rebinding during a drag can end it early. Compose observes the order/selection state directly.
         notifyItemMoved(from + 1, to + 1)
         onMove(source, destination)
         return true
+    }
+
+    /** Toggling visibility moves a row between groups; keep RecyclerView in sync without rebinding a drag. */
+    fun updateItems(updated: List<String>) {
+        val previous = items.toList()
+        if (previous == updated) return
+        val difference =
+            DiffUtil.calculateDiff(
+                object : DiffUtil.Callback() {
+                    override fun getOldListSize() = previous.size + 1
+
+                    override fun getNewListSize() = updated.size + 1
+
+                    override fun areItemsTheSame(
+                        oldItemPosition: Int,
+                        newItemPosition: Int,
+                    ) = if (oldItemPosition == 0 || newItemPosition == 0) {
+                        oldItemPosition == newItemPosition
+                    } else {
+                        previous[oldItemPosition - 1] == updated[newItemPosition - 1]
+                    }
+
+                    override fun areContentsTheSame(
+                        oldItemPosition: Int,
+                        newItemPosition: Int,
+                    ) = true
+                },
+            )
+        items.clear()
+        items.addAll(updated)
+        difference.dispatchUpdatesTo(this)
     }
 
     override fun getItemCount(): Int = items.size + 1

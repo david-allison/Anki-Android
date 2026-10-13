@@ -45,6 +45,7 @@ internal fun EditorQuickActionsDialog(
             },
         )
     }
+    val items = order.sortedBy { it !in toolbar.quickActions }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -66,7 +67,8 @@ internal fun EditorQuickActionsDialog(
             },
         ) { insets ->
             EditorToolbarList(
-                items = order,
+                items = items,
+                canMove = { from, to -> (from in toolbar.quickActions) == (to in toolbar.quickActions) },
                 onMove = { from, to ->
                     order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
                     toolbar = toolbar.copy(quickActions = order.filter { it in toolbar.quickActions })
@@ -82,18 +84,26 @@ internal fun EditorQuickActionsDialog(
                 },
             ) { key, index, dragging, startDrag, move ->
                 val item = requireNotNull(EditorQuickAction.fromId(key))
+                val checked = key in toolbar.quickActions
                 EditorToolbarRow(
                     item.icon,
                     stringResource(item.label),
-                    key in toolbar.quickActions,
+                    checked,
                     dragging,
                     onCheckedChange = { shown ->
                         val enabled = if (shown) toolbar.quickActions + key else toolbar.quickActions - key
                         toolbar = toolbar.copy(quickActions = order.filter { it in enabled })
                     },
                     startDrag = startDrag,
-                    moveUp = if (index > 0) ({ move(-1) }) else null,
-                    moveDown = if (index < order.lastIndex) ({ move(1) }) else null,
+                    moveUp = if (index > 0 && (items[index - 1] in toolbar.quickActions) == checked) ({ move(-1) }) else null,
+                    moveDown =
+                        if (index < items.lastIndex &&
+                            (items[index + 1] in toolbar.quickActions) == checked
+                        ) {
+                            ({ move(1) })
+                        } else {
+                            null
+                        },
                 )
             }
         }
