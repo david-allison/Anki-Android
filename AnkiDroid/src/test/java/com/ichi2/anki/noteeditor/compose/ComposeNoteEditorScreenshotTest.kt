@@ -589,6 +589,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         for (display in EditorToolbarDisplay.entries) {
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+            composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).assertIsDisplayed()
+            composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).assertDoesNotExist()
             composeRule.onNodeWithText(getResourceString(display.label)).assertIsSelected()
             assertToolbarChoicesAreSideBySide()
             captureScreen("toolbar_layout_${display.name.lowercase()}")
