@@ -369,7 +369,7 @@ class EditorViewModel(
     suspend fun setFieldPinned(
         target: EditorFieldTarget,
         pinned: Boolean,
-    ) = updateFieldSettings(target) { sticky = pinned }
+    ) = updateFieldSettings(target, optimisticPinned = pinned) { sticky = pinned }
 
     suspend fun setFieldLanguageHint(
         target: EditorFieldTarget,
@@ -422,9 +422,24 @@ class EditorViewModel(
 
     private suspend fun updateFieldSettings(
         target: EditorFieldTarget,
+        optimisticPinned: Boolean? = null,
         update: Field.() -> Unit,
     ) {
         val current = state.value?.takeIf { target.matches(it) && !it.isSaving } ?: return
+        if (optimisticPinned != null) {
+            mutableState.value =
+                current.copy(
+                    fields =
+                        current.fields.mapIndexed { i, field ->
+                            if (i == target.field) {
+                                field.copy(sticky = optimisticPinned)
+                            } else {
+                                field
+                            }
+                        },
+                )
+        }
+        var persisted = false
         try {
             val updated =
                 withCol {
@@ -437,6 +452,7 @@ class EditorViewModel(
                     notetypes.save(type)
                     field.sticky to field.languageHint?.toLanguageTag()
                 } ?: return
+            persisted = true
             state.value?.takeIf(target::matches)?.let { latest ->
                 mutableState.value =
                     latest.copy(
@@ -450,6 +466,22 @@ class EditorViewModel(
             throw e
         } catch (e: Exception) {
             report(e)
+        } finally {
+            if (!persisted && optimisticPinned != null) {
+                state.value?.takeIf(target::matches)?.let { latest ->
+                    mutableState.value =
+                        latest.copy(
+                            fields =
+                                latest.fields.mapIndexed { i, field ->
+                                    if (i == target.field && field.sticky == optimisticPinned) {
+                                        field.copy(sticky = current.fields[i].sticky)
+                                    } else {
+                                        field
+                                    }
+                                },
+                        )
+                }
+            }
         }
     }
 

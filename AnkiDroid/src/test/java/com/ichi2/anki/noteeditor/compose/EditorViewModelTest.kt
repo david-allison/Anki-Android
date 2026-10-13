@@ -273,6 +273,80 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `pin state changes before the collection operation runs`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 1)
+            val collection = col
+            val previousQueue = CollectionManager.setTestDispatcher(StandardTestDispatcher(testScheduler), useReentrantLock = false)
+            try {
+                for (pinned in listOf(true, false)) {
+                    val operation = launch(start = CoroutineStart.UNDISPATCHED) { vm.setFieldPinned(target, pinned) }
+                    assertEquals(
+                        pinned,
+                        vm.state.value!!
+                            .fields[1]
+                            .sticky,
+                        "Show the requested pin state before backend confirmation",
+                    )
+                    assertFalse(operation.isCompleted)
+                    assertEquals(
+                        !pinned,
+                        collection.notetypes
+                            .get(before.noteTypeId)!!
+                            .fields[1]
+                            .sticky,
+                    )
+                    advanceUntilIdle()
+                    operation.join()
+                    assertEquals(
+                        pinned,
+                        collection.notetypes
+                            .get(before.noteTypeId)!!
+                            .fields[1]
+                            .sticky,
+                    )
+                }
+            } finally {
+                advanceUntilIdle()
+                CollectionManager.setTestDispatcher(previousQueue)
+            }
+        }
+
+    @Test
+    fun `failed pin change restores the previous visible state`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 1)
+            val type = col.notetypes.get(before.noteTypeId)!!.deepClone()
+            type.fields[1].name = "Renamed elsewhere"
+            col.notetypes.save(type)
+            val previousQueue = CollectionManager.setTestDispatcher(StandardTestDispatcher(testScheduler), useReentrantLock = false)
+            try {
+                val operation = launch(start = CoroutineStart.UNDISPATCHED) { vm.setFieldPinned(target, true) }
+                assertTrue(
+                    vm.state.value!!
+                        .fields[1]
+                        .sticky,
+                )
+                advanceUntilIdle()
+                operation.join()
+                assertFalse(
+                    vm.state.value!!
+                        .fields[1]
+                        .sticky,
+                )
+                assertNotNull(vm.error.value)
+                assertEquals(before.generation, vm.state.value?.generation)
+            } finally {
+                advanceUntilIdle()
+                CollectionManager.setTestDispatcher(previousQueue)
+            }
+        }
+
+    @Test
     fun `field settings persist on the note type without changing the draft generation`() =
         runTest {
             val vm = loadAdd()
