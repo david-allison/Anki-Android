@@ -3,6 +3,7 @@
 
 package com.ichi2.anki.multimedia
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
@@ -58,6 +59,15 @@ class MultimediaBottomSheet : BottomSheetDialogFragment(R.layout.fragment_bottom
     override fun onStart() {
         super.onStart()
         BottomSheetBehavior.from(binding.root.parent as View).state = BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    override fun onCancel(dialog: DialogInterface) {
+        super.onCancel(dialog)
+        parentFragmentManager.setFragmentResult(REQUEST_KEY_CANCELED, Bundle.EMPTY)
+    }
+
+    companion object {
+        const val REQUEST_KEY_CANCELED = "multimediaPickerCanceled"
     }
 
     /**
