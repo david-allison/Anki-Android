@@ -8,6 +8,8 @@ html:root .fields-only { padding-inline: 14px; }
 
 /* The desktop scrollbar is too wide beside touch-scrolled fields. */
 html .fields-only .scroll-area::-webkit-scrollbar:vertical { width: 4px; }
+/* Reserve its space so growing or shrinking a field cannot reflow the editor. */
+html .fields-only .scroll-area { scrollbar-gutter: stable; }
 
 /* The native host supplies the surrounding surface and matching label colours. */
 html:root, html body { background: transparent; }
