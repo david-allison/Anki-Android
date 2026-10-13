@@ -4,7 +4,11 @@ package com.ichi2.anki.noteeditor.web
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.os.SystemClock
 import android.view.ContextThemeWrapper
+import android.view.InputDevice
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -37,11 +41,13 @@ import org.junit.Test
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Runs the production assets, virtual origin, native bridge and Chromium editing engine. */
@@ -69,6 +75,71 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @Test
     fun quickPinIsCompactAndMatchesBlackToolbar() = assertQuickPinAppearance(R.style.Theme_Dark_Black)
+
+    @Test
+    fun quickActionsShowPressFeedbackInLightTheme() = assertQuickActionPressFeedback(R.style.Theme_Light)
+
+    @Test
+    fun quickActionsShowPressFeedbackInDarkTheme() = assertQuickActionPressFeedback(R.style.Theme_Dark)
+
+    private fun assertQuickActionPressFeedback(theme: Int) =
+        withEditor(theme = theme) {
+            val pin = EditorQuickAction.PIN.toWeb(context, pinned = true)
+            loadDocument(document("front").let { it.copy(fields = it.fields.map { field -> field.copy(quickActions = listOf(pin)) }) })
+            select(0, 1, 3)
+            val actions = LinkedBlockingQueue<String>()
+            getInstrumentation().runOnMainSync { onQuickAction = { action, _ -> actions.add(action) } }
+            captureRenderedScreenshot("editor-quick-action-ready-$theme")
+            val rect =
+                JSONObject(
+                    evaluate(
+                        """
+                        (() => {
+                            const rect = document.querySelectorAll('.quick-action')[1].getBoundingClientRect();
+                            return {x: (rect.left + rect.width / 2) * devicePixelRatio,
+                                    y: (rect.top + rect.height / 2) * devicePixelRatio};
+                        })()
+                        """.trimIndent(),
+                    ),
+                )
+            val location = IntArray(2)
+            getInstrumentation().runOnMainSync { getLocationOnScreen(location) }
+            val x = location[0] + rect.getDouble("x").toFloat()
+            val y = location[1] + rect.getDouble("y").toFloat()
+            val opacity = "Number(getComputedStyle(document.querySelectorAll('.quick-action')[1], '::after').opacity)"
+
+            fun touch(
+                action: Int,
+                downTime: Long,
+            ) {
+                val event = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), action, x, y, 0)
+                event.source = InputDevice.SOURCE_TOUCHSCREEN
+                try {
+                    assertTrue(getInstrumentation().uiAutomation.injectInputEvent(event, true))
+                } finally {
+                    event.recycle()
+                }
+            }
+
+            val downTime = SystemClock.uptimeMillis()
+            touch(MotionEvent.ACTION_DOWN, downTime)
+            try {
+                awaitJavascript("$opacity > 0.1")
+                SystemClock.sleep(ViewConfiguration.getLongPressTimeout().toLong() + 100)
+                assertEquals("true", evaluate("$opacity > 0.1"), "Keep feedback visible throughout a long press")
+                captureRenderedScreenshot("editor-quick-action-held-$theme")
+                assertNull(actions.poll(), "Pressing must not activate before release")
+                assertEquals("true", evaluate("${fieldElement(0)}.matches(':focus')"), "Quick actions must not steal field focus")
+            } finally {
+                touch(MotionEvent.ACTION_CANCEL, downTime)
+            }
+            awaitJavascript("$opacity === 0")
+            assertNull(actions.poll(), "A cancelled press must not activate")
+            UiDevice.getInstance(getInstrumentation()).click(x.toInt(), y.toInt())
+            assertEquals(EditorQuickAction.PIN.id, actions.poll(5, TimeUnit.SECONDS), "A normal tap must still activate")
+            awaitJavascript("$opacity === 0")
+            assertEquals("front", snapshot().fields.first())
+        }
 
     @Test
     fun fieldScrollbarIsSlimAndStillScrolls() =

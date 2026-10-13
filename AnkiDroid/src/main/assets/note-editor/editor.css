@@ -27,6 +27,34 @@ html:root, html body { background: transparent; }
     min-height: 48px;
     padding: 0;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+/* Match the native icon buttons' circular press feedback without moving focus
+ * or adding listeners to every field. Stay visible for the whole long press. */
+.fields-only .field-quick-actions .quick-action::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--editor-host-foreground);
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+}
+.fields-only .field-quick-actions .quick-action:enabled:active::after {
+    opacity: 0.12;
+    animation: editor-quick-action-ripple 225ms ease-out;
+}
+@keyframes editor-quick-action-ripple {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fields-only .field-quick-actions .quick-action:enabled:active::after,
+    .fields-only .field-quick-actions .quick-action::after {
+        animation: none;
+        transition: none;
+    }
 }
 .fields-only .field-quick-actions .quick-action[aria-pressed] svg {
     width: 20px;
