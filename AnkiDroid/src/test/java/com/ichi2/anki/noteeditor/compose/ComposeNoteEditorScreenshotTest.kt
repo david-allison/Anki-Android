@@ -22,6 +22,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
@@ -33,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.ColorUtils
@@ -473,6 +475,32 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun visualToolbarLayoutChoices() {
+        showEditor()
+        for (display in EditorToolbarDisplay.entries) {
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+            composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+            composeRule.onNodeWithText(getResourceString(display.label)).assertIsSelected()
+            captureScreen("toolbar_layout_${display.name.lowercase()}")
+            val next = EditorToolbarDisplay.entries[(display.ordinal + 1) % EditorToolbarDisplay.entries.size]
+            composeRule.onNodeWithText(getResourceString(next.label)).performClick()
+            composeRule.onNodeWithText(getResourceString(next.label)).assertDoesNotExist()
+        }
+        fieldOptionsButton().assertIsDisplayed()
+    }
+
+    @Test
+    fun toolbarLayoutChoicesOnSmallScreenWithLargeText() {
+        RuntimeEnvironment.setQualifiers("+w320dp")
+        RuntimeEnvironment.setFontScale(2f)
+        showEditor()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden)).performScrollTo().assertIsDisplayed()
+        captureScreen("toolbar_layout_large_text")
+    }
+
+    @Test
     fun hiddenToolbarKeepsFieldOptionsAccessible() {
         showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN)
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
@@ -715,12 +743,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
+                val display = remember { mutableStateOf(toolbarDisplay) }
                 NoteEditorScreen(
                     state =
                         editorState(fieldName, noteTypeName, deckName).let { state ->
                             state.copy(
                                 tags = tags,
-                                toolbarDisplay = toolbarDisplay,
+                                toolbarDisplay = display.value,
                                 customButtonTemplates = templates,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
@@ -759,6 +788,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onAttachMedia = {},
                     onLegacy = {},
                     onPreviewVisibility = {},
+                    onToolbarDisplay = { display.value = it },
                     editor = { Box(it) },
                     preview = { Box(it) },
                 )
