@@ -47,7 +47,6 @@ internal fun EditorOptionsMenu(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
     fieldOptionsEnabled: Boolean,
     onFieldOptions: () -> Unit,
-    onPreview: (() -> Unit)? = null,
     onImageOcclusion: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -125,12 +124,6 @@ internal fun EditorOptionsMenu(
                 change(settings.copy(autoCloseTags = !settings.autoCloseTags))
             }
             HorizontalDivider()
-            onPreview?.let { openPreview ->
-                DropdownMenuItem(text = { Text(stringResource(CommonString.card_editor_preview_card)) }, onClick = {
-                    expanded = false
-                    openPreview()
-                })
-            }
             onImageOcclusion?.let { openImageOcclusion ->
                 DropdownMenuItem(text = { Text(stringResource(R.string.image_occlusion)) }, onClick = {
                     expanded = false

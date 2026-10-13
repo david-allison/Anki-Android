@@ -587,7 +587,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
         assertTrue(bounds(deckName).bottom < bounds("Basic").top)
         captureScreen("metadata_tablet_preview")
-        composeRule.onNodeWithText(getResourceString(CommonString.note_editor_hide_previewer)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.note_editor_hide_previewer)).performClick()
         assertTrue(bounds(deckName).right < bounds("Basic").left)
         captureScreen("metadata_tablet_wide")
     }

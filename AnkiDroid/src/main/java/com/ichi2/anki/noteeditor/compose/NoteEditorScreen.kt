@@ -230,28 +230,23 @@ fun NoteEditorScreen(
                                 onToolbarDisplay = onToolbarDisplay,
                                 fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
                                 onFieldOptions = { fieldOptionsRequested = true },
-                                onPreview =
-                                    if (tablet) {
-                                        null
-                                    } else {
-                                        {
-                                            keyboard?.hide()
-                                            showPhonePreview = true
-                                        }
-                                    },
                             )
                         }
-                        if (tablet) {
-                            TextButton(onClick = { showPreview = !showPreview }) {
-                                Text(
-                                    stringResource(
-                                        if (showPreview) {
-                                            CommonString.note_editor_hide_previewer
-                                        } else {
-                                            CommonString.note_editor_show_previewer
-                                        },
-                                    ),
-                                )
+                        EditorActionButton(
+                            icon = R.drawable.ic_remove_red_eye_white,
+                            label =
+                                when {
+                                    tablet && showPreview -> CommonString.note_editor_hide_previewer
+                                    tablet -> CommonString.note_editor_show_previewer
+                                    else -> CommonString.card_editor_preview_card
+                                },
+                            enabled = enabled,
+                        ) {
+                            if (tablet) {
+                                showPreview = !showPreview
+                            } else {
+                                keyboard?.hide()
+                                showPhonePreview = true
                             }
                         }
                         EditorActionButton(
