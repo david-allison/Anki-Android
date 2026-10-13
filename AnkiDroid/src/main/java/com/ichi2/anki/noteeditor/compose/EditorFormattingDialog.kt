@@ -3,7 +3,6 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.os.Parcelable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -22,28 +19,28 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
+import com.ichi2.anki.ui.windows.reviewer.whiteboard.showColorPickerDialog
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
 
@@ -87,16 +84,33 @@ internal val editorRemovableFormats =
         WebEditorAction.HIGHLIGHT_COLOR to R.string.compose_editor_highlight_color,
     )
 
-private val palette = listOf("#000000", "#ffffff", "#d32f2f", "#f57c00", "#fbc02d", "#388e3c", "#1976d2", "#7b1fa2")
 internal val editorColourPattern = Regex("#[0-9a-fA-F]{6}")
 
 @Composable
 internal fun EditorFormattingDialog(
     request: EditorFormattingRequest,
-    recentColours: List<String>,
     onDismiss: () -> Unit,
     onApply: (WebEditorAction, String) -> Unit,
 ) {
+    if (request.action in setOf(WebEditorAction.TEXT_COLOR, WebEditorAction.HIGHLIGHT_COLOR)) {
+        val context = LocalContext.current
+        val dismiss by rememberUpdatedState(onDismiss)
+        val apply by rememberUpdatedState(onApply)
+        DisposableEffect(context, request) {
+            var disposed = false
+            val dialog =
+                context.showColorPickerDialog(
+                    initialColor = android.graphics.Color.parseColor(request.text),
+                    showAlphaSlider = false,
+                    onDismiss = { if (!disposed) dismiss() },
+                ) { color -> apply(request.action, "#%06x".format(color and 0xffffff)) }
+            onDispose {
+                disposed = true
+                dialog.dismiss()
+            }
+        }
+        return
+    }
     var text by rememberSaveable(request) { mutableStateOf(request.text) }
     var action by rememberSaveable(request) { mutableStateOf(request.action) }
     val removing = request.action == WebEditorAction.REMOVE_FORMAT_CHOICES
@@ -110,12 +124,10 @@ internal fun EditorFormattingDialog(
             }.getOrDefault(editorRemovableFormats.map { it.first.name }),
         )
     }
-    val colour = request.action in setOf(WebEditorAction.TEXT_COLOR, WebEditorAction.HIGHLIGHT_COLOR)
     val alignment = request.action == WebEditorAction.ALIGN_LEFT
     val valid =
         when {
             removing -> removedFormats.isNotEmpty()
-            colour -> editorColourPattern.matches(text.trim())
             else -> text.isNotBlank() || request.editingEquation
         }
     AlertDialog(
@@ -126,8 +138,6 @@ internal fun EditorFormattingDialog(
                     when {
                         removing -> R.string.compose_editor_remove_format
                         alignment -> R.string.compose_editor_alignment
-                        request.action == WebEditorAction.TEXT_COLOR -> R.string.compose_editor_text_color
-                        colour -> R.string.compose_editor_highlight_color
                         else -> R.string.compose_editor_equations
                     },
                 ),
@@ -161,28 +171,6 @@ internal fun EditorFormattingDialog(
                         alignments.forEach { (command, label) ->
                             TextButton(onClick = { onApply(command, "") }) { Text(stringResource(label)) }
                         }
-                    colour -> {
-                        (recentColours + palette).filter(editorColourPattern::matches).distinct().take(12).chunked(4).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                row.forEach { hex ->
-                                    Surface(
-                                        onClick = { text = hex },
-                                        modifier = Modifier.size(48.dp).semantics { contentDescription = hex },
-                                        shape = CircleShape,
-                                        color = Color(android.graphics.Color.parseColor(hex)),
-                                        border = BorderStroke(if (hex == text) 3.dp else 1.dp, MaterialTheme.colorScheme.outline),
-                                    ) {}
-                                }
-                            }
-                        }
-                        OutlinedTextField(
-                            value = text,
-                            onValueChange = { text = it },
-                            label = { Text(stringResource(R.string.compose_editor_colour_hex)) },
-                            isError = !valid,
-                            singleLine = true,
-                        )
-                    }
                     else -> {
                         var expanded by remember { mutableStateOf(false) }
                         Box {
@@ -226,7 +214,6 @@ internal fun EditorFormattingDialog(
                         action,
                         when {
                             removing -> JSONArray(removedFormats).toString()
-                            colour -> text.trim()
                             else -> text
                         },
                     )
