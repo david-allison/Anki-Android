@@ -45,7 +45,7 @@ internal fun EditorModeButton(
     val mode = stringResource(if (sourceMode) R.string.compose_editor_mode_html else R.string.compose_editor_mode_rich_text)
     val colors = MaterialTheme.colorScheme
     val selectionOffset by animateDpAsState(
-        targetValue = if (sourceMode) 2.dp else 22.dp,
+        targetValue = if (sourceMode) 2.dp else 26.dp,
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "Editing mode",
     )
@@ -56,7 +56,7 @@ internal fun EditorModeButton(
             enabled = enabled,
             shape = RoundedCornerShape(12.dp),
             modifier =
-                Modifier.size(48.dp).semantics {
+                Modifier.size(56.dp, 48.dp).semantics {
                     role = Role.Switch
                     contentDescription = action
                     stateDescription = mode
@@ -65,27 +65,27 @@ internal fun EditorModeButton(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
                     Modifier
-                        .requiredSize(44.dp, 28.dp)
+                        .requiredSize(52.dp, 28.dp)
                         .alpha(if (enabled) 1f else 0.38f)
                         .background(colors.surfaceContainerHighest, RoundedCornerShape(8.dp)),
                 ) {
                     Box(
                         Modifier
                             .offset(x = selectionOffset, y = 2.dp)
-                            .size(20.dp, 24.dp)
+                            .size(24.dp)
                             .background(colors.primaryContainer, RoundedCornerShape(6.dp)),
                     )
                     Row(Modifier.align(Alignment.Center).padding(2.dp)) {
                         Icon(
                             painterResource(R.drawable.ic_code),
                             null,
-                            Modifier.size(20.dp),
+                            Modifier.padding(horizontal = 2.dp).size(20.dp),
                             tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
                         )
                         Icon(
                             painterResource(R.drawable.ic_editor_rich_text),
                             null,
-                            Modifier.size(20.dp),
+                            Modifier.padding(horizontal = 2.dp).size(20.dp),
                             tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
                         )
                     }
