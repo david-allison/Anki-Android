@@ -105,9 +105,13 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
             .background(colors.surface)
             .border(1.dp, colors.outlineVariant, shape),
     ) {
-        Column(Modifier.weight(1f).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Spacer(Modifier.fillMaxWidth(0.7f).height(3.dp).background(colors.outlineVariant))
-            Spacer(Modifier.fillMaxWidth(0.45f).height(3.dp).background(colors.outlineVariant))
+        Column(Modifier.weight(1f).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            repeat(if (display == EditorToolbarDisplay.HIDDEN) 2 else 1) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Spacer(Modifier.fillMaxWidth(0.7f).height(3.dp).background(colors.outlineVariant))
+                    Spacer(Modifier.fillMaxWidth(0.45f).height(3.dp).background(colors.outlineVariant))
+                }
+            }
         }
         if (display != EditorToolbarDisplay.HIDDEN) {
             Column(Modifier.fillMaxWidth().background(colors.surfaceContainer.compositeOver(colors.surface)).padding(4.dp)) {
