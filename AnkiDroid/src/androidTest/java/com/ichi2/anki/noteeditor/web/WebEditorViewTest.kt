@@ -8,6 +8,7 @@ import android.view.ContextThemeWrapper
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import androidx.compose.ui.graphics.toArgb
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.filters.SdkSuppress
@@ -16,6 +17,7 @@ import androidx.test.uiautomator.UiDevice
 import com.ichi2.anki.R
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.common.utils.android.getColorFromAttr
+import com.ichi2.anki.noteeditor.compose.EditorQuickAction
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
 import com.ichi2.anki.testutil.TestInputMethodRule
@@ -24,6 +26,7 @@ import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.evaluate
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
+import com.ichi2.compose.theme.toMaterial3ColorScheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -33,6 +36,8 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -55,6 +60,71 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @Test
     fun outerBackgroundAndLabelsFollowBlackTheme() = assertOuterTheme(R.style.Theme_Dark_Black)
+
+    @Test
+    fun quickPinIsCompactAndMatchesLightToolbar() = assertQuickPinAppearance(R.style.Theme_Light)
+
+    @Test
+    fun quickPinIsCompactAndMatchesDarkToolbar() = assertQuickPinAppearance(R.style.Theme_Dark)
+
+    @Test
+    fun quickPinIsCompactAndMatchesBlackToolbar() = assertQuickPinAppearance(R.style.Theme_Dark_Black)
+
+    private fun assertQuickPinAppearance(theme: Int) =
+        withEditor(theme = theme) {
+            val pin = EditorQuickAction.PIN.toWeb(context, pinned = true)
+            loadDocument(
+                document("").let { it.copy(fields = it.fields.map { field -> field.copy(quickActions = listOf(pin)) }) },
+            )
+            val appearance =
+                JSONObject(
+                    evaluate(
+                        """
+                        (() => {
+                            const button = document.querySelector('.quick-action');
+                            const rect = button.getBoundingClientRect();
+                            const circle = getComputedStyle(button, '::before');
+                            const svg = button.querySelector('svg').getBoundingClientRect();
+                            return {width: rect.width, height: rect.height, icon: svg.width,
+                                circleWidth: circle.width, circleHeight: circle.height, circleColor: circle.backgroundColor,
+                                foreground: getComputedStyle(button).color, background: getComputedStyle(button).backgroundColor,
+                                pressed: button.getAttribute('aria-pressed'), label: button.getAttribute('aria-label'),
+                                outerAreaClickable: document.elementFromPoint(rect.left + 1, rect.top + rect.height / 2) === button};
+                        })()
+                        """.trimIndent(),
+                    ),
+                )
+            assertTrue(appearance.getDouble("width") >= 48 && appearance.getDouble("height") >= 48, "Keep a 48dp touch target: $appearance")
+            assertTrue(appearance.getBoolean("outerAreaClickable"), "The transparent outer area must remain clickable")
+            assertEquals(20.0, appearance.getDouble("icon"), 0.1)
+            assertEquals("32px", appearance.getString("circleWidth"))
+            assertEquals("32px", appearance.getString("circleHeight"))
+            val colors = context.toMaterial3ColorScheme()
+
+            fun rgb(color: Int) =
+                "rgb(${android.graphics.Color.red(color)}, ${android.graphics.Color.green(color)}, ${android.graphics.Color.blue(color)})"
+            assertEquals(rgb(colors.primaryContainer.toArgb()), appearance.getString("circleColor"))
+            assertEquals(rgb(colors.onPrimaryContainer.toArgb()), appearance.getString("foreground"))
+            assertEquals("rgba(0, 0, 0, 0)", appearance.getString("background"))
+            assertEquals("true", appearance.getString("pressed"))
+            assertEquals("${pin.label}: Front", appearance.getString("label"))
+            val rendered = CountDownLatch(1)
+            getInstrumentation().runOnMainSync {
+                postVisualStateCallback(
+                    0,
+                    object : WebView.VisualStateCallback() {
+                        override fun onComplete(requestId: Long) {
+                            postOnAnimation { postOnAnimation { rendered.countDown() } }
+                        }
+                    },
+                )
+            }
+            assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the pin")
+            UiDevice.getInstance(getInstrumentation()).apply {
+                waitForIdle()
+                assertTrue(takeScreenshot(File(context.filesDir, "editor-pin-$theme.png")))
+            }
+        }
 
     private fun assertOuterTheme(theme: Int) =
         withEditor(theme = theme) {
