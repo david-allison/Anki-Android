@@ -24,11 +24,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -338,9 +335,10 @@ fun NoteEditorScreen(
             "type" -> {
                 var choices by remember { mutableStateOf<List<EditorChoice>?>(null) }
                 LaunchedEffect(Unit) { choices = loadNoteTypes() }
-                ChoiceDialog(
+                NoteTypeDialog(
                     title = stringResource(R.string.compose_editor_type),
                     choices = choices,
+                    selectedId = state.noteTypeId,
                     onDismiss = { dialog = null },
                     onSelect = {
                         dialog = null
@@ -781,30 +779,4 @@ internal fun EditorToggleButton(
                 ),
         ) { Icon(painterResource(icon), text) }
     }
-}
-
-@Composable
-private fun ChoiceDialog(
-    title: String,
-    choices: List<EditorChoice>?,
-    onDismiss: () -> Unit,
-    onSelect: (Long) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            if (choices == null) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else {
-                LazyColumn(Modifier.heightIn(max = 420.dp)) {
-                    items(choices, key = { it.id }) { choice ->
-                        TextButton(onClick = { onSelect(choice.id) }, modifier = Modifier.fillMaxWidth()) { Text(choice.name) }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
-    )
 }
