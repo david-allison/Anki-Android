@@ -510,9 +510,12 @@ class EditorViewModelTest : JvmTest() {
         runTest {
             val vm = loadAdd()
             val newType = col.notetypes.copy(col.notetypes.basic)
+            val imageOcclusion = col.notetypes.imageOcclusion
             val types = vm.noteTypeChoices()
             assertTrue(types.any { it.id == newType.id })
-            assertFalse(types.any { it.id == col.notetypes.imageOcclusion.id })
+            assertTrue(types.any { it.id == imageOcclusion.id })
+            assertTrue(vm.isImageOcclusionType(imageOcclusion.id))
+            assertFalse(vm.isImageOcclusionType(newType.id))
             assertEquals(types.sortedBy { it.name.lowercase() }, types)
         }
 
@@ -674,7 +677,7 @@ class EditorViewModelTest : JvmTest() {
         runTest {
             col.notetypes.setCurrent(col.notetypes.imageOcclusion)
             val vm = loadAdd()
-            assertTrue(vm.noteTypeChoices().none { it.id == col.notetypes.imageOcclusion.id })
+            assertTrue(vm.noteTypeChoices().any { it.id == col.notetypes.imageOcclusion.id })
             assertFalse(assertNotNull(vm.state.value).noteTypeId == col.notetypes.imageOcclusion.id)
         }
 
