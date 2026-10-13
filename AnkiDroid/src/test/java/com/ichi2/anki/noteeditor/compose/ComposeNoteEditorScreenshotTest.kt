@@ -450,6 +450,63 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun scrollToolbarSingleRow() = captureToolbarRows(EditorToolbarDisplay.SCROLL, listOf(3), "toolbar_scroll_single_row")
+
+    @Test
+    fun scrollToolbarFilledSingleRow() = captureToolbarRows(EditorToolbarDisplay.SCROLL, listOf(7), "toolbar_scroll_full_row")
+
+    @Test
+    fun stackedToolbarSingleRowIsCentered() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(3), "toolbar_stack_single_row")
+
+    @Test
+    fun stackedToolbarFilledSingleRowIsCentered() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8), "toolbar_stack_full_row")
+
+    @Test
+    fun stackedToolbarFullAndPartialRowsAreCentered() =
+        captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 2), "toolbar_stack_full_and_partial_rows")
+
+    private fun captureToolbarRows(
+        display: EditorToolbarDisplay,
+        rowSizes: List<Int>,
+        name: String,
+    ) {
+        // Eight 48 dp buttons and 8 dp padding on each side; scrolling reserves 49 dp for field options.
+        RuntimeEnvironment.setQualifiers("+w${if (display == EditorToolbarDisplay.SCROLL) 401 else 400}dp")
+        val buttons = EditorToolbarButton.entries.filterNot { it.clozeOnly }.take(rowSizes.sum())
+        showEditor(
+            toolbarDisplay = display,
+            toolbar = EditorFieldToolbar(hiddenButtons = (EditorToolbarButton.entries - buttons.toSet()).map { it.name }.toSet()),
+        )
+        val rows =
+            buttons
+                .map {
+                    composeRule
+                        .onNodeWithContentDescription(
+                            getResourceString(it.label),
+                        ).assertIsDisplayed()
+                        .fetchSemanticsNode()
+                        .boundsInRoot
+                }.groupBy { it.top.roundToInt() }
+                .toSortedMap()
+                .values
+        assertEquals(rowSizes, rows.map { it.size })
+        if (display == EditorToolbarDisplay.STACK) {
+            val center =
+                composeRule
+                    .onRoot()
+                    .fetchSemanticsNode()
+                    .boundsInRoot.center.x
+            rows.forEachIndexed { index, row ->
+                assertEquals(center, (row.minOf { it.left } + row.maxOf { it.right }) / 2f, 1f, "Row $index must have equal side margins")
+            }
+            fieldOptionsButton().assertDoesNotExist()
+        } else {
+            fieldOptionsButton().assertIsDisplayed()
+        }
+        captureScreen(name)
+    }
+
+    @Test
     fun stackedToolbarWrapsButtons() {
         showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
         val first =
