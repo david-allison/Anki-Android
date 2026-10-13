@@ -142,6 +142,29 @@ class WebEditorViewTest : InstrumentedTest() {
         }
 
     @Test
+    fun fieldWidthsStayStableWhenTheScrollbarAppearsAndDisappears() =
+        withEditor {
+            loadDocument(document("Short field"))
+            awaitJavascript("document.querySelector('.scroll-area').scrollHeight <= document.querySelector('.scroll-area').clientHeight")
+            val bounds =
+                """
+                (() => {
+                    const field = document.querySelector('.editor-field').getBoundingClientRect();
+                    const action = document.querySelector('.label-container').getBoundingClientRect();
+                    return [field.left, field.right, action.left, action.right];
+                })()
+                """.trimIndent()
+            val before = evaluate(bounds)
+            evaluate("${fieldElement(0)}.innerHTML = '<div>Long field content</div>'.repeat(100)")
+            awaitJavascript("document.querySelector('.scroll-area').scrollHeight > document.querySelector('.scroll-area').clientHeight")
+            assertEquals(before, evaluate(bounds), "A scrollbar must not shift or narrow the fields and their controls")
+            captureRenderedScreenshot("editor-stable-scrollbar")
+            evaluate("${fieldElement(0)}.innerHTML = 'Short field'")
+            awaitJavascript("document.querySelector('.scroll-area').scrollHeight <= document.querySelector('.scroll-area').clientHeight")
+            assertEquals(before, evaluate(bounds), "Removing overflow must preserve the same alignment")
+        }
+
+    @Test
     fun fieldScrollbarIsSlimAndStillScrolls() =
         withEditor {
             loadDocument(document("<div>Long field content</div>".repeat(100)))
