@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -56,6 +57,7 @@ import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadows.ShadowDialog
 import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -726,6 +728,32 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun noteTypePickerUsesNativeRadioChoices() {
+        var selected: Long? = null
+        showEditor(
+            noteTypes = listOf(EditorChoice(1, "Basic"), EditorChoice(2, "Cloze"), EditorChoice(3, LONG_NOTE_TYPE_NAME)),
+            onType = { selected = it },
+        )
+        composeRule.onNodeWithText("Basic").performClick()
+        composeRule.waitForIdle()
+        val picker = assertNotNull(ShadowDialog.getLatestDialog() as? AlertDialog)
+        assertEquals(0, picker.listView.checkedItemPosition)
+        captureScreen("note_type_picker")
+        composeRule.runOnIdle { picker.listView.performItemClick(picker.listView.getChildAt(1), 1, 1) }
+        composeRule.waitForIdle()
+        assertEquals(2L, selected)
+        assertTrue(!picker.isShowing)
+        // Cancelling does not change the type and the picker can be reopened.
+        composeRule.onNodeWithText("Basic").performClick()
+        composeRule.waitForIdle()
+        val reopened = assertNotNull(ShadowDialog.getLatestDialog() as? AlertDialog)
+        composeRule.runOnIdle { reopened.cancel() }
+        composeRule.waitForIdle()
+        assertEquals(2L, selected)
+        assertTrue(!reopened.isShowing)
+    }
+
+    @Test
     fun longNoteTypeName() {
         captureMetadataNames("long_note_type_name", noteTypeName = LONG_NOTE_TYPE_NAME)
     }
@@ -865,6 +893,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         tags: List<String> = emptyList(),
         onTags: () -> Unit = {},
         onRemoveTag: (String) -> Unit = {},
+        noteTypes: List<EditorChoice> = emptyList(),
+        onType: (Long) -> Unit = {},
         snackbarHost: SnackbarHostState = SnackbarHostState(),
         toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
     ): Pair<AnkiActivity, View> {
@@ -903,9 +933,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     snackbar = snackbarHost,
                     onBack = {},
                     onSave = {},
-                    loadNoteTypes = { emptyList() },
+                    loadNoteTypes = { noteTypes },
                     onDeck = {},
-                    onType = {},
+                    onType = onType,
                     onEditType = {},
                     onTags = onTags,
                     onRemoveTag = onRemoveTag,
