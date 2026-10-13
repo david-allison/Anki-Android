@@ -587,7 +587,7 @@ private fun Modifier.toolbarEndFade(
     background: Color,
 ): Modifier =
     drawWithCache {
-        val width = 8.dp.toPx().coerceAtMost(size.width)
+        val width = 16.dp.toPx().coerceAtMost(size.width)
         val rtl = layoutDirection == LayoutDirection.Rtl
         val left = if (rtl) 0f else size.width - width
         val brush =
