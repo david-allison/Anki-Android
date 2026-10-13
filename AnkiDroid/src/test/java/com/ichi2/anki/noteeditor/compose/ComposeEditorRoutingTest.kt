@@ -126,17 +126,29 @@ class ComposeEditorRoutingTest : RobolectricTest() {
         }
 
     @Test
-    fun `loaded Add follows the default note type and redirects only IO to legacy`() =
+    fun `loaded Add can use Compose when Image Occlusion is the default note type`() =
         runTest {
             col.config.addingDefaultsMode = AddingDefaultsMode.DECIDE_BY_NOTE_TYPE
             val args = NoteEditorFragment.addNoteArgs()
             col.notetypes.setCurrent(col.notetypes.imageOcclusion)
             assertEquals(col.notetypes.imageOcclusion.id, col.defaultsForAdding().notetypeId)
-            assertTrue(col.requiresLegacyEditor(args))
+            assertFalse(col.requiresLegacyEditor(args))
 
             col.notetypes.setCurrent(col.notetypes.basic)
             assertEquals(col.notetypes.basic.id, col.defaultsForAdding().notetypeId)
             assertFalse(col.requiresLegacyEditor(args))
+        }
+
+    @Test
+    fun `Add keeps the dedicated editor when only Image Occlusion note types exist`() =
+        runTest {
+            col.config.addingDefaultsMode = AddingDefaultsMode.DECIDE_BY_NOTE_TYPE
+            col.notetypes.setCurrent(col.notetypes.imageOcclusion)
+            col.notetypes
+                .all()
+                .filter { !it.isImageOcclusion }
+                .forEach { col.notetypes.remove(it.id) }
+            assertTrue(col.requiresLegacyEditor(NoteEditorFragment.addNoteArgs()))
         }
 
     @Test
