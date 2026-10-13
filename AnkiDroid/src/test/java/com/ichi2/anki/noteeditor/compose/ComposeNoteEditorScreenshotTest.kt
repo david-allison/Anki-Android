@@ -490,6 +490,16 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarLayoutChoicesOnSmallScreen() {
+        RuntimeEnvironment.setQualifiers("+w320dp")
+        showEditor()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_scroll)).assertIsSelected()
+        captureScreen("toolbar_layout_small_screen")
+    }
+
+    @Test
     fun toolbarLayoutChoicesOnSmallScreenWithLargeText() {
         RuntimeEnvironment.setQualifiers("+w320dp")
         RuntimeEnvironment.setFontScale(2f)

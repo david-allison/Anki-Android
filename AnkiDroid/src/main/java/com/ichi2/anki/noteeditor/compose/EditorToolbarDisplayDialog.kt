@@ -5,7 +5,6 @@ package com.ichi2.anki.noteeditor.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -32,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -121,17 +118,17 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
                         }
                     }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f).clipToBounds()) {
-                            Row(Modifier.wrapContentWidth(Alignment.Start, unbounded = true)) {
-                                icons.forEach { PreviewIcon(it.icon) }
-                            }
-                        }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        icons.take(4).forEach { PreviewIcon(it.icon) }
                         Icon(
                             painterResource(R.drawable.ic_baseline_chevron_right_24),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = colors.onSurfaceVariant,
+                            tint = colors.primary,
                         )
                     }
                 }
