@@ -248,16 +248,20 @@ class EditorViewModel(
 
     suspend fun noteTypeChoices(): List<EditorChoice> =
         loadChoices {
-            notetypes
-                .all()
-                .sortedBy { it.name.lowercase() }
-                .map { EditorChoice(it.id, it.name) }
+            val types = notetypes.all()
+            buildList {
+                addAll(types.map { EditorChoice(it.id, it.name) })
+                if (types.none { it.isImageOcclusion }) {
+                    // Zero lets the existing Image Occlusion flow create the stock type when saving.
+                    add(EditorChoice(0, TR.notetypesImageOcclusionName()))
+                }
+            }.sortedBy { it.name.lowercase() }
         }
 
     suspend fun isImageOcclusionType(noteTypeId: Long): Boolean =
         withCol {
             requireCurrentCollection()
-            requireNotNull(notetypes.get(noteTypeId)).isImageOcclusion
+            noteTypeId == 0L || requireNotNull(notetypes.get(noteTypeId)).isImageOcclusion
         }
 
     private suspend fun loadChoices(readChoices: Collection.() -> List<EditorChoice>): List<EditorChoice> {
