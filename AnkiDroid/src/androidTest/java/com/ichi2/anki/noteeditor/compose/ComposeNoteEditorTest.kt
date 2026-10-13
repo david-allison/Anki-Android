@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
+import android.widget.TextView
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import androidx.core.os.BundleCompat
@@ -1189,10 +1190,34 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             runBlocking { web.focusField(1) }
             val first = "document.querySelector('.field-container[data-index=\"0\"] .editor-field')"
             val animation = "$first?.getAnimations().find(animation => animation.id === 'field-error')"
-            clickSave()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val save = checkNotNull(device.findObject(By.desc(testContext.getString(CommonString.save)))).visibleBounds
+            // Accessibility synchronization can outlast this brief cue. Hold it at creation,
+            // then resume it below to verify that the production animation expires naturally.
+            web.evaluate(
+                """
+                (() => {
+                    const field = $first;
+                    const animate = field.animate.bind(field);
+                    field.animate = (...args) => {
+                        const animation = animate(...args);
+                        animation.pause();
+                        animation.currentTime = 0;
+                        return animation;
+                    };
+                })();
+                """.trimIndent(),
+            )
+            device.click(save.centerX(), save.centerY())
             web.awaitJavascript("!!($animation)")
-            // Hold the cue for a deterministic screenshot, then verify it expires naturally.
-            web.evaluate("($animation).pause(); ($animation).currentTime = 0;")
+            waitUntil(message = { "The empty-field error did not appear" }) {
+                var shown = false
+                scenario.onActivity {
+                    shown = it.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.text ==
+                        TR.addingTheFirstFieldIsEmpty()
+                }
+                shown
+            }
             val mode = if (sourceMode) "source" else "rich"
             captureScreenshot("empty-first-field-$mode", web)
             assertEquals(
@@ -1218,8 +1243,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             )
             assertEquals(listOf("", "Keep this back"), runBlocking { web.snapshot().fields })
             assertEquals(0, runBlocking { withCol { noteCount() } })
-            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            assertTrue(device.hasObject(By.text(CollectionManager.TR.addingTheFirstFieldIsEmpty())))
             val errorColor = web.evaluate("getComputedStyle($first).outlineColor")
             web.evaluate("($animation).play()")
             web.awaitJavascript("!($animation)")
