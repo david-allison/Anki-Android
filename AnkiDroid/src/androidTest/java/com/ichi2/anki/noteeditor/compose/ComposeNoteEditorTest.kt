@@ -7,11 +7,15 @@ import android.app.Instrumentation
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
+import androidx.core.content.FileProvider
+import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
@@ -28,6 +32,8 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
+import com.ichi2.anki.SingleFragmentActivity
+import com.ichi2.anki.TestUtils
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableExtraCompat
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.multimedia.MultimediaActivity
@@ -39,6 +45,9 @@ import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
+import com.ichi2.anki.pages.ImageOcclusion
+import com.ichi2.anki.pages.viewmodel.ImageOcclusionArgs
+import com.ichi2.anki.pages.viewmodel.ImageOcclusionViewModel
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
@@ -62,6 +71,7 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -1403,6 +1413,98 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals(listOf("recovered-tag", "日本語"), scenario.editorState().tags)
             assertTrue(scenario.editorState().hasMetadataChanges)
             assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun imageOcclusionPicksAnImageAndPreservesTheComposeDraft() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val image = File(testContext.cacheDir, "picker-source/occlusion-test.png").also { it.parentFile!!.mkdirs() }
+        val bitmap = Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.BLUE) }
+        image.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        val selectedImage = AtomicReference<Uri?>()
+        val picks = AtomicInteger()
+        val launched = AtomicReference<ImageOcclusionArgs.Add?>()
+        val monitor =
+            object : Instrumentation.ActivityMonitor() {
+                override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                    if (intent.action == Intent.ACTION_GET_CONTENT) {
+                        assertEquals("image/*", intent.type)
+                        picks.incrementAndGet()
+                        return selectedImage.get()?.let { Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(it)) }
+                            ?: Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null)
+                    }
+                    if (intent.getStringExtra(SingleFragmentActivity.EXTRA_FRAGMENT_NAME) == ImageOcclusion::class.java.name) {
+                        launched.set(
+                            BundleCompat.getParcelable(
+                                checkNotNull(intent.getBundleExtra(SingleFragmentActivity.EXTRA_FRAGMENT_ARGS)),
+                                ImageOcclusionViewModel.ARG_IMAGE_OCCLUSION,
+                                ImageOcclusionArgs.Add::class.java,
+                            ),
+                        )
+                    }
+                    return null
+                }
+            }
+        instrumentation.addMonitor(monitor)
+        try {
+            val ioType =
+                runBlocking {
+                    withCol {
+                        addImageOcclusionNoteType()
+                        notetypes.all().first { it.isImageOcclusion }
+                    }
+                }
+            withEditor { scenario ->
+                val web = scenario.awaitEditor()
+                web.setField(0, "Keep this unfinished question")
+                web.setField(1, "Keep this answer")
+                val state = scenario.editorState()
+                val device = UiDevice.getInstance(instrumentation)
+                checkNotNull(
+                    device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 10_000),
+                ).click()
+                clickText(testContext.getString(R.string.image_occlusion))
+                waitUntil(message = { "The image picker did not open" }) { picks.get() == 1 }
+                assertEquals(null, launched.get())
+                assertEquals(state.noteTypeId, scenario.editorState().noteTypeId)
+
+                selectedImage.set(FileProvider.getUriForFile(testContext, "${testContext.packageName}.apkgfileprovider", image))
+                clickText(state.noteTypeName)
+                clickText(ioType.name)
+                waitUntil(timeout = 30.seconds, message = { "The mask editor did not open" }) { launched.get() != null }
+                val args = checkNotNull(launched.get())
+                assertEquals(ioType.id, args.noteTypeId)
+                assertEquals(state.deckId, args.originalDeckId)
+                assertTrue(image.readBytes().contentEquals(File(args.imagePath).readBytes()))
+                var maskEditor: SingleFragmentActivity? = null
+                waitUntil(timeout = 30.seconds, message = { "The mask editor did not resume" }) {
+                    maskEditor = TestUtils.activityInstance as? SingleFragmentActivity
+                    maskEditor != null
+                }
+                val activity = checkNotNull(maskEditor)
+                var maskWeb: WebView? = null
+                waitUntil(message = { "The mask WebView did not appear" }) {
+                    instrumentation.runOnMainSync {
+                        maskWeb =
+                            activity.window.decorView
+                                .webViews()
+                                .firstOrNull()
+                    }
+                    maskWeb != null
+                }
+                checkNotNull(maskWeb).awaitJavascript("globalThis.maskEditor != null")
+                captureScreenshot("image-occlusion-from-compose", checkNotNull(maskWeb))
+                instrumentation.runOnMainSync { activity.finish() }
+                assertTrue(web === scenario.awaitEditor())
+                assertEquals(listOf("Keep this unfinished question", "Keep this answer"), runBlocking { web.snapshot().fields })
+                assertEquals(state.noteTypeId, scenario.editorState().noteTypeId)
+                assertEquals(0, runBlocking { withCol { noteCount() } })
+            }
+        } finally {
+            instrumentation.removeMonitor(monitor)
+            image.delete()
         }
     }
 

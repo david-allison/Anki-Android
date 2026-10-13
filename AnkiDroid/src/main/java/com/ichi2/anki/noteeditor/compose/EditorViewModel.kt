@@ -250,9 +250,14 @@ class EditorViewModel(
         loadChoices {
             notetypes
                 .all()
-                .filterNot { it.isImageOcclusion }
                 .sortedBy { it.name.lowercase() }
                 .map { EditorChoice(it.id, it.name) }
+        }
+
+    suspend fun isImageOcclusionType(noteTypeId: Long): Boolean =
+        withCol {
+            requireCurrentCollection()
+            requireNotNull(notetypes.get(noteTypeId)).isImageOcclusion
         }
 
     private suspend fun loadChoices(readChoices: Collection.() -> List<EditorChoice>): List<EditorChoice> {

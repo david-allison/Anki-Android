@@ -51,6 +51,7 @@ import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.mediaFolder
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.model.SelectableDeck
+import com.ichi2.anki.noteeditor.compose.media.ComposeEditorImageOcclusion
 import com.ichi2.anki.noteeditor.compose.media.ComposeEditorMedia
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreview
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -104,6 +105,15 @@ class ComposeNoteEditorActivity :
             reportError = ::reportError,
             checkpoint = { webSession.checkpoint() },
         )
+    private val imageOcclusion =
+        ComposeEditorImageOcclusion(
+            activity = this,
+            getState = { model.state.value },
+            whenReady = { webSession.awaitReady() },
+            checkpoint = { webSession.checkpoint() },
+            onReturn = { changed = true },
+            reportError = ::reportError,
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         tagsFactory = TagsDialogFactory(this)
@@ -120,6 +130,7 @@ class ComposeNoteEditorActivity :
             intent.putExtra(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.NOTEEDITOR_INTENT_ADD.value)
         }
         media.restore(savedInstanceState)
+        imageOcclusion.restore(savedInstanceState)
         formattingRequest =
             savedInstanceState?.let { BundleCompat.getParcelable(it, "editorFormatting", EditorFormattingRequest::class.java) }
         enableEdgeToEdge()
@@ -251,8 +262,12 @@ class ComposeNoteEditorActivity :
                 launchEditorTask {
                     try {
                         setBusy(true)
-                        model.selectNoteType(id, webSession.snapshot().fields)
-                        webSession.synchronize()
+                        if (model.isImageOcclusionType(id)) {
+                            imageOcclusion.launch(id)
+                        } else {
+                            model.selectNoteType(id, webSession.snapshot().fields)
+                            webSession.synchronize()
+                        }
                     } finally {
                         releaseBusy()
                     }
@@ -287,6 +302,7 @@ class ComposeNoteEditorActivity :
             },
             onFields = { openNoteTypeEditor(fields = true) },
             onCards = { openNoteTypeEditor(fields = false) },
+            onImageOcclusion = { if (!busy) imageOcclusion.launch() },
             onSettings = { settings ->
                 updateMetadata {
                     webSession.awaitReady()
@@ -673,6 +689,7 @@ class ComposeNoteEditorActivity :
         outState.putParcelable(STATE_LANGUAGE_TARGET, languageHintTarget)
         outState.putParcelable("editorFormatting", formattingRequest)
         media.save(outState)
+        imageOcclusion.save(outState)
         super.onSaveInstanceState(outState)
     }
 
