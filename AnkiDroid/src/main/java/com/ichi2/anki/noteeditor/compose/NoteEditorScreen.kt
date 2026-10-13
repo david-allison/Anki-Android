@@ -476,7 +476,7 @@ private fun EditorFieldArea(
                                     .heightIn(max = 144.dp)
                                     .verticalScroll(rememberScrollState())
                                     .padding(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
+                                horizontalArrangement = Arrangement.Start,
                             ) { buttons() }
                         } else {
                             Row(
