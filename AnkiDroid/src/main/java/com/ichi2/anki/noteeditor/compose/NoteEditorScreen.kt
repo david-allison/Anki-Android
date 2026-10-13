@@ -254,7 +254,7 @@ fun NoteEditorScreen(
                         }
                         EditorTooltip(stringResource(CommonString.save)) {
                             FilledIconButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty()) {
-                                Icon(painterResource(R.drawable.ic_save_white), stringResource(CommonString.save))
+                                Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
                             }
                         }
                     },
