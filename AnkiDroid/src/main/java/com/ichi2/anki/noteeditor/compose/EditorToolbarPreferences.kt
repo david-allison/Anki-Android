@@ -23,7 +23,7 @@ data class EditorFieldToolbar(
     val hiddenButtons: Set<String> = emptySet(),
     val customButtons: List<EditorCustomToolbarButton> = emptyList(),
     val buttonOrder: List<String> = emptyList(),
-    val quickActions: List<String> = emptyList(),
+    val quickActions: List<String> = EditorQuickAction.defaults,
 ) : Parcelable
 
 /** Device-local overrides for a field on all notes using the same note type. */
@@ -51,8 +51,7 @@ internal class EditorToolbarPreferences(
                     json
                         .optJSONArray("quickActions")
                         ?.strings()
-                        .orEmpty()
-                        .distinct(),
+                        ?.distinct() ?: defaults.quickActions,
             )
         }.getOrElse { defaults }
     }

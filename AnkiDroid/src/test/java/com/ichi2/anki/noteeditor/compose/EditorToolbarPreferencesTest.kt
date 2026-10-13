@@ -16,7 +16,18 @@ class EditorToolbarPreferencesTest {
     private val store = EditorToolbarPreferences(preferences)
 
     @Test
-    fun `old field settings have no quick actions and toolbar edits preserve enabled order`() {
+    fun `new fields use the legacy quick actions in the same order`() {
+        assertEquals(listOf("pin", "attachMedia"), store.load("collection", 1, "front").quickActions)
+    }
+
+    @Test
+    fun `explicitly hidden quick actions stay hidden`() {
+        store.save("collection", 1, "front", EditorFieldToolbar(quickActions = emptyList()))
+        assertTrue(EditorToolbarPreferences(preferences).load("collection", 1, "front").quickActions.isEmpty())
+    }
+
+    @Test
+    fun `old field settings inherit legacy actions and toolbar edits preserve enabled order`() {
         preferences
             .edit()
             .putString(
@@ -24,7 +35,7 @@ class EditorToolbarPreferencesTest {
                 "{\"hidden\":[],\"customIds\":[],\"order\":[]}",
             ).commit()
         val original = store.load("collection", 1, "front")
-        assertTrue(original.quickActions.isEmpty())
+        assertEquals(listOf("pin", "attachMedia"), original.quickActions)
         store.save("collection", 1, "front", original.copy(quickActions = listOf("gallery", "pin")))
         val configured = store.load("collection", 1, "front")
         store.save("collection", 1, "front", configured.copy(hiddenButtons = setOf("BOLD")))

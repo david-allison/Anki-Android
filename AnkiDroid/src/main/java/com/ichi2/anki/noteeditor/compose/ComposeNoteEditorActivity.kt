@@ -595,6 +595,8 @@ class ComposeNoteEditorActivity :
         val action = EditorQuickAction.fromId(id) ?: return
         if (action == EditorQuickAction.PIN) {
             updateMetadata { model.setFieldPinned(fieldTarget, !field.sticky) }
+        } else if (action == EditorQuickAction.ATTACH_MEDIA) {
+            media.showPicker(target)
         } else {
             action.media?.let { media.launch(it, target) }
         }

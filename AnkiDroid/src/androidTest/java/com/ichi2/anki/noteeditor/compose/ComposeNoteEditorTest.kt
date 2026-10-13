@@ -533,7 +533,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     )
                 }
             }
-            web.awaitJavascript("document.querySelectorAll('.field-quick-actions .quick-action').length === 2")
+            web.awaitJavascript("document.querySelectorAll('.field-container')[1].querySelectorAll('.quick-action').length === 2")
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             val back =
                 checkNotNull(
