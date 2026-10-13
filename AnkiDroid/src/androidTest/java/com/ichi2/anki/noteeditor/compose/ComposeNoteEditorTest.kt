@@ -163,8 +163,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         try {
             withEditor { scenario ->
                 var web = scenario.awaitEditor()
-                web.setField(0, "Front text")
-                web.setField(1, "Back text")
+                web.setField(0, "Front text.")
+                web.setField(1, "Back text.")
                 val state = scenario.editorState()
                 val model = scenario.editorModel()
                 runBlocking {
@@ -176,20 +176,32 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                             )
                         }
                     }
-                    web.focusField(1)
+                    web.focusField(0)
                 }
                 val device = UiDevice.getInstance(instrumentation)
 
-                fun openSheet() {
-                    checkNotNull(
-                        device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_media))), 5_000),
-                    ).click()
+                fun openSheet(quickAction: Boolean = false) {
+                    if (quickAction) {
+                        assertEquals(
+                            listOf("pin", "attachMedia"),
+                            scenario
+                                .editorState()
+                                .fields[1]
+                                .toolbar.quickActions,
+                        )
+                        web.evaluate("document.querySelectorAll('.field-container[data-index=\"1\"] .quick-action')[1].click()")
+                    } else {
+                        checkNotNull(
+                            device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_media))), 5_000),
+                        ).click()
+                    }
                     assertNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "multimedia_action_drawing")), 5_000))
                     scenario.onActivity { activity ->
                         assertTrue(activity.supportFragmentManager.fragments.any { it is MultimediaBottomSheet })
                     }
                 }
-                openSheet()
+                openSheet(quickAction = true)
+                assertEquals(0, runBlocking { web.captureTarget() }?.field, "Opening an inactive field's quick action must preserve focus")
                 captureScreenshot("native-media-sheet", web)
                 scenario.recreate()
                 web = scenario.awaitEditor()
@@ -198,7 +210,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 device.findObject(By.res(testContext.packageName, "multimedia_action_image")).click()
                 waitUntil(message = { "Gallery was not launched" }) { launched.get() != null }
                 assertEquals(1, launched.get().index, "Recreating the sheet or moving focus must not redirect its attachment")
-                assertEquals(listOf("Front text", "Back text"), runBlocking { web.snapshot().fields })
+                assertEquals(listOf("Front text.", "Back text."), runBlocking { web.snapshot().fields })
                 // Cancellation must allow the next attachment to use the newly selected field.
                 launched.set(null)
                 openSheet()
