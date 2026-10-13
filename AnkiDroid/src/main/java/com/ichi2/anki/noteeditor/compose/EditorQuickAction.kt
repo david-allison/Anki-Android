@@ -18,6 +18,7 @@ internal enum class EditorQuickAction(
     val media: MultimediaActionHandler? = null,
 ) {
     PIN("pin", R.string.compose_editor_pin_field, R.drawable.ic_baseline_push_pin_24),
+    ATTACH_MEDIA("attachMedia", R.string.multimedia_editor_attach_tooltip, R.drawable.ic_attachment),
     GALLERY(
         "gallery",
         R.string.multimedia_editor_image_field_editing_galery,
@@ -72,6 +73,9 @@ internal enum class EditorQuickAction(
     }
 
     companion object {
+        // Match the legacy editor's field controls, from start to end.
+        val defaults = listOf(PIN.id, ATTACH_MEDIA.id)
+
         fun fromId(id: String): EditorQuickAction? = entries.firstOrNull { it.id == id }
     }
 }

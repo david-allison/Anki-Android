@@ -69,13 +69,13 @@ class ComposeEditorMedia(
             }
         }
 
-    fun showPicker() {
+    fun showPicker(capturedTarget: WebEditorTarget? = null) {
         if (job?.isActive == true || pending != null || activity.supportFragmentManager.findFragmentByTag(PICKER) != null) return
         job =
             activity.lifecycleScope.launch {
                 try {
                     whenReady()
-                    val target = getWeb()?.captureTarget()
+                    val target = capturedTarget ?: getWeb()?.captureTarget()
                     if (target == null) {
                         reportError(activity.getString(CommonString.card_template_editor_select_field))
                         return@launch
