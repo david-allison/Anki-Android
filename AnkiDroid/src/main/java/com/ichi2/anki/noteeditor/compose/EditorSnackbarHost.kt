@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnAttach
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.snackbar.showSnackbar
@@ -26,7 +28,14 @@ internal fun EditorSnackbarHost(
     val data = state.currentSnackbarData ?: return
     key(data) {
         val context = LocalContext.current
-        val host = remember { CoordinatorLayout(context) }
+        val host =
+            remember {
+                CoordinatorLayout(context).apply {
+                    // Compose already places this host above the footer and IME. During an IME
+                    // animation, AndroidView can briefly forward insets from its previous position.
+                    ViewCompat.setOnApplyWindowInsetsListener(this) { _, _ -> WindowInsetsCompat.CONSUMED }
+                }
+            }
         AndroidView(factory = { host }, modifier = modifier.fillMaxWidth())
         DisposableEffect(host) {
             var snackbar: Snackbar? = null
