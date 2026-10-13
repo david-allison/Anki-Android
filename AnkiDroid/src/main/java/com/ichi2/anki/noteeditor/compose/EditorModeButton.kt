@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,44 +51,46 @@ internal fun EditorModeButton(
         label = "Editing mode",
     )
     EditorTooltip(action) {
-        IconToggleButton(
-            checked = !sourceMode,
-            onCheckedChange = { onClick() },
-            enabled = enabled,
-            shape = RoundedCornerShape(12.dp),
-            modifier =
-                Modifier.size(56.dp, 48.dp).semantics {
-                    role = Role.Switch
-                    contentDescription = action
-                    stateDescription = mode
-                },
-        ) {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Box(
-                    Modifier
-                        .requiredSize(52.dp, 28.dp)
-                        .alpha(if (enabled) 1f else 0.38f)
-                        .background(colors.surfaceContainerHighest, RoundedCornerShape(8.dp)),
-                ) {
+        CompositionLocalProvider(LocalRippleConfiguration provides null) {
+            IconToggleButton(
+                checked = !sourceMode,
+                onCheckedChange = { onClick() },
+                enabled = enabled,
+                shape = RoundedCornerShape(12.dp),
+                modifier =
+                    Modifier.size(56.dp, 48.dp).semantics {
+                        role = Role.Switch
+                        contentDescription = action
+                        stateDescription = mode
+                    },
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Box(
                         Modifier
-                            .offset(x = selectionOffset, y = 2.dp)
-                            .size(24.dp)
-                            .background(colors.primaryContainer, RoundedCornerShape(6.dp)),
-                    )
-                    Row(Modifier.align(Alignment.Center).padding(2.dp)) {
-                        Icon(
-                            painterResource(R.drawable.ic_code),
-                            null,
-                            Modifier.padding(horizontal = 2.dp).size(20.dp),
-                            tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
+                            .requiredSize(52.dp, 28.dp)
+                            .alpha(if (enabled) 1f else 0.38f)
+                            .background(colors.surfaceContainerHighest, RoundedCornerShape(8.dp)),
+                    ) {
+                        Box(
+                            Modifier
+                                .offset(x = selectionOffset, y = 2.dp)
+                                .size(24.dp)
+                                .background(colors.primaryContainer, RoundedCornerShape(6.dp)),
                         )
-                        Icon(
-                            painterResource(R.drawable.ic_editor_rich_text),
-                            null,
-                            Modifier.padding(horizontal = 2.dp).size(20.dp),
-                            tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
-                        )
+                        Row(Modifier.align(Alignment.Center).padding(2.dp)) {
+                            Icon(
+                                painterResource(R.drawable.ic_code),
+                                null,
+                                Modifier.padding(horizontal = 2.dp).size(20.dp),
+                                tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
+                            )
+                            Icon(
+                                painterResource(R.drawable.ic_editor_rich_text),
+                                null,
+                                Modifier.padding(horizontal = 2.dp).size(20.dp),
+                                tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
+                            )
+                        }
                     }
                 }
             }

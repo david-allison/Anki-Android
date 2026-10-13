@@ -52,6 +52,7 @@ html:root, html body { background: transparent; }
     to { transform: scale(1); }
 }
 .fields-only .field-quick-actions .quick-action[role="switch"] { min-width: 56px; }
+.fields-only .field-quick-actions .quick-action[role="switch"]::after { content: none; }
 .fields-only .field-quick-actions .mode-track { width: 52px; }
 .fields-only .field-quick-actions .mode-track svg { margin-inline: 2px; }
 .fields-only .field-quick-actions .mode-selection {
