@@ -595,6 +595,15 @@ class ComposeNoteEditorActivity :
         val action = EditorQuickAction.fromId(id) ?: return
         if (action == EditorQuickAction.PIN) {
             updateMetadata { model.setFieldPinned(fieldTarget, !field.sticky) }
+        } else if (action == EditorQuickAction.EDIT_HTML) {
+            launchEditorTask {
+                val editor = requireNotNull(webSession.view)
+                if (editor.execute(WebEditorAction.SOURCE_MODE, target)) {
+                    SoftwareKeyboardControllerCompat(editor).show()
+                } else {
+                    reportError(getString(R.string.compose_editor_stale_command))
+                }
+            }
         } else if (action == EditorQuickAction.ATTACH_MEDIA) {
             media.showPicker(target)
         } else {

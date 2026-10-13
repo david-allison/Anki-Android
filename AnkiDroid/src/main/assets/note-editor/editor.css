@@ -45,3 +45,9 @@ html:root, html body { background: transparent; }
     border-radius: 50%;
     background: var(--editor-host-selected-background);
 }
+
+/* HTML editing is an optional quick action, including for deferred fields. */
+.fields-only .plain-text-badge,
+.fields-only .deferred-source {
+    display: none;
+}

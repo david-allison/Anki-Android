@@ -521,6 +521,53 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun htmlQuickActionTargetsTheTappedField() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val current = scenario.editorState()
+            web.setField(0, "Leave Front unchanged")
+            web.setField(1, "<b>Back HTML</b>")
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    scenario.editorModel().setFieldToolbar(
+                        EditorFieldTarget(current.sessionId, current.generation, 1),
+                        current.fields[1].toolbar.copy(quickActions = listOf("editHtml")),
+                    )
+                }
+                web.focusField(0)
+            }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            // Gboard can resume composing the last word when an existing field receives focus.
+            web.evaluate("${richField(0)}.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, composed: true }))")
+            val selector = ".field-container[data-index='1'] .quick-action"
+
+            fun tapHtmlAction() {
+                web.awaitJavascript("document.querySelector(\"$selector\") !== null")
+                val bounds = JSONObject(web.evaluate("document.querySelector(\"$selector\").getBoundingClientRect().toJSON()"))
+                val ratio = web.evaluate("devicePixelRatio").toDouble()
+                val location = IntArray(2)
+                scenario.onActivity { web.getLocationOnScreen(location) }
+                device.click(
+                    location[0] + ((bounds.getDouble("x") + bounds.getDouble("width") / 2) * ratio).toInt(),
+                    location[1] + ((bounds.getDouble("y") + bounds.getDouble("height") / 2) * ratio).toInt(),
+                )
+            }
+            tapHtmlAction()
+            web.awaitJavascript(
+                "document.querySelector('.editor-field[data-field-ordinal=\"1\"] .CodeMirror')?.CodeMirror.hasFocus() === true",
+            )
+            assertEquals(1, runBlocking { web.captureTarget() }?.field)
+            assertEquals(listOf("Leave Front unchanged", "<b>Back HTML</b>"), runBlocking { web.snapshot().fields })
+            captureScreenshot("html-quick-action-back", web)
+            tapHtmlAction()
+            web.awaitJavascript(
+                "document.querySelector('.editor-field[data-field-ordinal=\"1\"] .CodeMirror').getBoundingClientRect().height === 0",
+            )
+            assertEquals(listOf("Leave Front unchanged", "<b>Back HTML</b>"), runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun fieldControlsAlignWithAppBarButtons() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
@@ -542,7 +589,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                         5_000,
                     ),
                 )
-            val save = checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(CommonString.save))), 5_000))
             val location = IntArray(2)
             scenario.onActivity { web.getLocationOnScreen(location) }
             val geometry =
@@ -555,9 +601,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                             root: document.querySelector('.fields-only').getBoundingClientRect().width,
                             fields: [...document.querySelectorAll('.field-container')].map(field => {
                                 const collapse = field.querySelector('.collapse-badge').getBoundingClientRect();
-                                const source = field.querySelector('.plain-text-badge').getBoundingClientRect();
+                                const source = field.querySelector('.plain-text-badge');
                                 const border = field.querySelector('.editor-field').getBoundingClientRect();
-                                return {collapse: collapse.x + collapse.width / 2, source: source.x + source.width / 2,
+                                return {collapse: collapse.x + collapse.width / 2, sourceHidden: getComputedStyle(source).display === "none",
                                     left: border.left, right: border.right};
                             })
                         })
@@ -576,12 +622,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     ratio,
                     "Field $index collapse alignment",
                 )
-                assertEquals(
-                    save.visibleCenter.x.toDouble(),
-                    location[0] + ratio * field.getDouble("source"),
-                    ratio,
-                    "Field $index source alignment (WebView width=${web.width}, geometry=$geometry)",
-                )
+                assertTrue(field.getBoolean("sourceHidden"), "HTML editing must be an optional quick action")
                 assertEquals(16.0, field.getDouble("left"), 0.5, "Field $index start margin")
                 assertEquals(16.0, geometry.getDouble("root") - field.getDouble("right"), 0.5, "Field $index end margin")
             }
@@ -979,6 +1020,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val web = scenario.awaitEditor()
             // The viewport may be a phone or a tablet; distant inputs stay deferred.
             web.awaitJavascript("${richField(199)} === undefined && ${richField(399)} === undefined")
+            web.awaitJavascript(
+                "[...document.querySelectorAll('.plain-text-badge, .deferred-source')].every(button => getComputedStyle(button).display === 'none')",
+            )
             assertEquals(expected, runBlocking { web.snapshot().fields })
             assertFalse(runBlocking { web.snapshot().hasChanges })
             for (index in listOf(0, 199, 399)) {
