@@ -73,6 +73,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -476,7 +477,8 @@ private fun EditorFieldArea(
                                     .weight(1f)
                                     .heightIn(max = 144.dp)
                                     .verticalScroll(rememberScrollState(), reverseScrolling = true)
-                                    .padding(horizontal = 8.dp),
+                                    .padding(horizontal = 8.dp)
+                                    .centerToolbarColumns(),
                                 horizontalArrangement = Arrangement.Start,
                                 verticalArrangement = ToolbarRowsFromBottom,
                             ) { buttons() }
@@ -501,6 +503,18 @@ private fun EditorFieldArea(
         }
     }
 }
+
+/** Center whole 48dp button columns; partial rows keep the same start edge. */
+private fun Modifier.centerToolbarColumns(): Modifier =
+    layout { measurable, constraints ->
+        val buttonWidth = 48.dp.roundToPx()
+        val columns = (constraints.maxWidth / buttonWidth).coerceAtLeast(1)
+        val width = (columns * buttonWidth).coerceAtMost(constraints.maxWidth)
+        val content = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+        layout(constraints.maxWidth, content.height) {
+            content.placeRelative((constraints.maxWidth - width) / 2, 0)
+        }
+    }
 
 /** Keep the first configured buttons nearest the keyboard, preserving each row's reading order. */
 private object ToolbarRowsFromBottom : Arrangement.Vertical {
