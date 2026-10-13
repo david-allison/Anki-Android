@@ -17,6 +17,7 @@ import android.webkit.WebView
 import androidx.core.content.FileProvider
 import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -27,6 +28,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import com.ichi2.anki.CollectionManager
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorFragment
@@ -1417,7 +1419,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun imageOcclusionPicksAnImageAndPreservesTheComposeDraft() {
+    fun imageOcclusionPicksAnImageAndPreservesTheComposeDraft() = assertImageOcclusionSelection(existingType = true)
+
+    @Test
+    fun imageOcclusionCanBeSelectedBeforeItsNoteTypeExists() = assertImageOcclusionSelection(existingType = false)
+
+    private fun assertImageOcclusionSelection(existingType: Boolean) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val image = File(testContext.cacheDir, "picker-source/occlusion-test.png").also { it.parentFile!!.mkdirs() }
         val bitmap = Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.BLUE) }
@@ -1452,12 +1459,24 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val ioType =
                 runBlocking {
                     withCol {
-                        addImageOcclusionNoteType()
-                        notetypes.all().first { it.isImageOcclusion }
+                        if (existingType) {
+                            addImageOcclusionNoteType()
+                            notetypes.all().first { it.isImageOcclusion }.let { EditorChoice(it.id, it.name) }
+                        } else {
+                            notetypes.all().filter { it.isImageOcclusion }.forEach { notetypes.remove(it.id) }
+                            assertFalse(notetypes.all().any { it.isImageOcclusion })
+                            EditorChoice(0, TR.notetypesImageOcclusionName())
+                        }
                     }
                 }
             withEditor { scenario ->
                 val web = scenario.awaitEditor()
+                // Seed an unfocused draft so Gboard does not start composing the synthetic input.
+                web.evaluate("${richField(0)}.blur()")
+                scenario.onActivity {
+                    web.clearFocus()
+                    WindowCompat.getInsetsController(it.window, web).hide(WindowInsetsCompat.Type.ime())
+                }
                 web.setField(0, "Keep this unfinished question")
                 web.setField(1, "Keep this answer")
                 val state = scenario.editorState()
@@ -1495,7 +1514,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     maskWeb != null
                 }
                 checkNotNull(maskWeb).awaitJavascript("globalThis.maskEditor != null")
-                captureScreenshot("image-occlusion-from-compose", checkNotNull(maskWeb))
+                captureScreenshot("image-occlusion-from-compose-${if (existingType) "existing" else "new"}", checkNotNull(maskWeb))
                 instrumentation.runOnMainSync { activity.finish() }
                 assertTrue(web === scenario.awaitEditor())
                 assertEquals(listOf("Keep this unfinished question", "Keep this answer"), runBlocking { web.snapshot().fields })

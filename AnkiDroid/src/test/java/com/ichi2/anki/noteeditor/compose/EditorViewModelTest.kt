@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
@@ -503,6 +504,34 @@ class EditorViewModelTest : JvmTest() {
             assertEquals(destination, loadAdd(destination).state.value?.deckId)
             val filtered = addDynamicDeck("Filtered")
             assertEquals(defaults.deckId, loadAdd(filtered).state.value?.deckId)
+        }
+
+    @Test
+    fun `Image Occlusion is selectable before its note type exists without changing the draft or collection`() =
+        runTest {
+            col.notetypes
+                .all()
+                .filter { it.isImageOcclusion }
+                .forEach { col.notetypes.remove(it.id) }
+            val vm = loadAdd()
+            vm.setTags(listOf("unfinished"))
+            val before = vm.state.value
+            val originalTypes = col.notetypes.all().map { it.id }
+            assertFalse(col.notetypes.all().any { it.isImageOcclusion })
+
+            val choices = vm.noteTypeChoices()
+
+            assertTrue(EditorChoice(0, TR.notetypesImageOcclusionName()) in choices)
+            assertTrue(vm.isImageOcclusionType(0))
+            assertEquals(before, vm.state.value)
+            assertEquals(originalTypes, col.notetypes.all().map { it.id })
+            assertEquals(0, col.noteCount())
+
+            col.addImageOcclusionNoteType()
+            val imageOcclusion = col.notetypes.imageOcclusion
+            val updatedChoices = vm.noteTypeChoices()
+            assertTrue(EditorChoice(imageOcclusion.id, imageOcclusion.name) in updatedChoices)
+            assertFalse(updatedChoices.any { it.id == 0L })
         }
 
     @Test
