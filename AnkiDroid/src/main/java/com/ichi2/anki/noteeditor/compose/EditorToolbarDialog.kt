@@ -59,7 +59,8 @@ internal fun EditorToolbarDialog(
 ) {
     var toolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     val allItems = toolbar.orderedItems(templates)
-    val items = allItems.filter { it.appliesTo(isCloze) }
+    val items = allItems.filter { it.appliesTo(isCloze) }.sortedBy { !toolbar.isEnabled(it) }
+    val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -83,6 +84,7 @@ internal fun EditorToolbarDialog(
             EditorToolbarList(
                 items = items.map { it.key },
                 onMove = { from, to -> toolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
+                canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
                     Column {
@@ -98,11 +100,7 @@ internal fun EditorToolbarDialog(
                         is EditorToolbarItem.Builtin -> stringResource(item.button.label)
                         is EditorToolbarItem.Custom -> item.button.label
                     }
-                val checked =
-                    when (item) {
-                        is EditorToolbarItem.Builtin -> item.key !in toolbar.hiddenButtons
-                        is EditorToolbarItem.Custom -> toolbar.customButtons.any { it.id == item.button.id }
-                    }
+                val checked = toolbar.isEnabled(item)
                 EditorToolbarRow(
                     (item as? EditorToolbarItem.Builtin)?.button?.icon,
                     label,
@@ -131,8 +129,8 @@ internal fun EditorToolbarDialog(
                             }
                     },
                     startDrag = startDrag,
-                    moveUp = if (index > 0) ({ move(-1) }) else null,
-                    moveDown = if (index < items.lastIndex) ({ move(1) }) else null,
+                    moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
+                    moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
                 )
             }
         }

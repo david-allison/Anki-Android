@@ -386,7 +386,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun toolbarConfigurationOpen() {
-        openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
+        val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
+        showEditor(
+            toolbar =
+                EditorFieldToolbar(
+                    customButtons = listOf(ruby),
+                    hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC", "UNDERLINE"),
+                ),
+        )
+        fieldOptionsButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))

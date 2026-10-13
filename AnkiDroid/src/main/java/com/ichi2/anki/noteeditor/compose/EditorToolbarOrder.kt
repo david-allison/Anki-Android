@@ -31,6 +31,12 @@ internal fun EditorFieldToolbar.orderedItems(templates: List<EditorCustomToolbar
 
 internal fun EditorToolbarItem.appliesTo(isCloze: Boolean): Boolean = this !is EditorToolbarItem.Builtin || !button.clozeOnly || isCloze
 
+internal fun EditorFieldToolbar.isEnabled(item: EditorToolbarItem): Boolean =
+    when (item) {
+        is EditorToolbarItem.Builtin -> item.key !in hiddenButtons
+        is EditorToolbarItem.Custom -> customButtons.any { it.id == item.button.id }
+    }
+
 /** Move within the displayed buttons, retaining slots belonging to currently inapplicable commands. */
 internal fun EditorFieldToolbar.moveButtonTo(
     key: String,
