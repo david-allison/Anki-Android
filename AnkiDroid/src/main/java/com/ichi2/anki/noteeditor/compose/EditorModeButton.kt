@@ -46,7 +46,7 @@ internal fun EditorModeButton(
     val mode = stringResource(if (sourceMode) R.string.compose_editor_mode_html else R.string.compose_editor_mode_rich_text)
     val colors = MaterialTheme.colorScheme
     val selectionOffset by animateDpAsState(
-        targetValue = if (sourceMode) 2.dp else 26.dp,
+        targetValue = if (sourceMode) 26.dp else 2.dp,
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "Editing mode",
     )
@@ -79,16 +79,16 @@ internal fun EditorModeButton(
                         )
                         Row(Modifier.align(Alignment.Center).padding(2.dp)) {
                             Icon(
-                                painterResource(R.drawable.ic_code),
-                                null,
-                                Modifier.padding(horizontal = 2.dp).size(20.dp),
-                                tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
-                            )
-                            Icon(
                                 painterResource(R.drawable.ic_editor_rich_text),
                                 null,
                                 Modifier.padding(horizontal = 2.dp).size(20.dp),
                                 tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
+                            )
+                            Icon(
+                                painterResource(R.drawable.ic_code),
+                                null,
+                                Modifier.padding(horizontal = 2.dp).size(20.dp),
+                                tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
                             )
                         }
                     }
