@@ -70,6 +70,19 @@ class WebEditorViewTest : InstrumentedTest() {
     @Test
     fun quickPinIsCompactAndMatchesBlackToolbar() = assertQuickPinAppearance(R.style.Theme_Dark_Black)
 
+    @Test
+    fun fieldScrollbarIsSlimAndStillScrolls() =
+        withEditor {
+            loadDocument(document("<div>Long field content</div>".repeat(100)))
+            awaitJavascript("document.querySelector('.scroll-area').scrollHeight > document.querySelector('.scroll-area').clientHeight")
+            val width =
+                evaluate("(() => { const area = document.querySelector('.scroll-area'); return area.offsetWidth - area.clientWidth; })()")
+            assertEquals(4.0, width.toDouble(), 0.5, "Keep the field scrollbar to 4dp")
+            evaluate("document.querySelector('.scroll-area').scrollTop = 200")
+            awaitJavascript("document.querySelector('.scroll-area').scrollTop >= 199")
+            captureRenderedScreenshot("editor-slim-scrollbar")
+        }
+
     private fun assertQuickPinAppearance(theme: Int) =
         withEditor(theme = theme) {
             val pin = EditorQuickAction.PIN.toWeb(context, pinned = true)
@@ -108,23 +121,27 @@ class WebEditorViewTest : InstrumentedTest() {
             assertEquals("rgba(0, 0, 0, 0)", appearance.getString("background"))
             assertEquals("true", appearance.getString("pressed"))
             assertEquals("${pin.label}: Front", appearance.getString("label"))
-            val rendered = CountDownLatch(1)
-            getInstrumentation().runOnMainSync {
-                postVisualStateCallback(
-                    0,
-                    object : WebView.VisualStateCallback() {
-                        override fun onComplete(requestId: Long) {
-                            postOnAnimation { postOnAnimation { rendered.countDown() } }
-                        }
-                    },
-                )
-            }
-            assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the pin")
-            UiDevice.getInstance(getInstrumentation()).apply {
-                waitForIdle()
-                assertTrue(takeScreenshot(File(context.filesDir, "editor-pin-$theme.png")))
-            }
+            captureRenderedScreenshot("editor-pin-$theme")
         }
+
+    private fun WebEditorView.captureRenderedScreenshot(name: String) {
+        val rendered = CountDownLatch(1)
+        getInstrumentation().runOnMainSync {
+            postVisualStateCallback(
+                0,
+                object : WebView.VisualStateCallback() {
+                    override fun onComplete(requestId: Long) {
+                        postOnAnimation { postOnAnimation { rendered.countDown() } }
+                    }
+                },
+            )
+        }
+        assertTrue(rendered.await(30, TimeUnit.SECONDS), "WebView did not render the screenshot")
+        UiDevice.getInstance(getInstrumentation()).apply {
+            waitForIdle()
+            assertTrue(takeScreenshot(File(context.filesDir, "$name.png")))
+        }
+    }
 
     private fun assertOuterTheme(theme: Int) =
         withEditor(theme = theme) {
