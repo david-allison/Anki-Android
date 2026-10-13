@@ -3,6 +3,9 @@
 package com.ichi2.anki.noteeditor.compose
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +28,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
@@ -47,6 +52,7 @@ import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -123,6 +129,7 @@ fun NoteEditorScreen(
     editor: @Composable (Modifier) -> Unit,
     preview: @Composable (Modifier) -> Unit,
     fieldTaps: Flow<Unit> = emptyFlow(),
+    headerVisibility: Flow<Boolean> = emptyFlow(),
     onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFields: () -> Unit = {},
@@ -138,6 +145,10 @@ fun NoteEditorScreen(
     var showPreview by rememberSaveable { mutableStateOf(true) }
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
     var fieldOptionsRequested by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
+    var headerVisible by remember(state?.sessionId, state?.generation) { mutableStateOf(true) }
+    LaunchedEffect(headerVisibility, state?.sessionId, state?.generation) {
+        headerVisibility.collect { headerVisible = it }
+    }
     val enabled = ready && !busy && state?.isSaving == false
     toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
         val current = requireNotNull(state)
@@ -199,66 +210,74 @@ fun NoteEditorScreen(
             contentColor = MaterialTheme.colorScheme.onSurface,
             snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            stringResource(
-                                if (state?.isAdding !=
-                                    false
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surface,
+                        ).windowInsetsPadding(TopAppBarDefaults.windowInsets),
+                ) {
+                    EditorCollapsingHeader(headerVisible) {
+                        TopAppBar(
+                            windowInsets = WindowInsets(0),
+                            title = {
+                                Text(
+                                    stringResource(
+                                        if (state?.isAdding !=
+                                            false
+                                        ) {
+                                            CommonString.menu_add_note
+                                        } else {
+                                            CommonString.cardeditor_title_edit_card
+                                        },
+                                    ),
+                                )
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onBack, enabled = !busy) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_baseline_arrow_back_24),
+                                        stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
+                                    )
+                                }
+                            },
+                            actions = {
+                                state?.let {
+                                    EditorOptionsMenu(
+                                        settings = it.settings,
+                                        enabled = enabled && !toolbarState.value.composing,
+                                        onSettings = onSettings,
+                                        onFields = onFields,
+                                        onCards = onCards,
+                                        toolbarDisplay = it.toolbarDisplay,
+                                        onToolbarDisplay = onToolbarDisplay,
+                                        fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
+                                        onFieldOptions = { fieldOptionsRequested = true },
+                                    )
+                                }
+                                EditorActionButton(
+                                    icon = R.drawable.ic_remove_red_eye_white,
+                                    label =
+                                        when {
+                                            tablet && showPreview -> CommonString.note_editor_hide_previewer
+                                            tablet -> CommonString.note_editor_show_previewer
+                                            else -> CommonString.card_editor_preview_card
+                                        },
+                                    enabled = enabled,
                                 ) {
-                                    CommonString.menu_add_note
-                                } else {
-                                    CommonString.cardeditor_title_edit_card
-                                },
-                            ),
+                                    if (tablet) {
+                                        showPreview = !showPreview
+                                    } else {
+                                        keyboard?.hide()
+                                        showPhonePreview = true
+                                    }
+                                }
+                                // The Save button stays at this position as the rest of the header hides.
+                                Spacer(Modifier.size(48.dp))
+                            },
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack, enabled = !busy) {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_arrow_back_24),
-                                stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
-                            )
-                        }
-                    },
-                    actions = {
-                        state?.let {
-                            EditorOptionsMenu(
-                                settings = it.settings,
-                                enabled = enabled && !toolbarState.value.composing,
-                                onSettings = onSettings,
-                                onFields = onFields,
-                                onCards = onCards,
-                                toolbarDisplay = it.toolbarDisplay,
-                                onToolbarDisplay = onToolbarDisplay,
-                                fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
-                                onFieldOptions = { fieldOptionsRequested = true },
-                            )
-                        }
-                        EditorActionButton(
-                            icon = R.drawable.ic_remove_red_eye_white,
-                            label =
-                                when {
-                                    tablet && showPreview -> CommonString.note_editor_hide_previewer
-                                    tablet -> CommonString.note_editor_show_previewer
-                                    else -> CommonString.card_editor_preview_card
-                                },
-                            enabled = enabled,
-                        ) {
-                            if (tablet) {
-                                showPreview = !showPreview
-                            } else {
-                                keyboard?.hide()
-                                showPhonePreview = true
-                            }
-                        }
-                        EditorTooltip(stringResource(CommonString.save)) {
-                            FilledIconButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty()) {
-                                Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
-                            }
-                        }
-                    },
-                )
+                    }
+                }
             },
         ) { padding ->
             if (state == null) {
@@ -279,15 +298,17 @@ fun NoteEditorScreen(
                         .background(MaterialTheme.colorScheme.surface),
                 ) {
                     Column(Modifier.weight(1f)) {
-                        EditorMetadata(
-                            deckName = state.deckName,
-                            noteTypeName = state.noteTypeName,
-                            enabled = enabled,
-                            onDeck = onDeck,
-                            onType = {
-                                if (state.isAdding) dialog = "type" else onEditType()
-                            },
-                        )
+                        EditorCollapsingHeader(headerVisible) {
+                            EditorMetadata(
+                                deckName = state.deckName,
+                                noteTypeName = state.noteTypeName,
+                                enabled = enabled,
+                                onDeck = onDeck,
+                                onType = {
+                                    if (state.isAdding) dialog = "type" else onEditType()
+                                },
+                            )
+                        }
                         // Only the field area and toolbar follow the keyboard. Keep the
                         // metadata and top bar out of its changing layout constraints.
                         EditorFieldArea(
@@ -329,6 +350,13 @@ fun NoteEditorScreen(
                 }
             }
         }
+        Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 4.dp)) {
+            EditorTooltip(stringResource(CommonString.save)) {
+                FilledIconButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty()) {
+                    Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
+                }
+            }
+        }
     }
     if (state != null && enabled) {
         when (dialog) {
@@ -348,6 +376,19 @@ fun NoteEditorScreen(
             }
         }
     }
+}
+
+/** Resize only after a deliberate scroll direction change, never for every scroll pixel. */
+@Composable
+private fun EditorCollapsingHeader(
+    visible: Boolean,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandVertically(expandFrom = Alignment.Top),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top),
+    ) { content() }
 }
 
 @Composable

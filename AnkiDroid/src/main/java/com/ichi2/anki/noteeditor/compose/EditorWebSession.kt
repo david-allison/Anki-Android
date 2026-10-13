@@ -38,6 +38,8 @@ class EditorWebSession(
     val toolbarState: StateFlow<EditorToolbarState> = mutableToolbarState
     private val mutableFieldTaps = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val fieldTaps: SharedFlow<Unit> = mutableFieldTaps
+    private val mutableHeaderVisibility = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    val headerVisibility: SharedFlow<Boolean> = mutableHeaderVisibility
     private val mutablePreview = MutableStateFlow<EditorPreviewInput?>(null)
     val preview: StateFlow<EditorPreviewInput?> = mutablePreview
     var view: WebEditorView? = null
@@ -85,6 +87,7 @@ class EditorWebSession(
         }
         editor.onError = reportError
         editor.onFieldTap = { mutableFieldTaps.tryEmit(Unit) }
+        editor.onHeaderVisibility = { mutableHeaderVisibility.tryEmit(it) }
         editor.onRendererGone = {
             mutableReady.value = false
             binding?.cancel()
@@ -237,6 +240,7 @@ class EditorWebSession(
         previewJob?.cancel()
         view?.onChanged = null
         view?.onFieldTap = null
+        view?.onHeaderVisibility = null
         view?.onError = null
         view?.onRendererGone = null
         view = null
