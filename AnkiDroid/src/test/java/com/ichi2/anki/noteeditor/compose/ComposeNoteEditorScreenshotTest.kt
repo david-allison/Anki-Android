@@ -350,6 +350,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         for (label in listOf(
+            R.string.image_occlusion,
             R.string.compose_editor_shrink_images,
             R.string.compose_editor_mathjax_preview,
             R.string.compose_editor_auto_close_tags,
