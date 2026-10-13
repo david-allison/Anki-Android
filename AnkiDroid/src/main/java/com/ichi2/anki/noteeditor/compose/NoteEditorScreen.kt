@@ -191,7 +191,12 @@ fun NoteEditorScreen(
             EditorPreviewDialog(onDismiss = { showPhonePreview = false }, preview = preview)
         }
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+            containerColor =
+                if (state?.toolbarDisplay == EditorToolbarDisplay.HIDDEN) {
+                    MaterialTheme.colorScheme.surface
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
+                },
             contentColor = MaterialTheme.colorScheme.onSurface,
             snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
             topBar = {
