@@ -250,7 +250,7 @@ fun NoteEditorScreen(
                             }
                         }
                         EditorActionButton(
-                            icon = R.drawable.ic_done_white,
+                            icon = R.drawable.ic_save_white,
                             label = CommonString.save,
                             enabled = enabled && state.removedFields.isEmpty(),
                             onClick = onSave,
