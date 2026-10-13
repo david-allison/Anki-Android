@@ -1520,9 +1520,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             editor.setField(1, "Phone unsaved answer")
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 10_000),
+                device.wait(Until.findObject(By.desc(testContext.getString(CommonString.card_editor_preview_card)).enabled(true)), 10_000),
             ).click()
-            clickText(testContext.getString(CommonString.card_editor_preview_card))
             var cardWebView: WebView? = null
             waitUntil(timeout = 30.seconds, message = { "Phone preview did not appear" }) {
                 scenario.onActivity { activity ->
