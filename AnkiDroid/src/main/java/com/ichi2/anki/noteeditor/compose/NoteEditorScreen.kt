@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -251,12 +252,11 @@ fun NoteEditorScreen(
                                 showPhonePreview = true
                             }
                         }
-                        EditorActionButton(
-                            icon = R.drawable.ic_save_white,
-                            label = CommonString.save,
-                            enabled = enabled && state.removedFields.isEmpty(),
-                            onClick = onSave,
-                        )
+                        EditorTooltip(stringResource(CommonString.save)) {
+                            FilledIconButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty()) {
+                                Icon(painterResource(R.drawable.ic_save_white), stringResource(CommonString.save))
+                            }
+                        }
                     },
                 )
             },

@@ -812,6 +812,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun filledSaveButton() {
+        var saves = 0
+        showEditor(onSave = { saves++ })
+        captureScreen("filled_save_button")
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+        assertEquals(1, saves)
+    }
+
+    @Test
+    fun saveButtonLongPress() = captureToolbarLongPress(CommonString.save, "save_button_long_press")
+
+    @Test
     fun formattingButtonLongPress() {
         captureToolbarLongPress(R.string.compose_editor_bold, "formatting_button_long_press")
     }
@@ -903,6 +915,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         toolbar: EditorFieldToolbar = EditorFieldToolbar(),
         templates: List<EditorCustomToolbarButton> = toolbar.customButtons,
         tags: List<String> = emptyList(),
+        onSave: () -> Unit = {},
         onTags: () -> Unit = {},
         onRemoveTag: (String) -> Unit = {},
         noteTypes: List<EditorChoice> = emptyList(),
@@ -944,7 +957,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     error = null,
                     snackbar = snackbarHost,
                     onBack = {},
-                    onSave = {},
+                    onSave = onSave,
                     loadNoteTypes = { noteTypes },
                     onDeck = {},
                     onType = onType,
