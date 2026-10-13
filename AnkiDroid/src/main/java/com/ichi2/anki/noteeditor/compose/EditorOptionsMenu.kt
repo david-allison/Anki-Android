@@ -97,7 +97,7 @@ internal fun EditorOptionsMenu(
                 expanded = false
                 showToolbarDisplay = true
             })
-            if (toolbarDisplay == EditorToolbarDisplay.HIDDEN) {
+            if (toolbarDisplay != EditorToolbarDisplay.SCROLL) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.compose_editor_field_options)) },
                     enabled = fieldOptionsEnabled,

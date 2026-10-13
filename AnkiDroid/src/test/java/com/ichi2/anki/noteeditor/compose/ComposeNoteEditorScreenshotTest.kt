@@ -465,11 +465,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .fetchSemanticsNode()
                 .boundsInRoot
         assertTrue(nextRow.top >= first.bottom)
-        val options = fieldOptionsButton().assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val save = composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).fetchSemanticsNode().boundsInRoot
-        assertEquals(save.center.y, options.center.y, "Stacked mode keeps field options in the top app bar")
+        fieldOptionsButton().assertDoesNotExist()
         captureScreen("toolbar_stacked")
-        fieldOptionsButton().performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).assertIsDisplayed()
+        captureScreen("toolbar_stacked_general_options")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         captureScreen("toolbar_stacked_field_options")
     }
