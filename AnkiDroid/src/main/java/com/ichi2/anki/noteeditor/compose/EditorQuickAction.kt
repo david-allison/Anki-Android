@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.web.WebEditorFieldAction
@@ -18,24 +19,24 @@ internal enum class EditorQuickAction(
     val media: MultimediaActionHandler? = null,
 ) {
     PIN("pin", R.string.compose_editor_pin_field, R.drawable.ic_baseline_push_pin_24),
-    ATTACH_MEDIA("attachMedia", R.string.multimedia_editor_attach_tooltip, R.drawable.ic_attachment),
+    ATTACH_MEDIA("attachMedia", CommonString.multimedia_editor_attach_tooltip, R.drawable.ic_attachment),
     EDIT_HTML("editHtml", R.string.compose_editor_source, R.drawable.ic_code),
     GALLERY(
         "gallery",
-        R.string.multimedia_editor_image_field_editing_galery,
+        CommonString.multimedia_editor_image_field_editing_galery,
         R.drawable.ic_popup_menu_item_image,
         MultimediaActionHandler.ImageFile,
     ),
-    CAMERA("camera", R.string.multimedia_editor_image_field_editing_photo, R.drawable.ic_camera_filled, MultimediaActionHandler.Camera),
-    DRAWING("drawing", R.string.drawing, R.drawable.ic_draw_filled, MultimediaActionHandler.Drawing),
+    CAMERA("camera", CommonString.multimedia_editor_image_field_editing_photo, R.drawable.ic_camera_filled, MultimediaActionHandler.Camera),
+    DRAWING("drawing", CommonString.drawing, R.drawable.ic_draw_filled, MultimediaActionHandler.Drawing),
     RECORD_AUDIO(
         "recordAudio",
-        R.string.multimedia_editor_popup_audio,
+        CommonString.multimedia_editor_popup_audio,
         R.drawable.ic_popup_menu_item_record,
         MultimediaActionHandler.AudioRecording,
     ),
-    AUDIO("audio", R.string.multimedia_editor_popup_audio_clip, R.drawable.ic_popup_menu_item_audio, MultimediaActionHandler.AudioFile),
-    VIDEO("video", R.string.multimedia_editor_popup_video_clip, R.drawable.ic_popup_menu_item_video, MultimediaActionHandler.VideoFile),
+    AUDIO("audio", CommonString.multimedia_editor_popup_audio_clip, R.drawable.ic_popup_menu_item_audio, MultimediaActionHandler.AudioFile),
+    VIDEO("video", CommonString.multimedia_editor_popup_video_clip, R.drawable.ic_popup_menu_item_video, MultimediaActionHandler.VideoFile),
     ;
 
     // Read each existing vector once, and only if enabled. No extra startup assets or duplicate icons.

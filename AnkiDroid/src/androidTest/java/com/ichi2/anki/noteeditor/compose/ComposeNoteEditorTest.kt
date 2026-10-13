@@ -663,7 +663,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             ).click()
             clickText(testContext.getString(R.string.compose_editor_quick_actions))
             device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
-            clickText(testContext.getString(R.string.multimedia_editor_image_field_editing_galery))
+            clickText(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
             device.findObjects(By.text(testContext.getString(CommonString.save))).last().click()
             waitUntil(message = { "Quick actions did not save for Back" }) {
                 scenario
@@ -696,7 +696,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     nativeHandler?.invoke(action, target)
                 }
             }
-            val gallery = testContext.getString(R.string.multimedia_editor_image_field_editing_galery)
+            val gallery = testContext.getString(CommonString.multimedia_editor_image_field_editing_galery)
             checkNotNull(device.wait(Until.findObject(By.text("$gallery: Back")), 5_000)).click()
             waitUntil(message = { "Gallery did not open directly" }) {
                 mediaTarget.get() != null && device.currentPackageName != testContext.packageName
@@ -1836,7 +1836,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 clickText(state.noteTypeName)
                 clickText(ioType.name)
                 if (source != OcclusionSource.GALLERY) {
-                    val paste = By.text(testContext.getString(R.string.paste_from_clipboard))
+                    val paste = By.text(testContext.getString(CommonString.paste_from_clipboard))
                     assertTrue(device.wait(Until.hasObject(paste), 5_000), "Offer the clipboard image before opening Gallery")
                     assertEquals(1, picks.get())
                     captureScreenshot("image-occlusion-source", web)
@@ -1856,9 +1856,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                             if (source ==
                                 OcclusionSource.CLIPBOARD
                             ) {
-                                R.string.paste_from_clipboard
+                                CommonString.paste_from_clipboard
                             } else {
-                                R.string.multimedia_editor_image_field_editing_galery
+                                CommonString.multimedia_editor_image_field_editing_galery
                             },
                         ),
                     )

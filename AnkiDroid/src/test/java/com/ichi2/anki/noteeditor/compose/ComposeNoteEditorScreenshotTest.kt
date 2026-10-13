@@ -356,7 +356,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         for (label in listOf(
-            R.string.image_occlusion,
+            CommonString.image_occlusion,
             R.string.compose_editor_shrink_images,
             R.string.compose_editor_mathjax_preview,
             R.string.compose_editor_auto_close_tags,
@@ -407,8 +407,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 hasText(getResourceString(R.string.compose_editor_pin_field)) and
                     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
             ).assertIsSelected()
-        composeRule.onNodeWithText(getResourceString(R.string.multimedia_editor_image_field_editing_galery)).assertIsSelected()
-        val drawing = composeRule.onNodeWithText(getResourceString(R.string.drawing))
+        composeRule.onNodeWithText(getResourceString(CommonString.multimedia_editor_image_field_editing_galery)).assertIsSelected()
+        val drawing = composeRule.onNodeWithText(getResourceString(CommonString.drawing))
         drawing.assertIsNotSelected()
         drawing.performClick().assertIsSelected()
         drawing.performClick().assertIsNotSelected()

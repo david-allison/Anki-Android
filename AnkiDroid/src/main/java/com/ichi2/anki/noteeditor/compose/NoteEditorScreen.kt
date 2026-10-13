@@ -633,7 +633,7 @@ private fun EditorFieldOptions(
                         )
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.keyboard), style = MaterialTheme.typography.labelLarge)
+                            Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.labelLarge)
                             Text(
                                 field.languageTag?.let { Locale.forLanguageTag(it).displayName }
                                     ?: stringResource(R.string.compose_editor_language_hint_default),
@@ -710,7 +710,7 @@ private fun FieldOptionsHelp(
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                             )
-                            Text(stringResource(R.string.keyboard), style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.titleSmall)
                         }
                         Text(stringResource(R.string.compose_editor_language_hint_summary))
                     }
