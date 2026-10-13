@@ -110,20 +110,9 @@ internal fun EditorOptionsMenu(
             onDismissRequest = { expanded = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
         ) {
-            fun change(value: WebEditorSettings) {
-                expanded = false
-                onSettings(value)
-            }
-            EditorOption(R.string.compose_editor_shrink_images, settings.shrinkImages) {
-                change(settings.copy(shrinkImages = !settings.shrinkImages))
-            }
-            EditorOption(R.string.compose_editor_mathjax_preview, settings.mathjaxPreview) {
-                change(settings.copy(mathjaxPreview = !settings.mathjaxPreview))
-            }
-            EditorOption(R.string.compose_editor_auto_close_tags, settings.autoCloseTags) {
-                change(settings.copy(autoCloseTags = !settings.autoCloseTags))
-            }
-            HorizontalDivider()
+            // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
+            // These niche options are intended for future user-defined JS; keep their implementation.
+            // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
             onImageOcclusion?.let { openImageOcclusion ->
                 DropdownMenuItem(text = { Text(stringResource(R.string.image_occlusion)) }, onClick = {
                     expanded = false

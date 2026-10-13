@@ -52,7 +52,6 @@ import com.ichi2.anki.multimedia.MultimediaArgsStorage
 import com.ichi2.anki.multimedia.MultimediaBottomSheet
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewFragment
 import com.ichi2.anki.noteeditor.web.WebEditorAction
-import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.pages.ImageOcclusion
@@ -353,28 +352,27 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun globalOptionsPersistAcrossRecreationWithoutChangingTheDraft() {
+    fun fontSizePersistsAcrossRecreationWithoutChangingTheDraft() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
+            // Seed an unfocused draft so Gboard does not start composing the synthetic input.
+            web.evaluate("${richField(0)}.blur()")
+            scenario.onActivity {
+                web.clearFocus()
+                WindowCompat.getInsetsController(it.window, web).hide(WindowInsetsCompat.Type.ime())
+            }
             web.setField(0, "Unsaved <b>question</b>")
             val before = runBlocking { web.snapshot().fields }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            for (label in listOf(
-                R.string.compose_editor_shrink_images,
-                R.string.compose_editor_mathjax_preview,
-                R.string.compose_editor_auto_close_tags,
-            )) {
-                checkNotNull(
-                    device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
-                ).click()
-                checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(label))), 5_000)).click()
-                waitUntil(message = { "The option did not finish applying" }) {
-                    device.hasObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true))
-                }
-            }
-            waitUntil(message = { "Global editor options did not persist" }) {
-                scenario.editorState().settings ==
-                    WebEditorSettings(false, false, false)
+            val expectedSettings = scenario.editorState().settings.copy(fontSize = 28)
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            ).click()
+            clickText(testContext.getString(CommonString.menu_font_size))
+            checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "28"
+            clickText(testContext.getString(CommonString.dialog_ok))
+            waitUntil(message = { "The global font size did not persist" }) {
+                scenario.editorState().settings == expectedSettings
             }
             assertEquals(before, runBlocking { web.snapshot().fields })
             assertFalse(scenario.editorState().hasMetadataChanges)
@@ -382,7 +380,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val restored = scenario.awaitEditor()
             assertEquals(before, runBlocking { restored.snapshot().fields })
             assertEquals(
-                WebEditorSettings(false, false, false),
+                expectedSettings,
                 scenario.editorState().settings,
             )
             assertEquals(0, runBlocking { withCol { noteCount() } })
