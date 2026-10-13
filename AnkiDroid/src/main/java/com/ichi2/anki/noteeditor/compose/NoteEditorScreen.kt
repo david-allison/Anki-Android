@@ -273,7 +273,7 @@ fun NoteEditorScreen(
                                     }
                                 }
                                 // The Save button stays at this position as the rest of the header hides.
-                                Spacer(Modifier.size(48.dp))
+                                Spacer(Modifier.padding(end = 8.dp).size(48.dp))
                             },
                         )
                     }
@@ -350,7 +350,8 @@ fun NoteEditorScreen(
                 }
             }
         }
-        Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 4.dp)) {
+        // The 40dp circle has another 4dp inside its touch target: align its visible edge at 16dp.
+        Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 12.dp)) {
             EditorTooltip(stringResource(CommonString.save)) {
                 FilledIconButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty()) {
                     Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
