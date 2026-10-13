@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.edit
 import androidx.core.os.BundleCompat
+import androidx.core.view.SoftwareKeyboardControllerCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.Lifecycle
@@ -567,7 +568,12 @@ class ComposeNoteEditorActivity :
                 formattingRequest = EditorFormattingRequest(action, target, text)
                 return@launchEditorTask
             }
-            if (!editor.execute(action, target)) reportError(getString(R.string.compose_editor_stale_command))
+            if (editor.execute(action, target)) {
+                // Repositioning the caret via focusField() would clear pending typing formats.
+                SoftwareKeyboardControllerCompat(editor).show()
+            } else {
+                reportError(getString(R.string.compose_editor_stale_command))
+            }
         }
 
     private fun recentColours(): List<String> =
