@@ -459,13 +459,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun scrollToolbarFilledSingleRow() = captureToolbarRows(EditorToolbarDisplay.SCROLL, listOf(7), "toolbar_scroll_full_row")
 
     @Test
-    fun stackedToolbarSingleRowIsCentered() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(3), "toolbar_stack_single_row")
+    fun stackedToolbarSingleRowUsesStartPadding() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(3), "toolbar_stack_single_row")
 
     @Test
-    fun stackedToolbarFilledSingleRowIsCentered() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8), "toolbar_stack_full_row")
+    fun stackedToolbarFilledSingleRowUsesStartPadding() =
+        captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8), "toolbar_stack_full_row")
 
     @Test
-    fun stackedToolbarFullAndPartialRowsAreCentered() =
+    fun stackedToolbarFullAndPartialRowsUseTheSameStartPadding() =
         captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 2), "toolbar_stack_full_and_partial_rows")
 
     private fun captureToolbarRows(
@@ -494,13 +495,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .values
         assertEquals(rowSizes, rows.map { it.size })
         if (display == EditorToolbarDisplay.STACK) {
-            val center =
+            // Compare icon centers: Material's visible button is inset inside its 48 dp touch target.
+            val firstCenter =
                 composeRule
                     .onRoot()
                     .fetchSemanticsNode()
-                    .boundsInRoot.center.x
+                    .boundsInRoot.left + 32.dp.toPx(targetContext)
             rows.forEachIndexed { index, row ->
-                assertEquals(center, (row.minOf { it.left } + row.maxOf { it.right }) / 2f, 1f, "Row $index must have equal side margins")
+                assertEquals(firstCenter, row.first().center.x, 1f, "Row $index must use the same start padding")
+                assertTrue(row.zipWithNext().all { (before, after) -> before.right <= after.left }, "Keep the configured button order")
             }
             fieldOptionsButton().assertDoesNotExist()
         } else {
