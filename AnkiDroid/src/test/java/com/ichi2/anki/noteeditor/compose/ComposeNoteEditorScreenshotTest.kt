@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -26,6 +27,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
@@ -586,6 +588,16 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
             composeRule.onNodeWithText(getResourceString(display.label)).assertIsSelected()
             captureScreen("toolbar_layout_${display.name.lowercase()}")
+            val backgrounds =
+                EditorToolbarDisplay.entries.associateWith { layout ->
+                    val image = composeRule.onNodeWithText(getResourceString(layout.label)).captureToImage().toPixelMap()
+                    // Sample the empty top padding, away from the radio, label and preview.
+                    image[image.width / 2, 2]
+                }
+            for (other in EditorToolbarDisplay.entries - display) {
+                composeRule.onNodeWithText(getResourceString(other.label)).assertIsNotSelected()
+                assertNotEquals(backgrounds[other], backgrounds[display], "The selected $display row needs a visible background highlight")
+            }
             val next = EditorToolbarDisplay.entries[(display.ordinal + 1) % EditorToolbarDisplay.entries.size]
             composeRule.onNodeWithText(getResourceString(next.label)).performClick()
             composeRule.onNodeWithText(getResourceString(next.label)).assertDoesNotExist()

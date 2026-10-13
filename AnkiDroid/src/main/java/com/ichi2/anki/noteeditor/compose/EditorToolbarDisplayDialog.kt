@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -52,15 +53,18 @@ internal fun EditorToolbarDisplayDialog(
         text = {
             Column(Modifier.selectableGroup().verticalScroll(rememberScrollState())) {
                 EditorToolbarDisplay.entries.forEach { display ->
+                    val isSelected = display == selected
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .selectable(selected = display == selected, role = Role.RadioButton, onClick = { onSelect(display) })
-                            .padding(vertical = 12.dp),
+                            .clip(MaterialTheme.shapes.small)
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
+                            .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(display) })
+                            .padding(horizontal = 8.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        RadioButton(selected = display == selected, onClick = null)
+                        RadioButton(selected = isSelected, onClick = null)
                         // Let the example wrap beneath long labels or large text instead of squeezing the label.
                         FlowRow(
                             Modifier.weight(1f),
