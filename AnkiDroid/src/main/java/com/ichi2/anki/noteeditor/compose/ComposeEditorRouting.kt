@@ -35,6 +35,9 @@ internal fun Collection.requiresLegacyEditor(arguments: Bundle): Boolean {
     return if (cardId != null) {
         getCard(cardId).note(this).notetype.isImageOcclusion
     } else {
-        notetypes.get(defaultsForAdding().notetypeId)?.isImageOcclusion == true
+        // Add can start with another field-based type and launch Image Occlusion from its selector.
+        // Keep the dedicated editor only when there is no field-based type to display.
+        notetypes.get(defaultsForAdding().notetypeId)?.isImageOcclusion == true &&
+            notetypes.allNamesAndIds().none { notetypes.get(it.id)?.isImageOcclusion == false }
     }
 }

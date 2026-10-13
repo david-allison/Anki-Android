@@ -39,6 +39,8 @@ import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.TestUtils
+import com.ichi2.anki.common.utils.ext.AddingDefaultsMode
+import com.ichi2.anki.common.utils.ext.addingDefaultsMode
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableExtraCompat
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.multimedia.MultimediaActivity
@@ -1417,6 +1419,28 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals(deckId, scenario.editorState().deckId)
             assertEquals(listOf("recovered-tag", "日本語"), scenario.editorState().tags)
             assertTrue(scenario.editorState().hasMetadataChanges)
+            assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun imageOcclusionDefaultDoesNotRedirectComposeAddToLegacy() {
+        val ioType =
+            runBlocking {
+                withCol {
+                    config.addingDefaultsMode = AddingDefaultsMode.DECIDE_BY_NOTE_TYPE
+                    addImageOcclusionNoteType()
+                    notetypes.setCurrent(notetypes.all().first { it.isImageOcclusion })
+                    defaultsForAdding().notetypeId
+                }
+            }
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            assertTrue(scenario.editorState().isAdding)
+            assertFalse(scenario.editorState().noteTypeId == ioType)
+            web.setField(0, "Compose remains available")
+            assertEquals("Compose remains available", runBlocking { web.snapshot().fields.first() })
+            assertEquals(ioType, runBlocking { withCol { defaultsForAdding().notetypeId } })
             assertEquals(0, runBlocking { withCol { noteCount() } })
         }
     }
