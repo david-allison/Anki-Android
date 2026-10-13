@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -38,6 +39,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.get
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
@@ -566,6 +568,22 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden)).performScrollTo().assertIsDisplayed()
         captureScreen("toolbar_layout_large_text")
+    }
+
+    @Test
+    fun hiddenToolbarKeepsBottomBackgroundUntinted() {
+        val (activity, keyboard) = showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN, tags = listOf("Vocabulary"))
+        activity.enableEdgeToEdge()
+        hideKeyboard(activity, keyboard)
+        val tag = composeRule.onNodeWithText("Vocabulary").fetchSemanticsNode().boundsInRoot
+        // Draw the content view directly, before Android adds its navigation-bar contrast scrim.
+        val image = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0).drawToBitmap()
+        captureScreen("toolbar_hidden_no_tint")
+        assertEquals(
+            image[image.width / 2, tag.top.toInt() - 1],
+            image[image.width / 2, image.height - 24.dp.toPx(activity)],
+            "The bottom inset must match the field and tag background when the toolbar is hidden",
+        )
     }
 
     @Test
