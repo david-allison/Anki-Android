@@ -255,6 +255,13 @@ fun NoteEditorScreen(
                             enabled = enabled && state.removedFields.isEmpty(),
                             onClick = onSave,
                         )
+                        if (state?.toolbarDisplay == EditorToolbarDisplay.STACK) {
+                            EditorActionButton(
+                                icon = R.drawable.ic_more_vertical,
+                                label = R.string.compose_editor_field_options,
+                                enabled = enabled && toolbarState.value.activeField in state.fields.indices,
+                            ) { fieldOptionsRequested = true }
+                        }
                     },
                 )
             },
@@ -482,13 +489,13 @@ private fun EditorFieldArea(
                                     .horizontalScroll(toolbarScrollState)
                                     .padding(horizontal = 8.dp),
                             ) { buttons() }
+                            VerticalDivider(Modifier.height(32.dp))
+                            EditorActionButton(
+                                R.drawable.ic_more_vertical,
+                                R.string.compose_editor_field_options,
+                                enabled && target != null,
+                            ) { onFieldOptionsRequested(true) }
                         }
-                        VerticalDivider(Modifier.height(32.dp))
-                        EditorActionButton(
-                            R.drawable.ic_more_vertical,
-                            R.string.compose_editor_field_options,
-                            enabled && target != null,
-                        ) { onFieldOptionsRequested(true) }
                     }
                 }
             }
