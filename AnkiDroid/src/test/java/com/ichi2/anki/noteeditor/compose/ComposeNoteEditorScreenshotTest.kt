@@ -345,7 +345,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun globalOptionsOpen() {
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_shrink_images)).assertIsDisplayed()
+        for (label in listOf(
+            R.string.compose_editor_shrink_images,
+            R.string.compose_editor_mathjax_preview,
+            R.string.compose_editor_auto_close_tags,
+        )) {
+            composeRule.onNodeWithText(getResourceString(label)).assertDoesNotExist()
+        }
+        composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
         captureScreen("global_options")
     }
 

@@ -40,9 +40,9 @@ the native toolbar and the backend's fields-only entry point; see the source map
 | Attachments | Image, camera, audio file, video file and recording via media menu. | — |
 | Record audio | Direct microphone shortcut and media-menu entry. | — |
 | Equation menu | Native formula dialog: inline/display/chemistry MathJax and three LaTeX wrappers. Tapping rendered maths edits it. | LaTeX wrappers require desktop rendering; no on-device LaTeX compiler. |
-| MathJax Preview | Persisted global option; preserves content, source/collapse state and focus when changed. | Changing it rebuilds inputs and resets their undo histories. |
-| Shrink Images | Persisted global option; constrains editor display to 250 × 125 CSS pixels. | Does not resize media files or review cards. |
-| Auto-close HTML tags | Persisted global option, including source inputs opened later. | Typing assistance only. |
+| MathJax Preview | Native menu entry removed; implementation and collection setting retained. | Changing the setting rebuilds inputs and resets their undo histories. |
+| Shrink Images | Native menu entry removed; retained setting constrains editor display to 250 × 125 CSS pixels. | Does not resize media files or review cards. |
+| Auto-close HTML tags | Native menu entry removed; implementation and collection setting retained. | Typing assistance only. |
 | Fields… | Existing field editor; unsaved HTML follows field identities on return. Deleted-field text remains recoverable until explicitly discarded. | Manual large-note accessibility pass remains. |
 | Cards… | Existing template editor; refreshes the tablet preview on return. | Its own preview uses its existing note/template behavior. |
 | Collapse field | Field label toggles collapse. | — |
@@ -190,6 +190,11 @@ remains unresolved. The standalone probe and unchanged debug app both build.
 
 ## Three settings in the screenshot
 
+These three switches are intentionally absent from the native options menu. Their
+implementation and persisted settings remain intact. User-defined JavaScript is a
+future direction for these niche options; it is **not implemented** in this change.
+Temporary rationale: [Discord discussion](https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055).
+
 ### Shrink Images
 
 Desktop's option constrains images **inside the editor**. It does not compress the
@@ -199,7 +204,7 @@ root `shrink-image` class and the CSS size variables; desktop supplies limits of
 preserving aspect ratio.
 
 The fields-only page sets these variables directly, without loading the desktop
-image overlay. The native option changes display only; saved HTML and media bytes
+image overlay. The retained setting changes display only; saved HTML and media bytes
 remain unchanged. Image resizing and floating controls are separate work.
 
 ### MathJax Preview
