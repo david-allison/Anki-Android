@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -86,6 +87,7 @@ import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
+import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewDialog
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import kotlinx.coroutines.flow.Flow
@@ -134,6 +136,7 @@ fun NoteEditorScreen(
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
+    var showPhonePreview by rememberSaveable { mutableStateOf(false) }
     var fieldOptionsRequested by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
     val enabled = ready && !busy && state?.isSaving == false
     toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
@@ -176,12 +179,16 @@ fun NoteEditorScreen(
     }
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val hasTabletWidth by remember(windowInfo, density) {
         derivedStateOf { with(density) { windowInfo.containerSize.width.toDp() } >= 600.dp }
     }
     Box(Modifier.fillMaxSize()) {
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
-        LaunchedEffect(tablet, showPreview) { onPreviewVisibility(tablet && showPreview) }
+        LaunchedEffect(tablet, showPreview, showPhonePreview) { onPreviewVisibility(if (tablet) showPreview else showPhonePreview) }
+        if (!tablet && showPhonePreview) {
+            EditorPreviewDialog(onDismiss = { showPhonePreview = false }, preview = preview)
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
             snackbarHost = { if (state == null) EditorSnackbarHost(snackbar, Modifier.imePadding()) },
@@ -220,6 +227,15 @@ fun NoteEditorScreen(
                                 onToolbarDisplay = onToolbarDisplay,
                                 fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
                                 onFieldOptions = { fieldOptionsRequested = true },
+                                onPreview =
+                                    if (tablet) {
+                                        null
+                                    } else {
+                                        {
+                                            keyboard?.hide()
+                                            showPhonePreview = true
+                                        }
+                                    },
                             )
                         }
                         if (tablet) {

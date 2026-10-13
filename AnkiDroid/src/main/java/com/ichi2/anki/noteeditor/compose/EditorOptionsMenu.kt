@@ -47,6 +47,7 @@ internal fun EditorOptionsMenu(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
     fieldOptionsEnabled: Boolean,
     onFieldOptions: () -> Unit,
+    onPreview: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
@@ -123,6 +124,12 @@ internal fun EditorOptionsMenu(
                 change(settings.copy(autoCloseTags = !settings.autoCloseTags))
             }
             HorizontalDivider()
+            onPreview?.let { openPreview ->
+                DropdownMenuItem(text = { Text(stringResource(CommonString.card_editor_preview_card)) }, onClick = {
+                    expanded = false
+                    openPreview()
+                })
+            }
             DropdownMenuItem(text = { Text(stringResource(CommonString.menu_font_size)) }, onClick = {
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
