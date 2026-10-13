@@ -4,17 +4,20 @@ package com.ichi2.anki.noteeditor.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -32,15 +35,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EditorToolbarDisplayDialog(
     selected: EditorToolbarDisplay,
@@ -49,31 +54,34 @@ internal fun EditorToolbarDisplayDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         title = { Text(stringResource(R.string.compose_editor_toolbar)) },
         text = {
-            Column(Modifier.selectableGroup().verticalScroll(rememberScrollState())) {
-                EditorToolbarDisplay.entries.forEach { display ->
-                    val isSelected = display == selected
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.small)
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
-                            .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(display) })
-                            .padding(horizontal = 8.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        RadioButton(selected = isSelected, onClick = null)
-                        // Let the example wrap beneath long labels or large text instead of squeezing the label.
-                        FlowRow(
-                            Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+            BoxWithConstraints(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                // All three fit on a phone. At large font sizes, scroll instead of squeezing the labels.
+                val choiceWidth = maxOf((maxWidth - 16.dp) / 3, 72.dp * LocalDensity.current.fontScale)
+                Row(
+                    Modifier.selectableGroup().horizontalScroll(rememberScrollState()).height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    EditorToolbarDisplay.entries.forEach { display ->
+                        val isSelected = display == selected
+                        Column(
+                            Modifier
+                                .width(choiceWidth)
+                                .fillMaxHeight()
+                                .clip(MaterialTheme.shapes.small)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
+                                .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(display) })
+                                .padding(horizontal = 4.dp, vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(stringResource(display.label), Modifier.padding(end = 12.dp), style = MaterialTheme.typography.bodyLarge)
                             ToolbarLayoutPreview(display)
+                            Text(stringResource(display.label), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                            Spacer(Modifier.weight(1f))
+                            RadioButton(selected = isSelected, onClick = null)
                         }
                     }
                 }
@@ -84,7 +92,7 @@ internal fun EditorToolbarDisplayDialog(
     )
 }
 
-/** Decorative examples share the editor's icons and colours; only the enclosing radio row is interactive. */
+/** Decorative examples share the editor's icons and colours; only the enclosing choice is interactive. */
 @Composable
 private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
     val colors = MaterialTheme.colorScheme
@@ -102,8 +110,8 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
         )
     Column(
         Modifier
-            .width(132.dp)
-            .height(88.dp)
+            .fillMaxWidth()
+            .height(72.dp)
             .clearAndSetSemantics {}
             .clip(shape)
             .background(colors.surface)
@@ -122,7 +130,7 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
                 if (display == EditorToolbarDisplay.STACK) {
                     icons.chunked(4).asReversed().forEach { row ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            row.forEach { PreviewIcon(it.icon) }
+                            row.forEach { PreviewIcon(it.icon, Modifier.weight(1f)) }
                         }
                     }
                 } else {
@@ -131,11 +139,11 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        icons.take(4).forEach { PreviewIcon(it.icon) }
+                        icons.take(3).forEach { PreviewIcon(it.icon, Modifier.weight(1f)) }
                         Icon(
                             painterResource(R.drawable.ic_baseline_chevron_right_24),
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(12.dp),
                             tint = colors.primary,
                         )
                     }
@@ -146,11 +154,14 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
 }
 
 @Composable
-private fun PreviewIcon(icon: Int) {
+private fun PreviewIcon(
+    icon: Int,
+    modifier: Modifier = Modifier,
+) {
     Icon(
         painterResource(icon),
         contentDescription = null,
-        modifier = Modifier.size(24.dp).padding(4.dp),
+        modifier = modifier.size(20.dp).padding(2.dp),
         tint = MaterialTheme.colorScheme.onSurface,
     )
 }
