@@ -2,6 +2,10 @@
 :root { color-scheme: light dark; }
 body { margin: 0; }
 
+/* The scroll-edge sentinel and field margin add 1px each: 14px gives 16dp
+ * borders and places the header controls on the app bar's 28dp icon centers. */
+html:root .fields-only { padding-inline: 14px; }
+
 /* The native host supplies the surrounding surface and matching label colours. */
 html:root, html body { background: transparent; }
 .fields-only .fields .field-container { background: transparent; }
