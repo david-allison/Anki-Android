@@ -254,10 +254,12 @@ fun NoteEditorScreen(
                                 )
                             }
                         }
-                        TextButton(
-                            onClick = onSave,
+                        EditorActionButton(
+                            icon = R.drawable.ic_done_white,
+                            label = CommonString.save,
                             enabled = enabled && state.removedFields.isEmpty(),
-                        ) { Text(stringResource(CommonString.save)) }
+                            onClick = onSave,
+                        )
                     },
                 )
             },

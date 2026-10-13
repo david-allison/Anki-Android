@@ -229,7 +229,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     decor.postOnAnimation { decor.postOnAnimation { drawn.countDown() } }
                 }
                 assertTrue(drawn.await(5, TimeUnit.SECONDS))
-                var save = checkNotNull(device.findObject(By.text(testContext.getString(CommonString.save))))
+                var save = checkNotNull(device.findObject(By.desc(testContext.getString(CommonString.save))))
                 while (!save.isClickable) save = checkNotNull(save.parent)
                 var pinButton = checkNotNull(device.findObject(By.text(testContext.getString(R.string.compose_editor_pin_field))))
                 while (!pinButton.isCheckable) pinButton = checkNotNull(pinButton.parent)
@@ -622,7 +622,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             web = scenario.awaitEditor()
             assertEquals(configuredToolbar, scenario.editorState().fields[0].toolbar)
             // Mounted fields precede completion of draft restoration. Wait for native controls before focusing.
-            assertTrue(device.wait(Until.hasObject(save.enabled(true)), 5_000))
+            assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(CommonString.save)).enabled(true)), 5_000))
             runBlocking { web.focusField(0) }
             assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
             assertFalse(device.hasObject(bold))
@@ -878,7 +878,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals(expected, runBlocking { restored.snapshot().fields })
             assertTrue(runBlocking { restored.snapshot().hasChanges })
             restored.awaitJavascript("${richField(199)} === undefined && ${richField(399)} === undefined")
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             waitUntil(timeout = 30.seconds, message = { "Large note Save did not close the editor" }) {
                 scenario.state == Lifecycle.State.DESTROYED
             }
@@ -1100,7 +1100,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             waitUntil(message = { "Default did not clear the keyboard language hint" }) {
                 scenario.editorState().fields[1].languageTag == null && inputHint() == null
             }
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             restored.awaitJavascript("${richField(0)}?.textContent === '' && ${richField(1)}?.textContent === 'Retained back'")
             assertEquals(listOf("", "Retained back"), runBlocking { restored.snapshot().fields })
         }
@@ -1151,7 +1151,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertTrue(scenario.editorState().hasMetadataChanges)
             assertEquals("Keep this draft while choosing a deck", runBlocking { restored.snapshot().fields.first() })
 
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             waitUntil(timeout = 30.seconds, message = { "Add did not save to the chosen deck" }) {
                 runBlocking { withCol { noteCount() == 1 } }
             }
@@ -1182,7 +1182,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             runBlocking { web.focusField(1) }
             val first = "document.querySelector('.field-container[data-index=\"0\"] .editor-field')"
             val animation = "$first?.getAnimations().find(animation => animation.id === 'field-error')"
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             web.awaitJavascript("!!($animation)")
             // Hold the cue for a deterministic screenshot, then verify it expires naturally.
             web.evaluate("($animation).pause(); ($animation).currentTime = 0;")
@@ -1218,10 +1218,10 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             web.awaitJavascript("!($animation)")
             assertFalse(errorColor == web.evaluate("getComputedStyle($first).outlineColor"), "The error outline must clear automatically")
             // A retry must show the cue again, and correcting the note must still permit Save.
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             web.awaitJavascript("!!($animation)")
             runBlocking { assertTrue(web.execute(WebEditorAction.INSERT_TEXT, value = "Now filled")) }
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
             waitUntil(message = { "Correcting the first field did not allow Save" }) { runBlocking { withCol { noteCount() == 1 } } }
             assertEquals(listOf("Now filled", "Keep this back"), runBlocking { withCol { getNote(findNotes("").single()).fields } })
         }
@@ -1264,7 +1264,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 captureScreenshot("phone-source", web)
             }
 
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
 
             waitUntil(timeout = 30.seconds, message = { "Add did not persist a note" }) {
                 runBlocking { withCol { noteCount() == 1 } }
@@ -1292,7 +1292,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             web.setField(0, "Edited front 日本")
             web.setField(1, "<i>Edited back</i>")
 
-            clickText(testContext.getString(CommonString.save))
+            clickSave()
 
             waitUntil(timeout = 30.seconds, message = { "Edit Save did not close the activity" }) {
                 scenario.state == Lifecycle.State.DESTROYED
@@ -1309,7 +1309,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val web = scenario.awaitEditor()
             web.setField(0, "Unsaved while closing")
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val saveBounds = device.findObject(UiSelector().text(testContext.getString(CommonString.save))).bounds
+            val saveBounds = device.findObject(UiSelector().description(testContext.getString(CommonString.save))).bounds
             web.evaluate(
                 """
                 (() => {
@@ -1330,8 +1330,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
             web.awaitJavascript("window.backSnapshotHeld === true")
             assertEquals("false", web.evaluate("${richField(0)}.isContentEditable"))
-            // Tap the control's position: its Text child does not inherit the Compose
-            // button's disabled semantics. Avoid waiting for an idle busy spinner.
+            // Tap the control's position to verify the disabled button ignores input.
+            // Avoid waiting for an idle busy spinner.
             assertTrue(device.click(saveBounds.centerX(), saveBounds.centerY()))
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             assertFalse(scenario.editorState().isSaving)
@@ -1730,6 +1730,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 ),
             )
         }
+    }
+
+    private fun clickSave() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(CommonString.save)).enabled(true)), 10_000)).click()
     }
 
     private fun clickText(text: String) {
