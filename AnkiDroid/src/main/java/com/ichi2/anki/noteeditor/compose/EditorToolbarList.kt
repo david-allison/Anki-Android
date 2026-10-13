@@ -128,7 +128,7 @@ private class EditorToolbarAdapter(
         val source = items[from]
         val destination = items[to]
         items.add(to, items.removeAt(from))
-        // Rebinding during a drag can end it early. Compose observes the order/checkbox state directly.
+        // Rebinding during a drag can end it early. Compose observes the order/selection state directly.
         notifyItemMoved(from + 1, to + 1)
         onMove(source, destination)
         return true

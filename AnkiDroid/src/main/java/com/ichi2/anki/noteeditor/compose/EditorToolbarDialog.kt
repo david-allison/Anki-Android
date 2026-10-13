@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.view.MotionEvent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +36,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -150,20 +150,31 @@ internal fun EditorToolbarRow(
     moveUp: (() -> Boolean)?,
     moveDown: (() -> Boolean)?,
 ) {
+    val toggleLabel =
+        stringResource(
+            if (checked) R.string.compose_editor_remove_custom_button else R.string.compose_editor_add_toolbar_button,
+            label,
+        )
     val upLabel = stringResource(R.string.compose_editor_move_button_up, label)
     val downLabel = stringResource(R.string.compose_editor_move_button_down, label)
     val dragLabel = stringResource(R.string.compose_editor_reorder_button, label)
     Surface(tonalElevation = if (dragging) 4.dp else 0.dp) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
-                Modifier.weight(1f).heightIn(min = 48.dp).toggleable(checked, role = Role.Checkbox, onValueChange = onCheckedChange),
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .clickable(role = Role.Button, onClickLabel = toggleLabel) { onCheckedChange(!checked) }
+                    .semantics { selected = checked },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Checkbox(checked, onCheckedChange = null)
                 Box(Modifier.padding(start = 12.dp).size(20.dp)) {
                     if (icon != null) Icon(painterResource(icon), contentDescription = null)
                 }
-                Text(label, Modifier.padding(start = 12.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(label, Modifier.weight(1f).padding(horizontal = 12.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    Icon(painterResource(if (checked) R.drawable.ic_remove else R.drawable.ic_add), contentDescription = null)
+                }
             }
             Box(
                 Modifier

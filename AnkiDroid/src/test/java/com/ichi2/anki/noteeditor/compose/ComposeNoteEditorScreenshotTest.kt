@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -381,7 +382,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
+        val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
+        bold.assertIsSelected()
+        bold.performClick().assertIsNotSelected()
         captureScreen("toolbar_configuration")
     }
 
@@ -397,10 +400,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule
             .onNode(
                 hasText(getResourceString(R.string.compose_editor_pin_field)) and
-                    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox),
-            ).assertIsOn()
-        composeRule.onNodeWithText(getResourceString(R.string.multimedia_editor_image_field_editing_galery)).assertIsOn()
-        composeRule.onNodeWithText(getResourceString(R.string.drawing)).assertIsOff()
+                    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
+            ).assertIsSelected()
+        composeRule.onNodeWithText(getResourceString(R.string.multimedia_editor_image_field_editing_galery)).assertIsSelected()
+        val drawing = composeRule.onNodeWithText(getResourceString(R.string.drawing))
+        drawing.assertIsNotSelected()
+        drawing.performClick().assertIsSelected()
+        drawing.performClick().assertIsNotSelected()
         captureScreen("quick_actions_configuration")
     }
 
