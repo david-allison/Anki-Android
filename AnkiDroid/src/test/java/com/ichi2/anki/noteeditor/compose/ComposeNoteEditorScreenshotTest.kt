@@ -466,8 +466,35 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8), "toolbar_stack_full_row")
 
     @Test
-    fun stackedToolbarFullAndPartialRowsUseTheSameStartPadding() =
+    fun stackedToolbarFullAndPartialRowsBuildUpwardWithTheSameStartPadding() =
         captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 2), "toolbar_stack_full_and_partial_rows")
+
+    @Test
+    fun stackedToolbarThreeRowsBuildUpward() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 8, 1), "toolbar_stack_three_rows")
+
+    @Test
+    fun stackedToolbarOverflowStartsAtTheBottom() {
+        RuntimeEnvironment.setQualifiers("+w320dp")
+        showEditor(
+            toolbarDisplay = EditorToolbarDisplay.STACK,
+            toolbar =
+                EditorFieldToolbar(
+                    buttonOrder = EditorToolbarButton.entries.map { it.name },
+                    customButtons =
+                        (1..3).map {
+                            EditorCustomToolbarButton(id = "custom-$it", label = "Custom $it", prefix = "<b>", suffix = "</b>")
+                        },
+                ),
+        )
+        val bold = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold))
+        bold.assertIsDisplayed()
+        val last = composeRule.onNodeWithText("Custom 3")
+        last.assertIsNotDisplayed()
+        captureScreen("toolbar_stack_overflow_bottom")
+        last.performScrollTo().assertIsDisplayed()
+        bold.assertIsNotDisplayed()
+        captureScreen("toolbar_stack_overflow_top")
+    }
 
     private fun captureToolbarRows(
         display: EditorToolbarDisplay,
@@ -493,7 +520,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 }.groupBy { it.top.roundToInt() }
                 .toSortedMap()
                 .values
-        assertEquals(rowSizes, rows.map { it.size })
+        val expectedRows = if (display == EditorToolbarDisplay.STACK) rowSizes.reversed() else rowSizes
+        assertEquals(expectedRows, rows.map { it.size })
         if (display == EditorToolbarDisplay.STACK) {
             // Compare icon centers: Material's visible button is inset inside its 48 dp touch target.
             val firstCenter =
@@ -513,7 +541,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun stackedToolbarWrapsButtons() {
+    fun stackedToolbarWrapsButtonsAboveTheFirstRow() {
         showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
         val first =
             composeRule
@@ -527,7 +555,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .assertIsDisplayed()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        assertTrue(nextRow.top >= first.bottom)
+        assertTrue(nextRow.bottom <= first.top, "Keep Bold in the bottom row and wrap later buttons above it")
         fieldOptionsButton().assertDoesNotExist()
         captureScreen("toolbar_stacked")
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
