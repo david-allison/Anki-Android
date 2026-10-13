@@ -928,11 +928,23 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 error("Toolbar item not found: ${testContext.getString(label)}")
             }
             selectFront()
+            Prefs.sharedPrefs
+                .edit()
+                .putString("composeEditorRecentColours", "#1976d2")
+                .commit()
             toolbar(R.string.compose_editor_text_color)
-            checkNotNull(device.wait(Until.findObject(By.desc("#1976d2")), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "colorPickerView")), 5_000))
             captureScreenshot("format-colour", web)
             runBlocking { web.focusField(1) }
+            // End Gboard's resumed composition; focus movement must not redirect the saved range.
+            web.evaluate("${richField(1)}.blur()")
             clickText(testContext.getString(CommonString.dialog_ok))
+            captureScreenshot("format-colour-applied", web)
+            val applied = web.evaluate("${richField(0)}.innerHTML")
+            assertTrue(
+                applied.contains("#1976d2", ignoreCase = true) || applied.contains("rgb(25, 118, 210)"),
+                "Selected colour was not applied: $applied; recent=${Prefs.sharedPrefs.getString("composeEditorRecentColours", null)}",
+            )
             web.awaitJavascript("getComputedStyle(${richField(0)}.querySelector('font,span')).color === 'rgb(25, 118, 210)'")
             assertEquals("beta", runBlocking { web.snapshot().fields[1] })
 

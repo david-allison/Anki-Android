@@ -81,6 +81,17 @@ class ColorPickerDialogTest {
         )
     }
 
+    @Test
+    fun `dismissing a picker notifies its host without applying a colour`() {
+        var dismissed = false
+        val dialog = context.showColorPickerDialog(Color.BLUE, onDismiss = { dismissed = true }) { pickedColor = it }
+        idleMainLooper()
+        dialog.cancel()
+        idleMainLooper()
+        assertThat(dismissed, equalTo(true))
+        assertThat(pickedColor, equalTo(null))
+    }
+
     /** Seeds the picker with [seed], taps a bright hue, and asserts the result is not swallowed to black. */
     private fun assertPickedHueIsVisible(seed: Int) {
         val dialog = showPicker(initialColor = seed)

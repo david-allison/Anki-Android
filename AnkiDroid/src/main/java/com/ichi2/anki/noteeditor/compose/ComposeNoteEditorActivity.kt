@@ -361,7 +361,6 @@ class ComposeNoteEditorActivity :
         formattingRequest?.let { request ->
             EditorFormattingDialog(
                 request = request,
-                recentColours = recentColours(),
                 onDismiss = { formattingRequest = null },
                 onApply = { action, value ->
                     formattingRequest = null

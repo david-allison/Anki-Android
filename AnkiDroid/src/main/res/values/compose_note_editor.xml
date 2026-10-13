@@ -70,7 +70,6 @@
     <string name="compose_editor_latex_equation">LaTeX equation</string>
     <string name="compose_editor_latex_math">LaTeX math environment</string>
     <string name="compose_editor_formula">Formula</string>
-    <string name="compose_editor_colour_hex">Colour (hex)</string>
     <string name="compose_editor_latex_help">Use Anki Desktop to generate images for LaTeX formulas.</string>
     <string name="compose_editor_fields">Fields…</string>
     <string name="compose_editor_cards">Cards…</string>
