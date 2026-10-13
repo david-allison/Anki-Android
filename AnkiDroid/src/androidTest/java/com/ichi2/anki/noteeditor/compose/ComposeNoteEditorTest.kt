@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.widget.TextView
@@ -31,6 +32,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
+import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
@@ -77,6 +79,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -1164,6 +1167,57 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 runBlocking { withCol { noteCount() == 1 } }
             }
             assertEquals(destination, runBlocking { withCol { getNote(findNotes("").single()).firstCard(this).did } })
+        }
+    }
+
+    @Test
+    fun emptySaveFeedbackStaysAboveToolbarWhileKeyboardOpens() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
+            scenario.onActivity {
+                WindowCompat.getInsetsController(it.window, web).hide(WindowInsetsCompat.Type.ime())
+            }
+            waitUntil(message = { "The keyboard did not close" }) {
+                !checkNotNull(ViewCompat.getRootWindowInsets(web)).isVisible(WindowInsetsCompat.Type.ime())
+            }
+            val bottomMargins = CopyOnWriteArrayList<Int>()
+            val shownMessage = AtomicReference<String>()
+            val frames =
+                ViewTreeObserver.OnPreDrawListener {
+                    val feedback = web.rootView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+                    feedback?.let { shownMessage.set(it.text.toString()) }
+                    var parent = feedback?.parent
+                    while (parent is View && parent !is Snackbar.SnackbarLayout) parent = parent.parent
+                    (parent as? Snackbar.SnackbarLayout)?.let {
+                        bottomMargins.add((it.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin)
+                    }
+                    true
+                }
+            scenario.onActivity {
+                it.window.decorView.viewTreeObserver
+                    .addOnPreDrawListener(frames)
+            }
+            try {
+                clickSave()
+                waitUntil(message = { "The empty-field error did not appear" }) { bottomMargins.isNotEmpty() }
+                waitUntil(message = { "The error should focus the first field and open its keyboard" }) {
+                    checkNotNull(ViewCompat.getRootWindowInsets(web)).isVisible(WindowInsetsCompat.Type.ime())
+                }
+                assertEquals(0, runBlocking { withCol { noteCount() } }, "The first empty save must not add a note")
+                assertEquals(TR.addingTheFirstFieldIsEmpty(), shownMessage.get())
+                assertEquals(
+                    1,
+                    bottomMargins.distinct().size,
+                    "Compose already handles the keyboard inset; the native snackbar margin must remain constant: $bottomMargins",
+                )
+                captureScreenshot("empty-save-keyboard-feedback", web)
+            } finally {
+                scenario.onActivity {
+                    it.window.decorView.viewTreeObserver
+                        .removeOnPreDrawListener(frames)
+                }
+            }
         }
     }
 
