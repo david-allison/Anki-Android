@@ -12,6 +12,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -385,6 +386,59 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.editorState().settings,
             )
             assertEquals(0, runBlocking { withCol { noteCount() } })
+        }
+    }
+
+    @Test
+    fun boldOpensKeyboardAndPreservesTypingFormatInTheSelectedField() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(0, "Leave Front unchanged")
+            runBlocking { web.focusField(1) }
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            waitUntil(message = { "Keyboard did not open" }) { keyboardVisible() }
+            device.pressBack()
+            waitUntil(message = { "Keyboard did not close" }) { !keyboardVisible() }
+
+            val bold = By.desc(testContext.getString(R.string.compose_editor_bold)).enabled(true)
+            checkNotNull(device.wait(Until.findObject(bold), 5_000)).click()
+            waitUntil(message = { "Tapping Bold must reopen the keyboard without another field tap" }) { keyboardVisible() }
+            waitUntil(message = { "Bold must remain checked after the keyboard opens" }) {
+                val icon = device.findObject(bold) ?: return@waitUntil false
+                (if (icon.isCheckable) icon else icon.parent)?.isChecked == true
+            }
+            // Send real key events to the focused view; a bridge command would restore selection itself.
+            device.pressKeyCode(KeyEvent.KEYCODE_B)
+            web.awaitJavascript("${richField(1)}.querySelector('b,strong')?.textContent.toLowerCase() === 'b'")
+            assertEquals("Leave Front unchanged", runBlocking { web.snapshot().fields[0] })
+            assertEquals(1, runBlocking { web.captureTarget() }?.field)
+            assertTrue(keyboardVisible(), "Typing bold text must keep the keyboard open")
+
+            // Finish Gboard's composing word before changing formatting.
+            device.pressKeyCode(KeyEvent.KEYCODE_SPACE)
+            waitUntil(message = { "Committing the word must re-enable Bold" }) {
+                val icon = device.findObject(bold) ?: return@waitUntil false
+                (if (icon.isCheckable) icon else icon.parent)?.isEnabled == true
+            }
+            device.findObject(bold).click()
+            waitUntil(message = { "Bold must turn off while the keyboard remains open" }) {
+                val icon = device.findObject(bold) ?: return@waitUntil false
+                (if (icon.isCheckable) icon else icon.parent)?.isChecked == false && keyboardVisible()
+            }
+            device.pressKeyCode(KeyEvent.KEYCODE_P)
+            web.awaitJavascript(
+                "${richField(1)}.textContent.toLowerCase().replace(/\\s/g, '') === 'bp' && " +
+                    "${richField(1)}.querySelector('b,strong')?.textContent.trim().toLowerCase() === 'b'",
+            )
+            captureScreenshot("bold-opens-keyboard-and-keeps-format", web)
         }
     }
 
