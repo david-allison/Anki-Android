@@ -2,7 +2,6 @@
 
 package com.ichi2.anki.noteeditor.compose
 
-import android.widget.ArrayAdapter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -10,9 +9,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
 
-/** The native spinner's single-choice dialog and radio rows, opened by the metadata header. */
+/** Native single-choice dialog with Material list spacing, opened by the metadata header. */
 @Composable
 internal fun NoteTypeDialog(
     title: String,
@@ -26,11 +24,13 @@ internal fun NoteTypeDialog(
     val dismiss by rememberUpdatedState(onDismiss)
     val select by rememberUpdatedState(onSelect)
     DisposableEffect(context, choices, selectedId) {
-        val adapter = ArrayAdapter(context, R.layout.item_spinner_dropdown_with_radio, choices.map { it.name })
         val dialog =
             MaterialAlertDialogBuilder(context)
                 .setTitle(title)
-                .setSingleChoiceItems(adapter, choices.indexOfFirst { it.id == selectedId }) { picker, position ->
+                .setSingleChoiceItems(
+                    choices.map { it.name }.toTypedArray(),
+                    choices.indexOfFirst { it.id == selectedId },
+                ) { picker, position ->
                     picker.dismiss()
                     select(choices[position].id)
                 }.setNegativeButton(CommonString.dialog_cancel, null)
