@@ -4,6 +4,8 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -15,6 +17,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import androidx.core.content.FileProvider
+import androidx.core.content.getSystemService
 import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -1424,7 +1427,20 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     @Test
     fun imageOcclusionCanBeSelectedBeforeItsNoteTypeExists() = assertImageOcclusionSelection(existingType = false)
 
-    private fun assertImageOcclusionSelection(existingType: Boolean) {
+    @Test
+    fun imageOcclusionOffersClipboardAndRestoresTheChoiceAfterRecreation() =
+        assertImageOcclusionSelection(existingType = false, source = OcclusionSource.CLIPBOARD)
+
+    @Test
+    fun imageOcclusionCanUseGalleryWhenAnImageIsOnTheClipboard() =
+        assertImageOcclusionSelection(existingType = true, source = OcclusionSource.GALLERY_WITH_CLIPBOARD)
+
+    private enum class OcclusionSource { GALLERY, CLIPBOARD, GALLERY_WITH_CLIPBOARD }
+
+    private fun assertImageOcclusionSelection(
+        existingType: Boolean,
+        source: OcclusionSource = OcclusionSource.GALLERY,
+    ) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val image = File(testContext.cacheDir, "picker-source/occlusion-test.png").also { it.parentFile!!.mkdirs() }
         val bitmap = Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.BLUE) }
@@ -1470,12 +1486,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     }
                 }
             withEditor { scenario ->
-                val web = scenario.awaitEditor()
+                var web = scenario.awaitEditor()
                 // Seed an unfocused draft so Gboard does not start composing the synthetic input.
                 web.evaluate("${richField(0)}.blur()")
                 scenario.onActivity {
                     web.clearFocus()
                     WindowCompat.getInsetsController(it.window, web).hide(WindowInsetsCompat.Type.ime())
+                    it.getSystemService<ClipboardManager>()!!.setPrimaryClip(ClipData.newPlainText("test", "text only"))
                 }
                 web.setField(0, "Keep this unfinished question")
                 web.setField(1, "Keep this answer")
@@ -1490,9 +1507,45 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 assertEquals(state.noteTypeId, scenario.editorState().noteTypeId)
 
                 selectedImage.set(FileProvider.getUriForFile(testContext, "${testContext.packageName}.apkgfileprovider", image))
+                if (source != OcclusionSource.GALLERY) {
+                    scenario.onActivity {
+                        it.getSystemService<ClipboardManager>()!!.setPrimaryClip(
+                            ClipData.newUri(it.contentResolver, "Image Occlusion test", selectedImage.get()),
+                        )
+                    }
+                }
                 clickText(state.noteTypeName)
                 clickText(ioType.name)
+                if (source != OcclusionSource.GALLERY) {
+                    val paste = By.text(testContext.getString(R.string.paste_from_clipboard))
+                    assertTrue(device.wait(Until.hasObject(paste), 5_000), "Offer the clipboard image before opening Gallery")
+                    assertEquals(1, picks.get())
+                    captureScreenshot("image-occlusion-source", web)
+                    // Dismissing the choice must leave the editor usable for another attempt.
+                    device.pressBack()
+                    assertEquals(null, launched.get())
+                    clickText(state.noteTypeName)
+                    clickText(ioType.name)
+                    checkNotNull(device.wait(Until.findObject(paste), 5_000))
+                    if (source == OcclusionSource.CLIPBOARD) {
+                        scenario.recreate()
+                        web = scenario.awaitEditor()
+                        checkNotNull(device.wait(Until.findObject(paste), 5_000))
+                    }
+                    clickText(
+                        testContext.getString(
+                            if (source ==
+                                OcclusionSource.CLIPBOARD
+                            ) {
+                                R.string.paste_from_clipboard
+                            } else {
+                                R.string.multimedia_editor_image_field_editing_galery
+                            },
+                        ),
+                    )
+                }
                 waitUntil(timeout = 30.seconds, message = { "The mask editor did not open" }) { launched.get() != null }
+                assertEquals(if (source == OcclusionSource.CLIPBOARD) 1 else 2, picks.get())
                 val args = checkNotNull(launched.get())
                 assertEquals(ioType.id, args.noteTypeId)
                 assertEquals(state.deckId, args.originalDeckId)

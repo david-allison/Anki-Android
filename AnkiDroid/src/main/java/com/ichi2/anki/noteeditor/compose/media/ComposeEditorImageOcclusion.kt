@@ -2,10 +2,12 @@
 
 package com.ichi2.anki.noteeditor.compose.media
 
+import android.content.ClipboardManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.getSystemService
 import androidx.core.os.BundleCompat
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
@@ -14,8 +16,12 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.libanki.mediaFolder
 import com.ichi2.anki.noteeditor.compose.EditorState
+import com.ichi2.anki.noteeditor.compose.media.EditorImageOcclusionSourceDialog.Companion.GALLERY
+import com.ichi2.anki.noteeditor.compose.media.EditorImageOcclusionSourceDialog.Companion.IMAGE
+import com.ichi2.anki.noteeditor.compose.media.EditorImageOcclusionSourceDialog.Companion.REQUEST_KEY
 import com.ichi2.anki.pages.ImageOcclusion
 import com.ichi2.anki.pages.viewmodel.ImageOcclusionArgs
+import com.ichi2.utils.ClipboardUtil
 import com.ichi2.utils.ImportUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -35,11 +41,23 @@ internal class ComposeEditorImageOcclusion(
     private var pending: Request? = null
     private var job: Job? = null
     private val editor = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { onReturn() }
-    private val picker =
-        activity.registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            pending = pending?.copy(image = uri)?.takeIf { uri != null }
-            pending?.let(::openImage)
+    private val picker = activity.registerForActivityResult(ActivityResultContracts.GetContent(), ::selectImage)
+
+    init {
+        activity.supportFragmentManager.setFragmentResultListener(REQUEST_KEY, activity) { _, result ->
+            if (pending == null) return@setFragmentResultListener
+            if (result.getBoolean(GALLERY)) {
+                runTask { picker.launch("image/*") }
+            } else {
+                selectImage(BundleCompat.getParcelable(result, IMAGE, Uri::class.java))
+            }
         }
+    }
+
+    private fun selectImage(uri: Uri?) {
+        pending = pending?.copy(image = uri)?.takeIf { uri != null }
+        pending?.let(::openImage)
+    }
 
     fun launch(noteTypeId: Long = 0) {
         if (pending != null || job?.isActive == true) return
@@ -49,7 +67,20 @@ internal class ComposeEditorImageOcclusion(
             check(state.isAdding)
             checkpoint()
             pending = Request(state.sessionId, state.generation, state.mediaDirectory, state.deckId, noteTypeId)
-            picker.launch("image/*")
+            // Read the clipboard only after the explicit Image Occlusion action, never during editor startup.
+            val clipboard = activity.getSystemService<ClipboardManager>()
+            val image =
+                clipboard
+                    ?.takeIf { ClipboardUtil.hasImage(it.primaryClipDescription) }
+                    ?.primaryClip
+                    ?.takeIf { ClipboardUtil.hasImage(it.description) && it.itemCount > 0 }
+                    ?.getItemAt(0)
+                    ?.uri
+            if (image != null) {
+                EditorImageOcclusionSourceDialog.newInstance(image).show(activity.supportFragmentManager, REQUEST_KEY)
+            } else {
+                picker.launch("image/*")
+            }
         }
     }
 
