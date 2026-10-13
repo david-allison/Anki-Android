@@ -45,6 +45,7 @@ internal fun EditorPreviewDialog(
         val lightBars = background.luminance() > 0.5f
         SideEffect {
             (view.parent as? DialogWindowProvider)?.window?.let { window ->
+                window.setWindowAnimations(R.style.ComposeEditorPreviewAnimation)
                 WindowCompat.getInsetsController(window, view).apply {
                     isAppearanceLightStatusBars = lightBars
                     isAppearanceLightNavigationBars = lightBars
