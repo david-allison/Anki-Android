@@ -302,7 +302,6 @@ class ComposeNoteEditorActivity :
             },
             onFields = { openNoteTypeEditor(fields = true) },
             onCards = { openNoteTypeEditor(fields = false) },
-            onImageOcclusion = { if (!busy) imageOcclusion.launch() },
             onSettings = { settings ->
                 updateMetadata {
                     webSession.awaitReady()

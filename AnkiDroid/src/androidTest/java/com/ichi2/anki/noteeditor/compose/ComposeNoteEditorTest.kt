@@ -1597,10 +1597,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 web.setField(1, "Keep this answer")
                 val state = scenario.editorState()
                 val device = UiDevice.getInstance(instrumentation)
-                checkNotNull(
-                    device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 10_000),
-                ).click()
-                clickText(testContext.getString(R.string.image_occlusion))
+                clickText(state.noteTypeName)
+                clickText(ioType.name)
                 waitUntil(message = { "The image picker did not open" }) { picks.get() == 1 }
                 assertEquals(null, launched.get())
                 assertEquals(state.noteTypeId, scenario.editorState().noteTypeId)

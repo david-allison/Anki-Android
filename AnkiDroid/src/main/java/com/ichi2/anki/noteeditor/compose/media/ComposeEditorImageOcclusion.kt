@@ -59,7 +59,7 @@ internal class ComposeEditorImageOcclusion(
         pending?.let(::openImage)
     }
 
-    fun launch(noteTypeId: Long = 0) {
+    fun launch(noteTypeId: Long) {
         if (pending != null || job?.isActive == true) return
         runTask {
             whenReady()

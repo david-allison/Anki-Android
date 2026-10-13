@@ -37,7 +37,6 @@ internal fun EditorOptionsMenu(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
     fieldOptionsEnabled: Boolean,
     onFieldOptions: () -> Unit,
-    onImageOcclusion: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
@@ -83,12 +82,6 @@ internal fun EditorOptionsMenu(
             // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
             // These niche options are intended for future user-defined JS; keep their implementation.
             // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
-            onImageOcclusion?.let { openImageOcclusion ->
-                DropdownMenuItem(text = { Text(stringResource(R.string.image_occlusion)) }, onClick = {
-                    expanded = false
-                    openImageOcclusion()
-                })
-            }
             DropdownMenuItem(text = { Text(stringResource(CommonString.menu_font_size)) }, onClick = {
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
