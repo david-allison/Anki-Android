@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import androidx.annotation.MainThread
+import androidx.core.content.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,6 +23,7 @@ import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.mediaFolder
+import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
@@ -147,6 +149,8 @@ class EditorViewModel(
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
                         customButtonTemplates = toolbarPreferences.loadCustomButtons(),
+                        toolbarTextColor = savedToolbarColor("composeEditorTextColor", "#000000"),
+                        toolbarHighlightColor = savedToolbarColor("composeEditorHighlightColor", "#ffff00"),
                         toolbarDisplay =
                             EditorToolbarDisplay.entries.firstOrNull {
                                 it.name == Prefs.sharedPrefs.getString("composeEditorToolbarDisplay", null)
@@ -247,6 +251,34 @@ class EditorViewModel(
         }
         mutableState.value = requireNotNull(state.value).copy(toolbarDisplay = display)
     }
+
+    /** Remember each tool's last successfully applied colour independently of the note content. */
+    fun rememberToolbarColor(
+        action: WebEditorAction,
+        color: String,
+    ) {
+        require(editorColourPattern.matches(color))
+        val current = requireNotNull(state.value)
+        val (key, updated) =
+            when (action) {
+                WebEditorAction.TEXT_COLOR -> "composeEditorTextColor" to current.copy(toolbarTextColor = color)
+                WebEditorAction.HIGHLIGHT_COLOR -> "composeEditorHighlightColor" to current.copy(toolbarHighlightColor = color)
+                else -> error("Not a colour action: $action")
+            }
+        Prefs.sharedPrefs.edit { putString(key, color) }
+        mutableState.value = updated
+    }
+
+    private fun savedToolbarColor(
+        key: String,
+        default: String,
+    ): String =
+        Prefs.sharedPrefs.getString(key, null)?.takeIf(editorColourPattern::matches)
+            ?: Prefs.sharedPrefs
+                .getString("composeEditorRecentColours", null)
+                ?.split(",")
+                ?.firstOrNull(editorColourPattern::matches)
+            ?: default
 
     suspend fun noteTypeChoices(): List<EditorChoice> =
         loadChoices {

@@ -17,11 +17,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -846,6 +848,41 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarColorIndicators() = captureToolbarColorIndicators("toolbar_color_indicators", "#e91e63", "#ffc107")
+
+    @Test
+    fun blackAndWhiteToolbarColorIndicators() = captureToolbarColorIndicators("toolbar_color_black_and_white", "#000000", "#ffffff")
+
+    private fun captureToolbarColorIndicators(
+        name: String,
+        textColor: String,
+        highlightColor: String,
+    ) {
+        showEditor(
+            toolbar = EditorFieldToolbar(buttonOrder = listOf("TEXT_COLOR", "HIGHLIGHT_COLOR")),
+            textColor = textColor,
+            highlightColor = highlightColor,
+        )
+        for ((label, color) in listOf(
+            R.string.compose_editor_text_color to textColor,
+            R.string.compose_editor_highlight_color to highlightColor,
+        )) {
+            composeRule
+                .onNodeWithContentDescription(getResourceString(label))
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, color))
+            val pixels =
+                composeRule
+                    .onNodeWithContentDescription(
+                        getResourceString(label),
+                        useUnmergedTree = true,
+                    ).captureToImage()
+                    .toPixelMap()
+            assertEquals(android.graphics.Color.parseColor(color), pixels[pixels.width / 2, pixels.height - 3].toArgb())
+        }
+        captureScreen(name)
+    }
+
+    @Test
     fun filledSaveButton() {
         var saves = 0
         showEditor(onSave = { saves++ })
@@ -956,6 +993,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         onType: (Long) -> Unit = {},
         snackbarHost: SnackbarHostState = SnackbarHostState(),
         toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
+        textColor: String = "#000000",
+        highlightColor: String = "#ffff00",
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -967,6 +1006,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                             state.copy(
                                 tags = tags,
                                 toolbarDisplay = display.value,
+                                toolbarTextColor = textColor,
+                                toolbarHighlightColor = highlightColor,
                                 customButtonTemplates = templates,
                                 fields =
                                     state.fields.mapIndexed { index, field ->

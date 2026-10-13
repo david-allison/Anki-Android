@@ -899,6 +899,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
     @Test
     fun nativeColourAndEquationDialogsKeepTheirCapturedDestination() {
+        Prefs.sharedPrefs
+            .edit()
+            .putString("composeEditorTextColor", "#1976d2")
+            .putString("composeEditorHighlightColor", "#ffc107")
+            .commit()
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -940,10 +945,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 error("Toolbar item not found: ${testContext.getString(label)}")
             }
             selectFront()
-            Prefs.sharedPrefs
-                .edit()
-                .putString("composeEditorRecentColours", "#1976d2")
-                .commit()
             toolbar(R.string.compose_editor_text_color)
             checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "colorPickerView")), 5_000))
             captureScreenshot("format-colour", web)
@@ -955,10 +956,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val applied = web.evaluate("${richField(0)}.innerHTML")
             assertTrue(
                 applied.contains("#1976d2", ignoreCase = true) || applied.contains("rgb(25, 118, 210)"),
-                "Selected colour was not applied: $applied; recent=${Prefs.sharedPrefs.getString("composeEditorRecentColours", null)}",
+                "Selected colour was not applied: $applied",
             )
             web.awaitJavascript("getComputedStyle(${richField(0)}.querySelector('font,span')).color === 'rgb(25, 118, 210)'")
             assertEquals("beta", runBlocking { web.snapshot().fields[1] })
+            assertEquals("#1976d2", scenario.editorState().toolbarTextColor)
+            assertEquals("#ffc107", scenario.editorState().toolbarHighlightColor)
 
             web.setField(0, "alpha")
             selectFront()

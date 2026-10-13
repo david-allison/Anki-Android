@@ -11,8 +11,10 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
+import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
+import com.ichi2.anki.settings.Prefs
 import com.ichi2.testutils.JvmTest
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -33,6 +35,45 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
+    @Test
+    fun `toolbar colours are independent and survive reopening without changing note content`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            assertEquals("#000000", before.toolbarTextColor)
+            assertEquals("#ffff00", before.toolbarHighlightColor)
+            vm.rememberToolbarColor(WebEditorAction.TEXT_COLOR, "#1976d2")
+            assertEquals("#ffff00", vm.state.value?.toolbarHighlightColor)
+            vm.rememberToolbarColor(WebEditorAction.HIGHLIGHT_COLOR, "#ffc107")
+            assertEquals("#1976d2", vm.state.value?.toolbarTextColor)
+            val reopened = assertNotNull(loadAdd().state.value)
+            assertEquals("#1976d2", reopened.toolbarTextColor)
+            assertEquals("#ffc107", reopened.toolbarHighlightColor)
+            assertEquals(before.fields, vm.state.value?.fields)
+            assertFalse(vm.state.value!!.hasMetadataChanges)
+            assertIs<EditorSaveResult.Added>(vm.save(listOf("front", "back")))
+            assertEquals("#1976d2", vm.state.value?.toolbarTextColor)
+            assertEquals("#ffc107", vm.state.value?.toolbarHighlightColor)
+        }
+
+    @Test
+    fun `toolbar colours retain the previous picker colour and ignore malformed preferences`() =
+        runTest {
+            Prefs.sharedPrefs
+                .edit()
+                .putString("composeEditorRecentColours", "#1976d2")
+                .commit()
+            val vm = loadAdd()
+            assertEquals("#1976d2", vm.state.value?.toolbarTextColor)
+            assertEquals("#1976d2", vm.state.value?.toolbarHighlightColor)
+            Prefs.sharedPrefs
+                .edit()
+                .putString("composeEditorTextColor", "bad colour")
+                .remove("composeEditorRecentColours")
+                .commit()
+            assertEquals("#000000", loadAdd().state.value?.toolbarTextColor)
+        }
+
     @Test
     fun `removing a tag changes the draft and undo preserves later edits`() =
         runTest {
