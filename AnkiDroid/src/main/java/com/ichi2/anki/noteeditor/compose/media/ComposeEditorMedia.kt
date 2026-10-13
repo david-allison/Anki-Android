@@ -5,7 +5,11 @@ package com.ichi2.anki.noteeditor.compose.media
 import android.content.ClipDescription
 import android.net.Uri
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import androidx.core.os.BundleCompat
+import androidx.core.view.SoftwareKeyboardControllerCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import anki.config.ConfigKey
@@ -34,10 +38,12 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
 import java.net.URLConnection
+import kotlin.coroutines.resume
 
 /** Register during activity construction, before the host reaches STARTED. */
 class ComposeEditorMedia(
@@ -51,6 +57,7 @@ class ComposeEditorMedia(
     private var pending: PendingEditorMedia? = null
     private var job: Job? = null
     private var pickerTarget: WebEditorTarget? = null
+    private var pickerHadKeyboard = false
     private var pickerJob: Job? = null
     private val launcher =
         activity.registerForActivityResult(MultimediaResultContract()) { result ->
@@ -69,6 +76,12 @@ class ComposeEditorMedia(
             }
         }
 
+    init {
+        activity.supportFragmentManager.setFragmentResultListener(MultimediaBottomSheet.REQUEST_KEY_CANCELED, activity) { _, _ ->
+            cancelPicker()
+        }
+    }
+
     fun showPicker(capturedTarget: WebEditorTarget? = null) {
         if (job?.isActive == true || pending != null || activity.supportFragmentManager.findFragmentByTag(PICKER) != null) return
         job =
@@ -82,7 +95,11 @@ class ComposeEditorMedia(
                     }
                     check(target.matches(getState())) { invalidTarget }
                     checkpoint()
-                    awaitPickerAction(target)
+                    awaitPickerAction(
+                        target,
+                        hadKeyboard =
+                            ViewCompat.getRootWindowInsets(activity.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true,
+                    )
                     MultimediaBottomSheet().show(activity.supportFragmentManager, PICKER)
                 } catch (exception: CancellationException) {
                     throw exception
@@ -92,14 +109,54 @@ class ComposeEditorMedia(
             }
     }
 
-    private fun awaitPickerAction(target: WebEditorTarget) {
+    private fun awaitPickerAction(
+        target: WebEditorTarget,
+        hadKeyboard: Boolean,
+    ) {
         pickerTarget = target
+        pickerHadKeyboard = hadKeyboard
         pickerJob?.cancel()
         pickerJob =
             activity.lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
                 val action = ViewModelProvider(activity)[MultimediaViewModel::class.java].multimediaAction.first()
                 pickerTarget = null
+                pickerHadKeyboard = false
                 launch(MultimediaActionHandler.forAction(action), target)
+            }
+    }
+
+    private fun cancelPicker() {
+        val target = pickerTarget ?: return
+        val restoreKeyboard = pickerHadKeyboard
+        pickerTarget = null
+        pickerHadKeyboard = false
+        pickerJob?.cancel()
+        val web = getWeb() ?: return
+        if (!restoreKeyboard || !target.matches(getState())) return
+        pickerJob =
+            activity.lifecycleScope.launch {
+                // The dialog still owns window focus during onCancel. Wait for its window to leave.
+                if (!web.hasWindowFocus()) {
+                    suspendCancellableCoroutine { continuation ->
+                        val observer = web.viewTreeObserver
+                        val listener =
+                            object : ViewTreeObserver.OnWindowFocusChangeListener {
+                                override fun onWindowFocusChanged(hasFocus: Boolean) {
+                                    if (!hasFocus) return
+                                    observer.removeOnWindowFocusChangeListener(this)
+                                    continuation.resume(Unit)
+                                }
+                            }
+                        observer.addOnWindowFocusChangeListener(listener)
+                        continuation.invokeOnCancellation {
+                            if (observer.isAlive) observer.removeOnWindowFocusChangeListener(listener)
+                        }
+                    }
+                }
+                if (web === getWeb() && web.hasFocus() && target.matches(getState())) {
+                    // Keep the DOM selection and typing format; the attachment may target another field.
+                    SoftwareKeyboardControllerCompat(web).show()
+                }
             }
     }
 
@@ -201,11 +258,16 @@ class ComposeEditorMedia(
 
     fun save(state: Bundle) {
         pending?.let { state.putString(PENDING_MEDIA, it.toJson().toString()) }
-        pickerTarget?.let { state.putParcelable(PICKER_TARGET, it) }
+        pickerTarget?.let {
+            state.putParcelable(PICKER_TARGET, it)
+            state.putBoolean(PICKER_KEYBOARD, pickerHadKeyboard)
+        }
     }
 
     fun restore(state: Bundle?) {
-        state?.let { BundleCompat.getParcelable(it, PICKER_TARGET, WebEditorTarget::class.java) }?.let(::awaitPickerAction)
+        state?.let { BundleCompat.getParcelable(it, PICKER_TARGET, WebEditorTarget::class.java) }?.let {
+            awaitPickerAction(it, state.getBoolean(PICKER_KEYBOARD))
+        }
         val json = state?.getString(PENDING_MEDIA) ?: return
         try {
             pending = PendingEditorMedia.fromJson(JSONObject(json))
@@ -262,6 +324,7 @@ class ComposeEditorMedia(
     companion object {
         private const val PENDING_MEDIA = "composeEditorPendingMedia"
         private const val PICKER_TARGET = "composeEditorMediaPickerTarget"
+        private const val PICKER_KEYBOARD = "composeEditorMediaPickerKeyboard"
         private const val PICKER = "MultimediaBottomSheet"
     }
 }
