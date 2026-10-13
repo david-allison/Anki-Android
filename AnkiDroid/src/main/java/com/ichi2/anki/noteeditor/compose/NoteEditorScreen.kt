@@ -255,13 +255,6 @@ fun NoteEditorScreen(
                             enabled = enabled && state.removedFields.isEmpty(),
                             onClick = onSave,
                         )
-                        if (state?.toolbarDisplay == EditorToolbarDisplay.STACK) {
-                            EditorActionButton(
-                                icon = R.drawable.ic_more_vertical,
-                                label = R.string.compose_editor_field_options,
-                                enabled = enabled && toolbarState.value.activeField in state.fields.indices,
-                            ) { fieldOptionsRequested = true }
-                        }
                     },
                 )
             },
