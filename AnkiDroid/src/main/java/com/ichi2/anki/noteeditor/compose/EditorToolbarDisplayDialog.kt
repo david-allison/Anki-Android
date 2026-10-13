@@ -72,7 +72,7 @@ internal fun EditorToolbarDisplayDialog(
                                 .clip(MaterialTheme.shapes.small)
                                 .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
                                 .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(display) })
-                                .padding(horizontal = 4.dp, vertical = 12.dp),
+                                .padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
