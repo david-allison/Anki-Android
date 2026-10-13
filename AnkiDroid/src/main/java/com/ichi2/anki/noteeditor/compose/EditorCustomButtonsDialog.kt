@@ -112,20 +112,20 @@ private fun CustomToolbarButtonDialog(
                     label,
                     { label = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.note_editor_toolbar_icon)) },
+                    label = { Text(stringResource(CommonString.note_editor_toolbar_icon)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     prefix,
                     { prefix = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.before_text)) },
+                    label = { Text(stringResource(CommonString.before_text)) },
                 )
                 OutlinedTextField(
                     suffix,
                     { suffix = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.after_text)) },
+                    label = { Text(stringResource(CommonString.after_text)) },
                 )
             }
         },

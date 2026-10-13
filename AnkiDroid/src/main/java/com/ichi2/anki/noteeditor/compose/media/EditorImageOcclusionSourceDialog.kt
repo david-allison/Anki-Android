@@ -11,15 +11,14 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
 
 /** Retain the offered clipboard image and source choice across activity recreation. */
 class EditorImageOcclusionSourceDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.image_occlusion)
+            .setTitle(CommonString.image_occlusion)
             .setItems(
-                arrayOf(getString(R.string.paste_from_clipboard), getString(R.string.multimedia_editor_image_field_editing_galery)),
+                arrayOf(getString(CommonString.paste_from_clipboard), getString(CommonString.multimedia_editor_image_field_editing_galery)),
             ) { _, which ->
                 result(
                     if (which == 0) {
