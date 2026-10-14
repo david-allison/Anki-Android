@@ -85,7 +85,7 @@ internal fun EditorModeButton(
                                 tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
                             )
                             Icon(
-                                painterResource(R.drawable.ic_code),
+                                painterResource(R.drawable.ic_editor_code),
                                 null,
                                 Modifier.size(24.dp),
                                 tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),

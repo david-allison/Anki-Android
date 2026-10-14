@@ -21,7 +21,7 @@ internal enum class EditorQuickAction(
 ) {
     PIN("pin", R.string.compose_editor_pin_field, R.drawable.ic_baseline_push_pin_24),
     ATTACH_MEDIA("attachMedia", CommonString.multimedia_editor_attach_tooltip, R.drawable.ic_attachment),
-    EDIT_HTML("editHtml", R.string.compose_editor_source, R.drawable.ic_code),
+    EDIT_HTML("editHtml", R.string.compose_editor_source, R.drawable.ic_editor_code),
     GALLERY(
         "gallery",
         CommonString.multimedia_editor_image_field_editing_galery,
