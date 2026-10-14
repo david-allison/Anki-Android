@@ -58,22 +58,20 @@ class EquationPreviewTest : InstrumentedTest() {
             capture(web, "equation-preview-${if (dark) "dark" else "light"}-keyboard")
             device.pressBack()
 
-            var selected = R.string.compose_editor_math_inline
+            assertTrue(device.hasObject(By.text(testContext.getString(R.string.compose_editor_math_block))))
+            assertTrue(device.hasObject(By.text(testContext.getString(R.string.compose_editor_math_chemistry))))
+            assertTrue(!device.hasObject(By.textContains("LaTeX")), "Only MathJax formats should be offered")
             for (kind in listOf(
                 R.string.compose_editor_math_block,
-                R.string.compose_editor_latex_equation,
-                R.string.compose_editor_latex_math,
-                R.string.compose_editor_latex,
+                R.string.compose_editor_math_inline,
                 R.string.compose_editor_math_chemistry,
             )) {
-                checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(selected))), 5_000)).click()
                 checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(kind))), 5_000)).click()
-                selected = kind
                 if (kind == R.string.compose_editor_math_chemistry) {
                     formula.text = "H2O"
                     web.awaitJavascript("!!document.querySelector('mjx-msub') && !document.querySelector('mjx-merror')")
                 } else {
-                    val display = kind != R.string.compose_editor_latex_equation
+                    val display = kind == R.string.compose_editor_math_block
                     web.awaitJavascript("(document.querySelector('mjx-container')?.getAttribute('display') === 'true') === $display")
                 }
             }
