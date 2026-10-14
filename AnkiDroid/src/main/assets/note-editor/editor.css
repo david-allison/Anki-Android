@@ -20,6 +20,29 @@ html:root, html body { background: transparent; }
     color: var(--editor-host-foreground);
 }
 
+/* Reserve the same row with or without quick actions. Keep the name close to
+ * its field, while the actions retain their centred 48dp touch targets. */
+.fields-only .field-container .label-container,
+.fields-only .field-container .deferred-header {
+    box-sizing: border-box;
+    min-height: 48px;
+    align-items: center;
+    padding-block: 0;
+}
+.fields-only .field-container .collapse-label,
+.fields-only .field-container .deferred-label {
+    align-self: flex-end;
+    margin-bottom: 4px;
+    padding-block: 0;
+    font-family: sans-serif;
+    font-size: var(--editor-field-name-size);
+    font-weight: var(--editor-field-name-weight);
+    line-height: var(--editor-field-name-line-height);
+    letter-spacing: var(--editor-field-name-letter-spacing);
+    /* Font scaling is supplied by Android with the Material typography. */
+    -webkit-text-size-adjust: none;
+}
+
 /* Desktop field elevation creates extra graphics pipelines on first draw. */
 .fields-only .field-container .editor-field { background: var(--canvas); box-shadow: none; }
 

@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.LocaleList
 import android.util.Base64
+import android.util.TypedValue
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -18,6 +19,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.material3.Typography
+import androidx.compose.ui.unit.TextUnit
 import androidx.core.content.getSystemService
 import androidx.core.view.SoftwareKeyboardControllerCompat
 import androidx.webkit.WebViewAssetLoader
@@ -86,7 +89,7 @@ class WebEditorView(
             "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; " +
             "--editor-host-selected-background: ${hostSelectedColor.toCssRgb()}; " +
             "--editor-host-selected-foreground: ${hostForegroundColor.toCssRgb()}; " +
-            "--editor-host-mode-background: ${hostModeColor.toCssRgba()}; }"
+            "--editor-host-mode-background: ${hostModeColor.toCssRgba()}; ${context.fieldNameCss(settings.textZoom)} }"
 
     @Volatile
     private var mediaRoot: File? = null
@@ -517,6 +520,22 @@ class WebEditorView(
         private fun emptyResponse() =
             WebResourceResponse("text/plain", "UTF-8", 404, "Not found", emptyMap(), ByteArrayInputStream(byteArrayOf()))
     }
+}
+
+/** AnkiDroidTheme uses Material's default type scale; share titleMedium with its native field headings. */
+private fun Context.fieldNameCss(textZoom: Int): String {
+    val style = Typography().titleMedium
+    val metrics = resources.displayMetrics
+
+    // CSS pixels are dp in this viewport. Android resolves sp, including nonlinear font scaling.
+    fun cssPixels(value: TextUnit) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value.value, metrics) / metrics.density
+
+    val fontSize = cssPixels(style.fontSize)
+    // WebView applies its own linear text zoom. Compensate only the heading, leaving note HTML alone.
+    return "--editor-field-name-size: ${fontSize / (textZoom / 100f)}px; " +
+        "--editor-field-name-weight: ${style.fontWeight?.weight ?: 400}; " +
+        "--editor-field-name-line-height: ${cssPixels(style.lineHeight) / fontSize}; " +
+        "--editor-field-name-letter-spacing: ${cssPixels(style.letterSpacing)}px;"
 }
 
 private fun Int.toCssRgb(): String = "rgb(${Color.red(this)}, ${Color.green(this)}, ${Color.blue(this)})"

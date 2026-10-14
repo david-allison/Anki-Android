@@ -3,8 +3,10 @@
 package com.ichi2.anki.noteeditor.web
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.InputDevice
 import android.view.MotionEvent
@@ -12,6 +14,7 @@ import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import androidx.compose.material3.Typography
 import androidx.compose.ui.graphics.toArgb
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
@@ -81,6 +84,81 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @Test
     fun quickActionsShowPressFeedbackInDarkTheme() = assertQuickActionPressFeedback(R.style.Theme_Dark)
+
+    @Test
+    fun fieldNamesUseMaterialTypographyAndConsistentSpacing() = assertFieldNameLayout(fontScale = 1f)
+
+    @Test
+    fun fieldNamesRespectLargeFontsWithoutShrinkingQuickActions() = assertFieldNameLayout(fontScale = 2f)
+
+    private fun assertFieldNameLayout(fontScale: Float) =
+        withEditor(theme = R.style.Theme_Light, fontScale = fontScale) {
+            val pin = EditorQuickAction.PIN.toWeb(context, pinned = true)
+            val longName = "A long field name that needs to wrap onto another line"
+            loadDocument(
+                document("").copy(
+                    fields =
+                        List(44) { index ->
+                            WebEditorField(
+                                name =
+                                    if (index in 2..3) {
+                                        longName
+                                    } else if (index % 2 == 0) {
+                                        "Front"
+                                    } else {
+                                        "Back"
+                                    },
+                                html = "Field content",
+                                quickActions = if (index % 2 == 0) listOf(pin) else emptyList(),
+                            )
+                        },
+                ),
+            )
+            // Offscreen headers must have the same geometry before their editors are mounted.
+            assertEquals("true", evaluate("!!document.querySelector('.field-container[data-index=\"43\"] .deferred-label')"))
+            val metrics = context.resources.displayMetrics
+
+            fun cssSp(size: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, size, metrics) / metrics.density
+
+            for (index in listOf(0, 1, 2, 3, 42, 43)) {
+                val appearance =
+                    JSONObject(
+                        evaluate(
+                            """
+                            (() => {
+                                const field = document.querySelector('.field-container[data-index="$index"]');
+                                const label = field.querySelector('.collapse-label, .deferred-label');
+                                const header = field.querySelector('.label-container, .deferred-header');
+                                const input = field.querySelector('.editor-field, .field-placeholder');
+                                const button = field.querySelector('.quick-action');
+                                const style = getComputedStyle(label);
+                                const rect = label.getBoundingClientRect();
+                                return {fontSize: parseFloat(style.fontSize), weight: style.fontWeight,
+                                    lineHeight: parseFloat(style.lineHeight), letterSpacing: parseFloat(style.letterSpacing),
+                                    headerHeight: header.getBoundingClientRect().height, labelHeight: rect.height,
+                                    gap: input.getBoundingClientRect().top - rect.bottom,
+                                    actionHeight: button?.getBoundingClientRect().height};
+                            })()
+                            """.trimIndent(),
+                        ),
+                    )
+                assertEquals(cssSp(16f).toDouble(), appearance.getDouble("fontSize"), 0.1, "Field $index uses titleMedium: $appearance")
+                assertEquals("500", appearance.getString("weight"))
+                assertEquals(cssSp(24f).toDouble(), appearance.getDouble("lineHeight"), 0.1)
+                assertEquals(cssSp(Typography().titleMedium.letterSpacing.value).toDouble(), appearance.getDouble("letterSpacing"), 0.01)
+                assertTrue(appearance.getDouble("gap") in 4.0..6.0, "Keep field $index's name close to its content: $appearance")
+                if (index !in 2..3) {
+                    assertEquals(maxOf(48.0, cssSp(24f).toDouble() + 4), appearance.getDouble("headerHeight"), 0.1)
+                } else {
+                    assertTrue(appearance.getDouble("labelHeight") >= cssSp(24f), "Long names must not be clipped vertically")
+                }
+                if (index == 0 || index == 2) {
+                    assertEquals(48.0, appearance.getDouble("actionHeight"), 0.1, "Keep icon touch targets at 48dp")
+                }
+            }
+            captureRenderedScreenshot("editor-material-field-names-$fontScale")
+            assertFalse(snapshot().hasChanges, "Presentation must not modify field content")
+        }
 
     private fun assertQuickActionPressFeedback(theme: Int) =
         withEditor(theme = theme) {
@@ -856,6 +934,7 @@ class WebEditorViewTest : InstrumentedTest() {
     private fun withEditor(
         initiallyBound: Boolean = true,
         theme: Int? = null,
+        fontScale: Float? = null,
         block: suspend WebEditorView.() -> Unit,
     ) {
         ensureWebViewIsSupported()
@@ -863,7 +942,14 @@ class WebEditorViewTest : InstrumentedTest() {
         ActivityScenario.launch<SingleFragmentActivity>(intent).use { scenario ->
             lateinit var webView: WebEditorView
             scenario.onActivity { activity ->
-                val editorContext = theme?.let { ContextThemeWrapper(activity, it) } ?: activity
+                val editorContext =
+                    if (theme != null || fontScale != null) {
+                        ContextThemeWrapper(activity, theme ?: 0).apply {
+                            fontScale?.let { scale -> applyOverrideConfiguration(Configuration().apply { this.fontScale = scale }) }
+                        }
+                    } else {
+                        activity
+                    }
                 if (theme !=
                     null
                 ) {
