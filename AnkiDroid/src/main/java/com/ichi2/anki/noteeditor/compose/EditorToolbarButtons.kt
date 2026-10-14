@@ -46,7 +46,7 @@ internal enum class EditorToolbarButton(
     CLOZE_SAME(R.drawable.ic_cloze_same_card, R.string.compose_editor_cloze_same, WebEditorAction.CLOZE_SAME, clozeOnly = true),
     UNDO(R.drawable.ic_undo_2, CommonString.undo, WebEditorAction.UNDO),
     REDO(R.drawable.ic_redo_2, CommonString.redo, WebEditorAction.REDO),
-    SOURCE_MODE(R.drawable.ic_code, R.string.compose_editor_source, WebEditorAction.SOURCE_MODE, toggle = true),
+    SOURCE_MODE(R.drawable.ic_editor_code, R.string.compose_editor_source, WebEditorAction.SOURCE_MODE, toggle = true),
     MEDIA(R.drawable.ic_attachment, R.string.compose_editor_media),
     SUPERSCRIPT(R.drawable.ic_editor_format_superscript, R.string.compose_editor_superscript, WebEditorAction.SUPERSCRIPT, toggle = true),
     SUBSCRIPT(R.drawable.ic_editor_format_subscript, R.string.compose_editor_subscript, WebEditorAction.SUBSCRIPT, toggle = true),
