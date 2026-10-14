@@ -41,6 +41,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.ui.windows.reviewer.whiteboard.showColorPickerDialog
+import com.ichi2.anki.utils.openUrl
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
 
@@ -122,6 +123,7 @@ internal fun EditorFormattingDialog(
         )
     }
     val alignment = request.action == WebEditorAction.ALIGN_LEFT
+    val equation = !removing && !alignment
     val valid =
         when {
             removing -> removedFormats.isNotEmpty()
@@ -130,21 +132,35 @@ internal fun EditorFormattingDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon =
-            if (!removing && !alignment) {
+            if (equation) {
                 { Icon(painterResource(R.drawable.ic_add_equation_black_24dp), contentDescription = null) }
             } else {
                 null
             },
         title = {
-            Text(
+            val title =
                 stringResource(
                     when {
                         removing -> R.string.compose_editor_remove_format
                         alignment -> R.string.compose_editor_alignment
-                        else -> R.string.compose_editor_equations
+                        request.editingEquation -> R.string.compose_editor_edit_equation
+                        else -> R.string.compose_editor_add_equation
                     },
-                ),
-            )
+                )
+            if (equation) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, modifier = Modifier.weight(1f))
+                    val context = LocalContext.current
+                    EditorActionButton(
+                        icon = R.drawable.help_outline,
+                        label = R.string.compose_editor_math_help,
+                        enabled = true,
+                        onClick = { context.openUrl(R.string.link_manual_mathjax) },
+                    )
+                }
+            } else {
+                Text(title)
+            }
         },
         text = {
             Column(

@@ -67,6 +67,9 @@
     <string name="compose_editor_indent">Indent list item</string>
     <string name="compose_editor_outdent">Outdent list item</string>
     <string name="compose_editor_equations">Equations</string>
+    <string name="compose_editor_add_equation">Add MathJax equation</string>
+    <string name="compose_editor_edit_equation">Edit MathJax equation</string>
+    <string name="compose_editor_math_help">MathJax help</string>
     <string name="compose_editor_math_inline">Inline</string>
     <string name="compose_editor_math_block">Block</string>
     <string name="compose_editor_math_chemistry">Chemistry</string>
