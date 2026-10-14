@@ -5,7 +5,8 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -38,8 +39,24 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
     fun addEquation() {
         showDialog()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_equation)).assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_inline)).assertIsSelected()
+        val inline = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_inline))
+        val block = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_block))
+        val chemistry = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_chemistry))
+        inline.assertIsOn()
         captureScreen("add_mathjax_equation")
+
+        block.performClick().assertIsOn()
+        inline.assertIsOff()
+        chemistry.assertIsOff()
+        captureScreen("add_mathjax_equation_block")
+        // One format must remain selected, even when the active button is tapped again.
+        block.performClick().assertIsOn()
+
+        chemistry.performClick().assertIsOn()
+        block.assertIsOff()
+        inline.assertIsOff()
+        composeRule.onNodeWithText("x^2").assertIsDisplayed()
+        captureScreen("add_mathjax_equation_chemistry")
     }
 
     @Test
