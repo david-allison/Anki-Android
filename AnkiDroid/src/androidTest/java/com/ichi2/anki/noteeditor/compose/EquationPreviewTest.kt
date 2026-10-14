@@ -23,6 +23,7 @@ import com.ichi2.anki.testutil.TestInputMethodRule
 import com.ichi2.anki.testutil.awaitJavascript
 import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.evaluate
+import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Rule
 import org.junit.Test
@@ -88,6 +89,7 @@ class EquationPreviewTest : InstrumentedTest() {
             assertEquals(originalPage, web.evaluate("performance.timeOrigin"), "Typing and mode changes must reuse the renderer")
             assertNull(applied.get(), "Previewing must not apply an edit to the note")
             device.findObject(By.text(testContext.getString(CommonString.dialog_ok))).click()
+            waitUntil(message = { "The formula was not applied" }) { applied.get() != null }
             assertEquals(WebEditorAction.MATHJAX_CHEMISTRY to "H2O", applied.get())
         }
     }
