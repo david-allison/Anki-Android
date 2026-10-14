@@ -1,0 +1,122 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package com.ichi2.anki.noteeditor.compose
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Color
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
+import com.ichi2.anki.R
+import com.ichi2.anki.noteeditor.web.WebEditorAction
+import org.json.JSONObject
+import java.io.ByteArrayInputStream
+
+/** Created only while the equation dialog is open; never part of editor startup. */
+@Composable
+internal fun EquationPreview(
+    text: String,
+    action: WebEditorAction,
+) {
+    val foreground = MaterialTheme.colorScheme.onSurface.toArgb()
+    val error = MaterialTheme.colorScheme.error.toArgb()
+    val unavailable = stringResource(R.string.compose_editor_equation_preview_unavailable)
+    Column {
+        Text(
+            stringResource(R.string.compose_editor_equation_preview),
+            Modifier.padding(bottom = 8.dp),
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            AndroidView(
+                factory = { EquationPreviewView(it) },
+                modifier = Modifier.fillMaxWidth().height(112.dp),
+                update = { it.update(text, action, foreground, error, unavailable) },
+                onRelease = { it.destroy() },
+            )
+        }
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+private class EquationPreviewView(
+    context: Context,
+) : WebView(context) {
+    private var ready = false
+    private var input = ""
+
+    init {
+        setBackgroundColor(Color.TRANSPARENT)
+        settings.javaScriptEnabled = true
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
+        val loader =
+            WebViewAssetLoader
+                .Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .build()
+        webViewClient =
+            object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView,
+                    request: WebResourceRequest,
+                ): Boolean = true
+
+                override fun shouldInterceptRequest(
+                    view: WebView,
+                    request: WebResourceRequest,
+                ): WebResourceResponse =
+                    loader.shouldInterceptRequest(request.url)
+                        ?: WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
+
+                override fun onPageFinished(
+                    view: WebView,
+                    url: String,
+                ) {
+                    ready = true
+                    render()
+                }
+            }
+        loadUrl("https://appassets.androidplatform.net/assets/note-editor/equation-preview.html")
+    }
+
+    fun update(
+        text: String,
+        action: WebEditorAction,
+        foreground: Int,
+        error: Int,
+        unavailable: String,
+    ) {
+        val next =
+            JSONObject()
+                .put("text", text)
+                .put("kind", action.name)
+                .put("foreground", "#%06x".format(foreground and 0xffffff))
+                .put("error", "#%06x".format(error and 0xffffff))
+                .put("unavailable", unavailable)
+                .toString()
+        if (next == input) return
+        input = next
+        render()
+    }
+
+    private fun render() {
+        if (ready && input.isNotEmpty()) evaluateJavascript("window.setEquationPreview($input)", null)
+    }
+}
