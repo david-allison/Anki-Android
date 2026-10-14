@@ -4,8 +4,8 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,24 +15,24 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -58,9 +58,6 @@ private val equationKinds =
         WebEditorAction.MATHJAX_INLINE to R.string.compose_editor_math_inline,
         WebEditorAction.MATHJAX_BLOCK to R.string.compose_editor_math_block,
         WebEditorAction.MATHJAX_CHEMISTRY to R.string.compose_editor_math_chemistry,
-        WebEditorAction.LATEX to R.string.compose_editor_latex,
-        WebEditorAction.LATEX_EQUATION to R.string.compose_editor_latex_equation,
-        WebEditorAction.LATEX_MATH to R.string.compose_editor_latex_math,
     )
 
 private val alignments =
@@ -132,6 +129,12 @@ internal fun EditorFormattingDialog(
         }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon =
+            if (!removing && !alignment) {
+                { Icon(painterResource(R.drawable.ic_add_equation_black_24dp), contentDescription = null) }
+            } else {
+                null
+            },
         title = {
             Text(
                 stringResource(
@@ -172,24 +175,16 @@ internal fun EditorFormattingDialog(
                             TextButton(onClick = { onApply(command, "") }) { Text(stringResource(label)) }
                         }
                     else -> {
-                        var expanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { expanded = true }) {
-                                Text(stringResource(equationKinds.first { it.first == action }.second))
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
-                                containerColor =
-                                    MaterialTheme.colorScheme.surfaceContainer.compositeOver(
-                                        MaterialTheme.colorScheme.surface,
-                                    ),
-                            ) {
-                                equationKinds.forEach { (command, label) ->
-                                    DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = {
-                                        action = command
-                                        expanded = false
-                                    })
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            equationKinds.forEachIndexed { index, (command, label) ->
+                                SegmentedButton(
+                                    selected = action == command,
+                                    onClick = { action = command },
+                                    shape = SegmentedButtonDefaults.itemShape(index, equationKinds.size),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                                    icon = {},
+                                ) {
+                                    Text(stringResource(label))
                                 }
                             }
                         }
@@ -202,9 +197,6 @@ internal fun EditorFormattingDialog(
                             maxLines = 4,
                         )
                         EquationPreview(text, action)
-                        if (action in setOf(WebEditorAction.LATEX, WebEditorAction.LATEX_EQUATION, WebEditorAction.LATEX_MATH)) {
-                            Text(stringResource(R.string.compose_editor_latex_help), style = MaterialTheme.typography.bodySmall)
-                        }
                     }
                 }
             }

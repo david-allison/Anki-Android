@@ -32,7 +32,7 @@ window.MathJax = {
                     if (current !== revision) return;
                     const text =
                         input.kind === "MATHJAX_CHEMISTRY" ? `\\ce{${input.text}}` : input.text;
-                    const display = ["MATHJAX_BLOCK", "LATEX_MATH", "LATEX"].includes(input.kind);
+                    const display = input.kind === "MATHJAX_BLOCK";
                     MathJax.texReset();
                     const rendered = await MathJax.tex2chtmlPromise(text, { display });
                     if (current === revision) {
