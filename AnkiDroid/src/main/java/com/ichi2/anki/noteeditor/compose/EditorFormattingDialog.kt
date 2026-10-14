@@ -196,10 +196,12 @@ internal fun EditorFormattingDialog(
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
+                            modifier = Modifier.fillMaxWidth(),
                             label = { Text(stringResource(R.string.compose_editor_formula)) },
-                            minLines = 3,
-                            maxLines = 6,
+                            minLines = 2,
+                            maxLines = 4,
                         )
+                        EquationPreview(text, action)
                         if (action in setOf(WebEditorAction.LATEX, WebEditorAction.LATEX_EQUATION, WebEditorAction.LATEX_MATH)) {
                             Text(stringResource(R.string.compose_editor_latex_help), style = MaterialTheme.typography.bodySmall)
                         }

@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'">
+    <style>
+        body { margin: 0; padding: 12px; font: 18px sans-serif; color: var(--foreground); }
+        #preview { min-height: 72px; display: grid; align-items: center; justify-content: safe center; }
+        mjx-container[display="true"] { margin: 0 !important; }
+        #preview mjx-merror, .error { color: var(--error); background: transparent; }
+    </style>
+    <script src="equation-preview.js"></script>
+    <script defer src="../backend/js/vendor/mathjax/tex-chtml-full.js"></script>
+</head>
+<body><div id="preview"></div></body>
+</html>
