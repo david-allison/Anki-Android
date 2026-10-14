@@ -76,10 +76,11 @@ html:root, html body { background: transparent; }
 }
 .fields-only .field-quick-actions .quick-action[role="switch"] { min-width: 56px; }
 .fields-only .field-quick-actions .quick-action[role="switch"]::after { content: none; }
-.fields-only .field-quick-actions .mode-track { width: 52px; flex-direction: row-reverse; }
+.fields-only .field-quick-actions .mode-track { width: 52px; height: 32px; flex-direction: row-reverse; }
 .fields-only .field-quick-actions .mode-track svg { margin-inline: 2px; }
 .fields-only .field-quick-actions .mode-selection {
     width: 24px;
+    height: 28px;
     transform: translateX(24px);
     transition: transform 140ms cubic-bezier(0.4, 0, 0.2, 1);
 }
