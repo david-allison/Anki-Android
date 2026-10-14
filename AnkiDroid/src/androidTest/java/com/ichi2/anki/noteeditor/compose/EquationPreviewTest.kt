@@ -70,6 +70,15 @@ class EquationPreviewTest : InstrumentedTest() {
                 if (kind == R.string.compose_editor_math_chemistry) {
                     formula.text = "H2O"
                     web.awaitJavascript("!!document.querySelector('mjx-msub') && !document.querySelector('mjx-merror')")
+                    web.awaitJavascript(
+                        """
+                        (() => {
+                            const math = document.querySelector('#preview mjx-assistive-mml')?.cloneNode(true);
+                            math?.querySelectorAll('mphantom').forEach(node => node.remove());
+                            return math?.textContent === 'H2O';
+                        })()
+                        """.trimIndent(),
+                    )
                 } else {
                     val display = kind == R.string.compose_editor_math_block
                     web.awaitJavascript("(document.querySelector('mjx-container')?.getAttribute('display') === 'true') === $display")
