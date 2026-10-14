@@ -67,27 +67,27 @@ internal fun EditorModeButton(
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Box(
                         Modifier
-                            .requiredSize(52.dp, 28.dp)
+                            .requiredSize(52.dp, 40.dp)
                             .alpha(if (enabled) 1f else 0.38f)
                             .background(colors.surfaceContainerHighest, RoundedCornerShape(8.dp)),
                     ) {
                         Box(
                             Modifier
                                 .offset(x = selectionOffset, y = 2.dp)
-                                .size(24.dp)
+                                .size(24.dp, 36.dp)
                                 .background(colors.primaryContainer, RoundedCornerShape(6.dp)),
                         )
                         Row(Modifier.align(Alignment.Center).padding(2.dp)) {
                             Icon(
                                 painterResource(R.drawable.ic_editor_rich_text),
                                 null,
-                                Modifier.padding(horizontal = 2.dp).size(20.dp),
+                                Modifier.size(24.dp),
                                 tint = if (sourceMode) colors.onSurface.copy(alpha = 0.65f) else colors.onPrimaryContainer,
                             )
                             Icon(
                                 painterResource(R.drawable.ic_code),
                                 null,
-                                Modifier.padding(horizontal = 2.dp).size(20.dp),
+                                Modifier.size(24.dp),
                                 tint = if (sourceMode) colors.onPrimaryContainer else colors.onSurface.copy(alpha = 0.65f),
                             )
                         }
