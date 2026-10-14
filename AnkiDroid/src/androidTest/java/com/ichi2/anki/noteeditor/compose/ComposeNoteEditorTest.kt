@@ -1144,6 +1144,21 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 device.waitForIdle()
                 assertFalse(device.hasObject(bold))
 
+                // On smaller screens the keyboard and sheet cover Back. Expose the fields
+                // before calculating a physical tap, while leaving the options open.
+                scenario.onActivity {
+                    WindowCompat.getInsetsController(it.window, it.window.decorView).hide(WindowInsetsCompat.Type.ime())
+                }
+                waitUntil(message = { "The keyboard still covers the target field" }) {
+                    var hidden = false
+                    scenario.onActivity {
+                        hidden = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == false
+                    }
+                    hidden
+                }
+                device.waitForIdle()
+                assertFalse(device.hasObject(bold), "Hiding the keyboard must leave field options open")
+
                 val point =
                     JSONObject(
                         web.evaluate(
