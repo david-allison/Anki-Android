@@ -495,7 +495,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 2), "toolbar_stack_full_and_partial_rows")
 
     @Test
-    fun stackedToolbarThreeRowsBuildUpward() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(8, 8, 1), "toolbar_stack_three_rows")
+    fun stackedToolbarThreeRowsBuildUpward() =
+        captureToolbarRows(EditorToolbarDisplay.STACK, listOf(6, 6, 1), "toolbar_stack_three_rows", columns = 6)
 
     @Test
     fun stackedToolbarOverflowStartsAtTheBottom() {
@@ -525,10 +526,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         display: EditorToolbarDisplay,
         rowSizes: List<Int>,
         name: String,
+        columns: Int = 8,
     ) {
-        // Leave spare width after eight buttons so unequal full-row margins cannot go unnoticed.
-        RuntimeEnvironment.setQualifiers("+w${if (display == EditorToolbarDisplay.SCROLL) 401 else 413}dp")
-        val buttons = EditorToolbarButton.entries.filterNot { it.clozeOnly }.take(rowSizes.sum())
+        // Leave spare width after the buttons so unequal full-row margins cannot go unnoticed.
+        RuntimeEnvironment.setQualifiers("+w${if (display == EditorToolbarDisplay.SCROLL) 401 else columns * 48 + 29}dp")
+        // Exercise the regular 48dp columns; the wider A/<> switch has separate screenshots.
+        val buttons = EditorToolbarButton.entries.filterNot { it.clozeOnly || it == EditorToolbarButton.SOURCE_MODE }.take(rowSizes.sum())
         showEditor(
             toolbarDisplay = display,
             toolbar = EditorFieldToolbar(hiddenButtons = (EditorToolbarButton.entries - buttons.toSet()).map { it.name }.toSet()),
@@ -555,11 +558,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     .boundsInRoot.center.x
             val widestRow = rows.maxBy { it.size }
             val buttonSpacing = widestRow[1].center.x - widestRow[0].center.x
-            val firstCenter = screenCenter - 3.5f * buttonSpacing
+            val firstCenter = screenCenter - (columns - 1) / 2f * buttonSpacing
             rows.forEachIndexed { index, row ->
                 assertEquals(firstCenter, row.first().center.x, 1f, "Row $index must use the same start padding")
                 assertTrue(row.zipWithNext().all { (before, after) -> before.right <= after.left }, "Keep the configured button order")
-                if (row.size == 8) {
+                if (row.size == columns) {
                     assertEquals(screenCenter, (row.first().left + row.last().right) / 2f, 1f, "Full row $index must be centered")
                 }
             }
