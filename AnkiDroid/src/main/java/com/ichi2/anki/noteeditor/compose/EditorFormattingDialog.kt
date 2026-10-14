@@ -11,17 +11,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -191,14 +195,27 @@ internal fun EditorFormattingDialog(
                             TextButton(onClick = { onApply(command, "") }) { Text(stringResource(label)) }
                         }
                     else -> {
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().selectableGroup(),
+                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                        ) {
                             equationKinds.forEachIndexed { index, (command, label) ->
-                                SegmentedButton(
-                                    selected = action == command,
-                                    onClick = { action = command },
-                                    shape = SegmentedButtonDefaults.itemShape(index, equationKinds.size),
+                                ToggleButton(
+                                    checked = action == command,
+                                    onCheckedChange = { action = command },
+                                    modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                                    shapes =
+                                        when (index) {
+                                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                            equationKinds.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                        },
+                                    colors =
+                                        ToggleButtonDefaults.colors(
+                                            checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        ),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                    icon = {},
                                 ) {
                                     Text(stringResource(label))
                                 }
