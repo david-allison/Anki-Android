@@ -146,7 +146,8 @@ class WebEditorViewTest : InstrumentedTest() {
                 assertEquals("500", appearance.getString("weight"))
                 assertEquals(cssSp(24f).toDouble(), appearance.getDouble("lineHeight"), 0.1)
                 assertEquals(cssSp(Typography().titleMedium.letterSpacing.value).toDouble(), appearance.getDouble("letterSpacing"), 0.01)
-                assertTrue(appearance.getDouble("gap") in 4.0..6.0, "Keep field $index's name close to its content: $appearance")
+                // Offscreen DOM coordinates can report a 4dp gap as 3.9998 due to subpixel rounding.
+                assertTrue(appearance.getDouble("gap") in 3.99..6.01, "Keep field $index's name close to its content: $appearance")
                 if (index !in 2..3) {
                     assertEquals(maxOf(48.0, cssSp(24f).toDouble() + 4), appearance.getDouble("headerHeight"), 0.1)
                 } else {
