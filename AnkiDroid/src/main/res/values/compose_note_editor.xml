@@ -23,6 +23,7 @@
     <string name="compose_editor_audio">Choose audio</string>
     <string name="compose_editor_video">Choose video</string>
     <string name="compose_editor_field_options">Field options</string>
+    <string name="compose_editor_close_field_options">Close field options</string>
     <string name="compose_editor_toolbar">Toolbar buttons</string>
     <string name="compose_editor_toolbar_scroll">Scroll</string>
     <string name="compose_editor_toolbar_stack">Stack</string>

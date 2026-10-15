@@ -807,7 +807,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .fields[1]
                     .toolbar.quickActions == listOf("pin", "gallery")
             }
-            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))).click()
             web.setField(0, "Keep the Front caret here")
             web.setField(1, "Insert media in Back")
             runBlocking { web.focusField(0) }
@@ -951,7 +951,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .toolbar.customButtons
                     .any { it.label == buttonLabel }
             }
-            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
+            device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))).click()
             assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(
@@ -1518,7 +1518,18 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
 
-            fun toggleOptions() = checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+            fun toggleOptions() {
+                val button =
+                    if (device.hasObject(
+                            backOptions,
+                        )
+                    ) {
+                        By.desc(testContext.getString(R.string.compose_editor_close_field_options))
+                    } else {
+                        options
+                    }
+                checkNotNull(device.wait(Until.findObject(button), 5_000)).click()
+            }
 
             fun choose(label: Int) =
                 checkNotNull(device.wait(Until.findObject(By.descContains(testContext.getString(label)).enabled(true)), 5_000)).click()

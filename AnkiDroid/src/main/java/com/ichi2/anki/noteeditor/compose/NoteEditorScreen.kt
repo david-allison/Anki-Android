@@ -541,6 +541,8 @@ private fun EditorFieldArea(
         sheetPeekHeight = 0.dp,
         sheetDragHandle = null,
         sheetSwipeEnabled = false,
+        sheetContainerColor = toolbarBackground,
+        sheetShadowElevation = 4.dp,
         sheetContent = {
             // Retain the controls through dismissal, then remove their layout and semantics work.
             if (showFieldOptions && target != null) {
@@ -706,7 +708,7 @@ private fun EditorFieldOptions(
             )
             FieldOptionsHelp(field.name, noteTypeName)
             IconButton(onClick = onCollapse) {
-                Icon(painterResource(R.drawable.ic_expand_more_black), stringResource(R.string.compose_editor_field_options))
+                Icon(painterResource(R.drawable.ic_clear_white), stringResource(R.string.compose_editor_close_field_options))
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
