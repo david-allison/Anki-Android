@@ -80,7 +80,6 @@
     <string name="compose_editor_move_button_down">Move %s down</string>
     <string name="compose_editor_reorder_button">Reorder %s</string>
     <string name="compose_editor_quick_actions">Quick actions</string>
-    <string name="compose_editor_customize_field">Customize field</string>
     <string name="compose_editor_quick_actions_summary">Buttons beside the field</string>
     <string name="compose_editor_toolbar_summary">Shown when editing this field</string>
     <string name="compose_editor_quick_actions_help">Buttons beside the field that work without selecting it, such as pinning the field or inserting an image. Choose which actions appear and their order.</string>
