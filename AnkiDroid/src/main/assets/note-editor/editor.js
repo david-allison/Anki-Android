@@ -651,7 +651,33 @@
         },
     };
 
+    // Native code observes the same gesture to dismiss its sheet. Blank gestures
+    // should only dismiss options, without blurring the field or reopening the IME.
+    function preserveFieldFocus(event) {
+        const interactive = event
+            .composedPath()
+            .some(
+                node =>
+                    node instanceof HTMLElement &&
+                    (node.isContentEditable ||
+                        node.matches(
+                            "input, textarea, select, button, a, [tabindex], .CodeMirror",
+                        )),
+            );
+        if (!interactive) event.preventDefault();
+    }
+
     window.AnkiEditor = {
+        setFieldOptionsVisible(visible) {
+            if (visible) {
+                document.addEventListener("pointerdown", preserveFieldFocus);
+                // Chromium can reopen the IME before touchend, even if that is canceled.
+                document.addEventListener("touchstart", preserveFieldFocus, { passive: false });
+            } else {
+                document.removeEventListener("pointerdown", preserveFieldFocus);
+                document.removeEventListener("touchstart", preserveFieldFocus);
+            }
+        },
         async request(id, method, args) {
             try {
                 if (!Object.hasOwn(methods, method)) throw new Error("Unknown editor method.");

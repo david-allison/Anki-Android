@@ -1414,9 +1414,65 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun outsideTapClosesFieldOptionsWithoutChangingFocusOrKeyboard() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(1, "Keep the caret here")
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            val heading = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+            val pin = By.desc(testContext.getString(R.string.compose_editor_pin_field))
+            val density = testContext.resources.displayMetrics.density
+
+            fun keyboardVisible(): Boolean {
+                var visible = false
+                scenario.onActivity {
+                    visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                return visible
+            }
+            for (showKeyboard in listOf(true, false)) {
+                runBlocking { web.focusField(1) }
+                waitUntil(message = { "The keyboard did not open" }) { keyboardVisible() }
+                if (!showKeyboard) {
+                    scenario.onActivity {
+                        WindowCompat.getInsetsController(it.window, it.window.decorView).hide(WindowInsetsCompat.Type.ime())
+                    }
+                    waitUntil(message = { "The keyboard did not hide" }) { !keyboardVisible() }
+                }
+                val target = assertNotNull(runBlocking { web.captureTarget() })
+                checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+                assertNotNull(device.wait(Until.findObject(heading), 5_000))
+                device.waitForIdle()
+
+                // The gap between the pin and keyboard controls belongs to the sheet.
+                val pinBounds = checkNotNull(device.findObject(pin)).visibleBounds
+                device.click(device.displayWidth / 2, pinBounds.centerY())
+                assertTrue(device.hasObject(heading), "Tapping sheet padding must leave it open")
+                assertEquals(showKeyboard, keyboardVisible())
+
+                // The outer margin above the sheet is blank in both the native metadata
+                // and WebView, depending on the available height with the IME open/closed.
+                val titleBounds = checkNotNull(device.findObject(heading)).visibleBounds
+                device.click((2 * density).toInt(), titleBounds.top - (24 * density).toInt())
+                assertTrue(device.wait(Until.gone(heading), 5_000), "Tapping outside must dismiss field options")
+                device.waitForIdle()
+                assertEquals(showKeyboard, keyboardVisible(), "Outside dismissal must preserve the keyboard state")
+                val restored = assertNotNull(runBlocking { web.captureTarget() })
+                assertEquals(target.field, restored.field)
+                assertEquals(target.bookmark, restored.bookmark, "Outside dismissal must preserve the caret")
+            }
+        }
+    }
+
+    @Test
     fun fieldOptionsDisappearAfterDismissingKeyboardAndPressingBack() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            // Initial focus happens after fields mount; wait for the native controls before changing it.
+            assertNotNull(device.wait(Until.findObject(options), 5_000))
             runBlocking { web.focusField(1) }
 
             fun keyboardVisible(): Boolean {
@@ -1427,8 +1483,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 return visible
             }
             waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
-            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
             checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertTrue(device.wait(Until.hasObject(backOptions), 5_000))

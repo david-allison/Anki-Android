@@ -273,6 +273,11 @@ class WebEditorView(
         request("setInputEnabled", JSONObject().put("enabled", enabled))
     }
 
+    /** A blank tap dismisses native field options without blurring the editable field. */
+    fun setFieldOptionsVisible(visible: Boolean) {
+        if (!destroyed) evaluateJavascript("AnkiEditor.setFieldOptionsVisible($visible)", null)
+    }
+
     /** Apply note-type hints without rebuilding fields, losing selection or resetting undo. */
     fun updateLanguageHints(hints: List<String?>) {
         languageHints = hints

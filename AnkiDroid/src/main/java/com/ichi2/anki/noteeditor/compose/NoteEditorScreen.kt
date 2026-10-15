@@ -7,6 +7,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -63,6 +65,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -71,6 +74,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,11 +83,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -139,6 +149,7 @@ fun NoteEditorScreen(
     preview: @Composable (Modifier) -> Unit,
     fieldTaps: Flow<Unit> = emptyFlow(),
     headerVisibility: Flow<Boolean> = emptyFlow(),
+    onFieldOptionsVisibility: (Boolean) -> Unit = {},
     onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFields: () -> Unit = {},
@@ -154,6 +165,13 @@ fun NoteEditorScreen(
     var showPreview by rememberSaveable { mutableStateOf(true) }
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
     var fieldOptionsRequested by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
+    val fieldOptionsBounds = remember(state?.sessionId, state?.generation) { mutableStateOf<Rect?>(null) }
+    if (fieldOptionsRequested && ready) {
+        DisposableEffect(onFieldOptionsVisibility) {
+            onFieldOptionsVisibility(true)
+            onDispose { onFieldOptionsVisibility(false) }
+        }
+    }
     var headerVisible by remember(state?.sessionId, state?.generation) { mutableStateOf(true) }
     LaunchedEffect(headerVisibility, state?.sessionId, state?.generation) {
         headerVisibility.collect { headerVisible = it }
@@ -202,7 +220,11 @@ fun NoteEditorScreen(
     val hasTabletWidth by remember(windowInfo, density) {
         derivedStateOf { with(density) { windowInfo.containerSize.width.toDp() } >= 600.dp }
     }
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier.fillMaxSize().dismissFieldOptionsOnOutsideTap(fieldOptionsRequested, fieldOptionsBounds) {
+            fieldOptionsRequested = false
+        },
+    ) {
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview, showPhonePreview) { onPreviewVisibility(if (tablet) showPreview else showPhonePreview) }
         if (!tablet && showPhonePreview) {
@@ -329,6 +351,7 @@ fun NoteEditorScreen(
                             fieldTaps = fieldTaps,
                             fieldOptionsRequested = fieldOptionsRequested,
                             onFieldOptionsRequested = { fieldOptionsRequested = it },
+                            onFieldOptionsBounds = { fieldOptionsBounds.value = it },
                             onAction = onAction,
                             onMedia = onAttachMedia,
                             onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
@@ -383,6 +406,40 @@ fun NoteEditorScreen(
     }
 }
 
+/** Observe taps without consuming them: a WebView field must still receive the same gesture. */
+@Composable
+private fun Modifier.dismissFieldOptionsOnOutsideTap(
+    enabled: Boolean,
+    sheetBounds: State<Rect?>,
+    onDismiss: () -> Unit,
+): Modifier {
+    if (!enabled) return this
+    val dismiss by rememberUpdatedState(onDismiss)
+    var rootOffset by remember { mutableStateOf(Offset.Zero) }
+    return onGloballyPositioned { rootOffset = it.positionInRoot() }.pointerInput(sheetBounds) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            if (sheetBounds.value?.contains(down.position + rootOffset) != false) return@awaitEachGesture
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.singleOrNull() ?: return@awaitEachGesture
+                if (change.id != down.id || (change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                    return@awaitEachGesture
+                }
+                if (!change.pressed) {
+                    if (change.previousPressed &&
+                        change.uptimeMillis - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis &&
+                        sheetBounds.value?.contains(change.position + rootOffset) == false
+                    ) {
+                        dismiss()
+                    }
+                    return@awaitEachGesture
+                }
+            }
+        }
+    }
+}
+
 /** Resize only after a deliberate scroll direction change, never for every scroll pixel. */
 @Composable
 private fun EditorCollapsingHeader(
@@ -429,6 +486,7 @@ private fun EditorFieldArea(
     fieldTaps: Flow<Unit>,
     fieldOptionsRequested: Boolean,
     onFieldOptionsRequested: (Boolean) -> Unit,
+    onFieldOptionsBounds: (Rect) -> Unit,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
     onRecordAudio: () -> Unit,
@@ -486,16 +544,18 @@ private fun EditorFieldArea(
         sheetContent = {
             // Retain the controls through dismissal, then remove their layout and semantics work.
             if (showFieldOptions && target != null) {
-                EditorFieldOptions(
-                    field = editorState.fields[target.field],
-                    noteTypeName = editorState.noteTypeName,
-                    enabled = enabled,
-                    onPinned = { onPinned(target, it) },
-                    onLanguageHint = { onLanguageHint(target) },
-                    onToolbar = { onToolbar(target) },
-                    onQuickActions = { onQuickActions(target) },
-                    onCollapse = closeOptions,
-                )
+                Box(Modifier.onGloballyPositioned { onFieldOptionsBounds(it.boundsInRoot()) }) {
+                    EditorFieldOptions(
+                        field = editorState.fields[target.field],
+                        noteTypeName = editorState.noteTypeName,
+                        enabled = enabled,
+                        onPinned = { onPinned(target, it) },
+                        onLanguageHint = { onLanguageHint(target) },
+                        onToolbar = { onToolbar(target) },
+                        onQuickActions = { onQuickActions(target) },
+                        onCollapse = closeOptions,
+                    )
+                }
             }
         },
     ) {
