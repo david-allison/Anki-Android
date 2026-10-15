@@ -245,6 +245,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
                         noteTypeName = "Basic",
                         isCloze = false,
                         templates = listOf(ruby),
+                        onCustomButtons = {},
                         onDismiss = {},
                         onSave = { saved = it },
                     )

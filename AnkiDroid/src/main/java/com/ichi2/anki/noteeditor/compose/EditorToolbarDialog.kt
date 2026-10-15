@@ -7,11 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,10 +56,15 @@ internal fun EditorToolbarDialog(
     noteTypeName: String,
     isCloze: Boolean,
     templates: List<EditorCustomToolbarButton>,
+    onCustomButtons: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (EditorFieldToolbar) -> Unit,
 ) {
-    var toolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
+    var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
+    // The shared library can change while this dialog stays open. Resolve its latest
+    // definitions without discarding pending visibility/order changes for this field.
+    val templatesById = templates.associateBy { it.id }
+    val toolbar = pendingToolbar.copy(customButtons = pendingToolbar.customButtons.mapNotNull { templatesById[it.id] })
     val allItems = toolbar.orderedItems(templates)
     val items = allItems.filter { it.appliesTo(isCloze) }.sortedBy { !toolbar.isEnabled(it) }
     val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
@@ -82,7 +90,7 @@ internal fun EditorToolbarDialog(
         ) { insets ->
             EditorToolbarList(
                 items = items.map { it.key },
-                onMove = { from, to -> toolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
+                onMove = { from, to -> pendingToolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
                 canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
@@ -90,10 +98,16 @@ internal fun EditorToolbarDialog(
                         Text(field.name, style = MaterialTheme.typography.titleMedium)
                         Text(noteTypeName, style = MaterialTheme.typography.bodyMedium)
                         Text(stringResource(R.string.compose_editor_toolbar_scope), Modifier.padding(vertical = 12.dp))
+                        TextButton(onClick = onCustomButtons) {
+                            Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.compose_editor_custom_buttons))
+                        }
                     }
                 },
             ) { key, index, dragging, startDrag, move ->
-                val item = items.first { it.key == key }
+                // RecyclerView retains a removed template's row through its exit animation.
+                val item = items.firstOrNull { it.key == key } ?: return@EditorToolbarList
                 val label =
                     when (item) {
                         is EditorToolbarItem.Builtin -> stringResource(item.button.label)
@@ -113,7 +127,7 @@ internal fun EditorToolbarDialog(
                             toolbar.copy(
                                 buttonOrder = allItems.map { if (it.appliesTo(isCloze)) displayed.next().key else it.key },
                             )
-                        toolbar =
+                        pendingToolbar =
                             when (item) {
                                 is EditorToolbarItem.Builtin ->
                                     ordered.copy(
