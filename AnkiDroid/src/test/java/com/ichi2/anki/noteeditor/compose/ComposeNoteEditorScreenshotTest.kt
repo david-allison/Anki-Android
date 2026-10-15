@@ -375,7 +375,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText(getResourceString(label)).assertDoesNotExist()
         }
         composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).assertIsDisplayed()
         captureScreen("global_options")
     }
 
@@ -392,6 +392,40 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pin.assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
         captureScreen("options_open")
+    }
+
+    @Test
+    fun optionsUnpinned() {
+        showEditor(pinned = false)
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsOff().assertIsDisplayed()
+        composeRule.waitForIdle()
+        captureScreen("options_unpinned")
+    }
+
+    @Test
+    fun optionsInRtl() {
+        RuntimeEnvironment.setQualifiers("+ldrtl")
+        openOptions()
+        captureScreen("options_rtl")
+    }
+
+    @Test
+    fun optionsWithLargeTextOnSmallScreen() {
+        RuntimeEnvironment.setQualifiers("+w320dp-h640dp")
+        RuntimeEnvironment.setFontScale(2f)
+        val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
+        hideKeyboard(activity, keyboard)
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsDisplayed()
+        composeRule.waitForIdle()
+        captureScreen("options_large_text_top")
+        composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
+        composeRule.waitForIdle()
+        captureScreen("options_large_text_controls")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().assertIsDisplayed()
+        composeRule.waitForIdle()
+        captureScreen("options_large_text_bottom")
     }
 
     @Test
@@ -445,15 +479,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun customButtonLibraryOpen() {
-        showEditor(
-            templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
-            focusState = mutableStateOf(EditorToolbarState()),
-        )
+        val (activity, _) =
+            showEditor(
+                templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                focusState = mutableStateOf(EditorToolbarState()),
+            )
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
         captureScreen("editor_options_custom_buttons")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
         composeRule.onNodeWithText("Ruby").assertIsDisplayed()
+        settleMenuTransition(activity)
         captureScreen("custom_button_library")
     }
 
@@ -653,14 +689,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun visualToolbarLayoutChoices() {
-        showEditor()
+        val (activity, _) = showEditor()
         for (display in EditorToolbarDisplay.entries) {
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-            composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+            composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).performClick()
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).assertIsDisplayed()
             composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).assertDoesNotExist()
             composeRule.onNodeWithText(getResourceString(display.label)).assertIsSelected()
             assertToolbarChoicesAreSideBySide()
+            settleMenuTransition(activity)
             captureScreen("toolbar_layout_${display.name.lowercase()}")
             val backgrounds =
                 EditorToolbarDisplay.entries.associateWith { layout ->
@@ -688,7 +725,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setQualifiers("+w320dp")
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_scroll)).assertIsSelected()
         assertToolbarChoicesAreSideBySide()
         captureScreen("toolbar_layout_small_screen")
@@ -700,7 +737,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setFontScale(2f)
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden)).performScrollTo().assertIsDisplayed()
         captureScreen("toolbar_layout_large_text")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_scroll)).performScrollTo().assertIsDisplayed()
@@ -1087,6 +1124,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         return editor
     }
 
+    private fun settleMenuTransition(activity: AnkiActivity) {
+        // The options icon uses an Android ripple, outside Compose's animation clock.
+        composeRule.runOnIdle { activity.window.decorView.jumpDrawablesToCurrentState() }
+        composeRule.waitForIdle()
+    }
+
     private fun fieldOptionsButton() = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options))
 
     private fun captureMetadataNames(
@@ -1121,6 +1164,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
         focusState: State<EditorToolbarState>? = null,
+        pinned: Boolean = true,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1141,7 +1185,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                         if (index ==
                                             1
                                         ) {
-                                            field.copy(toolbar = toolbar)
+                                            field.copy(toolbar = toolbar, sticky = pinned)
                                         } else {
                                             field
                                         }

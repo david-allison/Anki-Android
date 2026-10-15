@@ -87,7 +87,7 @@ internal fun EditorOptionsMenu(
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
             })
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar)) }, onClick = {
+            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar_layout)) }, onClick = {
                 expanded = false
                 showToolbarDisplay = true
             })
