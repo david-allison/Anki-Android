@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextReplacement
 import androidx.core.net.toUri
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.R
@@ -67,6 +69,22 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun emptyPreviewExplainsWhatToEnter() {
+        showDialog(text = "")
+        val placeholder = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_equation_preview_empty))
+        val formula = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_formula))
+        placeholder.assertIsDisplayed()
+        captureScreen("empty_mathjax_equation")
+
+        formula.performTextReplacement("x^2")
+        placeholder.assertDoesNotExist()
+        formula.performTextClearance()
+        placeholder.assertIsDisplayed()
+        formula.performTextReplacement("  ")
+        placeholder.assertIsDisplayed()
+    }
+
+    @Test
     fun equationHelpOpensTheManual() {
         val activity = showDialog()
         activity.registerWebBrowser()
@@ -75,7 +93,10 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("x^2").assertIsDisplayed()
     }
 
-    private fun showDialog(editing: Boolean = false): AnkiActivity {
+    private fun showDialog(
+        editing: Boolean = false,
+        text: String = "x^2",
+    ): AnkiActivity {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
@@ -83,7 +104,7 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
                     EditorFormattingRequest(
                         WebEditorAction.MATHJAX_INLINE,
                         WebEditorTarget("screenshot", 0, 0, 0, ""),
-                        "x^2",
+                        text,
                         editingEquation = editing,
                     ),
                     onDismiss = {},
