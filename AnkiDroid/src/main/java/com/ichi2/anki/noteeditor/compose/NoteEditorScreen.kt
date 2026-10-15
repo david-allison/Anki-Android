@@ -6,15 +6,14 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,6 +28,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
@@ -437,7 +440,12 @@ private fun EditorFieldArea(
     fields: @Composable (Modifier) -> Unit,
 ) {
     val toolbarState by state
-    val toolbarScrollState = rememberScrollState()
+    // A different field has a different button order. Do not retain the previous
+    // field's first visible item by key and scroll past the new field's leading buttons.
+    val toolbarScrollState =
+        key(editorState.sessionId, editorState.generation, toolbarState.activeField ?: 0) {
+            rememberLazyListState()
+        }
     val sheetState =
         key(editorState.sessionId, editorState.generation) {
             rememberBottomSheetState(
@@ -499,39 +507,42 @@ private fun EditorFieldArea(
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 if (editorState.toolbarDisplay != EditorToolbarDisplay.HIDDEN) {
                     Row(Modifier.fillMaxWidth().background(toolbarBackground), verticalAlignment = Alignment.CenterVertically) {
-                        val buttons: @Composable () -> Unit = {
-                            EditorFormattingButtons(
-                                toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
-                                state = toolbarState,
-                                enabled = enabled,
-                                isCloze = editorState.isCloze,
-                                textColor = editorState.toolbarTextColor,
-                                highlightColor = editorState.toolbarHighlightColor,
-                                onAction = onAction,
-                                onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
-                                onMedia = onMedia,
-                                onRecordAudio = onRecordAudio,
-                            )
+                        EditorFormattingButtons(
+                            toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
+                            state = toolbarState,
+                            enabled = enabled,
+                            isCloze = editorState.isCloze,
+                            textColor = editorState.toolbarTextColor,
+                            highlightColor = editorState.toolbarHighlightColor,
+                            onAction = onAction,
+                            onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
+                            onMedia = onMedia,
+                            onRecordAudio = onRecordAudio,
+                        ) { items, button ->
+                            if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
+                                FlowRow(
+                                    Modifier
+                                        .weight(1f)
+                                        .heightIn(max = 144.dp)
+                                        .verticalScroll(rememberScrollState(), reverseScrolling = true)
+                                        .padding(horizontal = 8.dp)
+                                        .centerToolbarColumns(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalArrangement = ToolbarRowsFromBottom,
+                                ) { items.forEach { button(it) } }
+                            } else {
+                                // Only compose visible buttons during editor/IME startup. Stable keys
+                                // retain each button's tooltip state when a field changes its order.
+                                LazyRow(
+                                    state = toolbarScrollState,
+                                    modifier = Modifier.weight(1f).toolbarEndFade(toolbarScrollState, toolbarBackground),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                ) {
+                                    items(items, key = { it.key }) { button(it) }
+                                }
+                            }
                         }
-                        if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
-                            FlowRow(
-                                Modifier
-                                    .weight(1f)
-                                    .heightIn(max = 144.dp)
-                                    .verticalScroll(rememberScrollState(), reverseScrolling = true)
-                                    .padding(horizontal = 8.dp)
-                                    .centerToolbarColumns(),
-                                horizontalArrangement = Arrangement.Start,
-                                verticalArrangement = ToolbarRowsFromBottom,
-                            ) { buttons() }
-                        } else {
-                            Row(
-                                Modifier
-                                    .weight(1f)
-                                    .toolbarEndFade(toolbarScrollState, toolbarBackground)
-                                    .horizontalScroll(toolbarScrollState)
-                                    .padding(horizontal = 8.dp),
-                            ) { buttons() }
+                        if (editorState.toolbarDisplay == EditorToolbarDisplay.SCROLL) {
                             VerticalDivider(Modifier.height(32.dp))
                             EditorActionButton(
                                 R.drawable.ic_more_vertical,
@@ -575,7 +586,7 @@ private object ToolbarRowsFromBottom : Arrangement.Vertical {
 
 /** Fade clipped buttons into the solid toolbar surface without allocating an offscreen layer. */
 private fun Modifier.toolbarEndFade(
-    scrollState: ScrollState,
+    scrollState: LazyListState,
     background: Color,
 ): Modifier =
     drawWithCache {

@@ -13,6 +13,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.ColorUtils
@@ -493,6 +495,39 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun scrollToolbarFilledSingleRow() = captureToolbarRows(EditorToolbarDisplay.SCROLL, listOf(7), "toolbar_scroll_full_row")
+
+    @Test
+    fun scrollToolbarDefersOffscreenButtonsUntilScrolled() {
+        val actions = mutableListOf<WebEditorAction>()
+        showEditor(onAction = actions::add)
+        val bold = getResourceString(R.string.compose_editor_bold)
+        val equation = getResourceString(R.string.compose_editor_equations)
+        // Creating every offscreen button/tooltip competes with WebView and IME startup.
+        composeRule.onNodeWithContentDescription(bold).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(equation).assertDoesNotExist()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription(equation))
+        composeRule.onNodeWithContentDescription(equation).assertIsDisplayed().performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription(bold))
+        composeRule.onNodeWithContentDescription(bold).assertIsDisplayed().performClick()
+        assertEquals(listOf(WebEditorAction.MATHJAX_INLINE, WebEditorAction.BOLD), actions)
+    }
+
+    @Test
+    fun switchingFieldsShowsTheNewFieldsFirstToolbarButton() {
+        val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 0))
+        val equation = getResourceString(R.string.compose_editor_equations)
+        showEditor(
+            toolbar = EditorFieldToolbar(buttonOrder = listOf(EditorToolbarButton.EQUATIONS.name)),
+            focusState = focus,
+        )
+        composeRule.onNodeWithContentDescription(equation).assertDoesNotExist()
+        composeRule
+            .onNode(
+                hasScrollAction(),
+            ).performScrollToNode(hasContentDescription(getResourceString(CommonString.multimedia_editor_popup_audio)))
+        composeRule.runOnIdle { focus.value = focus.value.copy(activeField = 1) }
+        composeRule.onNodeWithContentDescription(equation).assertIsDisplayed()
+    }
 
     @Test
     fun stackedToolbarSingleRowUsesStartPadding() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(3), "toolbar_stack_single_row")
@@ -1072,11 +1107,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         onRemoveTag: (String) -> Unit = {},
         noteTypes: List<EditorChoice> = emptyList(),
         onType: (Long) -> Unit = {},
+        onAction: (WebEditorAction) -> Unit = {},
         snackbarHost: SnackbarHostState = SnackbarHostState(),
         toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
         textColor: String = "#000000",
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
+        focusState: State<EditorToolbarState>? = null,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1104,7 +1141,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                             )
                         },
                     toolbarState =
-                        remember {
+                        focusState ?: remember {
                             mutableStateOf(
                                 EditorToolbarState(hasSelection = true, activeField = 1, activeFormats = formats, sourceMode = sourceMode),
                             )
@@ -1123,7 +1160,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onRemoveTag = onRemoveTag,
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
-                    onAction = {},
+                    onAction = onAction,
                     onMedia = {},
                     onAttachMedia = {},
                     onLegacy = {},

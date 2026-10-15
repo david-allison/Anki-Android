@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -84,19 +85,22 @@ internal fun EditorFormattingButtons(
     onCustomAction: (EditorCustomToolbarButton) -> Unit,
     onMedia: () -> Unit,
     onRecordAudio: () -> Unit,
+    content: @Composable (List<EditorToolbarItem>, @Composable (EditorToolbarItem) -> Unit) -> Unit = { items, button ->
+        items.forEach { button(it) }
+    },
 ) {
+    val items = remember(toolbar, isCloze) { toolbar.orderedItems().filter { it.appliesTo(isCloze) && toolbar.isEnabled(it) } }
     val formatEnabled = enabled && state.hasSelection && !state.composing
-    toolbar.orderedItems().filter { it.appliesTo(isCloze) }.forEach { item ->
+    content(items) button@{ item ->
         if (item is EditorToolbarItem.Custom) {
             EditorTooltip(item.button.label) {
                 TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
                     Text(item.button.label, Modifier.widthIn(max = 60.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            return@forEach
+            return@button
         }
         val button = (item as EditorToolbarItem.Builtin).button
-        if (button.name in toolbar.hiddenButtons) return@forEach
         val actionEnabled =
             if (button == EditorToolbarButton.SOURCE_MODE) {
                 enabled && state.hasSelection
