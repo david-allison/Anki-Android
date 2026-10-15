@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
@@ -51,6 +52,8 @@ import com.ichi2.anki.multimedia.MultimediaActivity
 import com.ichi2.anki.multimedia.MultimediaActivityExtra
 import com.ichi2.anki.multimedia.MultimediaArgsStorage
 import com.ichi2.anki.multimedia.MultimediaBottomSheet
+import com.ichi2.anki.multimedia.MultimediaResultContract
+import com.ichi2.anki.multimediacard.fields.AudioRecordingField
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewFragment
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
@@ -219,6 +222,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val device = UiDevice.getInstance(instrumentation)
 
                 fun openSheet(quickAction: Boolean = false) {
+                    device.waitForIdle()
                     if (quickAction) {
                         assertEquals(
                             listOf("pin", "attachMedia"),
@@ -258,6 +262,100 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
         } finally {
             instrumentation.removeMonitor(monitor)
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26) // Intercept activity launches without requesting microphone access.
+    fun recordingReleasesWebViewFocusAndPreservesItsSelection() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val editor = AtomicReference<WebEditorView>()
+        val focusedAtLaunch = CopyOnWriteArrayList<Boolean>()
+        val recording = File(testContext.cacheDir, "selection-recording.wav").apply { writeBytes(ByteArray(44)) }
+        val monitor =
+            object : Instrumentation.ActivityMonitor() {
+                override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                    if (intent.component?.className != MultimediaActivity::class.java.name) return null
+                    val file = checkNotNull(intent.getSerializableExtraCompat<File>(MultimediaActivity.EXTRA_FRAGMENT_ARGS))
+                    val destination = MultimediaArgsStorage.create(testContext).read(file)
+                    file.delete()
+                    assertEquals(1, destination.index)
+                    focusedAtLaunch.add(editor.get().hasFocus())
+                    if (focusedAtLaunch.size != 2) return Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null)
+                    return Instrumentation.ActivityResult(
+                        Activity.RESULT_OK,
+                        Intent()
+                            .putExtra(MultimediaResultContract.EXTRA_FIELD_INDEX, destination.index)
+                            .putExtra(MultimediaResultContract.EXTRA_FIELD, AudioRecordingField().apply { mediaFile = recording }),
+                    )
+                }
+            }
+        instrumentation.addMonitor(monitor)
+        try {
+            withEditor { scenario ->
+                val web = scenario.awaitEditor().also(editor::set)
+                web.setField(0, "Front remains unchanged")
+                web.setField(1, "Before middle after")
+                val state = scenario.editorState()
+                val model = scenario.editorModel()
+                runBlocking {
+                    withContext(Dispatchers.Main) {
+                        model.setFieldToolbar(
+                            EditorFieldTarget(state.sessionId, state.generation, 1),
+                            EditorFieldToolbar(buttonOrder = listOf(EditorToolbarButton.RECORD_AUDIO.name)),
+                        )
+                    }
+                    web.focusField(1)
+                }
+                web.evaluate(
+                    """
+                    (() => {
+                        const field = ${richField(1)};
+                        const text = field.firstChild;
+                        field.getRootNode().getSelection().setBaseAndExtent(text, 7, text, 13);
+                    })()
+                    """.trimIndent(),
+                )
+                waitUntil(message = { "The field keyboard did not open" }) { scenario.keyboardVisible() }
+                val target = assertNotNull(runBlocking { web.captureTarget() })
+                val device = UiDevice.getInstance(instrumentation)
+                val microphone = By.desc(testContext.getString(CommonString.multimedia_editor_popup_audio))
+                checkNotNull(device.wait(Until.findObject(microphone), 5_000)).click()
+                waitUntil(message = { "The recorder was not opened" }) { focusedAtLaunch.isNotEmpty() }
+                assertFalse(focusedAtLaunch.first(), "Release native cursor handles before the activity transition starts")
+                waitUntil(message = { "Cancelling the recorder did not restore the keyboard" }) { scenario.keyboardVisible() }
+                assertEquals(target, runBlocking { web.captureTarget() }, "Cancelling must preserve the selected text")
+                assertEquals(listOf("Front remains unchanged", "Before middle after"), runBlocking { web.snapshot().fields })
+
+                device.pressBack()
+                waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
+                checkNotNull(device.wait(Until.findObject(microphone), 5_000)).click()
+                waitUntil(message = { "The recording did not replace the captured selection" }) {
+                    runBlocking { web.snapshot().fields } ==
+                        listOf("Front remains unchanged", "Before [sound:selection-recording.wav] after")
+                }
+                assertEquals(listOf(false, false), focusedAtLaunch)
+                waitUntil(message = { "A returned recording opened the previously closed keyboard" }) { !scenario.keyboardVisible() }
+
+                web.setField(1, "")
+                runBlocking {
+                    web.focusField(1)
+                    assertTrue(web.execute(WebEditorAction.BOLD, web.captureTarget()))
+                }
+                waitUntil(message = { "The field keyboard did not reopen" }) { scenario.keyboardVisible() }
+                checkNotNull(device.wait(Until.findObject(microphone), 5_000)).click()
+                waitUntil(message = { "The recorder did not open again" }) { focusedAtLaunch.size == 3 }
+                waitUntil(message = { "Cancelling the recorder did not restore keyboard focus" }) {
+                    var focused = false
+                    scenario.onActivity { focused = web.hasFocus() }
+                    focused && scenario.keyboardVisible()
+                }
+                device.pressKeyCode(KeyEvent.KEYCODE_B)
+                web.awaitJavascript("${richField(1)}.querySelector('b,strong')?.textContent.toLowerCase() === 'b'")
+            }
+        } finally {
+            instrumentation.removeMonitor(monitor)
+            recording.delete()
         }
     }
 
@@ -2096,6 +2194,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 """.trimIndent(),
             )
         }
+    }
+
+    private fun ActivityScenario<ComposeNoteEditorActivity>.keyboardVisible(): Boolean {
+        var visible = false
+        onActivity {
+            visible = ViewCompat.getRootWindowInsets(it.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+        return visible
     }
 
     private fun ActivityScenario<ComposeNoteEditorActivity>.editorModel(): EditorViewModel {

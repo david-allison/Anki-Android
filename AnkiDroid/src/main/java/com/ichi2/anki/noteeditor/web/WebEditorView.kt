@@ -11,6 +11,7 @@ import android.os.LocaleList
 import android.util.Base64
 import android.util.TypedValue
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
@@ -23,6 +24,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.unit.TextUnit
 import androidx.core.content.getSystemService
 import androidx.core.view.SoftwareKeyboardControllerCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -290,6 +293,47 @@ class WebEditorView(
             requestFocus()
             request("focusField", JSONObject().put("index", index).put("highlightError", highlightError))
             SoftwareKeyboardControllerCompat(this@WebEditorView).show()
+        }
+    }
+
+    val keyboardVisible: Boolean
+        get() = ViewCompat.getRootWindowInsets(this)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
+    suspend fun captureFocus(): WebEditorFocusState {
+        val visible = keyboardVisible
+        return WebEditorFocusState(captureTarget(), visible)
+    }
+
+    /** Return to a bookmarked selection, or retain the caret left by an applied command. */
+    suspend fun restoreFocus(
+        target: WebEditorTarget? = null,
+        showKeyboard: Boolean,
+    ) {
+        withContext(Dispatchers.Main.immediate) {
+            // onDismiss/onActivityResult can run while the other window still owns the IME.
+            if (!hasWindowFocus()) {
+                suspendCancellableCoroutine { continuation ->
+                    val observer = viewTreeObserver
+                    val listener =
+                        object : ViewTreeObserver.OnWindowFocusChangeListener {
+                            override fun onWindowFocusChanged(hasFocus: Boolean) {
+                                if (!hasFocus) return
+                                observer.removeOnWindowFocusChangeListener(this)
+                                continuation.resume(Unit)
+                            }
+                        }
+                    observer.addOnWindowFocusChangeListener(listener)
+                    continuation.invokeOnCancellation {
+                        if (observer.isAlive) observer.removeOnWindowFocusChangeListener(listener)
+                    }
+                }
+            }
+            // Anki's selectionText validates and restores the bookmark without changing the HTML.
+            if (target != null && selectionText(target) == null) return@withContext
+            requestFocus()
+            SoftwareKeyboardControllerCompat(this@WebEditorView).run {
+                if (showKeyboard) show() else hide()
+            }
         }
     }
 
