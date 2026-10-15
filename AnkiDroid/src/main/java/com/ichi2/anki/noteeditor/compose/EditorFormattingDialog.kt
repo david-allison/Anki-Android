@@ -3,6 +3,11 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.os.Parcelable
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.TextView
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,12 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.widget.TextViewCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
@@ -48,6 +55,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.ui.windows.reviewer.whiteboard.showColorPickerDialog
+import com.ichi2.anki.utils.ext.setCompoundDrawablesRelativeWithIntrinsicBoundsKt
 import com.ichi2.anki.utils.openUrl
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
@@ -69,14 +77,20 @@ private val equationKinds =
         WebEditorAction.MATHJAX_CHEMISTRY to R.string.compose_editor_math_chemistry,
     )
 
+private data class AlignmentAction(
+    val command: WebEditorAction,
+    @DrawableRes val icon: Int,
+    val label: () -> String,
+)
+
 private val alignments =
     listOf(
-        WebEditorAction.ALIGN_LEFT to { TR.editingAlignLeft() },
-        WebEditorAction.ALIGN_CENTER to { TR.editingCenter() },
-        WebEditorAction.ALIGN_RIGHT to { TR.editingAlignRight() },
-        WebEditorAction.ALIGN_JUSTIFY to { TR.editingJustify() },
-        WebEditorAction.INDENT to { TR.editingIndent() },
-        WebEditorAction.OUTDENT to { TR.editingOutdent() },
+        AlignmentAction(WebEditorAction.ALIGN_LEFT, R.drawable.ic_editor_format_align_left) { TR.editingAlignLeft() },
+        AlignmentAction(WebEditorAction.ALIGN_CENTER, R.drawable.ic_editor_format_align_center) { TR.editingCenter() },
+        AlignmentAction(WebEditorAction.ALIGN_RIGHT, R.drawable.ic_editor_format_align_right) { TR.editingAlignRight() },
+        AlignmentAction(WebEditorAction.ALIGN_JUSTIFY, R.drawable.ic_editor_format_align_justify) { TR.editingJustify() },
+        AlignmentAction(WebEditorAction.INDENT, R.drawable.ic_editor_format_indent_increase) { TR.editingIndent() },
+        AlignmentAction(WebEditorAction.OUTDENT, R.drawable.ic_editor_format_indent_decrease) { TR.editingOutdent() },
     )
 
 internal val editorRemovableFormats =
@@ -100,16 +114,35 @@ internal fun EditorFormattingDialog(
 ) {
     if (request.action == WebEditorAction.ALIGN_LEFT) {
         val context = LocalContext.current
+        val iconPadding = with(LocalDensity.current) { 16.dp.roundToPx() }
         val dismiss by rememberUpdatedState(onDismiss)
         val apply by rememberUpdatedState(onApply)
-        DisposableEffect(context, request) {
+        DisposableEffect(context, request, iconPadding) {
             var applied = false
+            val builder = MaterialAlertDialogBuilder(context)
+            val adapter =
+                object : ArrayAdapter<String>(
+                    builder.context,
+                    com.google.android.material.R.layout.mtrl_alert_select_dialog_item,
+                    alignments.map { it.label() },
+                ) {
+                    override fun getView(
+                        position: Int,
+                        convertView: View?,
+                        parent: ViewGroup,
+                    ): View =
+                        (super.getView(position, convertView, parent) as TextView).apply {
+                            setCompoundDrawablesRelativeWithIntrinsicBoundsKt(start = alignments[position].icon)
+                            compoundDrawablePadding = iconPadding
+                            TextViewCompat.setCompoundDrawableTintList(this, textColors)
+                        }
+                }
             val dialog =
-                MaterialAlertDialogBuilder(context)
+                builder
                     .setTitle(R.string.compose_editor_alignment)
-                    .setItems(alignments.map { it.second() }.toTypedArray()) { _, index ->
+                    .setAdapter(adapter) { _, index ->
                         applied = true
-                        apply(alignments[index].first, "")
+                        apply(alignments[index].command, "")
                     }.setNegativeButton(CommonString.dialog_cancel, null)
                     .create()
             dialog.setOnDismissListener { if (!applied) dismiss() }
