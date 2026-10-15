@@ -849,6 +849,7 @@ private fun FieldOptionsHelp(
         focusable = false,
         tooltip = {
             RichTooltip(
+                modifier = Modifier.heightIn(max = 480.dp),
                 caretShape = TooltipDefaults.caretShape(),
                 // The XML themes use a translucent surfaceContainer overlay; a popup needs an opaque background.
                 colors =
@@ -858,7 +859,7 @@ private fun FieldOptionsHelp(
             ) {
                 Column(
                     // Add to RichTooltip's 16.dp horizontal / 4.dp vertical padding for 24.dp on every side.
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 20.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 20.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
                     Text(
@@ -891,6 +892,20 @@ private fun FieldOptionsHelp(
                             Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.titleSmall)
                         }
                         Text(stringResource(R.string.compose_editor_language_hint_summary))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(painterResource(R.drawable.ic_touch), contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text(stringResource(R.string.compose_editor_quick_actions), style = MaterialTheme.typography.titleSmall)
+                        }
+                        Text(stringResource(R.string.compose_editor_quick_actions_help))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(painterResource(R.drawable.ic_toolbar), contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text(stringResource(R.string.compose_editor_toolbar), style = MaterialTheme.typography.titleSmall)
+                        }
+                        Text(stringResource(R.string.compose_editor_toolbar_help))
                     }
                 }
             }
