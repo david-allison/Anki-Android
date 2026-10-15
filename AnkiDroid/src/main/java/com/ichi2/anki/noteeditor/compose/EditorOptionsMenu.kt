@@ -9,6 +9,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.ichi2.anki.CommonString
@@ -91,10 +93,14 @@ internal fun EditorOptionsMenu(
                 expanded = false
                 showToolbarDisplay = true
             })
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_custom_buttons)) }, onClick = {
-                expanded = false
-                onCustomButtons()
-            })
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.compose_editor_custom_buttons)) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_widgets), null) },
+                onClick = {
+                    expanded = false
+                    onCustomButtons()
+                },
+            )
             if (toolbarDisplay != EditorToolbarDisplay.SCROLL) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.compose_editor_field_options)) },
