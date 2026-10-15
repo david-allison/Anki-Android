@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -506,7 +507,12 @@ private fun EditorFieldArea(
             if (!showFieldOptions) {
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 if (editorState.toolbarDisplay != EditorToolbarDisplay.HIDDEN) {
-                    Row(Modifier.fillMaxWidth().background(toolbarBackground), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        // The IME changes the screen height, not the toolbar's content height.
+                        // Keep those constraints out of button composition and measurement.
+                        Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).background(toolbarBackground),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         EditorFormattingButtons(
                             toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
                             state = toolbarState,
