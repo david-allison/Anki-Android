@@ -51,6 +51,10 @@ python3 tools/editor-startup-profile/keyboard.py capture \
   --output AnkiDroid/build/reports/compose-editor/keyboard-benchmark/run-1
 ```
 
+For a slow emulator, add `--settle-seconds 3` so the capture does not hide the
+keyboard before its opening animation finishes. This extends the observation
+window and trace duration; it does not change the measured timestamps or budgets.
+
 The output includes device/build/keyboard metadata, raw traces, individual samples
 and medians in `results.json`. Measurements distinguish:
 

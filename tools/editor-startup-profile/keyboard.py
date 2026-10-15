@@ -235,8 +235,9 @@ def capture(args):
         device.guard("com.ichi2.anki.DeckPicker")
         device.tap(add)  # Expand the FAB and allow its existing preload/animation.
         time.sleep(0.3)
+        duration = 12 + 2 * max(0, args.settle_seconds - 1.5)
         config = f'''buffers {{ size_kb: 131072 fill_policy: RING_BUFFER }}
-duration_ms: 12000
+duration_ms: {int(duration * 1000)}
 data_sources {{ config {{ name: "linux.ftrace" ftrace_config {{
  ftrace_events: "sched/sched_switch" ftrace_events: "sched/sched_waking"
  atrace_categories: "gfx" atrace_categories: "view" atrace_categories: "dalvik"
@@ -262,7 +263,7 @@ data_sources {{ config {{ name: "android.surfaceflinger.frametimeline" }} }}
                 raise RuntimeError("Keyboard already open before measured gesture")
             start = device.uptime_ns()
             device.tap(point)
-            time.sleep(1.5)
+            time.sleep(args.settle_seconds)
             device.guard(ACTIVITY)
             if not device.ime():
                 raise RuntimeError("Keyboard did not open; check field coordinates and editor preference")
@@ -273,7 +274,7 @@ data_sources {{ config {{ name: "android.surfaceflinger.frametimeline" }} }}
         device.guard(ACTIVITY)
         device.back()  # No typing/saving/discard confirmation is performed by this benchmark.
         device.guard("com.ichi2.anki.DeckPicker")
-        time.sleep(max(0, 13 - (time.monotonic() - started)))
+        time.sleep(max(0, duration + 1 - (time.monotonic() - started)))
         device.adb("pull", remote, str(args.output / trial["trace"]))
         device.shell("rm", remote, remote_config)
         manifest["trials"].append(trial)
@@ -292,12 +293,16 @@ def main():
     parser.add_argument("--package")
     parser.add_argument("--reopen-at", nargs=2, type=int, metavar=("X", "Y"))
     parser.add_argument("--iterations", type=int, default=5)
+    parser.add_argument("--settle-seconds", type=float, default=1.5,
+                        help="Time before hiding each keyboard; increase for slower emulators (1.5–10)")
     parser.add_argument("--max-first-ms", type=float)
     parser.add_argument("--max-missed-percent", type=float)
     args = parser.parse_args()
     if args.mode == "capture":
         if not all((args.serial, args.package, args.reopen_at)) or not 1 <= args.iterations <= 20:
             parser.error("capture requires serial, package, reopen-at and 1–20 iterations")
+        if not 1.5 <= args.settle_seconds <= 10:
+            parser.error("settle-seconds must be between 1.5 and 10")
         capture(args)
     else:
         analyze(args)
