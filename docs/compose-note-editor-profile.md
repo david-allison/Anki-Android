@@ -827,6 +827,62 @@ installed; no profiling hooks were added to production code.
 
 [Local captures, scripts, APKs and comparison JSON](../AnkiDroid/build/reports/compose-editor/keyboard-opening/).
 
+## First keyboard opening: 372 ms before motion, versus 117 ms reopening (15 October 2026)
+
+This is a measurement of the current debug build, **not a before/after fix**.
+The earlier hidden-sheet fix measured repeated openings after the editor had
+loaded. It did not cover the delay when entering a fresh editor.
+
+Pixel 9 Pro, Fields Probe, Basic with two empty fields, Gboard English, APK SHA-256
+`8f22b7e6346c9c813c7dead5e7d2bd044c585482c5e809f7da754d9410b43a8b`.
+Three complete paired samples from an already running app process:
+
+| Measurement | Fresh editor, automatic keyboard | Tap field to reopen |
+| --- | ---: | ---: |
+| Touch delivered to app → keyboard animation start, median | 372 ms | 117 ms |
+| IME service show call → animation start, median | 92 ms | 75 ms |
+| Keyboard animation, median | 298 ms | 300 ms |
+| Touch → animation end, median | 670 ms | 417 ms |
+| Longest main-thread frame before animation, median | 75 ms | 9 ms |
+| App deadlines missed during animation | 2 / 100 (2.0%) | 11 / 89 (12.4%) |
+
+The fresh-screen delay is real. Most of the extra delay precedes Gboard's show
+call: approximately 282 ms on entry versus 42 ms when reopening. The fresh
+editor's longest pre-animation frames were 83, 75 and 69 ms. In the 83 ms frame,
+`Recomposer:recompose` occupied 47 ms and the following traversal 36 ms. This
+identifies initial Compose work as one concrete bottleneck; it does not attribute
+all startup latency to Compose or prove which individual control is responsible.
+Gboard's show work also took longer on entry (51 ms median versus 31 ms).
+
+The fresh editor's keyboard animation itself was relatively smooth in this
+capture. Reopening had more missed animation deadlines despite its shorter
+initial delay. Latency and animation smoothness need separate regression metrics.
+These percentages are not directly comparable with the October 12 figures:
+those used gfxinfo over the whole opening/settling interval, whereas these count
+only editor FrameTimeline surface frames beginning during the IME animation.
+
+Four pairs were attempted. The first pair was overwritten by the original
+capture's ring buffer and is explicitly rejected; the table uses only the three
+complete pairs. The new benchmark records each pair separately. Touch timestamps
+come from the app's input-delivery trace events, excluding ADB command overhead.
+An earlier rough estimate of 440–450 ms included that overhead and is superseded
+by this table. Animation start/end are framework events, not physical display
+presentation or measurements of keypress acceptance. This is fresh-screen
+startup in a warm process, not first use after killing or installing the app.
+
+A repeatable opt-in performance test is now in
+[`tools/editor-startup-profile/keyboard.py`](../tools/editor-startup-profile/keyboard.py).
+It records fresh and reopened keyboards separately, preserves individual samples,
+rejects incomplete traces, and can fail against device-specific latency and
+missed-frame budgets. It introduces no production instrumentation or startup work.
+See [setup and commands](../tools/editor-startup-profile/README.md#first-keyboard-opening-benchmark).
+The parser, attribution, invalid-capture handling and budget gate have host tests;
+the capture path has also run on the API 34 emulator. Emulator timing is not used
+as evidence for Pixel performance. No phone settings or regular AnkiDroid data
+were changed.
+
+[Pixel trace and extracted measurements](../AnkiDroid/build/reports/compose-editor/keyboard-opening/fresh-20261015/).
+
 ## Per-field quick actions: first-load cost (12 October 2026)
 
 **Two fields: 24.0 ms before → 24.4 ms with Pin and Gallery enabled.**
