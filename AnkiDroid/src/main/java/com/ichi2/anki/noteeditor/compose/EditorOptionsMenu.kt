@@ -10,6 +10,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,12 +22,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 
 @Composable
@@ -76,7 +81,16 @@ internal fun EditorOptionsMenu(
         )
     }
     Box {
-        EditorActionButton(R.drawable.ic_settings_black, R.string.compose_editor_options, enabled) { expanded = true }
+        val context = LocalContext.current
+        val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
+        val label = stringResource(R.string.compose_editor_options)
+        EditorTooltip(label) {
+            IconButton(
+                onClick = { expanded = true },
+                enabled = enabled,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = controlColor),
+            ) { Icon(painterResource(R.drawable.ic_build_black_24), label) }
+        }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },

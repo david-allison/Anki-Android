@@ -1,11 +1,11 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 1 resolved.**
+Recorded 2026-10-15. **30 action items; 2 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Item 27 was approved and implemented; the other
-proposals remain open for review.
+accepted design decisions. Items 05 and 27 were approved and implemented; the
+other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
 are complete. A proposal can also be resolved by explicitly declining it; record
@@ -64,11 +64,13 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 ## Editor menu and toolbar presets
 
-- [ ] **05. Replace the top app-bar gear with a wrench.**
+- [x] **05. Replace the top app-bar gear with a wrench.**
 
-  **Assessment: low-value preference.** Wrench suggests tools; gear suggests
-  settings. The menu contains both. Clear destination names matter more than
-  the choice between these two symbols.
+  **Decision: implemented 2026-10-15.** The top app-bar options button now uses
+  the existing theme-tinted Material wrench icon. The options dropdown is
+  unchanged; replacing it with a bottom sheet remains item 06.
+  **Verification:** four light/dark screenshot cases pass, covering the app bar
+  and opening the options menu.
 
 - [ ] **06. Replace the options dropdown with a bottom sheet containing Template editor, Manage fields, Field options, and Manage toolbar presets.**
 
@@ -134,8 +136,9 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 ### What the proposed menu replaces
 
-The gear is in the top app bar beside Preview and Save. The proposal changes
-both its symbol and its dropdown into a bottom sheet.
+The options icon is in the top app bar beside Preview and Save. Its gear has
+been replaced with a wrench (05). Replacing the dropdown with a bottom sheet
+remains a separate proposal (06).
 
 | Proposed destination | Relationship to the current editor |
 | --- | --- |

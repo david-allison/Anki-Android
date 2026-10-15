@@ -59,6 +59,7 @@ import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.compose.theme.AnkiDroidTheme
 import com.ichi2.testutils.dispatchInsets
@@ -355,7 +356,19 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun selectedFormatting() {
-        showEditor(formats = setOf(WebEditorAction.BOLD, WebEditorAction.UNDERLINE))
+        val (activity, _) = showEditor(formats = setOf(WebEditorAction.BOLD, WebEditorAction.UNDERLINE))
+        val controlColor = getColorFromAttr(activity, android.R.attr.colorControlNormal)
+        val pixels =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_options),
+                ).captureToImage()
+                .toPixelMap()
+        val renderedColor = ColorUtils.compositeColors(controlColor, pixels[0, 0].toArgb())
+        assertTrue(
+            (0 until pixels.width).any { x -> (0 until pixels.height).any { y -> pixels[x, y].toArgb() == renderedColor } },
+            "The wrench must use the theme's colorControlNormal",
+        )
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsOn()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_italic)).assertIsOff()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_underline)).assertIsOn()
