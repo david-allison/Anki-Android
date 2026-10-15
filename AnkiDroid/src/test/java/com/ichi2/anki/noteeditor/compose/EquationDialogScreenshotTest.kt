@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import androidx.activity.compose.setContent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextReplacement
 import androidx.core.net.toUri
@@ -47,14 +49,15 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
         inline.assertIsOn()
         captureScreen("add_mathjax_equation")
 
-        block.performClick().assertIsOn()
+        // Capture selection states without Android ripples, which use a separate animation clock.
+        block.performSemanticsAction(SemanticsActions.OnClick).assertIsOn()
         inline.assertIsOff()
         chemistry.assertIsOff()
         captureScreen("add_mathjax_equation_block")
         // One format must remain selected, even when the active button is tapped again.
-        block.performClick().assertIsOn()
+        block.performSemanticsAction(SemanticsActions.OnClick).assertIsOn()
 
-        chemistry.performClick().assertIsOn()
+        chemistry.performSemanticsAction(SemanticsActions.OnClick).assertIsOn()
         block.assertIsOff()
         inline.assertIsOff()
         composeRule.onNodeWithText("x^2").assertIsDisplayed()

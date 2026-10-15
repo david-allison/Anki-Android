@@ -1,10 +1,11 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 0 resolved.**
+Recorded 2026-10-15. **30 action items; 1 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Only item 27 is approved for implementation now.
+accepted design decisions. Item 27 was approved and implemented; the other
+proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
 are complete. A proposal can also be resolved by explicitly declining it; record
@@ -239,13 +240,13 @@ exist; distinguish these settings from device-local presentation preferences.
   returning preserves the equation and editing context; moving the help is a
   usability decision rather than an automatic consequence of the guideline.
 
-- [ ] **27. Remove the decorative icon above the MathJax dialog title.**
+- [x] **27. Remove the decorative icon above the MathJax dialog title.**
 
-  **Decision: approved for implementation.** It duplicates the title's meaning
-  and consumes vertical space. Remove the top decoration while retaining the
-  MathJax toolbar action and the title's question-mark help button. Verify add,
-  edit, empty-preview, format-selection, and help behavior in light/dark dialog
-  tests.
+  **Decision: implemented 2026-10-15.** Removed the top decoration, which
+  duplicated the title's meaning and consumed vertical space. The MathJax
+  toolbar action and the title's question-mark help button remain.
+  **Verification:** all eight light/dark `EquationDialogScreenshotTest` cases
+  pass, covering add, edit, empty preview, format selection, and the manual link.
 
 - [ ] **28. Shorten the title to Add MathJax.**
 
