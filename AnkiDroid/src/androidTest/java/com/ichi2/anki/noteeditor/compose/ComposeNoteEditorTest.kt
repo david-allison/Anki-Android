@@ -800,7 +800,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             clickText(testContext.getString(R.string.compose_editor_quick_actions))
             device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
             clickText(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
-            device.findObjects(By.text(testContext.getString(CommonString.save))).last().click()
+            device.findObjects(By.desc(testContext.getString(CommonString.save))).last().click()
             waitUntil(message = { "Quick actions did not save for Back" }) {
                 scenario
                     .editorState()
@@ -906,7 +906,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 ).visibleCenter
             val destination = checkNotNull(device.findObject(By.text(testContext.getString(R.string.compose_editor_italic)))).visibleBounds
             assertTrue(device.swipe(handle.x, handle.y, handle.x, destination.bottom, 30))
-            device.findObjects(save).last().click()
+            device.findObjects(By.desc(testContext.getString(CommonString.save))).last().click()
             waitUntil(message = { "The field toolbar did not save" }) {
                 scenario
                     .editorState()

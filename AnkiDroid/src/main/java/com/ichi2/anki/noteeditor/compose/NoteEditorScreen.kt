@@ -353,19 +353,7 @@ fun NoteEditorScreen(
         }
         // The 40dp circle has another 4dp inside its touch target: align its visible edge at 16dp.
         Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 12.dp)) {
-            EditorTooltip(stringResource(CommonString.save)) {
-                FilledIconButton(
-                    onClick = onSave,
-                    enabled = enabled && state.removedFields.isEmpty(),
-                    colors =
-                        IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                ) {
-                    Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
-                }
-            }
+            EditorSaveButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty())
         }
     }
     if (state != null && enabled) {
@@ -797,6 +785,27 @@ internal fun EditorTooltip(
             focusable = false,
             content = content,
         )
+    }
+}
+
+@Composable
+internal fun EditorSaveButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    EditorTooltip(stringResource(CommonString.save), modifier) {
+        FilledIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            colors =
+                IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+        ) {
+            Icon(painterResource(R.drawable.ic_done_white), stringResource(CommonString.save))
+        }
     }
 }
 
