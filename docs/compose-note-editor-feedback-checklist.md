@@ -1,10 +1,10 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 2 resolved.**
+Recorded 2026-10-15. **30 action items; 4 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Items 05 and 27 were approved and implemented; the
+accepted design decisions. Items 05, 07, 09 and 27 are implemented; the
 other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
@@ -80,13 +80,17 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   See the menu mapping below: this replaces the whole top options menu, not just
   its toolbar configuration entry.
 
-- [ ] **07. Introduce reusable toolbar presets across fields and note types.**
+- [x] **07. Introduce reusable toolbar presets across fields and note types.**
 
-  **Assessment: strongly agree with reuse.** First consider one editable shared
-  default inherited by every field, with optional overrides. Named presets are
-  useful for several shared configurations, but should not force every user to
-  create and assign presets. Decide the inheritance model before building the
-  management UI.
+  **Decision: implemented 2026-10-15.** Unconfigured fields inherit an editable
+  shared Default. Named presets are references: edits update every field using
+  them across note types. Existing field-specific toolbars remain independent,
+  and “This field only” copies the current choices when leaving a preset.
+  Quick actions and Scroll/Stack/Hidden remain separate. Storage is local in
+  SharedPreferences, with a TODO to move it into the Anki collection.
+  **Verification:** storage and editor-state tests cover inheritance, existing
+  overrides, deletion fallback, custom buttons, stale field targets, and
+  preserving note content and the WebView document generation.
 
 - [ ] **08. Put the three toolbar layout choices above the preset list.**
 
@@ -95,11 +99,17 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   separate from the command list: a phone and tablet may need different layouts
   for the same buttons.
 
-- [ ] **09. Support adding, deleting, editing, and renaming presets, like Manage note types.**
+- [x] **09. Support adding, deleting, editing, and renaming presets, like Manage note types.**
 
-  **Assessment: agree if named presets are adopted.** Duplication would also be
-  useful. Show the scope of edits to a shared preset and define a predictable
-  fallback when an assigned preset is deleted.
+  **Decision: implemented with 07.** Manage toolbar presets opens from the
+  wrench menu; Toolbar buttons in field options also opens the preset chooser.
+  Presets can be added, duplicated, renamed, edited and deleted. The shared
+  Default can be edited or duplicated. Deleting a named preset requires
+  confirmation and returns its fields to Default. Editing explains its shared
+  scope; cancelling leaves the previous button choices intact.
+  **Verification:** interaction tests cover assignment, name validation,
+  cancellation, duplication, renaming and confirmed deletion. Light/dark
+  screenshots cover management, long field/type/preset names and editing.
 
 - [ ] **10. Include toolbar and quick-action commands in the preset editor, excluding Pin field and Edit HTML.**
 

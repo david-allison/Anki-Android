@@ -85,4 +85,19 @@
     <string name="compose_editor_quick_actions_help">Buttons beside the field. Tap once to activate.</string>
     <string name="compose_editor_toolbar_help">Enable, disable or reorder buttons, and add custom buttons.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>
+    <string name="compose_editor_toolbar_presets">Toolbar presets</string>
+    <string name="compose_editor_manage_toolbar_presets">Manage toolbar presets</string>
+    <string name="compose_editor_default_toolbar">Default</string>
+    <string name="compose_editor_field_only_toolbar">This field only</string>
+    <string name="compose_editor_preset_field">Toolbar for %1$s · %2$s</string>
+    <string name="compose_editor_preset_scope">Changes apply to every field using this preset.</string>
+    <string name="compose_editor_default_preset_scope">Used by fields without their own toolbar choice.</string>
+    <string name="compose_editor_add_preset">Add preset</string>
+    <string name="compose_editor_preset_name">Preset name</string>
+    <string name="compose_editor_preset_name_error">Choose a different name.</string>
+    <string name="compose_editor_edit_preset">Edit %s</string>
+    <string name="compose_editor_preset_options">Options for %s</string>
+    <string name="compose_editor_duplicate_preset">Duplicate</string>
+    <string name="compose_editor_delete_preset">Delete preset</string>
+    <string name="compose_editor_delete_preset_message">Fields using %s will use Default instead.</string>
 </resources>

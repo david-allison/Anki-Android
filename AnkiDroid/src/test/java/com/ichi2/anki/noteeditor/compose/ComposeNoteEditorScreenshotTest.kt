@@ -501,6 +501,58 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarPresetsOpen() {
+        val (activity, _) = showEditor(presets = samplePresets())
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_presets)).assertIsDisplayed()
+        composeRule.mainClock.advanceTimeBy(300)
+        settleMenuTransition(activity)
+        captureScreen("toolbar_presets")
+    }
+
+    @Test
+    fun fieldToolbarPresetChoices() {
+        showEditor(
+            fieldName = "A very long field name for additional information",
+            noteTypeName = "A very long shared note type name",
+            presets = samplePresets(),
+        )
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).assertIsSelected()
+        captureScreen("field_toolbar_presets")
+    }
+
+    @Test
+    fun sharedToolbarPresetEditing() {
+        showEditor()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).assertIsDisplayed()
+        val scope = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).fetchSemanticsNode().boundsInWindow
+        val custom =
+            composeRule
+                .onNodeWithText(
+                    getResourceString(R.string.compose_editor_custom_buttons),
+                ).fetchSemanticsNode()
+                .boundsInWindow
+        assertTrue(scope.bottom <= custom.top, "The shared-scope description must not overlap the custom button action")
+        captureScreen("shared_toolbar_preset_editing")
+    }
+
+    @Test
     fun toolbarConfigurationOpen() {
         val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
         showEditor(
@@ -512,6 +564,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         )
         fieldOptionsButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
+            ).performClick()
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
         bold.assertIsSelected()
@@ -569,6 +625,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
         fieldOptionsButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
+            ).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
         captureScreen("toolbar_configuration_none_active")
@@ -1258,6 +1318,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureScreen(name)
     }
 
+    private fun samplePresets() =
+        listOf(
+            EditorToolbarPreset(id = EditorToolbarPreset.DEFAULT_ID, name = ""),
+            EditorToolbarPreset(name = "Language learning"),
+            EditorToolbarPreset(name = "Science with equations and additional formatting for long notes"),
+        )
+
     private fun showEditor(
         fieldName: String = "Back",
         noteTypeName: String = "Basic",
@@ -1280,6 +1347,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         headerVisibility: Flow<Boolean> = emptyFlow(),
         focusState: State<EditorToolbarState>? = null,
         pinned: Boolean = true,
+        presets: List<EditorToolbarPreset>? = null,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1295,12 +1363,24 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                 toolbarTextColor = textColor,
                                 toolbarHighlightColor = highlightColor,
                                 customButtonTemplates = currentTemplates.value,
+                                toolbarPresets = presets ?: state.toolbarPresets,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
                                         if (index ==
                                             1
                                         ) {
-                                            field.copy(toolbar = toolbar, sticky = pinned)
+                                            field.copy(
+                                                toolbar = toolbar,
+                                                sticky = pinned,
+                                                toolbarPresetId =
+                                                    if (toolbar ==
+                                                        EditorFieldToolbar()
+                                                    ) {
+                                                        EditorToolbarPreset.DEFAULT_ID
+                                                    } else {
+                                                        null
+                                                    },
+                                            )
                                         } else {
                                             field
                                         }

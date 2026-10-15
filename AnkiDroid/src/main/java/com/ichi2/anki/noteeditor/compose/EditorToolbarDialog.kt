@@ -58,6 +58,8 @@ internal fun EditorToolbarDialog(
     onCustomButtons: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (EditorFieldToolbar) -> Unit,
+    title: String? = null,
+    subtitle: String? = null,
 ) {
     var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     // The shared library can change while this dialog stays open. Resolve its latest
@@ -75,7 +77,13 @@ internal fun EditorToolbarDialog(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.compose_editor_toolbar)) },
+                    title = {
+                        Text(
+                            title ?: stringResource(R.string.compose_editor_toolbar),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
@@ -94,10 +102,13 @@ internal fun EditorToolbarDialog(
                 canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
-                    TextButton(onClick = onCustomButtons) {
-                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.compose_editor_custom_buttons))
+                    Column {
+                        subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
+                        TextButton(onClick = onCustomButtons) {
+                            Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.compose_editor_custom_buttons))
+                        }
                     }
                 },
             ) { key, index, dragging, startDrag, move ->
