@@ -949,6 +949,53 @@ toolbar tooltip/order checks and all eleven benchmark/parser host tests pass.
 
 [Local APKs, traces, and every comparison sample](../AnkiDroid/build/reports/compose-editor/keyboard-lazy-toolbar/).
 
+## Initial focus updates: 466 → 448 ms before keyboard motion (15 October 2026)
+
+**In a new alternating comparison, fresh-editor latency falls 466 → 448 ms
+and animation misses fall 4.6% → 1.0%. The remaining startup delay is not resolved.**
+The baseline here already includes the lazy toolbar and stable height above;
+these are a separate set of runs, not an end-to-end comparison with the original APK.
+
+The session already waited for draft persistence and initial focus before enabling
+native controls. However, selection events from inside `focusField()` published
+toolbar state before its bridge response returned and before the native keyboard
+show request. Those events could schedule a competing Compose frame. The session
+now retains the latest toolbar state while initializing and publishes it alongside
+readiness after focus completes. Ready editors still publish changes immediately.
+Content revision tracking and preview invalidation continue during initialization.
+
+Pixel 9 Pro, isolated debug Fields Probe, unchanged phone settings. Alternating
+baseline/candidate/baseline/candidate installations, three fresh/reopen pairs in
+each batch: six pairs per APK. Each installation restarts the app process.
+
+| Measurement | Previous optimized build | Focus updates combined |
+| --- | ---: | ---: |
+| All fresh editors: touch → keyboard motion, median | 466 ms | 448 ms |
+| First editor after installation, median (2 each) | 832 ms | 758 ms |
+| Subsequent fresh editors, median (4 each) | 441 ms | 422 ms |
+| Fresh editor: longest preparation frame, median | 103 ms | 98 ms |
+| Fresh editor: app deadlines missed during IME animation | 9 / 196 (4.6%) | 2 / 200 (1.0%) |
+| Reopen: touch → keyboard motion, median | 115 ms | 107 ms |
+| Reopen: app deadlines missed during IME animation | 21 / 157 (13.4%) | 16 / 159 (10.1%) |
+
+Both candidate batches recorded one missed fresh-opening frame. Later fresh
+editor samples were 472/422 and 461/415 ms before, versus 465/403 and 431/412 ms
+after. This is a small sample and a modest improvement, not evidence of a large
+startup gain. First-use estimates have only two samples each; reopened-keyboard
+timings remain variable. The keyboard's approximately 300 ms animation is extra.
+The 400 ms experimental startup budget remains unmet.
+
+The regression failed before the change and now verifies that selection updates
+wait for initial focus, that the latest state is published at readiness, and that
+subsequent focus changes publish immediately. Both session tests pass. Emulator
+integration tests pass for Bold/keyboard behavior and complete draft restoration
+after recreation. No screenshot changes are expected from this scheduling change.
+
+Baseline APK SHA-256: `b232cb94930aeaef6fa3812fb593175dcc3c2f9623785ce91c16d701d066805e`.
+Installed candidate SHA-256: `7148050114aa40b35026080eced5f7b260e1c4949c7045e13c8440307f0fa808`.
+
+[APKs, individual traces, comparison JSON and test logs](../AnkiDroid/build/reports/compose-editor/keyboard-focus-coalescing/).
+
 ## Per-field quick actions: first-load cost (12 October 2026)
 
 **Two fields: 24.0 ms before → 24.4 ms with Pin and Gallery enabled.**
