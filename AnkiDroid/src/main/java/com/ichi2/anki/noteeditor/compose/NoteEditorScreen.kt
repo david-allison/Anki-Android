@@ -97,6 +97,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -114,6 +115,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewDialog
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -708,6 +710,8 @@ private fun EditorFieldOptions(
     onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Row(
@@ -726,9 +730,13 @@ private fun EditorFieldOptions(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            FieldOptionsHelp(field.name, noteTypeName)
+            FieldOptionsHelp(field.name, noteTypeName, controlColor)
             IconButton(onClick = onCollapse) {
-                Icon(painterResource(R.drawable.ic_clear_white), stringResource(R.string.compose_editor_close_field_options))
+                Icon(
+                    painterResource(R.drawable.ic_clear_white),
+                    stringResource(R.string.compose_editor_close_field_options),
+                    tint = controlColor,
+                )
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
@@ -760,6 +768,7 @@ private fun EditorFieldOptions(
                                 painterResource(R.drawable.ic_baseline_push_pin_24),
                                 stringResource(R.string.compose_editor_pin_field),
                                 modifier = Modifier.size(24.dp),
+                                tint = controlColor,
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.labelLarge)
@@ -785,6 +794,7 @@ private fun EditorFieldOptions(
                                 painterResource(R.drawable.ic_language_black_24dp),
                                 stringResource(R.string.compose_editor_language_hint),
                                 modifier = Modifier.size(24.dp),
+                                tint = controlColor,
                             )
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
@@ -808,6 +818,7 @@ private fun EditorFieldOptions(
             icon = R.drawable.ic_touch,
             title = R.string.compose_editor_quick_actions,
             summary = R.string.compose_editor_quick_actions_summary,
+            iconTint = controlColor,
             enabled = enabled,
             onClick = onQuickActions,
         )
@@ -815,6 +826,7 @@ private fun EditorFieldOptions(
             icon = R.drawable.ic_toolbar,
             title = R.string.compose_editor_toolbar,
             summary = R.string.compose_editor_toolbar_summary,
+            iconTint = controlColor,
             enabled = enabled,
             onClick = onToolbar,
         )
@@ -826,6 +838,7 @@ private fun EditorFieldOptionsLink(
     icon: Int,
     title: Int,
     summary: Int,
+    iconTint: Color,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
@@ -837,8 +850,8 @@ private fun EditorFieldOptionsLink(
                 .padding(horizontal = 8.dp)
                 .clip(MaterialTheme.shapes.medium),
         supportingContent = { Text(stringResource(summary)) },
-        leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp)) },
-        trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp)) },
+        leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp), tint = iconTint) },
+        trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp), tint = iconTint) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     ) { Text(stringResource(title)) }
 }
@@ -848,6 +861,7 @@ private fun EditorFieldOptionsLink(
 private fun FieldOptionsHelp(
     fieldName: String,
     noteTypeName: String,
+    iconTint: Color,
 ) {
     val state = rememberTooltipState(isPersistent = true)
     val scope = rememberCoroutineScope()
@@ -923,7 +937,11 @@ private fun FieldOptionsHelp(
         IconButton(onClick = {
             if (state.isVisible) state.dismiss() else scope.launch { state.show() }
         }) {
-            Icon(painterResource(R.drawable.ic_outline_info_24), stringResource(R.string.compose_editor_field_options_help))
+            Icon(
+                painterResource(R.drawable.ic_outline_info_24),
+                stringResource(R.string.compose_editor_field_options_help),
+                tint = iconTint,
+            )
         }
     }
 }
