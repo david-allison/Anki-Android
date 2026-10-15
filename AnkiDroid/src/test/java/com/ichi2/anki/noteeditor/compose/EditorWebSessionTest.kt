@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.ioDispatcher
@@ -14,6 +15,7 @@ import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.testutils.JvmTest
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -50,6 +52,7 @@ class EditorWebSessionTest : JvmTest() {
                     )
                 val draft = WebEditorDraft(document, current.fields.map { it.html }, model.hostState())
                 val restored = mockk<WebEditorView>(relaxed = true)
+                every { restored.context } returns ApplicationProvider.getApplicationContext()
                 coEvery { restored.restoreDraft(model.draftId) } returns draft
                 session.attach(restored)
                 runCurrent()
@@ -60,6 +63,7 @@ class EditorWebSessionTest : JvmTest() {
                 session.detach()
 
                 val older = mockk<WebEditorView>(relaxed = true)
+                every { older.context } returns ApplicationProvider.getApplicationContext()
                 coEvery { older.restoreDraft(model.draftId) } returns
                     draft.copy(
                         document = document.copy(settings = current.settings.copy(shrinkImages = !current.settings.shrinkImages)),
@@ -83,6 +87,7 @@ class EditorWebSessionTest : JvmTest() {
             val store = ViewModelStore().apply { put("editor", model) }
             model.load(NoteEditorFragment.addNoteArgs())
             val web = mockk<WebEditorView>(relaxed = true)
+            every { web.context } returns ApplicationProvider.getApplicationContext()
             val focus = CompletableDeferred<Unit>()
             coEvery { web.focusField(any()) } coAnswers { focus.await() }
             val writes = ArrayDeque<Runnable>()
