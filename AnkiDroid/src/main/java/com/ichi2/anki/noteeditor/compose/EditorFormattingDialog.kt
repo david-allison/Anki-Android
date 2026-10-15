@@ -148,8 +148,7 @@ internal fun EditorFormattingDialog(
                     when {
                         removing -> R.string.compose_editor_remove_format
                         alignment -> R.string.compose_editor_alignment
-                        request.editingEquation -> R.string.compose_editor_edit_equation
-                        else -> R.string.compose_editor_add_equation
+                        else -> R.string.compose_editor_mathjax_equation
                     },
                 )
             if (equation) {
