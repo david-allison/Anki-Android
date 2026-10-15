@@ -537,6 +537,26 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun quickActionsConfigurationWithNoneActive() {
+        showEditor(toolbar = EditorFieldToolbar(quickActions = emptyList()))
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
+        captureScreen("quick_actions_configuration_none_active")
+    }
+
+    @Test
+    fun toolbarConfigurationWithNoneActive() {
+        showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
+        captureScreen("toolbar_configuration_none_active")
+    }
+
+    @Test
     fun customButtonLibraryOpen() {
         val (activity, _) =
             showEditor(

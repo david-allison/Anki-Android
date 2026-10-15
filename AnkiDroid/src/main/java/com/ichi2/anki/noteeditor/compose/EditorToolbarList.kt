@@ -3,6 +3,10 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.getValue
@@ -14,23 +18,40 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ichi2.anki.CommonString
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 
 /** The same handle dragging, item animation and edge scrolling as Manage columns, with Compose rows. */
 @Composable
 internal fun EditorToolbarList(
     items: List<String>,
+    activeCount: Int,
     onMove: (String, String) -> Unit,
     canMove: (String, String) -> Boolean = { _, _ -> true },
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit,
     row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) {
+    val entries =
+        buildList {
+            add(ToolbarListEntry.Header)
+            add(ToolbarListEntry.Section(CommonString.user_active_columns))
+            addAll(items.take(activeCount).map { ToolbarListEntry.Button(it) })
+            add(ToolbarListEntry.Section(CommonString.user_potential_columns))
+            addAll(items.drop(activeCount).map { ToolbarListEntry.Button(it) })
+        }
     val composition = rememberCompositionContext()
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
@@ -46,7 +67,7 @@ internal fun EditorToolbarList(
                 layoutManager = manager
                 val buttons =
                     EditorToolbarAdapter(
-                        items,
+                        entries,
                         composition,
                         onMove = { from, to -> currentMove(from, to) },
                         canMove = { from, to -> currentCanMove(from, to) },
@@ -73,7 +94,7 @@ internal fun EditorToolbarList(
                 )
             }
         },
-        update = { list -> (list.adapter as EditorToolbarAdapter).updateItems(items) },
+        update = { list -> (list.adapter as EditorToolbarAdapter).updateItems(entries) },
         onRelease = { list ->
             (list.adapter as EditorToolbarAdapter).touchHelper.attachToRecyclerView(null)
             list.adapter = null
@@ -81,15 +102,38 @@ internal fun EditorToolbarList(
     )
 }
 
+private sealed interface ToolbarListEntry {
+    data object Header : ToolbarListEntry
+
+    data class Section(
+        val label: Int,
+    ) : ToolbarListEntry
+
+    data class Button(
+        val key: String,
+    ) : ToolbarListEntry
+}
+
+/** Match the Manage columns headings, including their theme-specific accent colour. */
+@Composable
+private fun ToolbarSectionHeading(label: Int) {
+    Text(
+        stringResource(label),
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 24.dp, bottom = 8.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleSmall,
+        color = Color(getColorFromAttr(LocalContext.current, androidx.preference.R.attr.preferenceCategoryTitleTextColor)),
+    )
+}
+
 private class EditorToolbarAdapter(
-    initialItems: List<String>,
+    initialItems: List<ToolbarListEntry>,
     private val composition: CompositionContext,
     private val onMove: (String, String) -> Unit,
     private val canMove: (String, String) -> Boolean,
     private val header: @Composable () -> Unit,
     private val row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) : RecyclerView.Adapter<EditorToolbarAdapter.Holder>() {
-    private val items = mutableStateListOf<String>().apply { addAll(initialItems) }
+    private val items = mutableStateListOf<ToolbarListEntry>().apply { addAll(initialItems) }
     private var draggingKey by mutableStateOf<String?>(null)
     val touchHelper =
         ItemTouchHelper(
@@ -97,30 +141,35 @@ private class EditorToolbarAdapter(
                 override fun getDragDirs(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder,
-                ): Int = if (viewHolder.bindingAdapterPosition > 0) super.getDragDirs(recyclerView, viewHolder) else 0
+                ): Int =
+                    if (items.getOrNull(viewHolder.bindingAdapterPosition) is ToolbarListEntry.Button) {
+                        super.getDragDirs(recyclerView, viewHolder)
+                    } else {
+                        0
+                    }
 
                 override fun canDropOver(
                     recyclerView: RecyclerView,
                     current: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder,
                 ): Boolean {
-                    val from = items.getOrNull(current.bindingAdapterPosition - 1) ?: return false
-                    val to = items.getOrNull(target.bindingAdapterPosition - 1) ?: return false
-                    return canMove(from, to)
+                    val from = items.getOrNull(current.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return false
+                    val to = items.getOrNull(target.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return false
+                    return canMove(from.key, to.key)
                 }
 
                 override fun onMove(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder,
-                ): Boolean = move(viewHolder.bindingAdapterPosition - 1, target.bindingAdapterPosition - 1)
+                ): Boolean = move(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
 
                 override fun onSelectedChanged(
                     viewHolder: RecyclerView.ViewHolder?,
                     actionState: Int,
                 ) {
                     super.onSelectedChanged(viewHolder, actionState)
-                    draggingKey = (viewHolder as? Holder)?.item
+                    draggingKey = ((viewHolder as? Holder)?.item as? ToolbarListEntry.Button)?.key
                 }
 
                 override fun onSwiped(
@@ -135,35 +184,31 @@ private class EditorToolbarAdapter(
         to: Int,
     ): Boolean {
         if (from !in items.indices || to !in items.indices || from == to) return false
-        val source = items[from]
-        val destination = items[to]
-        if (!canMove(source, destination)) return false
+        val source = items[from] as? ToolbarListEntry.Button ?: return false
+        val destination = items[to] as? ToolbarListEntry.Button ?: return false
+        if (!canMove(source.key, destination.key)) return false
         items.add(to, items.removeAt(from))
         // Rebinding during a drag can end it early. Compose observes the order/selection state directly.
-        notifyItemMoved(from + 1, to + 1)
-        onMove(source, destination)
+        notifyItemMoved(from, to)
+        onMove(source.key, destination.key)
         return true
     }
 
     /** Toggling visibility moves a row between groups; keep RecyclerView in sync without rebinding a drag. */
-    fun updateItems(updated: List<String>) {
+    fun updateItems(updated: List<ToolbarListEntry>) {
         val previous = items.toList()
         if (previous == updated) return
         val difference =
             DiffUtil.calculateDiff(
                 object : DiffUtil.Callback() {
-                    override fun getOldListSize() = previous.size + 1
+                    override fun getOldListSize() = previous.size
 
-                    override fun getNewListSize() = updated.size + 1
+                    override fun getNewListSize() = updated.size
 
                     override fun areItemsTheSame(
                         oldItemPosition: Int,
                         newItemPosition: Int,
-                    ) = if (oldItemPosition == 0 || newItemPosition == 0) {
-                        oldItemPosition == newItemPosition
-                    } else {
-                        previous[oldItemPosition - 1] == updated[newItemPosition - 1]
-                    }
+                    ) = previous[oldItemPosition] == updated[newItemPosition]
 
                     override fun areContentsTheSame(
                         oldItemPosition: Int,
@@ -176,9 +221,9 @@ private class EditorToolbarAdapter(
         difference.dispatchUpdatesTo(this)
     }
 
-    override fun getItemCount(): Int = items.size + 1
+    override fun getItemCount(): Int = items.size
 
-    override fun getItemViewType(position: Int): Int = if (position == 0) HEADER else BUTTON
+    override fun getItemViewType(position: Int): Int = if (items[position] is ToolbarListEntry.Button) BUTTON else HEADER
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -189,39 +234,40 @@ private class EditorToolbarAdapter(
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 setParentCompositionContext(composition)
             },
-            isHeader = viewType == HEADER,
         )
 
     override fun onBindViewHolder(
         holder: Holder,
         position: Int,
     ) {
-        holder.item = if (position == 0) null else items[position - 1]
+        holder.item = items[position]
     }
 
     inner class Holder(
         view: ComposeView,
-        isHeader: Boolean,
     ) : RecyclerView.ViewHolder(view) {
-        var item by mutableStateOf<String?>(null)
+        var item by mutableStateOf<ToolbarListEntry?>(null)
 
         init {
             view.setContent {
-                if (isHeader) {
-                    header()
-                } else {
-                    item?.let { button ->
+                when (val entry = item) {
+                    ToolbarListEntry.Header -> header()
+                    is ToolbarListEntry.Section -> ToolbarSectionHeading(entry.label)
+                    is ToolbarListEntry.Button -> {
+                        val buttons = items.filterIsInstance<ToolbarListEntry.Button>()
+                        val index = buttons.indexOf(entry)
                         row(
-                            button,
-                            items.indexOfFirst { it == button },
-                            draggingKey == button,
+                            entry.key,
+                            index,
+                            draggingKey == entry.key,
                             { touchHelper.startDrag(this@Holder) },
                             { offset ->
-                                val index = items.indexOfFirst { it == button }
-                                move(index, index + offset)
+                                val destination = buttons.getOrNull(index + offset)
+                                destination?.let { move(items.indexOf(entry), items.indexOf(it)) } ?: false
                             },
                         )
                     }
+                    null -> Unit
                 }
             }
         }

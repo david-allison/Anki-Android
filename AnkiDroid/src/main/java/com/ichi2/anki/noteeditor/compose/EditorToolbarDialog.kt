@@ -88,6 +88,7 @@ internal fun EditorToolbarDialog(
         ) { insets ->
             EditorToolbarList(
                 items = items.map { it.key },
+                activeCount = enabledKeys.size,
                 onMove = { from, to -> pendingToolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
                 canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),

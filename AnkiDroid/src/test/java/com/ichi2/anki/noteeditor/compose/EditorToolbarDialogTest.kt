@@ -5,6 +5,9 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import androidx.activity.compose.setContent
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -22,6 +25,7 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -46,7 +50,13 @@ class EditorToolbarDialogTest : RobolectricTest() {
         val bold = getResourceString(R.string.compose_editor_bold)
         val italic = getResourceString(R.string.compose_editor_italic)
         val underline = getResourceString(R.string.compose_editor_underline)
+        assertSectionHeadings()
+        assertAbove(getResourceString(CommonString.user_active_columns), italic)
+        assertAbove(bold, getResourceString(CommonString.user_potential_columns))
+        assertAbove(getResourceString(CommonString.user_potential_columns), underline)
         composeRule.onNodeWithText(bold).performClick()
+        assertAbove(italic, getResourceString(CommonString.user_potential_columns))
+        assertAbove(getResourceString(CommonString.user_potential_columns), bold)
         assertAbove(italic, bold)
         assertAbove(bold, underline)
         composeRule.onNodeWithText("Ruby").performClick()
@@ -57,7 +67,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(bold).performClick()
         assertAbove("Ruby", bold)
         assertAbove(bold, italic)
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(listOf("custom:${ruby.id}", "BOLD", "ITALIC", "UNDERLINE"), saved?.buttonOrder?.take(4))
     }
 
@@ -71,12 +81,15 @@ class EditorToolbarDialogTest : RobolectricTest() {
         assertAbove(gallery, pin)
         assertAbove(pin, attach)
         composeRule.onNodeWithText(gallery).performClick()
+        assertSectionHeadings()
+        assertAbove(getResourceString(CommonString.user_active_columns), getResourceString(CommonString.user_potential_columns))
+        assertAbove(getResourceString(CommonString.user_potential_columns), gallery)
         assertAbove(gallery, pin)
         composeRule.onNodeWithText(attach).performClick()
         composeRule.onNodeWithText(pin).performClick()
         assertAbove(attach, pin)
         assertAbove(pin, gallery)
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(listOf("attachMedia", "pin"), saved?.quickActions)
     }
 
@@ -97,7 +110,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
             listOf(targetContext.getString(R.string.compose_editor_move_button_up, "Ruby")),
             reorderActions("Ruby").map { it.label },
         )
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(listOf(ruby), saved?.customButtons)
         assertTrue("BOLD" in requireNotNull(saved).hiddenButtons)
     }
@@ -119,8 +132,25 @@ class EditorToolbarDialogTest : RobolectricTest() {
         )
         composeRule.moveToolbarButton(attach, targetContext.getString(R.string.compose_editor_move_button_up, attach))
         assertAbove(attach, pin)
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(listOf("attachMedia", "pin"), saved?.quickActions)
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h900dp")
+    fun `available section remains when every quick action is active`() {
+        showDialog(EditorFieldToolbar(quickActions = EditorQuickAction.entries.map { it.id }), quickActions = true)
+        assertSectionHeadings()
+        assertAbove(
+            getResourceString(CommonString.multimedia_editor_popup_video_clip),
+            getResourceString(CommonString.user_potential_columns),
+        )
+    }
+
+    private fun assertSectionHeadings() {
+        for (label in listOf(CommonString.user_active_columns, CommonString.user_potential_columns)) {
+            composeRule.onNodeWithText(getResourceString(label)).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        }
     }
 
     private fun assertAbove(
@@ -137,7 +167,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         showDialog(shortToolbar)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
         composeRule.onNodeWithText("Ruby").performClick()
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(shortToolbar.hiddenButtons + "BOLD", saved?.hiddenButtons)
         assertEquals(listOf(ruby), saved?.customButtons)
         assertNull(savedTemplates)
@@ -154,7 +184,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.moveToolbarButton("Ruby", down)
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText("Ruby").performClick()
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(listOf("BOLD", "ITALIC", "custom:${ruby.id}"), saved?.buttonOrder?.take(3))
         assertEquals(listOf(ruby), saved?.customButtons)
     }
