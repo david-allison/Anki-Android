@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -70,12 +71,12 @@ private val equationKinds =
 
 private val alignments =
     listOf(
-        WebEditorAction.ALIGN_LEFT to R.string.compose_editor_align_left,
-        WebEditorAction.ALIGN_CENTER to R.string.compose_editor_align_center,
-        WebEditorAction.ALIGN_RIGHT to R.string.compose_editor_align_right,
-        WebEditorAction.ALIGN_JUSTIFY to R.string.compose_editor_align_justify,
-        WebEditorAction.INDENT to R.string.compose_editor_indent,
-        WebEditorAction.OUTDENT to R.string.compose_editor_outdent,
+        WebEditorAction.ALIGN_LEFT to { TR.editingAlignLeft() },
+        WebEditorAction.ALIGN_CENTER to { TR.editingCenter() },
+        WebEditorAction.ALIGN_RIGHT to { TR.editingAlignRight() },
+        WebEditorAction.ALIGN_JUSTIFY to { TR.editingJustify() },
+        WebEditorAction.INDENT to { TR.editingIndent() },
+        WebEditorAction.OUTDENT to { TR.editingOutdent() },
     )
 
 internal val editorRemovableFormats =
@@ -106,7 +107,7 @@ internal fun EditorFormattingDialog(
             val dialog =
                 MaterialAlertDialogBuilder(context)
                     .setTitle(R.string.compose_editor_alignment)
-                    .setItems(alignments.map { context.getString(it.second) }.toTypedArray()) { _, index ->
+                    .setItems(alignments.map { it.second() }.toTypedArray()) { _, index ->
                         applied = true
                         apply(alignments[index].first, "")
                     }.setNegativeButton(CommonString.dialog_cancel, null)

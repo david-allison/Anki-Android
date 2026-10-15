@@ -60,12 +60,6 @@
     <string name="compose_editor_bulleted_list">Bulleted list</string>
     <string name="compose_editor_numbered_list">Numbered list</string>
     <string name="compose_editor_alignment">Alignment and indentation</string>
-    <string name="compose_editor_align_left">Align left</string>
-    <string name="compose_editor_align_center">Centre</string>
-    <string name="compose_editor_align_right">Align right</string>
-    <string name="compose_editor_align_justify">Justify</string>
-    <string name="compose_editor_indent">Indent list item</string>
-    <string name="compose_editor_outdent">Outdent list item</string>
     <string name="compose_editor_equations">Equations</string>
     <string name="compose_editor_mathjax_equation">MathJax equation</string>
     <string name="compose_editor_math_help">MathJax help</string>
