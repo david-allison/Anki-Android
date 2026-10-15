@@ -11,6 +11,7 @@ import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorDraft
 import com.ichi2.anki.noteeditor.web.WebEditorField
+import com.ichi2.anki.noteeditor.web.WebEditorStatus
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.testutils.JvmTest
 import io.mockk.coEvery
@@ -24,6 +25,7 @@ import kotlinx.coroutines.test.runCurrent
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -88,6 +90,8 @@ class EditorWebSessionTest : JvmTest() {
             model.load(NoteEditorFragment.addNoteArgs())
             val web = mockk<WebEditorView>(relaxed = true)
             every { web.context } returns ApplicationProvider.getApplicationContext()
+            var onChanged: ((WebEditorStatus) -> Unit)? = null
+            every { web.onChanged = any() } answers { onChanged = firstArg() }
             val focus = CompletableDeferred<Unit>()
             coEvery { web.focusField(any()) } coAnswers { focus.await() }
             val writes = ArrayDeque<Runnable>()
@@ -115,9 +119,18 @@ class EditorWebSessionTest : JvmTest() {
                 coVerify(exactly = 1) { web.focusField(any()) }
                 assertFalse(session.ready.value, "The enabled-state redraw must wait for initial focus")
 
+                // Focusing emits selection updates before its bridge response. Publishing
+                // those early schedules a toolbar frame ahead of the keyboard show request.
+                val selected = WebEditorStatus(0, false, hasSelection = true, activeField = 0)
+                checkNotNull(onChanged)(selected)
+                assertEquals(EditorToolbarState(), session.toolbarState.value)
+
                 focus.complete(Unit)
                 runCurrent()
                 assertTrue(session.ready.value)
+                assertEquals(EditorToolbarState(hasSelection = true, activeField = 0), session.toolbarState.value)
+                checkNotNull(onChanged)(selected.copy(activeField = 1))
+                assertEquals(1, session.toolbarState.value.activeField, "Ready editors must publish focus changes immediately")
                 assertTrue(model.hasAttachedEditor)
                 assertTrue(errors.isEmpty(), errors.joinToString())
             } finally {

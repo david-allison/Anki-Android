@@ -36,6 +36,7 @@ class EditorWebSession(
     val ready: StateFlow<Boolean> = mutableReady
     private val mutableToolbarState = MutableStateFlow(EditorToolbarState())
     val toolbarState: StateFlow<EditorToolbarState> = mutableToolbarState
+    private var latestToolbarState = EditorToolbarState()
     private val mutableFieldTaps = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val fieldTaps: SharedFlow<Unit> = mutableFieldTaps
     private val mutableHeaderVisibility = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
@@ -71,8 +72,10 @@ class EditorWebSession(
         lastFieldActions = null
         lastContentRevision = null
         mutableReady.value = false
+        latestToolbarState = EditorToolbarState()
+        mutableToolbarState.value = latestToolbarState
         editor.onChanged = {
-            mutableToolbarState.value =
+            latestToolbarState =
                 EditorToolbarState(
                     composing = it.composing,
                     hasSelection = it.hasSelection,
@@ -80,6 +83,7 @@ class EditorWebSession(
                     sourceMode = it.sourceMode,
                     activeFormats = it.activeFormats,
                 )
+            if (mutableReady.value) mutableToolbarState.value = latestToolbarState
             if (lastContentRevision != it.revision) {
                 lastContentRevision = it.revision
                 previewDirty = true
@@ -215,8 +219,9 @@ class EditorWebSession(
         editor.updateLanguageHints(state.fields.map { it.languageTag })
         model.rememberDraft()
         if (focusFirstField) editor.focusField()
-        // Enabling native controls schedules a frame. Let persistence and initial
-        // focus finish before that frame competes with their main-thread callbacks.
+        // Both selection updates and enabling native controls schedule a frame.
+        // Publish them together after persistence and the initial keyboard request.
+        mutableToolbarState.value = latestToolbarState
         mutableReady.value = true
     }
 
