@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.text.TextUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -104,7 +105,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -855,7 +858,15 @@ private fun FieldOptionsHelp(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    Text(stringResource(R.string.compose_editor_field_options_help_scope, fieldName, noteTypeName))
+                    Text(
+                        AnnotatedString.fromHtml(
+                            stringResource(
+                                R.string.compose_editor_field_options_help_scope,
+                                "<b>${TextUtils.htmlEncode(fieldName)}</b>",
+                                "<b>${TextUtils.htmlEncode(noteTypeName)}</b>",
+                            ),
+                        ),
+                    )
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(
