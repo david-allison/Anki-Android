@@ -38,7 +38,7 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
     @Test
     fun addEquation() {
         showDialog()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_equation)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_mathjax_equation)).assertIsDisplayed()
         val inline = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_inline))
         val block = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_block))
         val chemistry = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_math_chemistry))
@@ -62,7 +62,7 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
     @Test
     fun editEquation() {
         showDialog(editing = true)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_edit_equation)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_mathjax_equation)).assertIsDisplayed()
         captureScreen("edit_mathjax_equation")
     }
 
