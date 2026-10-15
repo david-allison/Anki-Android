@@ -2,13 +2,11 @@
 
 package com.ichi2.anki.noteeditor.compose
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -31,7 +29,6 @@ import com.ichi2.anki.R
 internal fun EditorQuickActionsDialog(
     target: EditorFieldTarget,
     field: EditorFieldState,
-    noteTypeName: String,
     onDismiss: () -> Unit,
     onSave: (EditorFieldToolbar) -> Unit,
 ) {
@@ -73,14 +70,7 @@ internal fun EditorQuickActionsDialog(
                     toolbar = toolbar.copy(quickActions = order.filter { it in toolbar.quickActions })
                 },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
-                header = {
-                    Column {
-                        Text(field.name, style = MaterialTheme.typography.titleMedium)
-                        Text(noteTypeName, style = MaterialTheme.typography.bodyMedium)
-                        Text(stringResource(R.string.compose_editor_quick_actions_scope), Modifier.padding(top = 12.dp))
-                        Text(stringResource(R.string.compose_editor_quick_actions_insertion), Modifier.padding(vertical = 12.dp))
-                    }
-                },
+                header = {},
             ) { key, index, dragging, startDrag, move ->
                 val item = requireNotNull(EditorQuickAction.fromId(key))
                 val checked = key in toolbar.quickActions

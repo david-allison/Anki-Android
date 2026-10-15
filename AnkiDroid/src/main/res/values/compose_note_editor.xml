@@ -27,7 +27,6 @@
     <string name="compose_editor_toolbar_scroll">Scroll</string>
     <string name="compose_editor_toolbar_stack">Stack</string>
     <string name="compose_editor_toolbar_hidden">Hidden</string>
-    <string name="compose_editor_toolbar_scope">Use these buttons for this field on all notes of this note type.</string>
     <string name="compose_editor_custom_buttons">Custom buttons</string>
     <string name="compose_editor_custom_button">Custom button</string>
     <string name="compose_editor_add_toolbar_button">Add %s</string>
@@ -83,7 +82,5 @@
     <string name="compose_editor_customize_field">Customize field</string>
     <string name="compose_editor_quick_actions_summary">Buttons beside the field</string>
     <string name="compose_editor_toolbar_summary">Shown when editing this field</string>
-    <string name="compose_editor_quick_actions_scope">Show these buttons beside this field on all notes of this note type. Drag to reorder.</string>
-    <string name="compose_editor_quick_actions_insertion">Media goes at the cursor in the active field, or at the end of an inactive field.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>
 </resources>

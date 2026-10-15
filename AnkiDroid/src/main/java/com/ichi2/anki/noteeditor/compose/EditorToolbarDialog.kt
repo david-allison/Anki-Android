@@ -5,7 +5,6 @@ package com.ichi2.anki.noteeditor.compose
 import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,7 +52,6 @@ import com.ichi2.anki.R
 internal fun EditorToolbarDialog(
     target: EditorFieldTarget,
     field: EditorFieldState,
-    noteTypeName: String,
     isCloze: Boolean,
     templates: List<EditorCustomToolbarButton>,
     onCustomButtons: () -> Unit,
@@ -94,15 +92,10 @@ internal fun EditorToolbarDialog(
                 canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
-                    Column {
-                        Text(field.name, style = MaterialTheme.typography.titleMedium)
-                        Text(noteTypeName, style = MaterialTheme.typography.bodyMedium)
-                        Text(stringResource(R.string.compose_editor_toolbar_scope), Modifier.padding(vertical = 12.dp))
-                        TextButton(onClick = onCustomButtons) {
-                            Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.compose_editor_custom_buttons))
-                        }
+                    TextButton(onClick = onCustomButtons) {
+                        Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.compose_editor_custom_buttons))
                     }
                 },
             ) { key, index, dragging, startDrag, move ->
