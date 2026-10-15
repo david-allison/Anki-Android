@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -96,6 +97,29 @@ internal fun EditorFormattingDialog(
     onDismiss: () -> Unit,
     onApply: (WebEditorAction, String) -> Unit,
 ) {
+    if (request.action == WebEditorAction.ALIGN_LEFT) {
+        val context = LocalContext.current
+        val dismiss by rememberUpdatedState(onDismiss)
+        val apply by rememberUpdatedState(onApply)
+        DisposableEffect(context, request) {
+            var applied = false
+            val dialog =
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.compose_editor_alignment)
+                    .setItems(alignments.map { context.getString(it.second) }.toTypedArray()) { _, index ->
+                        applied = true
+                        apply(alignments[index].first, "")
+                    }.setNegativeButton(CommonString.dialog_cancel, null)
+                    .create()
+            dialog.setOnDismissListener { if (!applied) dismiss() }
+            dialog.show()
+            onDispose {
+                dialog.setOnDismissListener(null)
+                dialog.dismiss()
+            }
+        }
+        return
+    }
     if (request.action in setOf(WebEditorAction.TEXT_COLOR, WebEditorAction.HIGHLIGHT_COLOR)) {
         val context = LocalContext.current
         val dismiss by rememberUpdatedState(onDismiss)
@@ -128,8 +152,7 @@ internal fun EditorFormattingDialog(
             }.getOrDefault(editorRemovableFormats.map { it.first.name }),
         )
     }
-    val alignment = request.action == WebEditorAction.ALIGN_LEFT
-    val equation = !removing && !alignment
+    val equation = !removing
     val valid =
         when {
             removing -> removedFormats.isNotEmpty()
@@ -148,7 +171,6 @@ internal fun EditorFormattingDialog(
                 stringResource(
                     when {
                         removing -> R.string.compose_editor_remove_format
-                        alignment -> R.string.compose_editor_alignment
                         else -> R.string.compose_editor_mathjax_equation
                     },
                 )
@@ -190,10 +212,6 @@ internal fun EditorFormattingDialog(
                                 Checkbox(checked = checked, onCheckedChange = null)
                                 Text(stringResource(label), Modifier.padding(start = 12.dp))
                             }
-                        }
-                    alignment ->
-                        alignments.forEach { (command, label) ->
-                            TextButton(onClick = { onApply(command, "") }) { Text(stringResource(label)) }
                         }
                     else -> {
                         Row(
@@ -242,18 +260,16 @@ internal fun EditorFormattingDialog(
             }
         },
         confirmButton = {
-            if (!alignment) {
-                TextButton(onClick = {
-                    onApply(
-                        action,
-                        when {
-                            removing -> JSONArray(removedFormats).toString()
-                            else -> text
-                        },
-                    )
-                }, enabled = valid) {
-                    Text(stringResource(CommonString.dialog_ok))
-                }
+            TextButton(onClick = {
+                onApply(
+                    action,
+                    when {
+                        removing -> JSONArray(removedFormats).toString()
+                        else -> text
+                    },
+                )
+            }, enabled = valid) {
+                Text(stringResource(CommonString.dialog_ok))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
