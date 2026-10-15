@@ -149,6 +149,7 @@ class EditorViewModel(
                         fields = note.notetype.editorFields(note.fields),
                         tags = note.tags.toList(),
                         customButtonTemplates = toolbarPreferences.loadCustomButtons(),
+                        toolbarPresets = toolbarPreferences.loadPresets(),
                         toolbarTextColor = savedToolbarColor("composeEditorTextColor", "#000000"),
                         toolbarHighlightColor = savedToolbarColor("composeEditorHighlightColor", "#ffff00"),
                         toolbarDisplay =
@@ -411,6 +412,27 @@ class EditorViewModel(
     suspend fun setFieldToolbar(
         target: EditorFieldTarget,
         toolbar: EditorFieldToolbar,
+    ) = updateFieldToolbar(target) { collection, noteType, field ->
+        toolbarPreferences.save(collection, noteType, field, toolbar)
+    }
+
+    suspend fun setFieldQuickActions(
+        target: EditorFieldTarget,
+        actions: List<String>,
+    ) = updateFieldToolbar(target) { collection, noteType, field ->
+        toolbarPreferences.saveQuickActions(collection, noteType, field, actions)
+    }
+
+    suspend fun setFieldToolbarPreset(
+        target: EditorFieldTarget,
+        presetId: String?,
+    ) = updateFieldToolbar(target) { collection, noteType, field ->
+        toolbarPreferences.selectPreset(collection, noteType, field, presetId)
+    }
+
+    private suspend fun updateFieldToolbar(
+        target: EditorFieldTarget,
+        save: (String, Long, String) -> Unit,
     ) {
         val current = state.value?.takeIf { target.matches(it) && !it.isSaving } ?: return
         val fieldKey = NotetypeJson(current.notetypeJson).fields[target.field].editorKey()
@@ -422,18 +444,51 @@ class EditorViewModel(
             }
         }
         if (!target.matches(state.value)) return
+        withContext(ioDispatcher) { save(requireNotNull(collectionKey), current.noteTypeId, fieldKey) }
+        refreshToolbars()
+    }
+
+    suspend fun saveToolbarPreset(preset: EditorToolbarPreset) {
+        if (state.value?.isSaving != false) return
         withContext(ioDispatcher) {
-            toolbarPreferences.save(requireNotNull(collectionKey), current.noteTypeId, fieldKey, toolbar)
+            val presets = toolbarPreferences.loadPresets()
+            toolbarPreferences.savePresets(
+                if (presets.any { it.id == preset.id }) presets.map { if (it.id == preset.id) preset else it } else presets + preset,
+            )
         }
-        state.value?.takeIf(target::matches)?.let { latest ->
-            mutableState.value =
-                latest.copy(
-                    fields =
-                        latest.fields.mapIndexed { index, field ->
-                            if (index == target.field) field.copy(toolbar = toolbar) else field
-                        },
-                )
-        }
+        refreshToolbars()
+    }
+
+    suspend fun deleteToolbarPreset(id: String) {
+        if (state.value?.isSaving != false) return
+        require(id != EditorToolbarPreset.DEFAULT_ID)
+        withContext(ioDispatcher) { toolbarPreferences.savePresets(toolbarPreferences.loadPresets().filterNot { it.id == id }) }
+        refreshToolbars()
+    }
+
+    /** Refresh every reference without replacing live HTML or changing the WebView document generation. */
+    private suspend fun refreshToolbars() {
+        val current = state.value ?: return
+        val collection = requireNotNull(collectionKey)
+        val (presets, fields) =
+            withContext(ioDispatcher) {
+                val presets = toolbarPreferences.loadPresets()
+                val fields =
+                    NotetypeJson(current.notetypeJson).fields.map { field ->
+                        toolbarPreferences.load(collection, current.noteTypeId, field.editorKey(), presets) to
+                            toolbarPreferences.presetId(collection, current.noteTypeId, field.editorKey(), presets)
+                    }
+                presets to fields
+            }
+        val latest = state.value?.takeIf { it.sessionId == current.sessionId && it.generation == current.generation } ?: return
+        mutableState.value =
+            latest.copy(
+                toolbarPresets = presets,
+                fields =
+                    latest.fields.mapIndexed { index, field ->
+                        field.copy(toolbar = fields[index].first, toolbarPresetId = fields[index].second)
+                    },
+            )
     }
 
     suspend fun setCustomButtonTemplates(buttons: List<EditorCustomToolbarButton>) {
@@ -590,6 +645,7 @@ class EditorViewModel(
                             },
                         tags = note.tags.toList(),
                         customButtonTemplates = toolbarPreferences.loadCustomButtons(),
+                        toolbarPresets = toolbarPreferences.loadPresets(),
                         isSaving = false,
                         hasMetadataChanges = false,
                     )
@@ -746,8 +802,9 @@ class EditorViewModel(
         check(editorCollectionKey() == collectionKey) { "The collection changed; reopen the editor." }
     }
 
-    private fun NotetypeJson.editorFields(html: List<String>): List<EditorFieldState> =
-        fields.mapIndexed { index, field ->
+    private fun NotetypeJson.editorFields(html: List<String>): List<EditorFieldState> {
+        val presets = toolbarPreferences.loadPresets()
+        return fields.mapIndexed { index, field ->
             EditorFieldState(
                 name = field.name,
                 html = html[index],
@@ -758,9 +815,11 @@ class EditorViewModel(
                 sticky = field.sticky,
                 collapsed = field.jsonObject.optBoolean("collapsed"),
                 sourceMode = field.jsonObject.optBoolean("plainText"),
-                toolbar = toolbarPreferences.load(requireNotNull(collectionKey), id, field.editorKey()),
+                toolbar = toolbarPreferences.load(requireNotNull(collectionKey), id, field.editorKey(), presets),
+                toolbarPresetId = toolbarPreferences.presetId(requireNotNull(collectionKey), id, field.editorKey(), presets),
             )
         }
+    }
 
     private fun EditorState.metadata() = Metadata(deckId, noteTypeId, tags)
 
