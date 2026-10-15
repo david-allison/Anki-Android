@@ -629,33 +629,23 @@ private fun EditorFieldOptions(
     onCollapse: () -> Unit,
 ) {
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
-    val scopeDescription = stringResource(R.string.compose_editor_field_options_scope, noteTypeName)
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Row(
             Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                Modifier.weight(1f).clearAndSetSemantics {
-                    heading()
-                    contentDescription = "$fieldDescription. $scopeDescription"
-                },
-            ) {
-                Text(
-                    field.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    scopeDescription,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                field.name,
+                modifier =
+                    Modifier.weight(1f).clearAndSetSemantics {
+                        heading()
+                        contentDescription = fieldDescription
+                    },
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             FieldOptionsHelp(field.name, noteTypeName)
             IconButton(onClick = onCollapse) {
                 Icon(painterResource(R.drawable.ic_expand_more_black), stringResource(R.string.compose_editor_field_options))
