@@ -34,7 +34,7 @@
     <string name="compose_editor_remove_custom_button">Remove %s</string>
     <string name="compose_editor_field_options_title">%s — field options</string>
     <string name="compose_editor_field_options_help">About pinning and keyboard language</string>
-    <string name="compose_editor_field_options_help_scope">These settings apply to the “%1$s” field on all notes using the “%2$s” note type.</string>
+    <string name="compose_editor_field_options_help_scope">These settings apply to the %1$s field on all notes using the %2$s note type.</string>
     <string name="compose_editor_pin_field">Pin field</string>
     <string name="compose_editor_pin_field_summary">Keep this field’s contents after adding a note.</string>
     <string name="compose_editor_language_hint">Keyboard language hint</string>
