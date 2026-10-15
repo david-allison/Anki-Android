@@ -200,6 +200,7 @@ class ComposeNoteEditorActivity :
                                             target,
                                             if (chemistry) text.substring(4, text.length - 1) else text,
                                             editingEquation = true,
+                                            keyboardVisible = it.keyboardVisible,
                                         )
                                 }
                             }
@@ -362,19 +363,31 @@ class ComposeNoteEditorActivity :
         formattingRequest?.let { request ->
             EditorFormattingDialog(
                 request = request,
-                onDismiss = { formattingRequest = null },
+                onDismiss = {
+                    // Native colour dialogs also call onDismiss after applying their result.
+                    if (formattingRequest == request) {
+                        formattingRequest = null
+                        launchEditorTask {
+                            webSession.awaitReady()
+                            webSession.view?.restoreFocus(request.target, request.keyboardVisible)
+                        }
+                    }
+                },
                 onApply = { action, value ->
                     formattingRequest = null
                     launchEditorTask {
                         webSession.awaitReady()
                         val command = if (request.editingEquation && value.isBlank()) WebEditorAction.INSERT_TEXT else action
-                        if (!requireNotNull(webSession.view).execute(command, request.target, value)) {
+                        val editor = requireNotNull(webSession.view)
+                        val applied = editor.execute(command, request.target, value)
+                        if (!applied) {
                             reportError(getString(R.string.compose_editor_stale_command))
                         } else if (action == WebEditorAction.REMOVE_FORMAT_CHOICES) {
                             Prefs.sharedPrefs.edit { putString("composeEditorRemovedFormats", value) }
                         } else if (action == WebEditorAction.TEXT_COLOR || action == WebEditorAction.HIGHLIGHT_COLOR) {
                             model.rememberToolbarColor(action, value)
                         }
+                        editor.restoreFocus(request.target.takeUnless { applied }, request.keyboardVisible)
                     }
                 },
             )
@@ -530,6 +543,7 @@ class ComposeNoteEditorActivity :
         launchEditorTask {
             if (busy) return@launchEditorTask
             val editor = requireNotNull(webSession.view)
+            val keyboardVisible = editor.keyboardVisible
             val target = editor.captureTarget()
             if (target == null) {
                 reportError(getString(R.string.compose_editor_stale_command))
@@ -542,6 +556,7 @@ class ComposeNoteEditorActivity :
                         target,
                         Prefs.sharedPrefs.getString("composeEditorRemovedFormats", null)
                             ?: org.json.JSONArray(editorRemovableFormats.map { it.first.name }).toString(),
+                        keyboardVisible = keyboardVisible,
                     )
                 return@launchEditorTask
             }
@@ -560,7 +575,7 @@ class ComposeNoteEditorActivity :
                         WebEditorAction.MATHJAX_INLINE -> editor.selectionText(target) ?: return@launchEditorTask
                         else -> ""
                     }
-                formattingRequest = EditorFormattingRequest(action, target, text)
+                formattingRequest = EditorFormattingRequest(action, target, text, keyboardVisible = keyboardVisible)
                 return@launchEditorTask
             }
             if (editor.execute(action, target)) {

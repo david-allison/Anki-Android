@@ -1034,6 +1034,85 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun formattingDialogsRestoreTheKeyboardAndSelectionOnCancel() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            web.setField(1, "Before middle after.")
+            val state = scenario.editorState()
+            val model = scenario.editorModel()
+            val buttons = listOf(EditorToolbarButton.TEXT_COLOR, EditorToolbarButton.EQUATIONS, EditorToolbarButton.ALIGNMENT)
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    model.setFieldToolbar(
+                        EditorFieldTarget(state.sessionId, state.generation, 1),
+                        EditorFieldToolbar(buttonOrder = buttons.map { it.name }),
+                    )
+                }
+            }
+            for (button in buttons) {
+                for (hadKeyboard in listOf(true, false)) {
+                    device.waitForIdle()
+                    waitUntil(message = { "$button ($hadKeyboard): the editor did not regain window focus" }) {
+                        var focused = false
+                        scenario.onActivity { focused = web.hasWindowFocus() }
+                        focused
+                    }
+                    runBlocking { web.focusField(1) }
+                    waitUntil(message = {
+                        captureScreenshot("keyboard-open-failed-$button-$hadKeyboard", web)
+                        "$button ($hadKeyboard): the field keyboard did not open"
+                    }) { scenario.keyboardVisible() }
+                    if (!hadKeyboard) {
+                        device.pressBack()
+                        waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
+                    }
+                    device.waitForIdle()
+                    web.evaluate(
+                        """
+                        (() => {
+                            const field = ${richField(1)};
+                            const text = field.firstChild;
+                            field.getRootNode().getSelection().setBaseAndExtent(text, 7, text, 13);
+                        })()
+                        """.trimIndent(),
+                    )
+                    val target = assertNotNull(runBlocking { web.captureTarget() })
+                    device.waitForIdle()
+                    // The icon itself stays enabled in accessibility even when its button is disabled.
+                    val buttonSelector = By.clickable(true).enabled(true).hasDescendant(By.desc(testContext.getString(button.label)))
+                    val control = checkNotNull(device.wait(Until.findObject(buttonSelector), 5_000))
+                    control.click()
+                    val dialog =
+                        when (button) {
+                            EditorToolbarButton.TEXT_COLOR -> By.res(testContext.packageName, "colorPickerView")
+                            EditorToolbarButton.EQUATIONS -> By.text(testContext.getString(R.string.compose_editor_mathjax_equation))
+                            else -> By.text(testContext.getString(R.string.compose_editor_alignment))
+                        }
+                    val opened = device.wait(Until.findObject(dialog), 5_000)
+                    if (opened == null) captureScreenshot("dialog-missing-$button-$hadKeyboard", web)
+                    assertNotNull(opened, "$button ($hadKeyboard): the formatting dialog did not open")
+                    if (button == EditorToolbarButton.EQUATIONS) {
+                        // Also restore a closed field keyboard after editing in the dialog's own input.
+                        val formula = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
+                        formula.click()
+                        formula.text = "x^2"
+                    }
+                    val cancel = device.wait(Until.findObject(By.text(testContext.getString(CommonString.dialog_cancel))), 5_000)
+                    if (cancel == null) captureScreenshot("cancel-missing-$button-$hadKeyboard", web)
+                    assertNotNull(cancel, "$button ($hadKeyboard): the dialog's Cancel button was not visible").click()
+                    assertTrue(device.wait(Until.gone(dialog), 5_000))
+                    waitUntil(message = { "$button did not restore keyboard visibility to $hadKeyboard" }) {
+                        scenario.keyboardVisible() == hadKeyboard
+                    }
+                    assertEquals(target, runBlocking { web.captureTarget() }, "$button moved the cancelled selection")
+                    assertEquals("Before middle after.", runBlocking { web.snapshot().fields[1] })
+                }
+            }
+        }
+    }
+
+    @Test
     fun nativeColourAndEquationDialogsKeepTheirCapturedDestination() {
         Prefs.sharedPrefs
             .edit()
@@ -1043,11 +1122,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            web.setField(0, "alpha")
+            web.setField(0, "alpha.")
             web.setField(1, "beta")
 
             fun selectFront() {
                 runBlocking { web.focusField(0) }
+                waitUntil(message = { "The field keyboard did not open" }) { scenario.keyboardVisible() }
+                device.waitForIdle()
                 web.evaluate(
                     """
                     (() => {
@@ -1063,9 +1144,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
 
             fun toolbar(label: Int) {
-                val target = By.desc(testContext.getString(label)).enabled(true)
+                val target = By.clickable(true).enabled(true).hasDescendant(By.desc(testContext.getString(label)))
                 repeat(5) {
-                    device.findObject(target)?.let { button ->
+                    device.wait(Until.findObject(target), 1_000)?.let { button ->
                         button.click()
                         return
                     }
@@ -1098,18 +1179,25 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals("beta", runBlocking { web.snapshot().fields[1] })
             assertEquals("#1976d2", scenario.editorState().toolbarTextColor)
             assertEquals("#ffc107", scenario.editorState().toolbarHighlightColor)
+            waitUntil(message = { "Applying the colour did not restore the field keyboard" }) { scenario.keyboardVisible() }
 
-            web.setField(0, "alpha")
+            web.setField(0, "alpha.")
             selectFront()
+            device.pressBack()
+            waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
             toolbar(R.string.compose_editor_equations)
+            assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_mathjax_equation))), 5_000))
             val formula = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
+            formula.click()
             formula.text = "x^2"
             captureScreenshot("format-equation", web)
             clickText(testContext.getString(CommonString.dialog_ok))
             web.awaitJavascript("${richField(0)}.querySelector('anki-mathjax')?.dataset.mathjax === 'x^2'")
             assertEquals(listOf("\\(x^2\\)", "beta"), runBlocking { web.snapshot().fields })
+            waitUntil(message = { "Applying the equation did not restore the closed keyboard" }) { !scenario.keyboardVisible() }
             // A tap on the rendered formula reopens the same native editor.
             web.evaluate("${richField(0)}.querySelector('anki-mathjax').click()")
+            assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_mathjax_equation))), 5_000))
             checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "y^3"
             clickText(testContext.getString(CommonString.dialog_ok))
             web.awaitJavascript("${richField(0)}.querySelector('anki-mathjax')?.dataset.mathjax === 'y^3'")

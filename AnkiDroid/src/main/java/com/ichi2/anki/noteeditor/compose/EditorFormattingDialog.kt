@@ -57,6 +57,7 @@ internal data class EditorFormattingRequest(
     val target: WebEditorTarget,
     val text: String,
     val editingEquation: Boolean = false,
+    val keyboardVisible: Boolean = false,
 ) : Parcelable
 
 private val equationKinds =
