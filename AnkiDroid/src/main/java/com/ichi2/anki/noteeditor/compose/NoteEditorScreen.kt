@@ -164,7 +164,6 @@ fun NoteEditorScreen(
         EditorToolbarDialog(
             target = target,
             field = current.fields[target.field],
-            noteTypeName = current.noteTypeName,
             isCloze = current.isCloze,
             templates = current.customButtonTemplates,
             onCustomButtons = { showCustomButtons = true },
@@ -180,7 +179,6 @@ fun NoteEditorScreen(
         EditorQuickActionsDialog(
             target = target,
             field = current.fields[target.field],
-            noteTypeName = current.noteTypeName,
             onDismiss = { quickActionsTarget = null },
             onSave = {
                 onToolbar(target, it)

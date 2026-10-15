@@ -234,7 +234,6 @@ class EditorToolbarDialogTest : RobolectricTest() {
                     EditorQuickActionsDialog(
                         target = EditorFieldTarget("dialog", 0, 1),
                         field = EditorFieldState("Back", "", "Arial", 20, false, null, false, false, false, toolbar),
-                        noteTypeName = "Basic",
                         onDismiss = {},
                         onSave = { saved = it },
                     )
@@ -242,7 +241,6 @@ class EditorToolbarDialogTest : RobolectricTest() {
                     EditorToolbarDialog(
                         target = EditorFieldTarget("dialog", 0, 1),
                         field = EditorFieldState("Back", "", "Arial", 20, false, null, false, false, false, toolbar),
-                        noteTypeName = "Basic",
                         isCloze = false,
                         templates = listOf(ruby),
                         onCustomButtons = {},

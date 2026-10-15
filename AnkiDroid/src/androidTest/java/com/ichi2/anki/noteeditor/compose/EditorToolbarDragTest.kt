@@ -39,7 +39,6 @@ class EditorToolbarDragTest : InstrumentedTest() {
                             EditorToolbarDialog(
                                 target = EditorFieldTarget("drag-test", 0, 1),
                                 field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false, initial),
-                                noteTypeName = "Basic",
                                 isCloze = false,
                                 templates = listOf(custom),
                                 onCustomButtons = {},

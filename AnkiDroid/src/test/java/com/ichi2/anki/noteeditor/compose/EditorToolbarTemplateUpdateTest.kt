@@ -46,7 +46,6 @@ class EditorToolbarTemplateUpdateTest : RobolectricTest() {
                 EditorToolbarDialog(
                     target = EditorFieldTarget("templates", 0, 1),
                     field = EditorFieldState("Back", "", "Arial", 20, false, null, false, false, false, initial),
-                    noteTypeName = "Basic",
                     isCloze = false,
                     templates = templates.value,
                     onCustomButtons = {},
