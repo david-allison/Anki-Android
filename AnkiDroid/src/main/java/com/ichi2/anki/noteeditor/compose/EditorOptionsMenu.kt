@@ -45,6 +45,7 @@ internal fun EditorOptionsMenu(
     onCustomButtons: () -> Unit,
     fieldOptionsEnabled: Boolean,
     onFieldOptions: () -> Unit,
+    onToolbarPresets: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
@@ -102,6 +103,10 @@ internal fun EditorOptionsMenu(
             DropdownMenuItem(text = { Text(stringResource(CommonString.menu_font_size)) }, onClick = {
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
+            })
+            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_manage_toolbar_presets)) }, onClick = {
+                expanded = false
+                onToolbarPresets()
             })
             DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar_layout)) }, onClick = {
                 expanded = false

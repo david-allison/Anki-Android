@@ -287,6 +287,10 @@ class ComposeNoteEditorActivity :
             },
             onAction = ::execute,
             onToolbar = { target, toolbar -> updateMetadata { model.setFieldToolbar(target, toolbar) } },
+            onQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
+            onToolbarPreset = { target, id -> updateMetadata { model.setFieldToolbarPreset(target, id) } },
+            onSaveToolbarPreset = { preset -> updateMetadata { model.saveToolbarPreset(preset) } },
+            onDeleteToolbarPreset = { id -> updateMetadata { model.deleteToolbarPreset(id) } },
             onCustomButtonTemplates = { buttons -> updateMetadata { model.setCustomButtonTemplates(buttons) } },
             onCustomAction = { field, button ->
                 launchEditorTask {
