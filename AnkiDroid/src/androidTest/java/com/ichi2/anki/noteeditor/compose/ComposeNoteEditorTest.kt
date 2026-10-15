@@ -985,8 +985,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val eraser = By.desc(testContext.getString(R.string.compose_editor_remove_format)).enabled(true)
                 repeat(6) {
                     device.findObject(eraser)?.let { button ->
-                        button.click()
-                        return
+                        // A lazy item can enter semantics while its icon is still clipped
+                        // by the toolbar edge. Scroll it fully into view before tapping.
+                        val bounds = button.visibleBounds
+                        if (bounds.width() >= bounds.height()) {
+                            button.click()
+                            return
+                        }
                     }
                     val end =
                         checkNotNull(
@@ -1081,8 +1086,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     device.waitForIdle()
                     // The icon itself stays enabled in accessibility even when its button is disabled.
                     val buttonSelector = By.clickable(true).enabled(true).hasDescendant(By.desc(testContext.getString(button.label)))
-                    val control = checkNotNull(device.wait(Until.findObject(buttonSelector), 5_000))
-                    control.click()
+                    val control = device.wait(Until.findObject(buttonSelector), 5_000)
+                    if (control == null) captureScreenshot("toolbar-missing-$button-$hadKeyboard", web)
+                    checkNotNull(control).click()
                     val dialog =
                         when (button) {
                             EditorToolbarButton.TEXT_COLOR -> By.res(testContext.packageName, "colorPickerView")
