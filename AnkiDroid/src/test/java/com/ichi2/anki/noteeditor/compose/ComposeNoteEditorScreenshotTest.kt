@@ -405,6 +405,55 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldOptionsFinishSlidingOutBeforeRemovingContent() {
+        showEditor()
+        val editorBottom = fieldOptionsButton().fetchSemanticsNode().boundsInRoot.bottom
+        fieldOptionsButton().performClick()
+        composeRule.waitForIdle()
+        val close = hasContentDescription(getResourceString(R.string.compose_editor_close_field_options))
+        var lastTop =
+            composeRule
+                .onNode(close)
+                .fetchSemanticsNode()
+                .positionInRoot.y
+        var removed = false
+        composeRule.mainClock.autoAdvance = false
+        try {
+            composeRule.onNode(close).performClick()
+            for (frame in 1..90) {
+                composeRule.mainClock.advanceTimeByFrame()
+                val button = composeRule.onAllNodes(close).fetchSemanticsNodes().singleOrNull()
+                if (button == null) {
+                    assertTrue(lastTop >= editorBottom - 1, "Sheet content vanished at $lastTop before sliding below $editorBottom")
+                    removed = true
+                    break
+                }
+                lastTop = button.positionInRoot.y
+            }
+            assertTrue(removed, "The sheet must finish closing")
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
+        } finally {
+            composeRule.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
+    fun fieldOptionsDoNotResizeWebFields() {
+        val (activity, keyboard) = showEditor(tags = listOf("Vocabulary"))
+        for (keyboardVisible in listOf(true, false)) {
+            if (!keyboardVisible) hideKeyboard(activity, keyboard)
+            val before = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
+            fieldOptionsButton().performClick()
+            composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+            assertEquals(before, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+            assertEquals(before, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun optionsUnpinned() {
         showEditor(pinned = false)
         fieldOptionsButton().performClick()

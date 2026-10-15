@@ -520,7 +520,8 @@ private fun EditorFieldArea(
     LaunchedEffect(fieldTaps, editorState.sessionId, editorState.generation) {
         fieldTaps.collect { onFieldOptionsRequested(false) }
     }
-    val showFieldOptions = fieldOptionsRequested || sheetState.isVisible
+    // isVisible can flip mid-animation; retain the content and layout until the sheet settles.
+    val showFieldOptions = fieldOptionsRequested || sheetState.currentValue != SheetValue.Hidden
     val target =
         toolbarState.activeField?.takeIf { it in editorState.fields.indices }?.let {
             EditorFieldTarget(editorState.sessionId, editorState.generation, it)
@@ -570,7 +571,9 @@ private fun EditorFieldArea(
                 fields(Modifier.fillMaxSize())
                 if (!showFieldOptions) EditorSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
-            if (!showFieldOptions) {
+            // Retain the footer under the sheet to avoid rebuilding its buttons and resizing WebView.
+            // Its controls are covered while options are open, including for accessibility.
+            Column(if (showFieldOptions) Modifier.clearAndSetSemantics {} else Modifier) {
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
                 if (editorState.toolbarDisplay != EditorToolbarDisplay.HIDDEN) {
                     Row(
