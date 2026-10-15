@@ -64,6 +64,7 @@ internal fun EditorQuickActionsDialog(
         ) { insets ->
             EditorToolbarList(
                 items = items,
+                activeCount = items.count { it in toolbar.quickActions },
                 canMove = { from, to -> (from in toolbar.quickActions) == (to in toolbar.quickActions) },
                 onMove = { from, to ->
                     order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
