@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,25 +48,31 @@ internal fun EquationPreview(
             Modifier.padding(bottom = 8.dp),
             style = MaterialTheme.typography.labelMedium,
         )
-        Box(Modifier.fillMaxWidth().height(112.dp), contentAlignment = Alignment.Center) {
-            AndroidView(
-                factory = { EquationPreviewView(it) },
-                modifier = Modifier.matchParentSize(),
-                update = {
-                    // Keep the renderer loaded, but hide stale output while an empty input clears.
-                    it.isInvisible = empty
-                    it.update(text, action, foreground, error, unavailable)
-                },
-                onRelease = { it.destroy() },
-            )
-            if (empty) {
-                Text(
-                    stringResource(R.string.compose_editor_equation_preview_empty),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Box(Modifier.height(112.dp), contentAlignment = Alignment.Center) {
+                AndroidView(
+                    factory = { EquationPreviewView(it) },
+                    modifier = Modifier.matchParentSize(),
+                    update = {
+                        // Keep the renderer loaded, but hide stale output while an empty input clears.
+                        it.isInvisible = empty
+                        it.update(text, action, foreground, error, unavailable)
+                    },
+                    onRelease = { it.destroy() },
                 )
+                if (empty) {
+                    Text(
+                        stringResource(R.string.compose_editor_equation_preview_empty),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
