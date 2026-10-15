@@ -33,7 +33,7 @@
     <string name="compose_editor_add_toolbar_button">Add %s</string>
     <string name="compose_editor_remove_custom_button">Remove %s</string>
     <string name="compose_editor_field_options_title">%s — field options</string>
-    <string name="compose_editor_field_options_help">About pinning and keyboard language</string>
+    <string name="compose_editor_field_options_help">About field settings</string>
     <string name="compose_editor_field_options_help_scope">These settings apply to the %1$s field on all notes using the %2$s note type.</string>
     <string name="compose_editor_pin_field">Pin field</string>
     <string name="compose_editor_pin_field_summary">Keep this field’s contents after adding a note.</string>
@@ -83,5 +83,7 @@
     <string name="compose_editor_customize_field">Customize field</string>
     <string name="compose_editor_quick_actions_summary">Buttons beside the field</string>
     <string name="compose_editor_toolbar_summary">Shown when editing this field</string>
+    <string name="compose_editor_quick_actions_help">Buttons beside the field that work without selecting it, such as pinning the field or inserting an image. Choose which actions appear and their order.</string>
+    <string name="compose_editor_toolbar_help">Buttons in the bottom toolbar when this field is selected. Choose and reorder formatting tools and custom buttons for this field.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>
 </resources>

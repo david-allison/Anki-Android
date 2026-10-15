@@ -905,13 +905,32 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun helpOpen() {
-        openOptions()
+        val (activity, _) = openOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
         composeRule
             .onNodeWithText(
                 targetContext.getString(R.string.compose_editor_field_options_help_scope, "Back", "Basic"),
             ).assertIsDisplayed()
+        settleMenuTransition(activity)
         captureScreen("help_open")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_help)).performScrollTo().assertIsDisplayed()
+        settleMenuTransition(activity)
+        captureScreen("help_open_actions")
+    }
+
+    @Test
+    fun fieldHelpWithLargeTextOnSmallScreen() {
+        RuntimeEnvironment.setQualifiers("+w320dp-h640dp")
+        RuntimeEnvironment.setFontScale(1.5f)
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        captureScreen("help_open_small_screen_large_text")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_help)).performScrollTo().assertIsDisplayed()
+        captureScreen("help_open_actions_small_screen_large_text")
     }
 
     @Test
