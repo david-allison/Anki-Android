@@ -200,16 +200,18 @@ internal fun EditorFormattingDialog(
                             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                         ) {
                             equationKinds.forEachIndexed { index, (command, label) ->
+                                val shapes =
+                                    when (index) {
+                                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        equationKinds.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                    }
                                 ToggleButton(
                                     checked = action == command,
                                     onCheckedChange = { action = command },
                                     modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
-                                    shapes =
-                                        when (index) {
-                                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                            equationKinds.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                                        },
+                                    // Keep the connected outline stable during presses and selection.
+                                    shapes = shapes.copy(pressedShape = shapes.shape, checkedShape = shapes.shape),
                                     colors =
                                         ToggleButtonDefaults.colors(
                                             checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
