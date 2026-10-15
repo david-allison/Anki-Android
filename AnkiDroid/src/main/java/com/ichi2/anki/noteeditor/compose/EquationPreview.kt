@@ -9,6 +9,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,11 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.isInvisible
 import androidx.webkit.WebViewAssetLoader
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -36,18 +40,34 @@ internal fun EquationPreview(
     val foreground = MaterialTheme.colorScheme.onSurface.toArgb()
     val error = MaterialTheme.colorScheme.error.toArgb()
     val unavailable = stringResource(R.string.compose_editor_equation_preview_unavailable)
+    val empty = text.isBlank()
     Column {
         Text(
             stringResource(R.string.compose_editor_equation_preview),
             Modifier.padding(bottom = 8.dp),
             style = MaterialTheme.typography.labelMedium,
         )
-        AndroidView(
-            factory = { EquationPreviewView(it) },
-            modifier = Modifier.fillMaxWidth().height(112.dp),
-            update = { it.update(text, action, foreground, error, unavailable) },
-            onRelease = { it.destroy() },
-        )
+        Box(Modifier.fillMaxWidth().height(112.dp), contentAlignment = Alignment.Center) {
+            AndroidView(
+                factory = { EquationPreviewView(it) },
+                modifier = Modifier.matchParentSize(),
+                update = {
+                    // Keep the renderer loaded, but hide stale output while an empty input clears.
+                    it.isInvisible = empty
+                    it.update(text, action, foreground, error, unavailable)
+                },
+                onRelease = { it.destroy() },
+            )
+            if (empty) {
+                Text(
+                    stringResource(R.string.compose_editor_equation_preview_empty),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
 

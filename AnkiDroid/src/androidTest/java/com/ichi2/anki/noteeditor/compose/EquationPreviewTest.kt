@@ -98,6 +98,7 @@ class EquationPreviewTest : InstrumentedTest() {
     fun incompleteInputRecoversAndClearingRemovesThePreview() {
         withDialog(dark = false) { web, applied ->
             web.awaitJavascript("!!document.querySelector('mjx-mfrac')")
+            val originalPage = web.evaluate("performance.timeOrigin")
             val device = UiDevice.getInstance(getInstrumentation())
             val formula = checkNotNull(device.findObject(By.clazz("android.widget.EditText")))
             formula.text = "\\frac{"
@@ -112,8 +113,14 @@ class EquationPreviewTest : InstrumentedTest() {
             assertEquals("false", web.evaluate("!!window.injected || !!document.querySelector('#preview img')"))
             formula.text = ""
             web.awaitJavascript("document.getElementById('preview').childElementCount === 0")
+            val placeholder = By.text(testContext.getString(R.string.compose_editor_equation_preview_empty))
+            assertTrue(device.wait(Until.hasObject(placeholder), 5_000))
             device.findObject(By.text(testContext.getString(CommonString.dialog_ok))).click()
             assertNull(applied.get(), "An empty formula must not be applied")
+            formula.text = "x^2"
+            web.awaitJavascript("!!document.querySelector('mjx-msup')")
+            assertTrue(device.wait(Until.gone(placeholder), 5_000))
+            assertEquals(originalPage, web.evaluate("performance.timeOrigin"), "Clearing the formula must retain the renderer")
         }
     }
 
