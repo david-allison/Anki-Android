@@ -215,7 +215,7 @@ internal fun EditorFormattingDialog(
                                     colors =
                                         ToggleButtonDefaults.colors(
                                             containerColor =
-                                                MaterialTheme.colorScheme.onSurface
+                                                MaterialTheme.colorScheme.primary
                                                     .copy(alpha = 0.10f)
                                                     .compositeOver(MaterialTheme.colorScheme.surfaceContainerHigh),
                                             checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
