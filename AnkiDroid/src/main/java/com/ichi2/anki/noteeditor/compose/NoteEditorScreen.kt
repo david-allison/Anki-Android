@@ -104,7 +104,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
@@ -789,12 +788,7 @@ private fun EditorFieldOptions(
                 }
             }
         }
-        Text(
-            stringResource(R.string.compose_editor_customize_field),
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Spacer(Modifier.height(12.dp))
         EditorFieldOptionsLink(
             icon = R.drawable.ic_touch,
             title = R.string.compose_editor_quick_actions,
