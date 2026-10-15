@@ -883,6 +883,72 @@ were changed.
 
 [Pixel trace and extracted measurements](../AnkiDroid/build/reports/compose-editor/keyboard-opening/fresh-20261015/).
 
+## Keyboard toolbar work: fewer missed frames, startup delay remains (15 October 2026)
+
+**Fresh-editor animation misses: 8.3% → 3.1%. Input-to-animation median:
+442 → 431 ms. This fixes avoidable toolbar work; it does not resolve the full
+first-opening latency.**
+
+The scrollable toolbar previously composed every enabled button and tooltip,
+including those outside the viewport. It now uses a `LazyRow`, while stacked
+mode retains its existing `FlowRow`. Stable item keys preserve button identity;
+a field change starts its own scroll state so the new field's leading actions
+remain visible. The toolbar also measures its natural height independently of
+the shrinking IME viewport, avoiding repeated button measurement during resize.
+
+Pixel 9 Pro, isolated debuggable Fields Probe, Basic with two empty fields,
+Gboard English, existing phone settings. Every APK installation restarts the
+process; each batch then captures three fresh-editor/reopening pairs. The table
+includes **all twelve baseline pairs and six pairs with the final build**:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Fresh editor: touch → keyboard motion, median | 442 ms | 431 ms |
+| Fresh editor: longest preparation frame, median | 107 ms | 100 ms |
+| Fresh editor: app deadlines missed during IME animation | 29 / 348 (8.3%) | 6 / 193 (3.1%) |
+| Reopen: touch → keyboard motion, median | 103 ms | 110 ms |
+| Reopen: longest animation frame, median | 19.0 ms | 15.2 ms |
+| Reopen: app deadlines missed during IME animation | 39 / 298 (13.1%) | 19 / 159 (11.9%) |
+
+First-editor-after-install samples are materially slower than subsequent fresh
+editors. Separating them, first-use preparation frames fall **198 → 175 ms**
+and animation misses **26.1% → 6.8%** (four baseline samples, two optimized).
+Subsequent fresh editors reach keyboard motion in **418 → 423 ms** (eight versus
+four samples). Using only the nearest two baseline batches gives 425 → 431 ms overall.
+There is no established improvement in startup or reopened-keyboard latency;
+remaining first-use work still needs optimization. The normal keyboard animation
+adds about 300 ms after motion begins. These are trace events, not measurements
+of physical presentation or keypress acceptance.
+
+Lazy buttons alone initially measured 453 → 430 ms in an alternating comparison,
+but the later reversal and combined experiment did not establish an overall
+startup improvement. The first stable-height runs each recorded about 2% fresh-editor
+animation misses; final runs, including the field-scroll correction, each recorded
+about 3%. Reopened-keyboard misses varied across batches, so their small aggregate
+change is not evidence of a reliable improvement. Emulator timings were too
+variable to assess performance; they are used for functional testing only. No sampled CPU profiler ran during
+the comparison; a separate ART capture identified toolbar/tooltip and layout
+work. No production profiling hooks or phone settings changes were added.
+
+Final APK SHA-256: `b232cb94930aeaef6fa3812fb593175dcc3c2f9623785ce91c16d701d066805e`.
+
+The offscreen-composition regression failed before the change. A second
+regression covers switching to a differently ordered field toolbar after scrolling.
+The opt-in keyboard benchmark retains complete traces and supports latency and
+missed-frame budgets; the experimental 400 ms startup budget is **not met**.
+
+Validation: all **128 light/dark UI assertions** pass. The two new regressions
+also pass independently before adding the height optimization. Sixteen focused
+toolbar screenshot/regression checks pass; four older stacked references differ
+only at the previously changed `<>` icon spacing and were left untouched. The
+full screenshot-reference suite has further pre-existing reference drift; sampled
+unchanged-baseline and current actual images are byte-identical. Emulator checks
+cover Bold preserving typing format, six dialog/keyboard restoration combinations,
+and scrolled eraser cancellation, captured selection, recreation and undo. Ten
+toolbar tooltip/order checks and all eleven benchmark/parser host tests pass.
+
+[Local APKs, traces, and every comparison sample](../AnkiDroid/build/reports/compose-editor/keyboard-lazy-toolbar/).
+
 ## Per-field quick actions: first-load cost (12 October 2026)
 
 **Two fields: 24.0 ms before → 24.4 ms with Pin and Gallery enabled.**
