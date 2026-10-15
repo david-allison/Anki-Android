@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -94,7 +95,7 @@ internal fun EditorToolbarDialog(
                 modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
                 header = {
                     TextButton(onClick = onCustomButtons) {
-                        Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
+                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(stringResource(R.string.compose_editor_custom_buttons))
                     }
@@ -109,7 +110,10 @@ internal fun EditorToolbarDialog(
                     }
                 val checked = toolbar.isEnabled(item)
                 EditorToolbarRow(
-                    (item as? EditorToolbarItem.Builtin)?.button?.icon,
+                    when (item) {
+                        is EditorToolbarItem.Builtin -> item.button.icon
+                        is EditorToolbarItem.Custom -> R.drawable.ic_widgets
+                    },
                     label,
                     checked,
                     dragging,
@@ -144,6 +148,7 @@ internal fun EditorToolbarDialog(
                     startDrag = startDrag,
                     moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
                     moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
+                    supportingText = if (item is EditorToolbarItem.Custom) stringResource(R.string.compose_editor_custom_button) else null,
                 )
             }
         }
@@ -153,7 +158,7 @@ internal fun EditorToolbarDialog(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun EditorToolbarRow(
-    icon: Int?,
+    icon: Int,
     label: String,
     checked: Boolean,
     dragging: Boolean,
@@ -161,6 +166,7 @@ internal fun EditorToolbarRow(
     startDrag: () -> Unit,
     moveUp: (() -> Boolean)?,
     moveDown: (() -> Boolean)?,
+    supportingText: String? = null,
 ) {
     val toggleLabel =
         stringResource(
@@ -192,9 +198,14 @@ internal fun EditorToolbarRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.padding(start = 12.dp).size(20.dp)) {
-                    if (icon != null) Icon(painterResource(icon), contentDescription = null)
+                    Icon(painterResource(icon), contentDescription = null)
                 }
-                Text(label, Modifier.weight(1f).padding(horizontal = 12.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    supportingText?.let {
+                        Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                     Icon(painterResource(if (checked) R.drawable.ic_remove else R.drawable.ic_add), contentDescription = null)
                 }

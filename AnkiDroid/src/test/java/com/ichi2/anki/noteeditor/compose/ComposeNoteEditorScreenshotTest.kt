@@ -502,8 +502,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
         bold.assertIsSelected()
-        bold.performClick().assertIsNotSelected()
+        // Capture the settled rows without an Android ripple following a moved RecyclerView holder.
+        bold.performSemanticsAction(SemanticsActions.OnClick).assertIsNotSelected()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_button)).assertIsDisplayed()
         captureScreen("toolbar_configuration")
+        composeRule.onNodeWithText("Ruby").performSemanticsAction(SemanticsActions.OnClick).assertIsNotSelected()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_button)).assertIsDisplayed()
+        captureScreen("toolbar_configuration_custom_available")
         composeRule
             .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
             .performClick()

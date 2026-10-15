@@ -60,6 +60,7 @@ internal fun EditorCustomButtonsDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(painterResource(R.drawable.ic_widgets), null) },
         title = { Text(stringResource(R.string.compose_editor_custom_buttons)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
