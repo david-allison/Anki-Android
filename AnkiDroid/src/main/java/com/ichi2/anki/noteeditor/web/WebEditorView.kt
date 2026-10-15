@@ -83,6 +83,7 @@ class WebEditorView(
     private val collectionReady = CompletableDeferred<Unit>()
     private val hostBackgroundColor = getColorFromAttr(context, android.R.attr.colorBackground)
     private val hostForegroundColor = getColorFromAttr(context, com.google.android.material.R.attr.colorOnSurface)
+    private val hostControlColor = getColorFromAttr(context, android.R.attr.colorControlNormal)
 
     // Compose maps this selected surface to primaryContainer for toolbar toggles.
     private val hostSelectedColor = getColorFromAttr(context, com.google.android.material.R.attr.colorSecondaryContainer)
@@ -90,6 +91,7 @@ class WebEditorView(
     private val hostStyle =
         ":root { --editor-host-background: ${hostBackgroundColor.toCssRgb()}; " +
             "--editor-host-foreground: ${hostForegroundColor.toCssRgb()}; " +
+            "--editor-host-control: ${hostControlColor.toCssRgb()}; " +
             "--editor-host-selected-background: ${hostSelectedColor.toCssRgb()}; " +
             "--editor-host-selected-foreground: ${hostForegroundColor.toCssRgb()}; " +
             "--editor-host-mode-background: ${hostModeColor.toCssRgba()}; ${context.fieldNameCss(settings.textZoom)} }"

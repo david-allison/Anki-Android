@@ -364,7 +364,12 @@ class WebEditorViewTest : InstrumentedTest() {
 
     private fun assertOuterTheme(theme: Int) =
         withEditor(theme = theme) {
-            loadDocument(document("<span style='color: rgb(200, 30, 40)'>coloured text</span>"))
+            val actions = listOf(EditorQuickAction.PIN, EditorQuickAction.EDIT_HTML).map { it.toWeb(context, pinned = false) }
+            loadDocument(
+                document("<span style='color: rgb(200, 30, 40)'>coloured text</span>").let {
+                    it.copy(fields = it.fields.map { field -> field.copy(quickActions = actions) })
+                },
+            )
             val foreground = getColorFromAttr(context, com.google.android.material.R.attr.colorOnSurface)
 
             fun rgb(color: Int) =
@@ -380,6 +385,7 @@ class WebEditorViewTest : InstrumentedTest() {
                                 body: style('body').backgroundColor,
                                 container: style('.field-container').backgroundColor,
                                 label: style('.label-name').color,
+                                quickAction: style('.quick-action').color,
                                 badge: style('.label-container .badge').color,
                                 labelBackground: style('.label-container').backgroundColor,
                                 field: style('.rich-text-input').backgroundColor,
@@ -392,6 +398,7 @@ class WebEditorViewTest : InstrumentedTest() {
             assertEquals("rgba(0, 0, 0, 0)", appearance.getString("body"))
             assertEquals("rgba(0, 0, 0, 0)", appearance.getString("container"))
             assertEquals(rgb(foreground), appearance.getString("label"))
+            assertEquals(rgb(getColorFromAttr(context, android.R.attr.colorControlNormal)), appearance.getString("quickAction"))
             assertEquals(rgb(foreground), appearance.getString("badge"))
             assertEquals(rgb(background), appearance.getString("labelBackground"))
             assertTrue(appearance.getString("field").startsWith("rgb("), "Field surface must remain opaque")
