@@ -23,7 +23,7 @@
     <string name="compose_editor_audio">Choose audio</string>
     <string name="compose_editor_video">Choose video</string>
     <string name="compose_editor_field_options">Field options</string>
-    <string name="compose_editor_toolbar">Toolbar</string>
+    <string name="compose_editor_toolbar">Toolbar buttons</string>
     <string name="compose_editor_toolbar_scroll">Scroll</string>
     <string name="compose_editor_toolbar_stack">Stack</string>
     <string name="compose_editor_toolbar_hidden">Hidden</string>
@@ -33,7 +33,7 @@
     <string name="compose_editor_add_toolbar_button">Add %s</string>
     <string name="compose_editor_remove_custom_button">Remove %s</string>
     <string name="compose_editor_field_options_title">%s — field options</string>
-    <string name="compose_editor_field_options_scope">For this field in %s</string>
+    <string name="compose_editor_field_options_scope">All notes of type %s</string>
     <string name="compose_editor_field_options_help">About pinning and keyboard language</string>
     <string name="compose_editor_field_options_help_scope">These settings apply to the “%1$s” field on all notes using the “%2$s” note type.</string>
     <string name="compose_editor_pin_field">Pin field</string>
@@ -76,11 +76,14 @@
     <string name="compose_editor_removed_fields">Text from removed fields</string>
     <string name="compose_editor_removed_fields_explanation">These fields were removed from the note type. Copy any text you want to keep before discarding it, or close the editor to keep it in your draft.</string>
     <string name="compose_editor_keep_draft_close">Keep draft and close</string>
-    <string name="compose_editor_custom_buttons_scope">Create buttons to use in any field. Editing or deleting a button affects every field using it. Enable buttons for a field in Toolbar.</string>
+    <string name="compose_editor_custom_buttons_scope">Create buttons to use in any field. Editing or deleting a button affects every field using it. Enable buttons for a field in Toolbar buttons.</string>
     <string name="compose_editor_move_button_up">Move %s up</string>
     <string name="compose_editor_move_button_down">Move %s down</string>
     <string name="compose_editor_reorder_button">Reorder %s</string>
     <string name="compose_editor_quick_actions">Quick actions</string>
+    <string name="compose_editor_customize_field">Customize this field</string>
+    <string name="compose_editor_quick_actions_summary">Buttons beside the field</string>
+    <string name="compose_editor_toolbar_summary">Shown when editing this field</string>
     <string name="compose_editor_quick_actions_scope">Show these buttons beside this field on all notes of this note type. Drag to reorder.</string>
     <string name="compose_editor_quick_actions_insertion">Media goes at the cursor in the active field, or at the end of an inactive field.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>

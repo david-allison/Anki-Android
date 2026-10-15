@@ -9,16 +9,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,11 +38,12 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RichTooltip
@@ -75,6 +75,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -91,7 +92,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -612,6 +616,7 @@ private fun Modifier.toolbarEndFade(
         }
     }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditorFieldOptions(
     field: EditorFieldState,
@@ -625,95 +630,152 @@ private fun EditorFieldOptions(
 ) {
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
     val scopeDescription = stringResource(R.string.compose_editor_field_options_scope, noteTypeName)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+        Row(
+            Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(
                 Modifier.weight(1f).clearAndSetSemantics {
+                    heading()
                     contentDescription = "$fieldDescription. $scopeDescription"
                 },
             ) {
-                Text(field.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(noteTypeName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    field.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    scopeDescription,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             FieldOptionsHelp(field.name, noteTypeName)
             IconButton(onClick = onCollapse) {
                 Icon(painterResource(R.drawable.ic_expand_more_black), stringResource(R.string.compose_editor_field_options))
             }
         }
-        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            EditorTooltip(
-                text = stringResource(R.string.compose_editor_pin_field_summary),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                maxItemsInEachRow = if (maxWidth / LocalDensity.current.fontScale < 300.dp) 1 else 2,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Surface(
-                    checked = field.sticky,
-                    onCheckedChange = onPinned,
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = if (field.sticky) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                    contentColor = if (field.sticky) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                EditorTooltip(
+                    text = stringResource(R.string.compose_editor_pin_field_summary),
+                    modifier = Modifier.weight(1f).fillMaxRowHeight(),
                 ) {
-                    Row(
-                        Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Surface(
+                        checked = field.sticky,
+                        onCheckedChange = onPinned,
+                        enabled = enabled,
+                        modifier = Modifier.fillMaxSize(),
+                        shape = MaterialTheme.shapes.medium,
+                        color = if (field.sticky) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        contentColor =
+                            if (field.sticky) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     ) {
-                        Icon(
-                            painterResource(R.drawable.ic_baseline_push_pin_24),
-                            stringResource(R.string.compose_editor_pin_field),
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.labelLarge)
+                        Row(
+                            Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_baseline_push_pin_24),
+                                stringResource(R.string.compose_editor_pin_field),
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
-            }
-            VerticalDivider(Modifier.fillMaxHeight().padding(horizontal = 16.dp))
-            EditorTooltip(
-                text = stringResource(R.string.compose_editor_language_hint_summary),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            ) {
-                Surface(
-                    onClick = onLanguageHint,
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = Color.Transparent,
+                EditorTooltip(
+                    text = stringResource(R.string.compose_editor_language_hint_summary),
+                    modifier = Modifier.weight(1f).fillMaxRowHeight(),
                 ) {
-                    Row(
-                        Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Surface(
+                        onClick = onLanguageHint,
+                        enabled = enabled,
+                        modifier = Modifier.fillMaxSize(),
+                        shape = MaterialTheme.shapes.medium,
+                        color = Color.Transparent,
                     ) {
-                        Icon(
-                            painterResource(R.drawable.ic_language_black_24dp),
-                            stringResource(R.string.compose_editor_language_hint),
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.labelLarge)
-                            Text(
-                                field.languageTag?.let { Locale.forLanguageTag(it).displayName }
-                                    ?: stringResource(R.string.compose_editor_language_hint_default),
-                                style = MaterialTheme.typography.bodyMedium,
+                        Row(
+                            Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_language_black_24dp),
+                                stringResource(R.string.compose_editor_language_hint),
+                                modifier = Modifier.size(24.dp),
                             )
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    field.languageTag?.let { Locale.forLanguageTag(it).displayName }
+                                        ?: stringResource(R.string.compose_editor_language_hint_default),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-        TextButton(onClick = onQuickActions, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-            Icon(painterResource(R.drawable.ic_touch), null, Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(stringResource(R.string.compose_editor_quick_actions))
-        }
-        TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-            Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(stringResource(R.string.compose_editor_toolbar))
-        }
+        Text(
+            stringResource(R.string.compose_editor_customize_field),
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        EditorFieldOptionsLink(
+            icon = R.drawable.ic_touch,
+            title = R.string.compose_editor_quick_actions,
+            summary = R.string.compose_editor_quick_actions_summary,
+            enabled = enabled,
+            onClick = onQuickActions,
+        )
+        EditorFieldOptionsLink(
+            icon = R.drawable.ic_toolbar,
+            title = R.string.compose_editor_toolbar,
+            summary = R.string.compose_editor_toolbar_summary,
+            enabled = enabled,
+            onClick = onToolbar,
+        )
     }
+}
+
+@Composable
+private fun EditorFieldOptionsLink(
+    icon: Int,
+    title: Int,
+    summary: Int,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        onClick = onClick,
+        enabled = enabled,
+        modifier =
+            Modifier
+                .padding(horizontal = 8.dp)
+                .clip(MaterialTheme.shapes.medium),
+        supportingContent = { Text(stringResource(summary)) },
+        leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp)) },
+        trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp)) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    ) { Text(stringResource(title)) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
