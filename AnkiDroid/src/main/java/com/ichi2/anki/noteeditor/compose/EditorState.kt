@@ -23,6 +23,7 @@ data class EditorState(
     val fields: List<EditorFieldState>,
     val tags: List<String>,
     val customButtonTemplates: List<EditorCustomToolbarButton> = emptyList(),
+    val toolbarPresets: List<EditorToolbarPreset> = listOf(EditorToolbarPreset(id = EditorToolbarPreset.DEFAULT_ID, name = "")),
     val settings: WebEditorSettings = WebEditorSettings(),
     val toolbarDisplay: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL,
     val toolbarTextColor: String = "#000000",
@@ -62,6 +63,7 @@ data class EditorFieldState(
     val collapsed: Boolean,
     val sourceMode: Boolean,
     val toolbar: EditorFieldToolbar = EditorFieldToolbar(),
+    val toolbarPresetId: String? = EditorToolbarPreset.DEFAULT_ID,
 )
 
 sealed interface EditorSaveResult {

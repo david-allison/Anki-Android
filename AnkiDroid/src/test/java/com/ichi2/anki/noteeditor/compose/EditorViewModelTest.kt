@@ -36,6 +36,88 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `shared presets refresh every assigned field without changing the note or its document generation`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val preset = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
+            vm.saveToolbarPreset(preset)
+            before.fields.indices.forEach { index ->
+                vm.setFieldToolbarPreset(EditorFieldTarget(before.sessionId, before.generation, index), preset.id)
+            }
+            vm.setFieldQuickActions(EditorFieldTarget(before.sessionId, before.generation, 0), listOf("gallery"))
+            vm.saveToolbarPreset(preset.copy(name = "Reading", hiddenButtons = setOf("ITALIC")))
+            val after = assertNotNull(vm.state.value)
+            assertTrue(after.fields.all { it.toolbarPresetId == preset.id && it.toolbar.hiddenButtons == setOf("ITALIC") })
+            assertEquals(
+                listOf("gallery"),
+                after.fields
+                    .first()
+                    .toolbar.quickActions,
+            )
+            assertEquals(before.generation, after.generation)
+            assertEquals(before.fields.map { it.html }, after.fields.map { it.html })
+            assertEquals(before.notetypeJson, after.notetypeJson)
+            assertFalse(after.hasMetadataChanges)
+            assertEquals(after.fields, loadAdd().state.value?.fields)
+            vm.deleteToolbarPreset(preset.id)
+            assertTrue(
+                vm.state.value!!.fields.all {
+                    it.toolbarPresetId == EditorToolbarPreset.DEFAULT_ID &&
+                        it.toolbar.hiddenButtons.isEmpty()
+                },
+            )
+            assertEquals(
+                listOf("gallery"),
+                vm.state.value!!
+                    .fields
+                    .first()
+                    .toolbar.quickActions,
+            )
+            assertEquals(0, col.noteCount())
+        }
+
+    @Test
+    fun `field-only edits detach from presets and stale preset assignments do nothing`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val default = before.toolbarPresets.single()
+            vm.saveToolbarPreset(default.copy(hiddenButtons = setOf("BOLD")))
+            val target = EditorFieldTarget(before.sessionId, before.generation, 0)
+            vm.setFieldToolbarPreset(target, null)
+            vm.saveToolbarPreset(default.copy(hiddenButtons = setOf("ITALIC")))
+            assertNull(
+                vm.state.value!!
+                    .fields
+                    .first()
+                    .toolbarPresetId,
+            )
+            assertEquals(
+                setOf("BOLD"),
+                vm.state.value!!
+                    .fields
+                    .first()
+                    .toolbar.hiddenButtons,
+            )
+            assertEquals(
+                setOf("ITALIC"),
+                vm.state.value!!
+                    .fields
+                    .last()
+                    .toolbar.hiddenButtons,
+            )
+            assertIs<EditorSaveResult.Added>(vm.save(listOf("front", "back")))
+            vm.setFieldToolbarPreset(target, EditorToolbarPreset.DEFAULT_ID)
+            assertNull(
+                vm.state.value!!
+                    .fields
+                    .first()
+                    .toolbarPresetId,
+            )
+        }
+
+    @Test
     fun `toolbar colours are independent and survive reopening without changing note content`() =
         runTest {
             val vm = loadAdd()
