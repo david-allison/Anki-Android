@@ -30,6 +30,7 @@ import com.ichi2.anki.multimedia.MultimediaViewModel
 import com.ichi2.anki.multimediacard.fields.IField
 import com.ichi2.anki.noteeditor.compose.EditorState
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import com.ichi2.anki.noteeditor.web.WebEditorFocusState
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.servicelayer.NoteService
@@ -59,16 +60,17 @@ class ComposeEditorMedia(
     private var pickerTarget: WebEditorTarget? = null
     private var pickerHadKeyboard = false
     private var pickerJob: Job? = null
+    private var returnFocus: WebEditorFocusState? = null
     private val launcher =
         activity.registerForActivityResult(MultimediaResultContract()) { result ->
             val operation = pending
             when {
-                result !is MultimediaResult.Success -> pending = null
+                result !is MultimediaResult.Success -> finishOperation()
                 operation == null || result.fieldIndex != operation.target.field -> {
-                    pending = null
+                    finishOperation()
                     reportError(invalidTarget)
                 }
-                result.field.mediaFile == null -> pending = null
+                result.field.mediaFile == null -> finishOperation()
                 else -> {
                     operation.result = result.field
                     insertResult(operation)
@@ -95,6 +97,7 @@ class ComposeEditorMedia(
                     }
                     check(target.matches(getState())) { invalidTarget }
                     checkpoint()
+                    returnFocus = getWeb()?.captureFocus()
                     awaitPickerAction(
                         target,
                         hadKeyboard =
@@ -130,6 +133,7 @@ class ComposeEditorMedia(
         val restoreKeyboard = pickerHadKeyboard
         pickerTarget = null
         pickerHadKeyboard = false
+        returnFocus = null
         pickerJob?.cancel()
         val web = getWeb() ?: return
         if (!restoreKeyboard || !target.matches(getState())) return
@@ -170,9 +174,11 @@ class ComposeEditorMedia(
                 try {
                     whenReady()
                     val web = checkNotNull(getWeb())
+                    if (returnFocus == null) returnFocus = web.captureFocus()
                     val state = checkNotNull(getState())
                     val target = capturedTarget ?: web.captureTarget()
                     if (target == null) {
+                        returnFocus = null
                         reportError(activity.getString(CommonString.card_template_editor_select_field))
                         return@launch
                     }
@@ -192,12 +198,16 @@ class ComposeEditorMedia(
                     val field = handler.createField()
                     note.setField(target.field, field)
                     check(target.matches(getState())) { invalidTarget }
+                    val intent = handler.buildIntent(activity, MultimediaActivityExtra(target.field, field, note))
                     pending = PendingEditorMedia(target, handler.action)
-                    launcher.launch(handler.buildIntent(activity, MultimediaActivityExtra(target.field, field, note)))
+                    // Cursor-handle popup windows can stretch across the activity transition.
+                    // The captured bookmark remains the destination for the returned media.
+                    web.clearFocus()
+                    launcher.launch(intent)
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: Exception) {
-                    pending = null
+                    finishOperation()
                     reportFailure(exception)
                 }
             }
@@ -258,6 +268,7 @@ class ComposeEditorMedia(
     }
 
     fun save(state: Bundle) {
+        state.putParcelable(RETURN_FOCUS, returnFocus)
         pending?.let { state.putString(PENDING_MEDIA, it.toJson().toString()) }
         pickerTarget?.let {
             state.putParcelable(PICKER_TARGET, it)
@@ -266,6 +277,7 @@ class ComposeEditorMedia(
     }
 
     fun restore(state: Bundle?) {
+        returnFocus = state?.let { BundleCompat.getParcelable(it, RETURN_FOCUS, WebEditorFocusState::class.java) }
         state?.let { BundleCompat.getParcelable(it, PICKER_TARGET, WebEditorTarget::class.java) }?.let {
             awaitPickerAction(it, state.getBoolean(PICKER_KEYBOARD))
         }
@@ -298,21 +310,38 @@ class ComposeEditorMedia(
                     }
                     val html = result.formattedValue.orEmpty()
                     if (html.isEmpty()) {
-                        pending = null
+                        finishOperation()
                         return@launch
                     }
                     val applied = checkNotNull(getWeb()).execute(WebEditorAction.INSERT_HTML, operation.target, html)
                     check(applied) { invalidTarget }
                     checkpoint()
-                    pending = null
+                    finishOperation(restoreSelection = false)
                     if (source.hasTemporaryMedia && source.mediaFile != result.mediaFile) source.mediaFile?.delete()
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: Exception) {
-                    pending = null
+                    finishOperation()
                     reportFailure(exception)
                 }
             }
+    }
+
+    private fun finishOperation(restoreSelection: Boolean = true) {
+        pending = null
+        val focus = returnFocus ?: return
+        returnFocus = null
+        activity.lifecycleScope.launch {
+            try {
+                whenReady()
+                if (focus.target?.matches(getState()) == false) return@launch
+                getWeb()?.restoreFocus(focus.target.takeIf { restoreSelection }, focus.keyboardVisible)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                reportFailure(exception)
+            }
+        }
     }
 
     private fun reportFailure(exception: Exception) {
@@ -327,6 +356,7 @@ class ComposeEditorMedia(
         private const val PICKER_TARGET = "composeEditorMediaPickerTarget"
         private const val PICKER_KEYBOARD = "composeEditorMediaPickerKeyboard"
         private const val PICKER = "MultimediaBottomSheet"
+        private const val RETURN_FOCUS = "composeEditorMediaReturnFocus"
     }
 }
 

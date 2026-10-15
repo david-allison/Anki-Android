@@ -73,6 +73,13 @@ data class WebEditorTarget(
     val bookmark: String,
 ) : Parcelable
 
+/** The active input can differ from an attachment's quick-action destination. */
+@Parcelize
+data class WebEditorFocusState(
+    val target: WebEditorTarget?,
+    val keyboardVisible: Boolean,
+) : Parcelable
+
 enum class WebEditorAction {
     BOLD,
     ITALIC,
