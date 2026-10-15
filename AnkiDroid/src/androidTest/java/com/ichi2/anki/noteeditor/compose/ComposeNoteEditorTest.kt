@@ -873,9 +873,24 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             var web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
+            var buttonLabel = "Wrap"
+            // Keep the draggable selection on screen; this test checks field scoping,
+            // while the toolbar list tests cover scrolling and the complete button set.
+            val current = scenario.editorState()
+            val model = scenario.editorModel()
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    model.setFieldToolbar(
+                        EditorFieldTarget(current.sessionId, current.generation, 0),
+                        EditorFieldToolbar(
+                            hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC", "UNDERLINE"),
+                        ),
+                    )
+                }
+            }
             runBlocking { web.focusField(0) }
             checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options))), 5_000),
             ).click()
             checkNotNull(
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
@@ -886,23 +901,45 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
             val inputs = device.findObjects(By.clazz("android.widget.EditText"))
             assertEquals(3, inputs.size)
-            inputs[0].text = "Wrap"
+            inputs[0].text = buttonLabel
             inputs[1].text = "<b>"
             inputs[2].text = "</b>"
             val save = By.text(testContext.getString(com.ichi2.anki.CommonString.save))
             device.findObjects(save).last().click()
-            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             device.findObjects(save).last().click()
             waitUntil(message = { "The global template did not save" }) {
-                scenario.editorState().customButtonTemplates.any { it.label == "Wrap" }
+                scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
             assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+            ).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
-            device.findObject(By.text("Wrap")).click()
+            // Manage shared definitions without committing the pending removal of Bold.
+            checkNotNull(
+                device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
+            ).click()
+            checkNotNull(device.wait(Until.findObject(By.text(buttonLabel)), 5_000)).click()
+            buttonLabel = "Wrap updated"
+            device.findObjects(By.clazz("android.widget.EditText"))[0].text = buttonLabel
+            device.findObjects(save).last().click()
+            device.findObjects(save).last().click()
+            waitUntil(message = { "The template change did not reach the open toolbar configuration" }) {
+                scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
+            }
+            assertTrue(
+                "BOLD" !in
+                    scenario
+                        .editorState()
+                        .fields[0]
+                        .toolbar.hiddenButtons,
+            )
+            device.findObject(By.text(buttonLabel)).click()
             val handle =
                 checkNotNull(
-                    device.findObject(By.desc(testContext.getString(R.string.compose_editor_reorder_button, "Wrap"))),
+                    device.findObject(By.desc(testContext.getString(R.string.compose_editor_reorder_button, buttonLabel))),
                 ).visibleCenter
             val destination = checkNotNull(device.findObject(By.text(testContext.getString(R.string.compose_editor_italic)))).visibleBounds
             assertTrue(device.swipe(handle.x, handle.y, handle.x, destination.bottom, 30))
@@ -912,14 +949,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .editorState()
                     .fields[0]
                     .toolbar.customButtons
-                    .any { it.label == "Wrap" }
+                    .any { it.label == buttonLabel }
             }
             device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))).click()
-            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(
                 device.findObject(By.desc(testContext.getString(R.string.compose_editor_italic))).visibleBounds.right <=
-                    device.findObject(By.text("Wrap")).visibleBounds.left,
+                    device.findObject(By.text(buttonLabel)).visibleBounds.left,
             )
             web.setField(0, "alpha")
             web.evaluate(
@@ -934,11 +971,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 })()
                 """.trimIndent(),
             )
-            device.findObject(By.text("Wrap")).click()
+            device.findObject(By.text(buttonLabel)).click()
             web.awaitJavascript("${richField(0)}.querySelector('b,strong')?.textContent === 'alpha'")
             runBlocking { web.focusField(1) }
             assertTrue(device.wait(Until.hasObject(bold), 5_000))
-            assertFalse(device.hasObject(By.text("Wrap")))
+            assertFalse(device.hasObject(By.text(buttonLabel)))
             val configuredToolbar = scenario.editorState().fields[0].toolbar
             scenario.recreate()
             web = scenario.awaitEditor()
@@ -946,11 +983,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             // Mounted fields precede completion of draft restoration. Wait for native controls before focusing.
             assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(CommonString.save)).enabled(true)), 5_000))
             runBlocking { web.focusField(0) }
-            assertTrue(device.wait(Until.hasObject(By.text("Wrap")), 5_000))
+            assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(
                 device.findObject(By.desc(testContext.getString(R.string.compose_editor_italic))).visibleBounds.right <=
-                    device.findObject(By.text("Wrap")).visibleBounds.left,
+                    device.findObject(By.text(buttonLabel)).visibleBounds.left,
             )
             assertEquals(0, runBlocking { withCol { noteCount() } })
         }

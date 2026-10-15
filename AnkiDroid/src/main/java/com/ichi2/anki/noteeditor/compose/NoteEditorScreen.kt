@@ -163,6 +163,7 @@ fun NoteEditorScreen(
             noteTypeName = current.noteTypeName,
             isCloze = current.isCloze,
             templates = current.customButtonTemplates,
+            onCustomButtons = { showCustomButtons = true },
             onDismiss = { toolbarTarget = null },
             onSave = {
                 onToolbar(target, it)
@@ -256,6 +257,7 @@ fun NoteEditorScreen(
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,
                                         onToolbarDisplay = onToolbarDisplay,
+                                        onCustomButtons = { showCustomButtons = true },
                                         fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
                                         onFieldOptions = { fieldOptionsRequested = true },
                                     )
@@ -332,7 +334,6 @@ fun NoteEditorScreen(
                             onLanguageHint = onLanguageHint,
                             onToolbar = { toolbarTarget = it },
                             onQuickActions = { quickActionsTarget = it },
-                            onCustomButtons = { showCustomButtons = true },
                             onCustomAction = onCustomAction,
                             onTags = onTags,
                             onRemoveTag = onRemoveTag,
@@ -433,7 +434,6 @@ private fun EditorFieldArea(
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
-    onCustomButtons: () -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
     onTags: () -> Unit,
     onRemoveTag: (String) -> Unit,
@@ -492,7 +492,6 @@ private fun EditorFieldArea(
                     onLanguageHint = { onLanguageHint(target) },
                     onToolbar = { onToolbar(target) },
                     onQuickActions = { onQuickActions(target) },
-                    onCustomButtons = onCustomButtons,
                     onCollapse = closeOptions,
                 )
             }
@@ -622,7 +621,6 @@ private fun EditorFieldOptions(
     onLanguageHint: () -> Unit,
     onToolbar: () -> Unit,
     onQuickActions: () -> Unit,
-    onCustomButtons: () -> Unit,
     onCollapse: () -> Unit,
 ) {
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
@@ -710,17 +708,10 @@ private fun EditorFieldOptions(
             Spacer(Modifier.width(12.dp))
             Text(stringResource(R.string.compose_editor_quick_actions))
         }
-        Row(Modifier.fillMaxWidth()) {
-            TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.weight(1f)) {
-                Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.compose_editor_toolbar))
-            }
-            TextButton(onClick = onCustomButtons, enabled = enabled, modifier = Modifier.weight(1f)) {
-                Icon(painterResource(R.drawable.ic_code), null, Modifier.size(24.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.compose_editor_custom_buttons))
-            }
+        TextButton(onClick = onToolbar, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+            Icon(painterResource(R.drawable.ic_toolbar), null, Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.compose_editor_toolbar))
         }
     }
 }

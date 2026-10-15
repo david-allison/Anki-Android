@@ -390,6 +390,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pin.assertDoesNotExist()
         fieldOptionsButton().performClick()
         pin.assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
         captureScreen("options_open")
     }
 
@@ -444,7 +445,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun customButtonLibraryOpen() {
-        openOptions(templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")))
+        showEditor(
+            templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+            focusState = mutableStateOf(EditorToolbarState()),
+        )
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
+        captureScreen("editor_options_custom_buttons")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
         composeRule.onNodeWithText("Ruby").assertIsDisplayed()
         captureScreen("custom_button_library")
@@ -1119,6 +1126,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         activity.setContent {
             AnkiDroidTheme {
                 val display = remember { mutableStateOf(toolbarDisplay) }
+                val currentTemplates = remember { mutableStateOf(templates) }
                 NoteEditorScreen(
                     state =
                         editorState(fieldName, noteTypeName, deckName).let { state ->
@@ -1127,7 +1135,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                 toolbarDisplay = display.value,
                                 toolbarTextColor = textColor,
                                 toolbarHighlightColor = highlightColor,
-                                customButtonTemplates = templates,
+                                customButtonTemplates = currentTemplates.value,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
                                         if (index ==
@@ -1166,6 +1174,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onLegacy = {},
                     onPreviewVisibility = {},
                     onToolbarDisplay = { display.value = it },
+                    onCustomButtonTemplates = { currentTemplates.value = it },
                     headerVisibility = headerVisibility,
                     editor = { Box(it.testTag("editor_fields")) },
                     preview = { Box(it) },

@@ -42,6 +42,7 @@ class EditorToolbarDragTest : InstrumentedTest() {
                                 noteTypeName = "Basic",
                                 isCloze = false,
                                 templates = listOf(custom),
+                                onCustomButtons = {},
                                 onDismiss = {},
                                 onSave = { saved.set(it) },
                             )

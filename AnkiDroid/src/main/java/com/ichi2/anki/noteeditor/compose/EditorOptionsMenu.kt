@@ -35,6 +35,7 @@ internal fun EditorOptionsMenu(
     onCards: () -> Unit,
     toolbarDisplay: EditorToolbarDisplay,
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
+    onCustomButtons: () -> Unit,
     fieldOptionsEnabled: Boolean,
     onFieldOptions: () -> Unit,
 ) {
@@ -89,6 +90,10 @@ internal fun EditorOptionsMenu(
             DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar)) }, onClick = {
                 expanded = false
                 showToolbarDisplay = true
+            })
+            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_custom_buttons)) }, onClick = {
+                expanded = false
+                onCustomButtons()
             })
             if (toolbarDisplay != EditorToolbarDisplay.SCROLL) {
                 DropdownMenuItem(
