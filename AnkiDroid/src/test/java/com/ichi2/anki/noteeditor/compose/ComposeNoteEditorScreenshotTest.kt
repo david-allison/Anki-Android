@@ -386,12 +386,22 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pin.assertDoesNotExist()
         fieldOptionsButton().performClick()
         pin.assertIsDisplayed()
-        fieldOptionsButton().performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
         pin.assertDoesNotExist()
         fieldOptionsButton().performClick()
         pin.assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
         captureScreen("options_open")
+    }
+
+    @Test
+    fun optionsOpenWithoutKeyboard() {
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+        settleMenuTransition(activity)
+        captureScreen("options_open_without_keyboard")
     }
 
     @Test
