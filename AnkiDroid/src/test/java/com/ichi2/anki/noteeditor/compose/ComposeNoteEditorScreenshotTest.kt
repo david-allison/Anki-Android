@@ -841,8 +841,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureScreen("options_closed_after_keyboard_back")
 
         val title = targetContext.getString(R.string.compose_editor_field_options_title, "Back")
-        val scope = targetContext.getString(R.string.compose_editor_field_options_scope, "Basic")
-        composeRule.onNodeWithContentDescription("$title. $scope").assertIsNotDisplayed()
+        composeRule.onNodeWithContentDescription(title).assertIsNotDisplayed()
     }
 
     @Test
