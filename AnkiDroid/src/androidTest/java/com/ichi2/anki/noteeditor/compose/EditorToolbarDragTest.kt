@@ -56,7 +56,7 @@ class EditorToolbarDragTest : InstrumentedTest() {
                     )
 
                 fun save(): EditorFieldToolbar {
-                    device.findObject(By.text(testContext.getString(CommonString.save))).click()
+                    device.findObject(By.desc(testContext.getString(CommonString.save))).click()
                     return checkNotNull(saved.get())
                 }
                 val start = handle("Wrap").visibleCenter

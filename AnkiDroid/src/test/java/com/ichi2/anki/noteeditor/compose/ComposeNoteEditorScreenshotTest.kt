@@ -34,8 +34,10 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
@@ -406,6 +408,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         bold.assertIsSelected()
         bold.performClick().assertIsNotSelected()
         captureScreen("toolbar_configuration")
+        composeRule
+            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
+            .performClick()
+        bold.assertDoesNotExist()
     }
 
     @Test
@@ -428,6 +434,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         drawing.performClick().assertIsSelected()
         drawing.performClick().assertIsNotSelected()
         captureScreen("quick_actions_configuration")
+        composeRule
+            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
+            .performClick()
+        drawing.assertDoesNotExist()
     }
 
     @Test
