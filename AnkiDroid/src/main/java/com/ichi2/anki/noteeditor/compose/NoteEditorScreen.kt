@@ -78,6 +78,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,6 +119,7 @@ import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewDialog
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -166,14 +168,9 @@ fun NoteEditorScreen(
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
-    var fieldOptionsRequested by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
+    val fieldOptionsRequested = rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
     val fieldOptionsBounds = remember(state?.sessionId, state?.generation) { mutableStateOf<Rect?>(null) }
-    if (fieldOptionsRequested && ready) {
-        DisposableEffect(onFieldOptionsVisibility) {
-            onFieldOptionsVisibility(true)
-            onDispose { onFieldOptionsVisibility(false) }
-        }
-    }
+    ObserveFieldOptionsVisibility(fieldOptionsRequested, ready, onFieldOptionsVisibility)
     var headerVisible by remember(state?.sessionId, state?.generation) { mutableStateOf(true) }
     LaunchedEffect(headerVisibility, state?.sessionId, state?.generation) {
         headerVisibility.collect { headerVisible = it }
@@ -224,7 +221,7 @@ fun NoteEditorScreen(
     }
     Box(
         Modifier.fillMaxSize().dismissFieldOptionsOnOutsideTap(fieldOptionsRequested, fieldOptionsBounds) {
-            fieldOptionsRequested = false
+            fieldOptionsRequested.value = false
         },
     ) {
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
@@ -285,7 +282,7 @@ fun NoteEditorScreen(
                                         onToolbarDisplay = onToolbarDisplay,
                                         onCustomButtons = { showCustomButtons = true },
                                         fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
-                                        onFieldOptions = { fieldOptionsRequested = true },
+                                        onFieldOptions = { fieldOptionsRequested.value = true },
                                     )
                                 }
                                 EditorActionButton(
@@ -352,7 +349,7 @@ fun NoteEditorScreen(
                             state = toolbarState,
                             fieldTaps = fieldTaps,
                             fieldOptionsRequested = fieldOptionsRequested,
-                            onFieldOptionsRequested = { fieldOptionsRequested = it },
+                            onFieldOptionsRequested = { fieldOptionsRequested.value = it },
                             onFieldOptionsBounds = { fieldOptionsBounds.value = it },
                             onAction = onAction,
                             onMedia = onAttachMedia,
@@ -408,19 +405,34 @@ fun NoteEditorScreen(
     }
 }
 
+/** Keep visibility observation out of the editor screen's composition scope. */
+@Composable
+private fun ObserveFieldOptionsVisibility(
+    requested: State<Boolean>,
+    ready: Boolean,
+    onVisibility: (Boolean) -> Unit,
+) {
+    if (requested.value && ready) {
+        DisposableEffect(onVisibility) {
+            onVisibility(true)
+            onDispose { onVisibility(false) }
+        }
+    }
+}
+
 /** Observe taps without consuming them: a WebView field must still receive the same gesture. */
 @Composable
 private fun Modifier.dismissFieldOptionsOnOutsideTap(
-    enabled: Boolean,
+    enabled: State<Boolean>,
     sheetBounds: State<Rect?>,
     onDismiss: () -> Unit,
 ): Modifier {
-    if (!enabled) return this
     val dismiss by rememberUpdatedState(onDismiss)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
     return onGloballyPositioned { rootOffset = it.positionInRoot() }.pointerInput(sheetBounds) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            if (!enabled.value) return@awaitEachGesture
             if (sheetBounds.value?.contains(down.position + rootOffset) != false) return@awaitEachGesture
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -486,7 +498,7 @@ private fun EditorFieldArea(
     enabled: Boolean,
     state: State<EditorToolbarState>,
     fieldTaps: Flow<Unit>,
-    fieldOptionsRequested: Boolean,
+    fieldOptionsRequested: State<Boolean>,
     onFieldOptionsRequested: (Boolean) -> Unit,
     onFieldOptionsBounds: (Rect) -> Unit,
     onAction: (WebEditorAction) -> Unit,
@@ -520,16 +532,19 @@ private fun EditorFieldArea(
         fieldTaps.collect { onFieldOptionsRequested(false) }
     }
     // isVisible can flip mid-animation; retain the content and layout until the sheet settles.
-    val showFieldOptions = fieldOptionsRequested || sheetState.currentValue != SheetValue.Hidden
+    val showFieldOptions by remember(fieldOptionsRequested, sheetState) {
+        derivedStateOf { fieldOptionsRequested.value || sheetState.currentValue != SheetValue.Hidden }
+    }
     val target =
         toolbarState.activeField?.takeIf { it in editorState.fields.indices }?.let {
             EditorFieldTarget(editorState.sessionId, editorState.generation, it)
         }
-    // IME animation moves the anchors every frame. Only observe whether expansion is available.
-    val hasExpandedState by remember(sheetState) { derivedStateOf { sheetState.hasExpandedState } }
-    // After recreation, the field data and sheet anchors become available after composition.
-    LaunchedEffect(sheetState, fieldOptionsRequested, hasExpandedState) {
-        if (fieldOptionsRequested && hasExpandedState) sheetState.expand() else sheetState.hide()
+    // Start the animation without recomposing the toolbar or screen. After recreation,
+    // expansion must also wait for the sheet content to establish its anchors.
+    LaunchedEffect(sheetState, fieldOptionsRequested) {
+        snapshotFlow { fieldOptionsRequested.value && sheetState.hasExpandedState }.collectLatest { expand ->
+            if (expand) sheetState.expand() else sheetState.hide()
+        }
     }
     val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
