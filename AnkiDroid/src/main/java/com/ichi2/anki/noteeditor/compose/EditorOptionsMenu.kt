@@ -47,6 +47,7 @@ internal fun EditorOptionsMenu(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
     onCustomButtons: () -> Unit,
     fieldOptionsEnabled: Boolean,
+    fieldToolbarVisible: Boolean = toolbarDisplay != EditorToolbarDisplay.HIDDEN,
     onFieldOptions: () -> Unit,
     onToolbarPresets: () -> Unit,
 ) {
@@ -131,7 +132,7 @@ internal fun EditorOptionsMenu(
                     onCustomButtons()
                 },
             )
-            if (toolbarDisplay != EditorToolbarDisplay.SCROLL) {
+            if (toolbarDisplay != EditorToolbarDisplay.SCROLL || !fieldToolbarVisible) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.compose_editor_field_options)) },
                     enabled = fieldOptionsEnabled,

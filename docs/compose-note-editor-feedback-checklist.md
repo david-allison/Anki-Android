@@ -1,10 +1,10 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 6 resolved.**
+Recorded 2026-10-15. **30 action items; 8 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Items 05, 07, 09, 18, 19 and 27 are implemented; the
+accepted design decisions. Items 05, 07, 09, 18, 19, 22, 23 and 27 are implemented; the
 other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
@@ -225,19 +225,28 @@ exist; distinguish these settings from device-local presentation preferences.
   expanding a field should not silently change its default, and validation
   must still reveal a collapsed field that needs attention.
 
-- [ ] **22. Include a per-field Show toolbar toggle.**
+- [x] **22. Include a per-field Show toolbar toggle.**
 
   **Assessment: conditional agreement.** Useful for fields that rarely need
   formatting, but it overlaps with a global Hidden layout. Define inheritance,
   precedence, and how users restore a hidden toolbar before adding another
   control.
 
-- [ ] **23. Include a toolbar-preset dropdown, hidden when the toolbar is off.**
+  **Implemented:** Show toolbar is saved per field alongside its preset
+  assignment. The global Hidden layout takes precedence. Field options remain
+  available from the wrench menu, so a hidden toolbar can be restored.
+
+- [x] **23. Include a toolbar-preset dropdown, hidden when the toolbar is off.**
 
   **Assessment: agree if presets are adopted.** Include **Use default** so fields
   can inherit future changes. Retain the selection when hiding the toolbar and
   restoring it. Selecting a shared preset should have clear shared-edit
   semantics, rather than silently copying its current contents.
+
+  **Implemented:** Field options include a shared-preset dropdown with Use
+  default. The dropdown is hidden when this field’s toolbar or the global
+  layout is hidden; hiding retains the chosen preset. Existing field-only
+  configurations remain intact until a shared preset is explicitly selected.
 
 ## Icons, attachments, and MathJax
 

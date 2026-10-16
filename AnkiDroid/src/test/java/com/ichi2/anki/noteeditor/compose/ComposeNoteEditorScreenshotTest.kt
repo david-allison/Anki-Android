@@ -92,6 +92,69 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     val composeRule = createEmptyComposeRule()
 
     @Test
+    fun fieldToolbarPresetDropdownRetainsSelectionWhenHidden() {
+        // Match other text-field screenshots to avoid Robolectric issue 8460.
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val toolbar = mutableStateOf(EditorFieldToolbar())
+        val selection = mutableStateOf<String?>(EditorToolbarPreset.DEFAULT_ID)
+        val (activity, keyboard) =
+            showEditor(
+                presets = samplePresets(),
+                fieldToolbarState = toolbar,
+                presetSelection = selection,
+                onToolbarVisibility = { _, visible -> toolbar.value = toolbar.value.copy(showToolbar = visible) },
+                onPreset = { _, id -> selection.value = id },
+            )
+        hideKeyboard(activity, keyboard)
+        fieldOptionsButton().performClick()
+        val selector = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset))
+        selector.performScrollTo().performClick()
+        composeRule.onNodeWithText("Language learning").performClick()
+        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
+        captureScreen("field_toolbar_preset_selected")
+        val selectedId = selection.value
+        val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
+        visibility.performScrollTo().performClick()
+        visibility.assertIsOff()
+        selector.assertDoesNotExist()
+        captureScreen("field_toolbar_preset_hidden")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
+        visibility.performScrollTo().performClick()
+        selector.performScrollTo().assertIsDisplayed()
+        assertEquals(selectedId, selection.value)
+        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
+        selector.performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_use_default_toolbar)).performClick()
+        assertEquals(EditorToolbarPreset.DEFAULT_ID, selection.value)
+    }
+
+    @Test
+    fun globalHiddenLayoutHidesFieldPresetSelector() {
+        val (activity, keyboard) = showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN)
+        hideKeyboard(activity, keyboard)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden_globally)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset)).assertDoesNotExist()
+        captureScreen("field_toolbar_hidden_globally")
+    }
+
+    @Test
+    fun toolbarVisibilityFollowsTheFocusedField() {
+        val focus = mutableStateOf(EditorToolbarState(activeField = 1))
+        showEditor(toolbar = EditorFieldToolbar(showToolbar = false), focusState = focus)
+        val bold = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold))
+        bold.assertDoesNotExist()
+        composeRule.runOnIdle { focus.value = focus.value.copy(activeField = 0) }
+        bold.assertIsDisplayed()
+        composeRule.runOnIdle { focus.value = focus.value.copy(activeField = 1) }
+        bold.assertDoesNotExist()
+    }
+
+    @Test
     fun rightToLeftFieldOptions() {
         var requested: Pair<EditorFieldTarget, Boolean>? = null
         showEditor(rtl = true, onDirection = { target, rtl -> requested = target to rtl })
@@ -1438,6 +1501,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         rtl: Boolean = false,
         onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         presets: List<EditorToolbarPreset>? = null,
+        fieldToolbarState: State<EditorFieldToolbar>? = null,
+        presetSelection: State<String?>? = null,
+        onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+        onPreset: (EditorFieldTarget, String?) -> Unit = { _, _ -> },
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1460,17 +1527,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                             1
                                         ) {
                                             field.copy(
-                                                toolbar = toolbar,
+                                                toolbar = fieldToolbarState?.value ?: toolbar,
                                                 sticky = pinned,
                                                 rtl = rtl,
                                                 toolbarPresetId =
-                                                    if (toolbar ==
-                                                        EditorFieldToolbar()
-                                                    ) {
-                                                        EditorToolbarPreset.DEFAULT_ID
-                                                    } else {
-                                                        null
-                                                    },
+                                                    presetSelection?.value
+                                                        ?: if (toolbar ==
+                                                            EditorFieldToolbar()
+                                                        ) {
+                                                            EditorToolbarPreset.DEFAULT_ID
+                                                        } else {
+                                                            null
+                                                        },
                                             )
                                         } else {
                                             field
@@ -1499,6 +1567,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
                     onFieldDirection = onDirection,
+                    onFieldToolbarVisibility = onToolbarVisibility,
+                    onToolbarPreset = onPreset,
                     onAction = onAction,
                     onMedia = {},
                     onAttachMedia = {},

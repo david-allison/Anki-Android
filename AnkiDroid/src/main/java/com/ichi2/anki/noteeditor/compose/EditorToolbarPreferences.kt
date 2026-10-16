@@ -24,6 +24,7 @@ data class EditorFieldToolbar(
     val customButtons: List<EditorCustomToolbarButton> = emptyList(),
     val buttonOrder: List<String> = emptyList(),
     val quickActions: List<String> = EditorQuickAction.defaults,
+    val showToolbar: Boolean = true,
 ) : Parcelable
 
 /** Device-local overrides for a field on all notes using the same note type. */
@@ -45,6 +46,7 @@ internal class EditorToolbarPreferences(
         val local =
             runCatching {
                 EditorFieldToolbar(
+                    showToolbar = json.optBoolean("showToolbar", true),
                     hiddenButtons =
                         json
                             .optJSONArray("hidden")
@@ -143,6 +145,18 @@ internal class EditorToolbarPreferences(
         ) { "Unable to assign toolbar preset." }
     }
 
+    fun saveToolbarVisibility(
+        collection: String,
+        noteType: Long,
+        field: String,
+        visible: Boolean,
+    ) {
+        val json = fieldSettings(collection, noteType, field).put("showToolbar", visible)
+        check(
+            preferences.edit().putString(key(collection, noteType, field), json.toString()).commit(),
+        ) { "Unable to save toolbar visibility." }
+    }
+
     fun saveQuickActions(
         collection: String,
         noteType: Long,
@@ -189,6 +203,7 @@ internal class EditorToolbarPreferences(
                 .put("customIds", JSONArray(toolbar.customButtons.map { it.id }))
                 .put("order", JSONArray(toolbar.buttonOrder))
                 .put("quickActions", JSONArray(toolbar.quickActions.distinct()))
+                .put("showToolbar", toolbar.showToolbar)
         check(preferences.edit().putString(key(collection, noteType, field), json.toString()).commit()) {
             "Unable to save field toolbar settings."
         }
