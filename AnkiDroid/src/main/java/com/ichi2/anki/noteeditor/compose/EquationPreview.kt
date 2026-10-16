@@ -12,16 +12,20 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,23 +42,31 @@ import java.io.ByteArrayInputStream
 internal fun EquationPreview(
     text: String,
     action: WebEditorAction,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
 ) {
     val foreground = MaterialTheme.colorScheme.onSurface.toArgb()
     val error = MaterialTheme.colorScheme.error.toArgb()
     val unavailable = stringResource(R.string.compose_editor_equation_preview_unavailable)
     val empty = text.isBlank()
+    val previewHeight = minOf(if (expanded) 240.dp else 160.dp, LocalConfiguration.current.screenHeightDp.dp * 0.4f)
     Column {
-        Text(
-            stringResource(R.string.compose_editor_equation_preview),
-            Modifier.padding(bottom = 8.dp),
-            style = MaterialTheme.typography.labelMedium,
-        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.compose_editor_equation_preview),
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.labelMedium,
+            )
+            TextButton(onClick = onToggleExpanded) {
+                Text(stringResource(if (expanded) R.string.compose_editor_equation_collapse else R.string.compose_editor_equation_expand))
+            }
+        }
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("equation_preview"),
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
-            Box(Modifier.height(112.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.height(previewHeight), contentAlignment = Alignment.Center) {
                 AndroidView(
                     factory = { EquationPreviewView(it) },
                     modifier = Modifier.matchParentSize(),
