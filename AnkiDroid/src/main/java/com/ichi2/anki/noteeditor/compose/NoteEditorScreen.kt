@@ -163,6 +163,7 @@ fun NoteEditorScreen(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
     onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+    onFieldToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
@@ -189,6 +190,9 @@ fun NoteEditorScreen(
         headerVisibility.collect { headerVisible = it }
     }
     val enabled = ready && !busy && state?.isSaving == false
+    val toolbarVisible by remember(state, toolbarState) {
+        derivedStateOf { state?.showsToolbar(toolbarState.value.activeField) != false }
+    }
     fontTarget?.takeIf { it.matches(state) }?.let { target ->
         val current = requireNotNull(state)
         EditorFieldFontDialog(
@@ -266,7 +270,7 @@ fun NoteEditorScreen(
         }
         Scaffold(
             containerColor =
-                if (state?.toolbarDisplay == EditorToolbarDisplay.HIDDEN) {
+                if (!toolbarVisible) {
                     MaterialTheme.colorScheme.surface
                 } else {
                     MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
@@ -317,6 +321,7 @@ fun NoteEditorScreen(
                                         onToolbarDisplay = onToolbarDisplay,
                                         onCustomButtons = { showCustomButtons = true },
                                         fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
+                                        fieldToolbarVisible = it.showsToolbar(toolbarState.value.activeField),
                                         onFieldOptions = { fieldOptionsRequested.value = true },
                                         onToolbarPresets = { showToolbarPresets = true },
                                     )
@@ -394,6 +399,8 @@ fun NoteEditorScreen(
                             onLanguageHint = onLanguageHint,
                             onFont = { fontTarget = it },
                             onDirection = onFieldDirection,
+                            onToolbarVisibility = onFieldToolbarVisibility,
+                            onToolbarPreset = onToolbarPreset,
                             onToolbar = { toolbarTarget = it },
                             onQuickActions = { quickActionsTarget = it },
                             onCustomAction = onCustomAction,
@@ -546,6 +553,8 @@ private fun EditorFieldArea(
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onFont: (EditorFieldTarget) -> Unit,
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
+    onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit,
+    onToolbarPreset: (EditorFieldTarget, String?) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
@@ -613,6 +622,10 @@ private fun EditorFieldArea(
                         onLanguageHint = { onLanguageHint(target) },
                         onFont = { onFont(target) },
                         onDirection = { onDirection(target, it) },
+                        presets = editorState.toolbarPresets,
+                        toolbarHiddenGlobally = editorState.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
+                        onToolbarVisibility = { onToolbarVisibility(target, it) },
+                        onToolbarPreset = { onToolbarPreset(target, it) },
                         onToolbar = { onToolbar(target) },
                         onQuickActions = { onQuickActions(target) },
                         onCollapse = closeOptions,
@@ -631,7 +644,7 @@ private fun EditorFieldArea(
             // Its controls are covered while options are open, including for accessibility.
             Column(if (showFieldOptions) Modifier.clearAndSetSemantics {} else Modifier) {
                 EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
-                if (editorState.toolbarDisplay != EditorToolbarDisplay.HIDDEN) {
+                if (editorState.showsToolbar(toolbarState.activeField)) {
                     Row(
                         // The IME changes the screen height, not the toolbar's content height.
                         // Keep those constraints out of button composition and measurement.
@@ -748,6 +761,10 @@ private fun EditorFieldOptions(
     onLanguageHint: () -> Unit,
     onFont: () -> Unit,
     onDirection: (Boolean) -> Unit,
+    presets: List<EditorToolbarPreset>,
+    toolbarHiddenGlobally: Boolean,
+    onToolbarVisibility: (Boolean) -> Unit,
+    onToolbarPreset: (String) -> Unit,
     onToolbar: () -> Unit,
     onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
@@ -878,6 +895,22 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onClick = onQuickActions,
         )
+        EditorFieldOptionSwitch(
+            label = stringResource(R.string.compose_editor_show_field_toolbar),
+            checked = field.toolbar.showToolbar,
+            enabled = enabled,
+            onCheckedChange = onToolbarVisibility,
+        )
+        if (toolbarHiddenGlobally) {
+            Text(
+                stringResource(R.string.compose_editor_toolbar_hidden_globally),
+                Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (field.toolbar.showToolbar) {
+            EditorFieldToolbarPresetSelector(presets, field.toolbarPresetId, enabled, onToolbarPreset)
+        }
         EditorFieldOptionsLink(
             icon = R.drawable.ic_toolbar,
             title = R.string.compose_editor_toolbar,

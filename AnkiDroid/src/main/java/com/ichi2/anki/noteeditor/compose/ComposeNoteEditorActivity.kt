@@ -300,6 +300,7 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
+            onFieldToolbarVisibility = { target, visible -> updateMetadata { model.setFieldToolbarVisibility(target, visible) } },
             onToolbar = { target, toolbar -> updateMetadata { model.setFieldToolbar(target, toolbar) } },
             onQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
             onToolbarPreset = { target, id -> updateMetadata { model.setFieldToolbarPreset(target, id) } },

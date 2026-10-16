@@ -17,6 +17,34 @@ class EditorToolbarPresetTest {
     private val default get() = store.loadPresets().first { it.id == EditorToolbarPreset.DEFAULT_ID }
 
     @Test
+    fun `hiding a toolbar keeps its preset and follows shared edits while hidden`() {
+        val preset = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
+        store.savePresets(listOf(default, preset))
+        store.selectPreset("collection", 1, "front", preset.id)
+        store.saveToolbarVisibility("collection", 1, "front", false)
+        store.savePresets(listOf(default, preset.copy(hiddenButtons = setOf("ITALIC"))))
+        val reopened = EditorToolbarPreferences(preferences)
+        assertEquals(preset.id, reopened.presetId("collection", 1, "front"))
+        assertEquals(false, reopened.load("collection", 1, "front").showToolbar)
+        assertEquals(setOf("ITALIC"), reopened.load("collection", 1, "front").hiddenButtons)
+        assertEquals(true, reopened.load("collection", 1, "back").showToolbar)
+        reopened.saveToolbarVisibility("collection", 1, "front", true)
+        assertEquals(preset.id, reopened.presetId("collection", 1, "front"))
+        assertEquals(true, reopened.load("collection", 1, "front").showToolbar)
+    }
+
+    @Test
+    fun `preset changes and quick action edits keep a toolbar hidden`() {
+        store.saveToolbarVisibility("collection", 1, "front", false)
+        store.selectPreset("collection", 1, "front", null)
+        store.saveQuickActions("collection", 1, "front", emptyList())
+        assertEquals(false, store.load("collection", 1, "front").showToolbar)
+        store.selectPreset("collection", 1, "front", EditorToolbarPreset.DEFAULT_ID)
+        assertEquals(false, store.load("collection", 1, "front").showToolbar)
+        assertEquals(emptyList(), store.load("collection", 1, "front").quickActions)
+    }
+
+    @Test
     fun `shared default updates unconfigured fields across note types and survives reopening`() {
         store.savePresets(listOf(default.copy(hiddenButtons = setOf("BOLD"), buttonOrder = listOf("ITALIC", "BOLD"))))
         val reopened = EditorToolbarPreferences(preferences)

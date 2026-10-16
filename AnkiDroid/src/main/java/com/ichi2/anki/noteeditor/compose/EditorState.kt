@@ -82,3 +82,8 @@ sealed interface EditorSaveResult {
         val fieldIndex: Int? = null,
     ) : EditorSaveResult
 }
+
+/** The device layout can hide every toolbar without replacing any field's saved choice. */
+internal fun EditorState.showsToolbar(activeField: Int?): Boolean =
+    toolbarDisplay != EditorToolbarDisplay.HIDDEN &&
+        fields.getOrNull(activeField ?: 0)?.toolbar?.showToolbar != false

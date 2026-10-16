@@ -428,6 +428,13 @@ class EditorViewModel(
         toolbarPreferences.saveQuickActions(collection, noteType, field, actions)
     }
 
+    suspend fun setFieldToolbarVisibility(
+        target: EditorFieldTarget,
+        visible: Boolean,
+    ) = updateFieldToolbar(target) { collection, noteType, field ->
+        toolbarPreferences.saveToolbarVisibility(collection, noteType, field, visible)
+    }
+
     suspend fun setFieldToolbarPreset(
         target: EditorFieldTarget,
         presetId: String?,

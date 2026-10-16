@@ -37,6 +37,28 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `field toolbar visibility preserves its preset and applies only to the focused field`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 1)
+            vm.setFieldToolbarVisibility(target, false)
+            val hidden = assertNotNull(vm.state.value)
+            assertEquals(before.fields[1].toolbarPresetId, hidden.fields[1].toolbarPresetId)
+            assertEquals(before.fields[0], hidden.fields[0])
+            assertEquals(before.fields[1].copy(toolbar = before.fields[1].toolbar.copy(showToolbar = false)), hidden.fields[1])
+            assertEquals(before.generation, hidden.generation)
+            assertFalse(hidden.showsToolbar(1))
+            assertTrue(hidden.showsToolbar(0))
+            assertFalse(hidden.copy(toolbarDisplay = EditorToolbarDisplay.HIDDEN).showsToolbar(0))
+            assertFalse(assertNotNull(loadAdd().state.value).fields[1].toolbar.showToolbar)
+            vm.setFieldToolbarVisibility(target, true)
+            assertEquals(before.fields, assertNotNull(vm.state.value).fields)
+            vm.setFieldToolbarVisibility(target.copy(field = 0), false)
+            assertFalse(assertNotNull(vm.state.value).showsToolbar(null), "Initial chrome should already reflect the first field")
+        }
+
+    @Test
     fun `shared presets refresh every assigned field without changing the note or its document generation`() =
         runTest {
             val vm = loadAdd()
