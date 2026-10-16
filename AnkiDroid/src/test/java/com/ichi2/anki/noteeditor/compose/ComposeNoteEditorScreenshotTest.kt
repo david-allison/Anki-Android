@@ -674,7 +674,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             presets = samplePresets(),
         )
         fieldOptionsButton().performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNode(
                 hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
@@ -687,11 +687,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        val dialog = composeRule.onNode(isDialog()).fetchSemanticsNode().id
         composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
             ).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).assertIsDisplayed()
+        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Editing must retain the existing dialog window")
         val scope = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).fetchSemanticsNode().boundsInWindow
         val custom =
             composeRule
@@ -701,6 +703,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .boundsInWindow
         assertTrue(scope.bottom <= custom.top, "The shared-scope description must not overlap the custom button action")
         captureScreen("shared_toolbar_preset_editing")
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_presets)).assertIsDisplayed()
+        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Returning must retain the existing dialog window")
     }
 
     @Test
@@ -714,7 +719,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 ),
         )
         fieldOptionsButton().performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
                 targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
@@ -775,7 +780,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun toolbarConfigurationWithNoneActive() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
         fieldOptionsButton().performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
                 targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),

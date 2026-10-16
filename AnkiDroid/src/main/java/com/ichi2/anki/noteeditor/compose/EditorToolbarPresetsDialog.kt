@@ -81,41 +81,51 @@ internal fun EditorToolbarPresetsDialog(
     val defaultName = stringResource(R.string.compose_editor_default_toolbar)
     val fieldOnlyName = stringResource(R.string.compose_editor_field_only_toolbar)
     val baseToolbar = field?.toolbar ?: presets.first { it.id == EditorToolbarPreset.DEFAULT_ID }.applyTo(EditorFieldToolbar(), templates)
-    if (editField && field != null && target != null) {
-        EditorToolbarDialog(
-            target = target,
-            field = field,
-            isCloze = isCloze,
-            templates = templates,
-            onCustomButtons = onCustomButtons,
-            onDismiss = { editField = false },
-            onSave = {
-                onSaveField(it)
-                editField = false
-            },
-            title = fieldOnlyName,
-        )
-        return
-    }
-    editing?.let { preset ->
-        EditorToolbarDialog(
-            target = EditorFieldTarget("preset:${preset.id}", 0, 0),
-            field = EditorFieldState("", "", "", 20, false, null, false, false, false, preset.applyTo(EditorFieldToolbar(), templates)),
-            // A shared preset can be used on cloze and non-cloze note types.
-            isCloze = true,
-            templates = templates,
-            onCustomButtons = onCustomButtons,
-            onDismiss = { editing = null },
-            onSave = {
-                onSavePreset(preset.withToolbar(it))
-                editing = null
-            },
-            title = preset.displayName(),
-            subtitle = stringResource(R.string.compose_editor_preset_scope),
-        )
-        return
-    }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+    Dialog(
+        onDismissRequest = {
+            when {
+                editField -> editField = false
+                editing != null -> editing = null
+                else -> onDismiss()
+            }
+        },
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        if (editField && field != null && target != null) {
+            EditorToolbarContent(
+                target = target,
+                field = field,
+                isCloze = isCloze,
+                templates = templates,
+                onCustomButtons = onCustomButtons,
+                onDismiss = { editField = false },
+                onSave = {
+                    onSaveField(it)
+                    editField = false
+                },
+                title = fieldOnlyName,
+            )
+            return@Dialog
+        }
+        editing?.let { preset ->
+            EditorToolbarContent(
+                target = EditorFieldTarget("preset:${preset.id}", 0, 0),
+                field = EditorFieldState("", "", "", 20, false, null, false, false, false, preset.applyTo(EditorFieldToolbar(), templates)),
+                // A shared preset can be used on cloze and non-cloze note types.
+                isCloze = true,
+                templates = templates,
+                onCustomButtons = onCustomButtons,
+                onDismiss = { editing = null },
+                onSave = {
+                    onSavePreset(preset.withToolbar(it))
+                    editing = null
+                },
+                title = preset.displayName(),
+                subtitle = stringResource(R.string.compose_editor_preset_scope),
+            )
+            return@Dialog
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
