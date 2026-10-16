@@ -61,6 +61,27 @@ internal fun EditorToolbarDialog(
     title: String? = null,
     subtitle: String? = null,
 ) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        EditorToolbarContent(target, field, isCloze, templates, onCustomButtons, onDismiss, onSave, title, subtitle)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EditorToolbarContent(
+    target: EditorFieldTarget,
+    field: EditorFieldState,
+    isCloze: Boolean,
+    templates: List<EditorCustomToolbarButton>,
+    onCustomButtons: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (EditorFieldToolbar) -> Unit,
+    title: String? = null,
+    subtitle: String? = null,
+) {
     var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     // The shared library can change while this dialog stays open. Resolve its latest
     // definitions without discarding pending visibility/order changes for this field.
@@ -69,99 +90,94 @@ internal fun EditorToolbarDialog(
     val allItems = toolbar.orderedItems(templates)
     val items = allItems.filter { it.appliesTo(isCloze) }.sortedBy { !toolbar.isEnabled(it) }
     val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            title ?: stringResource(R.string.compose_editor_toolbar),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
-                        }
-                    },
-                    actions = {
-                        EditorSaveButton(onClick = { onSave(toolbar) }, modifier = Modifier.padding(end = 8.dp))
-                    },
-                )
-            },
-        ) { insets ->
-            EditorToolbarList(
-                items = items.map { it.key },
-                activeCount = enabledKeys.size,
-                onMove = { from, to -> pendingToolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
-                canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
-                modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
-                header = {
-                    Column {
-                        subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
-                        TextButton(onClick = onCustomButtons) {
-                            Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.compose_editor_custom_buttons))
-                        }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        title ?: stringResource(R.string.compose_editor_toolbar),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
                     }
                 },
-            ) { key, index, dragging, startDrag, move ->
-                // RecyclerView retains a removed template's row through its exit animation.
-                val item = items.firstOrNull { it.key == key } ?: return@EditorToolbarList
-                val label =
-                    when (item) {
-                        is EditorToolbarItem.Builtin -> stringResource(item.button.label)
-                        is EditorToolbarItem.Custom -> item.button.label
+                actions = {
+                    EditorSaveButton(onClick = { onSave(toolbar) }, modifier = Modifier.padding(end = 8.dp))
+                },
+            )
+        },
+    ) { insets ->
+        EditorToolbarList(
+            items = items.map { it.key },
+            activeCount = enabledKeys.size,
+            onMove = { from, to -> pendingToolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
+            canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
+            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
+            header = {
+                Column {
+                    subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
+                    TextButton(onClick = onCustomButtons) {
+                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.compose_editor_custom_buttons))
                     }
-                val checked = toolbar.isEnabled(item)
-                EditorToolbarRow(
-                    when (item) {
-                        is EditorToolbarItem.Builtin -> item.button.icon
-                        is EditorToolbarItem.Custom -> R.drawable.ic_widgets
-                    },
-                    label,
-                    checked,
-                    dragging,
-                    onCheckedChange = { shown ->
-                        // A toggle crosses the boundary: append to enabled, or prepend to available.
-                        val (enabled, available) = items.filterNot { it.key == key }.partition { toolbar.isEnabled(it) }
-                        val displayed = (enabled + item + available).iterator()
-                        val ordered =
-                            toolbar.copy(
-                                buttonOrder = allItems.map { if (it.appliesTo(isCloze)) displayed.next().key else it.key },
-                            )
-                        pendingToolbar =
-                            when (item) {
-                                is EditorToolbarItem.Builtin ->
-                                    ordered.copy(
-                                        hiddenButtons = if (shown) toolbar.hiddenButtons - item.key else toolbar.hiddenButtons + item.key,
-                                    )
-                                is EditorToolbarItem.Custom ->
-                                    ordered.copy(
-                                        customButtons =
-                                            if (shown) {
-                                                toolbar.customButtons + item.button
-                                            } else {
-                                                toolbar.customButtons.filterNot {
-                                                    it.id ==
-                                                        item.button.id
-                                                }
-                                            },
-                                    )
-                            }
-                    },
-                    startDrag = startDrag,
-                    moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
-                    moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
-                    supportingText = if (item is EditorToolbarItem.Custom) stringResource(R.string.compose_editor_custom_button) else null,
-                )
-            }
+                }
+            },
+        ) { key, index, dragging, startDrag, move ->
+            // RecyclerView retains a removed template's row through its exit animation.
+            val item = items.firstOrNull { it.key == key } ?: return@EditorToolbarList
+            val label =
+                when (item) {
+                    is EditorToolbarItem.Builtin -> stringResource(item.button.label)
+                    is EditorToolbarItem.Custom -> item.button.label
+                }
+            val checked = toolbar.isEnabled(item)
+            EditorToolbarRow(
+                when (item) {
+                    is EditorToolbarItem.Builtin -> item.button.icon
+                    is EditorToolbarItem.Custom -> R.drawable.ic_widgets
+                },
+                label,
+                checked,
+                dragging,
+                onCheckedChange = { shown ->
+                    // A toggle crosses the boundary: append to enabled, or prepend to available.
+                    val (enabled, available) = items.filterNot { it.key == key }.partition { toolbar.isEnabled(it) }
+                    val displayed = (enabled + item + available).iterator()
+                    val ordered =
+                        toolbar.copy(
+                            buttonOrder = allItems.map { if (it.appliesTo(isCloze)) displayed.next().key else it.key },
+                        )
+                    pendingToolbar =
+                        when (item) {
+                            is EditorToolbarItem.Builtin ->
+                                ordered.copy(
+                                    hiddenButtons = if (shown) toolbar.hiddenButtons - item.key else toolbar.hiddenButtons + item.key,
+                                )
+                            is EditorToolbarItem.Custom ->
+                                ordered.copy(
+                                    customButtons =
+                                        if (shown) {
+                                            toolbar.customButtons + item.button
+                                        } else {
+                                            toolbar.customButtons.filterNot {
+                                                it.id ==
+                                                    item.button.id
+                                            }
+                                        },
+                                )
+                        }
+                },
+                startDrag = startDrag,
+                moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
+                moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
+                supportingText = if (item is EditorToolbarItem.Custom) stringResource(R.string.compose_editor_custom_button) else null,
+            )
         }
     }
 }
