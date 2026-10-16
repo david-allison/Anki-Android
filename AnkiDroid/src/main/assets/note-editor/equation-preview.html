@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'">
     <style>
-        body { margin: 0; padding: 12px; font: 18px sans-serif; color: var(--foreground); }
-        #preview { min-height: 72px; display: grid; align-items: center; justify-content: safe center; }
+        html, body { height: 100%; overflow: hidden; }
+        body { margin: 0; font: 18px sans-serif; color: var(--foreground); }
+        /* Keep wide/tall formulas at a readable size, with overflow inside the preview.
+           Safe alignment keeps the first character/row reachable when it overflows. */
+        #preview {
+            height: 100%; box-sizing: border-box; padding: 12px; overflow: auto;
+            display: grid; align-items: safe center; justify-content: safe center;
+            overscroll-behavior: contain; scrollbar-width: thin;
+        }
         mjx-container[display="true"] { margin: 0 !important; }
         #preview mjx-merror, .error { color: var(--error); background: transparent; }
     </style>
