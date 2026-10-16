@@ -26,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
@@ -505,6 +506,46 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `field typography persists without changing text history or other fields`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.setFieldTypography(target, " monospace ", 27)
+            val updated = assertNotNull(vm.state.value)
+            val saved = assertNotNull(col.notetypes.get(original.noteTypeId))
+            assertEquals("monospace", saved.fields[1].font)
+            assertEquals(27, saved.fields[1].fontSize)
+            assertEquals(saved.toString(), updated.notetypeJson)
+            assertEquals(original.fields[0], updated.fields[0])
+            assertEquals(original.fields[1].copy(font = "monospace", fontSize = 27), updated.fields[1])
+            assertEquals(original.generation, updated.generation)
+            assertFalse(updated.hasMetadataChanges)
+            val reopened = assertNotNull(loadAdd().state.value)
+            assertEquals("monospace", reopened.fields[1].font)
+            assertEquals(27, reopened.fields[1].fontSize)
+        }
+
+    @Test
+    fun `invalid field typography cannot change the note type`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 0)
+            for ((font, size) in listOf("" to 20, "Arial" to 4, "Arial" to 301)) {
+                assertFailsWith<IllegalArgumentException> { vm.setFieldTypography(target, font, size) }
+            }
+            assertEquals(original, vm.state.value)
+            assertEquals(
+                original.fields[0].fontSize,
+                col.notetypes
+                    .get(original.noteTypeId)!!
+                    .fields[0]
+                    .fontSize,
+            )
+        }
+
+    @Test
     fun `a field menu from a previous document cannot change settings`() =
         runTest {
             val vm = loadAdd()
@@ -515,6 +556,7 @@ class EditorViewModelTest : JvmTest() {
 
             vm.setFieldPinned(target, true)
             vm.setFieldLanguageHint(target, Locale.JAPANESE)
+            vm.setFieldTypography(target, "serif", 30)
 
             assertEquals(changed, vm.state.value)
             assertNull(

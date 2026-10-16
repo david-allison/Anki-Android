@@ -7,6 +7,7 @@ import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorField
 import com.ichi2.anki.noteeditor.web.WebEditorFieldAction
+import com.ichi2.anki.noteeditor.web.WebEditorFieldTypography
 import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.anki.noteeditor.web.WebEditorSnapshot
 import com.ichi2.anki.noteeditor.web.WebEditorView
@@ -56,6 +57,7 @@ class EditorWebSession(
     private var documentToken: Pair<String, Int>? = null
     private var lastHostState: String? = null
     private var lastFieldActions: List<List<WebEditorFieldAction>>? = null
+    private var lastFieldTypography: List<WebEditorFieldTypography>? = null
     private var lastSettings: WebEditorSettings? = null
     private var previewNoteType: String? = null
     private var binding: Job? = null
@@ -69,6 +71,7 @@ class EditorWebSession(
         documentToken = null
         lastHostState = null
         lastSettings = null
+        lastFieldTypography = null
         lastFieldActions = null
         lastContentRevision = null
         mutableReady.value = false
@@ -125,6 +128,7 @@ class EditorWebSession(
                             ) { "The draft versions do not match." }
                             documentToken = draft.document.sessionId to draft.document.generation
                             lastSettings = draft.document.settings
+                            lastFieldTypography = draft.document.fields.map { WebEditorFieldTypography(it.fontName, it.fontSize) }
                             lastHostState = draft.hostStateJson
                         }
                         synchronize(editor, focusFirstField = !model.hasAttachedEditor && draft == null && current.isAdding)
@@ -191,6 +195,7 @@ class EditorWebSession(
         }
         val hostState = model.hostState()
         val fieldActions = state.fieldActions(editor.context)
+        val typography = state.fields.map { WebEditorFieldTypography(it.font, it.fontSize) }
         if (documentToken != token) {
             mutableReady.value = false
             editor.loadDocumentAndCreateDraft(
@@ -201,6 +206,7 @@ class EditorWebSession(
             )
             documentToken = token
             lastSettings = state.settings
+            lastFieldTypography = typography
             lastFieldActions = fieldActions
             previewDirty = true
         } else if (lastHostState != hostState) {
@@ -210,6 +216,10 @@ class EditorWebSession(
         if (lastSettings != state.settings) {
             editor.updateSettings(state.settings)
             lastSettings = state.settings
+        }
+        if (lastFieldTypography != typography) {
+            editor.updateFieldTypography(typography)
+            lastFieldTypography = typography
         }
         if (lastFieldActions != fieldActions) {
             editor.updateFieldActions(fieldActions)

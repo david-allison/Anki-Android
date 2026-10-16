@@ -380,6 +380,13 @@ class WebEditorView(
             JSONObject().put("action", action.name).put("target", target?.toJson()).put("value", value),
         ).getBoolean("applied")
 
+    suspend fun updateFieldTypography(fonts: List<WebEditorFieldTypography>) {
+        request(
+            "setFieldTypography",
+            JSONObject().put("fonts", JSONArray(fonts.map { JSONObject().put("fontName", it.fontName).put("fontSize", it.fontSize) })),
+        )
+    }
+
     suspend fun updateFieldActions(actions: List<List<WebEditorFieldAction>>) {
         request("setFieldActions", JSONObject().put("actions", JSONArray(actions.map { it.toJsonActions() })))
     }

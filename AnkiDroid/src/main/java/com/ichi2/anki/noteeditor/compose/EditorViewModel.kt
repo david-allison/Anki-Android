@@ -507,6 +507,20 @@ class EditorViewModel(
             }
     }
 
+    /** Collection-backed field typography, shared with desktop and type-the-answer. */
+    suspend fun setFieldTypography(
+        target: EditorFieldTarget,
+        font: String,
+        fontSize: Int,
+    ) {
+        require(font.isNotBlank() && font.none { it.isISOControl() })
+        require(fontSize in 5..300)
+        updateFieldSettings(target) {
+            this.font = font.trim()
+            this.fontSize = fontSize
+        }
+    }
+
     private suspend fun updateFieldSettings(
         target: EditorFieldTarget,
         optimisticPinned: Boolean? = null,
@@ -537,15 +551,26 @@ class EditorViewModel(
                     val field = type.fields[target.field]
                     field.update()
                     notetypes.save(type)
-                    field.sticky to field.languageHint?.toLanguageTag()
+                    type
                 } ?: return
             persisted = true
             state.value?.takeIf(target::matches)?.let { latest ->
                 mutableState.value =
                     latest.copy(
+                        notetypeJson = updated.toString(),
                         fields =
                             latest.fields.mapIndexed { i, f ->
-                                if (i == target.field) f.copy(sticky = updated.first, languageTag = updated.second) else f
+                                if (i == target.field) {
+                                    val saved = updated.fields[i]
+                                    f.copy(
+                                        sticky = saved.sticky,
+                                        languageTag = saved.languageHint?.toLanguageTag(),
+                                        font = saved.font,
+                                        fontSize = saved.fontSize,
+                                    )
+                                } else {
+                                    f
+                                }
                             },
                     )
             }
