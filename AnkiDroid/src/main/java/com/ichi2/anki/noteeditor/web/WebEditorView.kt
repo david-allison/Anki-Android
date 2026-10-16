@@ -383,7 +383,14 @@ class WebEditorView(
     suspend fun updateFieldTypography(fonts: List<WebEditorFieldTypography>) {
         request(
             "setFieldTypography",
-            JSONObject().put("fonts", JSONArray(fonts.map { JSONObject().put("fontName", it.fontName).put("fontSize", it.fontSize) })),
+            JSONObject().put(
+                "fonts",
+                JSONArray(
+                    fonts.map {
+                        JSONObject().put("fontName", it.fontName).put("fontSize", it.fontSize).put("rtl", it.rtl)
+                    },
+                ),
+            ),
         )
     }
 

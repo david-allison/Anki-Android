@@ -1,10 +1,10 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 5 resolved.**
+Recorded 2026-10-15. **30 action items; 6 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Items 05, 07, 09, 18 and 27 are implemented; the
+accepted design decisions. Items 05, 07, 09, 18, 19 and 27 are implemented; the
 other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
@@ -201,11 +201,15 @@ exist; distinguish these settings from device-local presentation preferences.
   text and undo history; first load uses the existing document settings without
   an extra typography request.
 
-- [ ] **19. Include a reverse-text-direction toggle.**
+- [x] **19. Include a reverse-text-direction toggle.**
 
   **Assessment: agree.** Prefer the clearer label **Right-to-left text**. This
   controls editing direction; card templates still control review appearance.
   See [Anki's field settings documentation][anki-fields].
+
+  **Implemented:** Right-to-left text in field options saves the note type’s
+  `rtl` flag. Changes apply to existing fields without reloading or changing
+  their HTML, selection or undo history.
 
 - [ ] **20. Include Use HTML editor by default.**
 

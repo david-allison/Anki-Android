@@ -128,7 +128,7 @@ class EditorWebSession(
                             ) { "The draft versions do not match." }
                             documentToken = draft.document.sessionId to draft.document.generation
                             lastSettings = draft.document.settings
-                            lastFieldTypography = draft.document.fields.map { WebEditorFieldTypography(it.fontName, it.fontSize) }
+                            lastFieldTypography = draft.document.fields.map { WebEditorFieldTypography(it.fontName, it.fontSize, it.rtl) }
                             lastHostState = draft.hostStateJson
                         }
                         synchronize(editor, focusFirstField = !model.hasAttachedEditor && draft == null && current.isAdding)
@@ -195,7 +195,7 @@ class EditorWebSession(
         }
         val hostState = model.hostState()
         val fieldActions = state.fieldActions(editor.context)
-        val typography = state.fields.map { WebEditorFieldTypography(it.font, it.fontSize) }
+        val typography = state.fields.map { WebEditorFieldTypography(it.font, it.fontSize, it.rtl) }
         if (documentToken != token) {
             mutableReady.value = false
             editor.loadDocumentAndCreateDraft(

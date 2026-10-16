@@ -217,7 +217,7 @@ class ComposeNoteEditorActivity :
         }
         val fieldsAvailable =
             runCatching {
-                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 7 }
+                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 8 }
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
@@ -286,6 +286,13 @@ class ComposeNoteEditorActivity :
                 LocaleSelectionDialog.withDefaultOption().show(supportFragmentManager, LANGUAGE_DIALOG_TAG)
             },
             onAction = ::execute,
+            onFieldDirection = { target, rtl ->
+                updateMetadata {
+                    webSession.awaitReady()
+                    model.setFieldDirection(target, rtl)
+                    webSession.synchronize()
+                }
+            },
             onFieldTypography = { target, font, size ->
                 updateMetadata {
                     webSession.awaitReady()

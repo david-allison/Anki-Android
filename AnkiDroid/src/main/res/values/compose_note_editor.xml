@@ -107,4 +107,5 @@
     <string name="compose_editor_field_font_override">The editor currently uses a global size of %1$d. Choose “Use field sizes” in the general Font size setting to show this field’s size.</string>
     <string name="compose_editor_use_field_sizes">Use field sizes</string>
     <string name="compose_editor_font_size_override_help">Override field sizes in this editor on this device.</string>
+    <string name="compose_editor_right_to_left">Right-to-left text</string>
 </resources>

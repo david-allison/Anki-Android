@@ -71,7 +71,7 @@ class WebEditorViewTest : InstrumentedTest() {
                 val target = assertNotNull(captureTarget())
                 assertTrue(execute(WebEditorAction.BOLD, target))
                 val styledTarget = assertNotNull(captureTarget())
-                updateFieldTypography(listOf(WebEditorFieldTypography("monospace", 27), WebEditorFieldTypography("Arial", 20)))
+                updateFieldTypography(listOf(WebEditorFieldTypography("monospace", 27, rtl = true), WebEditorFieldTypography("Arial", 20)))
                 assertEquals("\"27px\"", evaluate("getComputedStyle(${fieldElement(0)}).fontSize"))
                 assertEquals("<b>front</b>", snapshot().fields[0])
                 assertTrue(execute(WebEditorAction.UNDO, styledTarget))
@@ -82,6 +82,8 @@ class WebEditorViewTest : InstrumentedTest() {
                 val restored = assertNotNull(restoreDraft(draftId))
                 assertEquals("monospace", restored.document.fields[0].fontName)
                 assertEquals(27, restored.document.fields[0].fontSize)
+                assertTrue(restored.document.fields[0].rtl)
+                assertEquals("\"rtl\"", evaluate("getComputedStyle(${fieldElement(0)}).direction"))
                 assertEquals("front", snapshot().fields[0])
                 assertEquals("\"27px\"", evaluate("getComputedStyle(${fieldElement(0)}).fontSize"))
             } finally {
