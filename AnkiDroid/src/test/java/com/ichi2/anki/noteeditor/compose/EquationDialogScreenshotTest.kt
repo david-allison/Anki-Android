@@ -10,13 +10,16 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextReplacement
 import androidx.core.net.toUri
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -27,6 +30,7 @@ import com.ichi2.testutils.registerWebBrowser
 import org.junit.Rule
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import kotlin.test.assertEquals
 
 /** Native dialog captures; EquationPreviewTest covers real MathJax rendering in a WebView. */
 class EquationDialogScreenshotTest : ScreenshotTest() {
@@ -96,22 +100,95 @@ class EquationDialogScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("x^2").assertIsDisplayed()
     }
 
+    @Test
+    fun longEquationCanExpandAndApplyWithoutTruncation() {
+        val equation = (1..24).joinToString(" + ") { "\\frac{x_{$it}}{$it}" } + " = y"
+        var applied: Pair<WebEditorAction, String>? = null
+        showDialog(text = equation, action = WebEditorAction.MATHJAX_BLOCK, onApply = { action, text -> applied = action to text })
+        captureScreen("long_equation_compact")
+        expand()
+        captureScreen("long_equation_expanded_source")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_equation_collapse)).performScrollTo().performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok)).assertIsDisplayed().performClick()
+        assertEquals(WebEditorAction.MATHJAX_BLOCK to equation, applied)
+    }
+
+    @Test
+    fun multilineEquationInExpandedEditor() {
+        showDialog(text = multilineEquation, action = WebEditorAction.MATHJAX_BLOCK)
+        expand()
+        captureScreen("multiline_equation_expanded_source")
+        composeRule.onNodeWithTag("equation_preview").performScrollTo()
+        composeRule.waitForIdle()
+        captureScreen("multiline_equation_expanded_preview")
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok)).assertIsDisplayed()
+    }
+
+    @Test
+    fun longEquationWithLargeText() {
+        RuntimeEnvironment.setFontScale(1.5f)
+        showDialog(text = multilineEquation, action = WebEditorAction.MATHJAX_BLOCK)
+        expand()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_formula)).performScrollTo()
+        captureScreen("long_equation_large_text_source")
+        composeRule.onNodeWithTag("equation_preview").performScrollTo()
+        composeRule.waitForIdle()
+        captureScreen("long_equation_large_text_preview")
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok)).assertIsDisplayed()
+    }
+
+    @Test
+    fun longEquationInShortWindow() {
+        RuntimeEnvironment.setQualifiers("+h400dp")
+        showDialog(text = multilineEquation, action = WebEditorAction.MATHJAX_BLOCK)
+        expand()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_formula)).performScrollTo()
+        captureScreen("long_equation_short_window_source")
+        composeRule.onNodeWithTag("equation_preview").performScrollTo()
+        composeRule.waitForIdle()
+        captureScreen("long_equation_short_window_preview")
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok)).assertIsDisplayed()
+    }
+
+    private fun expand() {
+        composeRule
+            .onNodeWithText(getResourceString(R.string.compose_editor_equation_expand))
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_equation_collapse)).assertExists()
+        composeRule.waitForIdle()
+    }
+
+    private val multilineEquation =
+        """
+        \begin{aligned}
+        f(x) &= \sum_{n=0}^{\infty} \frac{x^n}{n!} \\
+             &= 1 + x + \frac{x^2}{2!} \\
+             &\quad + \frac{x^3}{3!} \\
+             &\quad + \frac{x^4}{4!} \\
+             &\quad + \cdots \\
+             &= e^x
+        \end{aligned}
+        """.trimIndent()
+
     private fun showDialog(
         editing: Boolean = false,
         text: String = "x^2",
+        action: WebEditorAction = WebEditorAction.MATHJAX_INLINE,
+        onApply: (WebEditorAction, String) -> Unit = { _, _ -> },
     ): AnkiActivity {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
                 EditorFormattingDialog(
                     EditorFormattingRequest(
-                        WebEditorAction.MATHJAX_INLINE,
+                        action,
                         WebEditorTarget("screenshot", 0, 0, 0, ""),
                         text,
                         editingEquation = editing,
                     ),
                     onDismiss = {},
-                    onApply = { _, _ -> },
+                    onApply = onApply,
                 )
             }
         }

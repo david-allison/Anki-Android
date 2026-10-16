@@ -1,10 +1,10 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 8 resolved.**
+Recorded 2026-10-15. **30 action items; 9 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Items 05, 07, 09, 18, 19, 22, 23 and 27 are implemented; the
+accepted design decisions. Items 05, 07, 09, 18, 19, 22, 23, 27 and 30 are implemented; the
 other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
@@ -296,7 +296,7 @@ exist; distinguish these settings from device-local presentation preferences.
   contrast rather than an absent background. Inspect the current appearance
   before adding another visual treatment.
 
-- [ ] **30. Prioritize usability with long MathJax equations.**
+- [x] **30. Prioritize usability with long MathJax equations.**
 
   **Assessment: strongly agree.** The preview currently has a fixed 112 dp
   height. Existing tests cover basic rendering and editing, but do not establish
@@ -304,6 +304,19 @@ exist; distinguish these settings from device-local presentation preferences.
   these with the keyboard open, large text, and landscape orientation. Consider
   a larger or expandable editing surface; do not shrink equations until they
   become unreadable.
+
+  **Implemented:** Expand editor opens the same equation dialog at full size,
+  retaining its text, format and renderer. The source uses a monospace font,
+  disables autocorrection and shows up to 12 lines when expanded. The larger
+  preview pans wide equations and tall matrices at their original readable size.
+  Confirmation and cancellation remain outside the scrolling content. These
+  changes are only created when the equation dialog opens.
+
+  **Verification:** 16 light/dark Roborazzi cases pass, including long single-line
+  and multiline source, 1.5× text and a short window. Six emulator WebView tests
+  pass, including touch panning to the last term/row, renderer reuse and applying
+  text after expanding. Roborazzi covers native layout; rendered equation
+  captures come from the emulator. The input test IME has no visible keyboard.
 
 ## Dependencies and review order
 

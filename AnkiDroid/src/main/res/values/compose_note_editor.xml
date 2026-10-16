@@ -67,6 +67,8 @@
     <string name="compose_editor_math_chemistry">Chemistry</string>
     <string name="compose_editor_formula">Formula</string>
     <string name="compose_editor_equation_preview">Preview</string>
+    <string name="compose_editor_equation_expand">Expand editor</string>
+    <string name="compose_editor_equation_collapse">Collapse editor</string>
     <string name="compose_editor_equation_preview_empty">Enter an equation to see a preview</string>
     <string name="compose_editor_equation_preview_unavailable">Unable to preview this formula.</string>
     <string name="compose_editor_fields">Fields…</string>

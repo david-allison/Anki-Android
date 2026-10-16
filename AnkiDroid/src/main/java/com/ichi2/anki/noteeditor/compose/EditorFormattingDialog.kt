@@ -12,14 +12,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +48,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.widget.TextViewCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CollectionManager.TR
@@ -173,6 +180,7 @@ internal fun EditorFormattingDialog(
     }
     var text by rememberSaveable(request) { mutableStateOf(request.text) }
     var action by rememberSaveable(request) { mutableStateOf(request.action) }
+    var expanded by rememberSaveable(request) { mutableStateOf(false) }
     val removing = request.action == WebEditorAction.REMOVE_FORMAT_CHOICES
     var removedFormats by rememberSaveable(request) {
         mutableStateOf(
@@ -192,6 +200,9 @@ internal fun EditorFormattingDialog(
         }
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = if (expanded) Modifier.fillMaxSize() else Modifier,
+        shape = if (expanded) RectangleShape else AlertDialogDefaults.shape,
+        properties = DialogProperties(usePlatformDefaultWidth = !expanded),
         title = {
             val title =
                 stringResource(
@@ -217,7 +228,7 @@ internal fun EditorFormattingDialog(
         },
         text = {
             Column(
-                Modifier.verticalScroll(rememberScrollState()),
+                (if (expanded) Modifier.fillMaxSize() else Modifier).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(if (removing) 0.dp else 16.dp),
             ) {
                 when {
@@ -277,10 +288,12 @@ internal fun EditorFormattingDialog(
                             onValueChange = { text = it },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text(stringResource(R.string.compose_editor_formula)) },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
                             minLines = 2,
-                            maxLines = 4,
+                            maxLines = if (expanded) 12 else 6,
                         )
-                        EquationPreview(text, action)
+                        EquationPreview(text, action, expanded = expanded, onToggleExpanded = { expanded = !expanded })
                     }
                 }
             }
