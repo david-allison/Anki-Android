@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -63,6 +64,7 @@ import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.compose.theme.AnkiDroidTheme
+import com.ichi2.compose.theme.toMaterial3ColorScheme
 import com.ichi2.testutils.dispatchInsets
 import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.utils.dp
@@ -569,6 +571,36 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.mainClock.advanceTimeBy(300)
         settleMenuTransition(activity)
         captureScreen("toolbar_presets")
+    }
+
+    @Test
+    fun toolbarPresetOptionsMenuIsOpaque() {
+        val (activity, _) = showEditor(presets = samplePresets())
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule
+            .onNodeWithContentDescription(
+                targetContext.getString(R.string.compose_editor_preset_options, "Language learning"),
+            ).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_duplicate_preset)).assertIsDisplayed()
+        settleMenuTransition(activity)
+        val underneath =
+            composeRule
+                .onNodeWithContentDescription(
+                    targetContext.getString(R.string.compose_editor_preset_options, samplePresets().last().name),
+                ).fetchSemanticsNode()
+                .layoutInfo.coordinates
+        val point = underneath.localToScreen(Offset(underneath.size.width / 2f, underneath.size.height / 2f))
+        val popup = composeRule.onNode(isPopup())
+        val popupCoordinates = popup.fetchSemanticsNode().layoutInfo.coordinates
+        val local = popupCoordinates.screenToLocal(point)
+        val pixels = popup.captureToImage().toPixelMap()
+        // This list row's overflow icon lies behind an otherwise empty part of the menu.
+        assertTrue(local.x in 0f..pixels.width.toFloat() && local.y in 0f..pixels.height.toFloat())
+        val colors = activity.toMaterial3ColorScheme()
+        val opaque = colors.surfaceContainer.compositeOver(colors.surface).toArgb()
+        assertEquals(opaque, pixels[local.x.toInt(), local.y.toInt()].toArgb(), "The menu must obscure controls underneath it")
+        captureScreen("toolbar_preset_options")
     }
 
     @Test
