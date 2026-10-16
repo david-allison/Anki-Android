@@ -366,7 +366,7 @@ class WebEditorViewTest : InstrumentedTest() {
             fun rgb(color: Int) =
                 "rgb(${android.graphics.Color.red(color)}, ${android.graphics.Color.green(color)}, ${android.graphics.Color.blue(color)})"
             assertEquals(rgb(colors.primaryContainer.toArgb()), appearance.getString("circleColor"))
-            assertEquals(rgb(colors.onPrimaryContainer.toArgb()), appearance.getString("foreground"))
+            assertEquals(rgb(getColorFromAttr(context, android.R.attr.colorControlNormal)), appearance.getString("foreground"))
             assertEquals("rgba(0, 0, 0, 0)", appearance.getString("background"))
             assertEquals("true", appearance.getString("pressed"))
             assertEquals("${pin.label}: Front", appearance.getString("label"))

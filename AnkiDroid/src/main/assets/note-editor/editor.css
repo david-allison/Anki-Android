@@ -101,7 +101,7 @@ html:root, html body { background: transparent; }
 }
 .fields-only .field-quick-actions .quick-action.active {
     background: transparent;
-    color: var(--editor-host-foreground);
+    color: var(--editor-host-control);
 }
 .fields-only .field-quick-actions .quick-action.active::before {
     content: "";
