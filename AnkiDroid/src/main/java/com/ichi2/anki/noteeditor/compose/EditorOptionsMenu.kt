@@ -2,7 +2,9 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.getColorFromAttr
@@ -65,12 +68,20 @@ internal fun EditorOptionsMenu(
             onDismissRequest = { fontSize = null },
             title = { Text(stringResource(CommonString.menu_font_size)) },
             text = {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) fontSize = it },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(stringResource(R.string.compose_editor_font_size_override_help))
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) fontSize = it },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        label = { Text(stringResource(CommonString.menu_font_size)) },
+                    )
+                    TextButton(onClick = {
+                        onSettings(settings.copy(fontSize = null))
+                        fontSize = null
+                    }) { Text(stringResource(R.string.compose_editor_use_field_sizes)) }
+                }
             },
             confirmButton = {
                 TextButton(enabled = value.toIntOrNull() in 1..99, onClick = {

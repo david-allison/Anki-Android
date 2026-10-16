@@ -56,6 +56,7 @@ import androidx.core.graphics.get
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
@@ -87,6 +88,48 @@ import kotlin.test.assertTrue
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun fieldFontSettings() {
+        // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        showEditor()
+        fieldOptionsButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_font)).performScrollTo().performClick()
+        composeRule.onNodeWithText(TR.fieldsEditingFont()).assertIsDisplayed()
+        captureScreen("field_font_settings")
+    }
+
+    @Test
+    fun fieldFontSettingsWithGlobalOverride() {
+        // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
+        activity.setContent {
+            AnkiDroidTheme {
+                EditorFieldFontDialog(
+                    field =
+                        EditorFieldState(
+                            "A long field name with additional details",
+                            "",
+                            "Custom imported font",
+                            24,
+                            false,
+                            null,
+                            false,
+                            false,
+                            false,
+                        ),
+                    noteTypeName = "A long note type name with more details",
+                    fontSizeOverride = 30,
+                    onDismiss = {},
+                    onSave = { _, _ -> },
+                )
+            }
+        }
+        composeRule.onNodeWithText(TR.fieldsEditingFont()).assertIsDisplayed()
+        captureScreen("field_font_settings_override")
+    }
 
     @Test
     fun tintedBackgroundKeepsMetadataReadable() {
