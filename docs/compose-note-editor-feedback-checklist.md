@@ -34,14 +34,6 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 ## Controls beside fields
 
-- [ ] **01. Remove configurable quick actions; retain only Pin field and Edit HTML.**
-
-  **Assessment: disagree.** Quick actions allow inserting media into an unfocused
-  field without selecting it or opening the keyboard. Their overlap with the
-  toolbar serves a different interaction. Prefer simpler defaults and less
-  prominent customization. Any removal needs an explicit decision to give up
-  that workflow.
-
 - [ ] **02. Use an outlined pin that fills when active.**
 
   **Assessment: agree.** This conveys state without a large colored background.
@@ -63,14 +55,6 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   avoid changing header geometry when focus moves.
 
 ## Editor menu and toolbar presets
-
-- [x] **05. Replace the top app-bar gear with a wrench.**
-
-  **Decision: implemented 2026-10-15.** The top app-bar options button now uses
-  the existing theme-tinted Material wrench icon. The options dropdown is
-  unchanged; replacing it with a bottom sheet remains item 06.
-  **Verification:** four light/dark screenshot cases pass, covering the app bar
-  and opening the options menu.
 
 - [ ] **06. Replace the options dropdown with a bottom sheet containing Template editor, Manage fields, Field options, and Manage toolbar presets.**
 
@@ -257,23 +241,6 @@ exist; distinguish these settings from device-local presentation preferences.
   indiscriminately lowering opacity. Preserve contrast and useful filled
   selected states.
 
-- [ ] **25. Let Gallery select images or videos and remove the separate Add video clip action.**
-
-  **Assessment: agree.** This removes a choice before opening the picker.
-  Android's [photo picker][photo-picker] supports both media types. Preserve
-  access to files outside the gallery and use the appropriate importer for the
-  selected media.
-
-- [ ] **26. Reconsider outbound help navigation from the MathJax dialog.**
-
-  **Assessment: qualified disagreement with removing help.**
-  [Material 2 dialog guidance][material-dialogs] discourages third actions such
-  as Learn more because they interrupt an unfinished task. This is verified M2
-  guidance, not a verified blanket M3 prohibition. The contextual header help
-  button is a somewhat different case. Retain useful documentation access if
-  returning preserves the equation and editing context; moving the help is a
-  usability decision rather than an automatic consequence of the guideline.
-
 - [x] **27. Remove the decorative icon above the MathJax dialog title.**
 
   **Decision: implemented 2026-10-15.** Removed the top decoration, which
@@ -287,14 +254,6 @@ exist; distinguish these settings from device-local presentation preferences.
   **Assessment: disagree with the exact wording.** The dialog also edits
   existing equations. The current **MathJax equation** names the object and is
   accurate in both modes.
-
-- [ ] **29. Give the MathJax preview a background or border.**
-
-  **Assessment: the container already exists; evaluate its effectiveness.**
-  [EquationPreview.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EquationPreview.kt)
-  uses a rounded Material surface container. The feedback may indicate low
-  contrast rather than an absent background. Inspect the current appearance
-  before adding another visual treatment.
 
 - [x] **30. Prioritize usability with long MathJax equations.**
 
