@@ -286,6 +286,13 @@ class ComposeNoteEditorActivity :
                 LocaleSelectionDialog.withDefaultOption().show(supportFragmentManager, LANGUAGE_DIALOG_TAG)
             },
             onAction = ::execute,
+            onFieldTypography = { target, font, size ->
+                updateMetadata {
+                    webSession.awaitReady()
+                    model.setFieldTypography(target, font, size)
+                    webSession.synchronize()
+                }
+            },
             onToolbar = { target, toolbar -> updateMetadata { model.setFieldToolbar(target, toolbar) } },
             onQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
             onToolbarPreset = { target, id -> updateMetadata { model.setFieldToolbarPreset(target, id) } },

@@ -1,10 +1,10 @@
 # Compose note editor: tester feedback checklist
 
-Recorded 2026-10-15. **30 action items; 4 resolved.**
+Recorded 2026-10-15. **30 action items; 5 resolved.**
 
 This captures the tester's proposals, their individual evaluations, and the
 clarification about replacing the gear menu. Recommendations below are not
-accepted design decisions. Items 05, 07, 09 and 27 are implemented; the
+accepted design decisions. Items 05, 07, 09, 18 and 27 are implemented; the
 other proposals remain open for review.
 
 Check an item when its decision and any agreed implementation or verification
@@ -186,12 +186,20 @@ exist; distinguish these settings from device-local presentation preferences.
   placement. Preserve the explanation that it applies to the field across the
   note type, including typing answers, and keep frequent changes accessible.
 
-- [ ] **18. Include per-field Font and font size.**
+- [x] **18. Include per-field Font and font size.**
 
   **Assessment: agree with clear scope.** Separate editing typography from
   device-wide readability settings and card styling. Anki also uses the field's
   configured size for typed answers. Consider font availability and fallback on
   Android. See [Anki's field settings documentation][anki-fields].
+
+  **Implemented:** Font in the existing field options edits the collection's
+  field font and size (5–300 pixels). The dialog explains the note-type scope,
+  typed answers and unavailable-font fallback. HTML mode retains a monospace
+  font and follows the field size. The global editor-size override remains
+  device-local, with a “Use field sizes” action to clear it. Live updates preserve
+  text and undo history; first load uses the existing document settings without
+  an extra typography request.
 
 - [ ] **19. Include a reverse-text-direction toggle.**
 

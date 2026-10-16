@@ -158,6 +158,7 @@ fun NoteEditorScreen(
     onFieldOptionsVisibility: (Boolean) -> Unit = {},
     onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
+    onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
@@ -169,6 +170,7 @@ fun NoteEditorScreen(
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var fontTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var quickActionsTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showToolbarPresets by rememberSaveable { mutableStateOf(false) }
@@ -183,6 +185,19 @@ fun NoteEditorScreen(
         headerVisibility.collect { headerVisible = it }
     }
     val enabled = ready && !busy && state?.isSaving == false
+    fontTarget?.takeIf { it.matches(state) }?.let { target ->
+        val current = requireNotNull(state)
+        EditorFieldFontDialog(
+            field = current.fields[target.field],
+            noteTypeName = current.noteTypeName,
+            fontSizeOverride = current.settings.fontSize,
+            onDismiss = { fontTarget = null },
+            onSave = { font, size ->
+                onFieldTypography(target, font, size)
+                fontTarget = null
+            },
+        )
+    }
     val presetTarget = toolbarTarget?.takeIf { it.matches(state) }
     if (state != null && (showToolbarPresets || presetTarget != null)) {
         EditorToolbarPresetsDialog(
@@ -373,6 +388,7 @@ fun NoteEditorScreen(
                             onRecordAudio = { onMedia(MultimediaActionHandler.AudioRecording) },
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
+                            onFont = { fontTarget = it },
                             onToolbar = { toolbarTarget = it },
                             onQuickActions = { quickActionsTarget = it },
                             onCustomAction = onCustomAction,
@@ -523,6 +539,7 @@ private fun EditorFieldArea(
     onRecordAudio: () -> Unit,
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
+    onFont: (EditorFieldTarget) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
@@ -588,6 +605,7 @@ private fun EditorFieldArea(
                         enabled = enabled,
                         onPinned = { onPinned(target, it) },
                         onLanguageHint = { onLanguageHint(target) },
+                        onFont = { onFont(target) },
                         onToolbar = { onToolbar(target) },
                         onQuickActions = { onQuickActions(target) },
                         onCollapse = closeOptions,
@@ -721,6 +739,7 @@ private fun EditorFieldOptions(
     enabled: Boolean,
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
+    onFont: () -> Unit,
     onToolbar: () -> Unit,
     onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
@@ -830,9 +849,17 @@ private fun EditorFieldOptions(
         }
         Spacer(Modifier.height(12.dp))
         EditorFieldOptionsLink(
+            icon = R.drawable.ic_format_font_size_24dp,
+            title = R.string.compose_editor_field_font,
+            summary = stringResource(R.string.compose_editor_field_font_summary, field.font, field.fontSize),
+            iconTint = controlColor,
+            enabled = enabled,
+            onClick = onFont,
+        )
+        EditorFieldOptionsLink(
             icon = R.drawable.ic_touch,
             title = R.string.compose_editor_quick_actions,
-            summary = R.string.compose_editor_quick_actions_summary,
+            summary = stringResource(R.string.compose_editor_quick_actions_summary),
             iconTint = controlColor,
             enabled = enabled,
             onClick = onQuickActions,
@@ -840,7 +867,7 @@ private fun EditorFieldOptions(
         EditorFieldOptionsLink(
             icon = R.drawable.ic_toolbar,
             title = R.string.compose_editor_toolbar,
-            summary = R.string.compose_editor_toolbar_summary,
+            summary = stringResource(R.string.compose_editor_toolbar_summary),
             iconTint = controlColor,
             enabled = enabled,
             onClick = onToolbar,
@@ -852,7 +879,7 @@ private fun EditorFieldOptions(
 private fun EditorFieldOptionsLink(
     icon: Int,
     title: Int,
-    summary: Int,
+    summary: String,
     iconTint: Color,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -864,7 +891,7 @@ private fun EditorFieldOptionsLink(
             Modifier
                 .padding(horizontal = 8.dp)
                 .clip(MaterialTheme.shapes.medium),
-        supportingContent = { Text(stringResource(summary)) },
+        supportingContent = { Text(summary) },
         leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp), tint = iconTint) },
         trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp), tint = iconTint) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
