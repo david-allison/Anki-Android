@@ -36,6 +36,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -103,6 +105,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -159,6 +162,7 @@ fun NoteEditorScreen(
     onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
+    onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
@@ -389,6 +393,7 @@ fun NoteEditorScreen(
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
                             onFont = { fontTarget = it },
+                            onDirection = onFieldDirection,
                             onToolbar = { toolbarTarget = it },
                             onQuickActions = { quickActionsTarget = it },
                             onCustomAction = onCustomAction,
@@ -540,6 +545,7 @@ private fun EditorFieldArea(
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onFont: (EditorFieldTarget) -> Unit,
+    onDirection: (EditorFieldTarget, Boolean) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
@@ -606,6 +612,7 @@ private fun EditorFieldArea(
                         onPinned = { onPinned(target, it) },
                         onLanguageHint = { onLanguageHint(target) },
                         onFont = { onFont(target) },
+                        onDirection = { onDirection(target, it) },
                         onToolbar = { onToolbar(target) },
                         onQuickActions = { onQuickActions(target) },
                         onCollapse = closeOptions,
@@ -740,6 +747,7 @@ private fun EditorFieldOptions(
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
     onFont: () -> Unit,
+    onDirection: (Boolean) -> Unit,
     onToolbar: () -> Unit,
     onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
@@ -855,6 +863,12 @@ private fun EditorFieldOptions(
             iconTint = controlColor,
             enabled = enabled,
             onClick = onFont,
+        )
+        EditorFieldOptionSwitch(
+            label = stringResource(R.string.compose_editor_right_to_left),
+            checked = field.rtl,
+            enabled = enabled,
+            onCheckedChange = onDirection,
         )
         EditorFieldOptionsLink(
             icon = R.drawable.ic_touch,
@@ -1061,5 +1075,25 @@ internal fun EditorToggleButton(
                     checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
         ) { Icon(painterResource(icon), text) }
+    }
+}
+
+@Composable
+private fun EditorFieldOptionSwitch(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.width(16.dp))
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }

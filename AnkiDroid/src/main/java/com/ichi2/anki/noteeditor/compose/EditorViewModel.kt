@@ -409,6 +409,11 @@ class EditorViewModel(
         locale: Locale?,
     ) = updateFieldSettings(target) { languageHint = locale }
 
+    suspend fun setFieldDirection(
+        target: EditorFieldTarget,
+        rtl: Boolean,
+    ) = updateFieldSettings(target) { jsonObject.put("rtl", rtl) }
+
     suspend fun setFieldToolbar(
         target: EditorFieldTarget,
         toolbar: EditorFieldToolbar,
@@ -567,6 +572,7 @@ class EditorViewModel(
                                         languageTag = saved.languageHint?.toLanguageTag(),
                                         font = saved.font,
                                         fontSize = saved.fontSize,
+                                        rtl = saved.jsonObject.optBoolean("rtl"),
                                     )
                                 } else {
                                     f

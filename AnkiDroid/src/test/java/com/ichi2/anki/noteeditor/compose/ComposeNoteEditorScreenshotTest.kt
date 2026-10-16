@@ -90,6 +90,19 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     val composeRule = createEmptyComposeRule()
 
     @Test
+    fun rightToLeftFieldOptions() {
+        var requested: Pair<EditorFieldTarget, Boolean>? = null
+        showEditor(rtl = true, onDirection = { target, rtl -> requested = target to rtl })
+        fieldOptionsButton().performClick()
+        val toggle = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left))
+        toggle.performScrollTo().assertIsOn()
+        captureScreen("field_options_right_to_left")
+        toggle.performClick()
+        assertEquals(1, requested?.first?.field)
+        assertEquals(false, requested?.second)
+    }
+
+    @Test
     fun fieldFontSettings() {
         // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
@@ -1390,6 +1403,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         headerVisibility: Flow<Boolean> = emptyFlow(),
         focusState: State<EditorToolbarState>? = null,
         pinned: Boolean = true,
+        rtl: Boolean = false,
+        onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         presets: List<EditorToolbarPreset>? = null,
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
@@ -1415,6 +1430,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                             field.copy(
                                                 toolbar = toolbar,
                                                 sticky = pinned,
+                                                rtl = rtl,
                                                 toolbarPresetId =
                                                     if (toolbar ==
                                                         EditorFieldToolbar()
@@ -1450,6 +1466,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onRemoveTag = onRemoveTag,
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
+                    onFieldDirection = onDirection,
                     onAction = onAction,
                     onMedia = {},
                     onAttachMedia = {},

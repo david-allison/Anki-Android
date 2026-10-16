@@ -52,7 +52,9 @@ class EditorWebSessionTest : JvmTest() {
                 coVerify(exactly = 0) { web.updateFieldTypography(any()) }
                 model.setFieldTypography(EditorFieldTarget(original.sessionId, original.generation, 1), "serif", 30)
                 runCurrent()
-                val fonts = checkNotNull(model.state.value).fields.map { WebEditorFieldTypography(it.font, it.fontSize) }
+                model.setFieldDirection(EditorFieldTarget(original.sessionId, original.generation, 1), true)
+                runCurrent()
+                val fonts = checkNotNull(model.state.value).fields.map { WebEditorFieldTypography(it.font, it.fontSize, it.rtl) }
                 coVerify(exactly = 1) { web.updateFieldTypography(fonts) }
                 coVerify(exactly = 1) { web.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
                 session.detach()

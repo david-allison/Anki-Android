@@ -527,6 +527,24 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `field direction persists without changing HTML or other fields`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.setFieldDirection(target, true)
+            val updated = assertNotNull(vm.state.value)
+            assertEquals(original.fields[1].copy(rtl = true), updated.fields[1])
+            assertEquals(original.fields[0], updated.fields[0])
+            assertEquals(original.generation, updated.generation)
+            assertFalse(updated.hasMetadataChanges)
+            assertTrue(assertNotNull(col.notetypes.get(original.noteTypeId)).fields[1].jsonObject.getBoolean("rtl"))
+            assertTrue(assertNotNull(loadAdd().state.value).fields[1].rtl)
+            vm.setFieldDirection(target, false)
+            assertEquals(original.fields, assertNotNull(vm.state.value).fields)
+        }
+
+    @Test
     fun `invalid field typography cannot change the note type`() =
         runTest {
             val vm = loadAdd()
@@ -557,6 +575,7 @@ class EditorViewModelTest : JvmTest() {
             vm.setFieldPinned(target, true)
             vm.setFieldLanguageHint(target, Locale.JAPANESE)
             vm.setFieldTypography(target, "serif", 30)
+            vm.setFieldDirection(target, true)
 
             assertEquals(changed, vm.state.value)
             assertNull(
