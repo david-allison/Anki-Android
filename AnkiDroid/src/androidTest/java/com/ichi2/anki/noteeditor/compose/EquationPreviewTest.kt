@@ -124,8 +124,49 @@ class EquationPreviewTest : InstrumentedTest() {
         }
     }
 
+    @Test
+    fun wideBlockEquationCanBeReadFromBeginningToEnd() {
+        val equation = (1..40).joinToString(" + ") { "x_{$it}" } + " = y"
+        withDialog(dark = false, text = equation, action = WebEditorAction.MATHJAX_BLOCK) { web, applied ->
+            web.awaitJavascript("!!document.querySelector('mjx-math')")
+            web.awaitJavascript("document.getElementById('preview').scrollWidth > document.getElementById('preview').clientWidth * 2")
+            assertEquals(
+                "true",
+                web.evaluate("document.querySelector('mjx-math').getBoundingClientRect().left >= 0"),
+                "The beginning of a wide block equation must not be clipped off the left edge",
+            )
+            capture(web, "equation-preview-wide-start")
+            val bounds = checkNotNull(UiDevice.getInstance(getInstrumentation()).findObject(By.clazz(WebView::class.java))).visibleBounds
+            UiDevice.getInstance(getInstrumentation()).swipe(bounds.right - 24, bounds.centerY(), bounds.left + 24, bounds.centerY(), 20)
+            web.awaitJavascript("document.getElementById('preview').scrollLeft > 0")
+            web.evaluate("document.getElementById('preview').scrollLeft = 100000")
+            web.awaitJavascript("document.querySelector('mjx-math').getBoundingClientRect().right <= visualViewport.width + 1")
+            capture(web, "equation-preview-wide-end")
+            assertNull(applied.get())
+        }
+    }
+
+    @Test
+    fun tallMatrixCanBePannedToItsLastRow() {
+        val matrix = "\\begin{bmatrix}" + (1..16).joinToString(" \\\\ ") { "$it & ${it + 1} & ${it + 2}" } + "\\end{bmatrix}"
+        withDialog(dark = false, text = matrix, action = WebEditorAction.MATHJAX_BLOCK) { web, applied ->
+            web.awaitJavascript("document.querySelectorAll('mjx-mtr').length === 16")
+            web.awaitJavascript("document.getElementById('preview').scrollHeight > document.getElementById('preview').clientHeight")
+            capture(web, "equation-preview-matrix-top")
+            val bounds = checkNotNull(UiDevice.getInstance(getInstrumentation()).findObject(By.clazz(WebView::class.java))).visibleBounds
+            UiDevice.getInstance(getInstrumentation()).swipe(bounds.centerX(), bounds.bottom - 24, bounds.centerX(), bounds.top + 24, 20)
+            web.awaitJavascript("document.getElementById('preview').scrollTop > 0")
+            web.evaluate("document.getElementById('preview').scrollTop = 100000")
+            web.awaitJavascript("document.querySelector('mjx-math').getBoundingClientRect().bottom <= visualViewport.height + 1")
+            capture(web, "equation-preview-matrix-bottom")
+            assertNull(applied.get())
+        }
+    }
+
     private fun withDialog(
         dark: Boolean,
+        text: String = "\\frac{1}{2}",
+        action: WebEditorAction = WebEditorAction.MATHJAX_INLINE,
         block: (WebView, AtomicReference<Pair<WebEditorAction, String>>) -> Unit,
     ) {
         ensureWebViewIsSupported()
@@ -137,9 +178,9 @@ class EquationPreviewTest : InstrumentedTest() {
                     AnkiDroidTheme {
                         EditorFormattingDialog(
                             EditorFormattingRequest(
-                                WebEditorAction.MATHJAX_INLINE,
+                                action,
                                 WebEditorTarget("preview-test", 0, 0, 0, ""),
-                                "\\frac{1}{2}",
+                                text,
                             ),
                             onDismiss = {},
                             onApply = { action, text -> applied.set(action to text) },
@@ -160,6 +201,8 @@ class EquationPreviewTest : InstrumentedTest() {
         web: WebView,
         name: String,
     ) {
+        web.awaitJavascript("document.getElementById('preview').clientHeight >= visualViewport.height - 1")
+        web.awaitJavascript("document.fonts.status === 'loaded'")
         val rendered = CountDownLatch(1)
         getInstrumentation().runOnMainSync {
             web.postVisualStateCallback(

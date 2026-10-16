@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -86,6 +87,8 @@ private class EquationPreviewView(
     private var input = ""
 
     init {
+        // A wrap-content WebView has a zero-height CSS viewport even when Compose gives it a fixed height.
+        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         setBackgroundColor(Color.TRANSPARENT)
         settings.javaScriptEnabled = true
         settings.allowFileAccess = false
