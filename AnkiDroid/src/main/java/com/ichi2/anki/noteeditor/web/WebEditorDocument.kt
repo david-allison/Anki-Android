@@ -28,6 +28,12 @@ data class WebEditorField(
     val quickActions: List<WebEditorFieldAction> = emptyList(),
 )
 
+/** Editing typography only; it never changes the field's HTML. */
+data class WebEditorFieldTypography(
+    val fontName: String,
+    val fontSize: Int,
+)
+
 /** Host-defined controls; these never become part of the field HTML. */
 data class WebEditorFieldAction(
     val id: String,

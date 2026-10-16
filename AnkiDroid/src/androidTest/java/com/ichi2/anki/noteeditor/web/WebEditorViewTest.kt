@@ -62,6 +62,34 @@ class WebEditorViewTest : InstrumentedTest() {
     val keyboard = TestInputMethodRule()
 
     @Test
+    fun fieldTypographyPreservesContentTargetsHistoryAndDraft() =
+        withEditor {
+            val draftId = "font-test-${UUID.randomUUID()}"
+            try {
+                loadDocumentAndCreateDraft(document("front"), draftId, "{}")
+                select(0, 0, 5)
+                val target = assertNotNull(captureTarget())
+                assertTrue(execute(WebEditorAction.BOLD, target))
+                val styledTarget = assertNotNull(captureTarget())
+                updateFieldTypography(listOf(WebEditorFieldTypography("monospace", 27), WebEditorFieldTypography("Arial", 20)))
+                assertEquals("\"27px\"", evaluate("getComputedStyle(${fieldElement(0)}).fontSize"))
+                assertEquals("<b>front</b>", snapshot().fields[0])
+                assertTrue(execute(WebEditorAction.UNDO, styledTarget))
+                assertEquals("front", snapshot().fields[0])
+                // Explicit checkpoint catches stale typography in the host's stored document.
+                updateHostState("{}")
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertEquals("monospace", restored.document.fields[0].fontName)
+                assertEquals(27, restored.document.fields[0].fontSize)
+                assertEquals("front", snapshot().fields[0])
+                assertEquals("\"27px\"", evaluate("getComputedStyle(${fieldElement(0)}).fontSize"))
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun outerBackgroundAndLabelsFollowLightTheme() = assertOuterTheme(R.style.Theme_Light)
 
     @Test

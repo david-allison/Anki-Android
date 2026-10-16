@@ -566,6 +566,17 @@
             await api().setFieldActions(actions);
             return {};
         },
+        async setFieldTypography({ fonts }) {
+            await reconcile();
+            await api().setFieldTypography(fonts);
+            fields.forEach((field, index) => {
+                Object.assign(field.spec, fonts[index]);
+                Object.assign(model.fields[index], fonts[index]);
+            });
+            checkpointNeeded = true;
+            await checkpoint();
+            return {};
+        },
         async setSettings(settings) {
             await reconcile();
             if (!(await api().setSettings(settings))) return { applied: false };

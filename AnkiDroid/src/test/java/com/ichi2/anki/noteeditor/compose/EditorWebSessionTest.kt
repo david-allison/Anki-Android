@@ -11,6 +11,7 @@ import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorDraft
 import com.ichi2.anki.noteeditor.web.WebEditorField
+import com.ichi2.anki.noteeditor.web.WebEditorFieldTypography
 import com.ichi2.anki.noteeditor.web.WebEditorStatus
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.testutils.JvmTest
@@ -31,6 +32,57 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorWebSessionTest : JvmTest() {
+    @Test
+    fun `field typography updates in place with no extra first-load request`() =
+        runTest {
+            val originalDispatcher = ioDispatcher
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+            val model = EditorViewModel(SavedStateHandle())
+            val store = ViewModelStore().apply { put("editor", model) }
+            val errors = mutableListOf<String>()
+            val session = EditorWebSession(model, backgroundScope, errors::add)
+            val web = mockk<WebEditorView>(relaxed = true)
+            every { web.context } returns ApplicationProvider.getApplicationContext()
+            try {
+                model.load(NoteEditorFragment.addNoteArgs())
+                session.attach(web)
+                runCurrent()
+                val original = checkNotNull(model.state.value)
+                assertTrue(session.ready.value)
+                coVerify(exactly = 0) { web.updateFieldTypography(any()) }
+                model.setFieldTypography(EditorFieldTarget(original.sessionId, original.generation, 1), "serif", 30)
+                runCurrent()
+                val fonts = checkNotNull(model.state.value).fields.map { WebEditorFieldTypography(it.font, it.fontSize) }
+                coVerify(exactly = 1) { web.updateFieldTypography(fonts) }
+                coVerify(exactly = 1) { web.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                session.detach()
+
+                val draft =
+                    WebEditorDraft(
+                        WebEditorDocument(
+                            original.sessionId,
+                            original.generation,
+                            original.fields.map { WebEditorField(it.name, it.html, it.font, it.fontSize) },
+                        ),
+                        original.fields.map { it.html },
+                        model.hostState(),
+                    )
+                val restored = mockk<WebEditorView>(relaxed = true)
+                every { restored.context } returns ApplicationProvider.getApplicationContext()
+                coEvery { restored.restoreDraft(model.draftId) } returns draft
+                session.attach(restored)
+                runCurrent()
+                assertTrue(session.ready.value)
+                coVerify(exactly = 1) { restored.updateFieldTypography(fonts) }
+                coVerify(exactly = 0) { restored.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                assertTrue(errors.isEmpty(), errors.joinToString())
+            } finally {
+                session.detach()
+                store.clear()
+                ioDispatcher = originalDispatcher
+            }
+        }
+
     @Test
     fun `restoring a draft reapplies settings only when native preferences differ`() =
         runTest {
