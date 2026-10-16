@@ -31,10 +31,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,6 +48,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 
 @Composable
 internal fun EditorToolbarPreset.displayName(): String =
@@ -67,6 +72,8 @@ internal fun EditorToolbarPresetsDialog(
     onSelect: (String?) -> Unit = {},
     onSaveField: (EditorFieldToolbar) -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
     var editing by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
@@ -168,31 +175,62 @@ internal fun EditorToolbarPresetsDialog(
                                         stringResource(R.string.compose_editor_preset_options, name),
                                     )
                                 }
-                                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                DropdownMenu(
+                                    expanded = menu,
+                                    onDismissRequest = { menu = false },
+                                    containerColor =
+                                        MaterialTheme.colorScheme.surfaceContainer.compositeOver(
+                                            MaterialTheme.colorScheme.surface,
+                                        ),
+                                ) {
                                     if (preset.id != EditorToolbarPreset.DEFAULT_ID) {
-                                        DropdownMenuItem(text = { Text(stringResource(CommonString.rename)) }, onClick = {
-                                            naming = preset
-                                            menu =
-                                                false
-                                        })
+                                        DropdownMenuItem(
+                                            leadingIcon = {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_mode_edit_white),
+                                                    null,
+                                                    tint = controlColor,
+                                                )
+                                            },
+                                            text = { Text(stringResource(CommonString.rename)) },
+                                            onClick = {
+                                                naming = preset
+                                                menu =
+                                                    false
+                                            },
+                                        )
                                     }
-                                    DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_duplicate_preset)) }, onClick = {
-                                        naming =
-                                            preset.copy(
-                                                id =
-                                                    java.util.UUID
-                                                        .randomUUID()
-                                                        .toString(),
-                                                name = "",
+                                    DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.baseline_content_copy_24),
+                                                null,
+                                                tint = controlColor,
                                             )
-                                        menu = false
-                                    })
+                                        },
+                                        text = { Text(stringResource(R.string.compose_editor_duplicate_preset)) },
+                                        onClick = {
+                                            naming =
+                                                preset.copy(
+                                                    id =
+                                                        java.util.UUID
+                                                            .randomUUID()
+                                                            .toString(),
+                                                    name = "",
+                                                )
+                                            menu = false
+                                        },
+                                    )
                                     if (preset.id != EditorToolbarPreset.DEFAULT_ID) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_delete_preset)) }, onClick = {
-                                            deleting =
-                                                preset
-                                            ; menu = false
-                                        })
+                                        DropdownMenuItem(
+                                            leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null, tint = controlColor) },
+                                            text = { Text(stringResource(R.string.compose_editor_delete_preset)) },
+                                            onClick = {
+                                                deleting =
+                                                    preset
+                                                ; menu = false
+                                            },
+                                        )
                                     }
                                 }
                             }
