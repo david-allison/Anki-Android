@@ -4,12 +4,13 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -25,169 +26,198 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
-    private val default = EditorToolbarPreset(id = EditorToolbarPreset.DEFAULT_ID, name = "")
-    private val minimal = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
-    private val presets = mutableStateOf(listOf(default, minimal))
-    private var selection: String? = "not selected"
-    private val toolbarVisible = mutableStateOf(true)
+    private val default =
+        EditorToolbarPreset(
+            id = EditorToolbarPreset.DEFAULT_ID,
+            name = "",
+            hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC"),
+        )
+    private val minimal = default.copy(id = "minimal", name = "Minimal", hiddenButtons = default.hiddenButtons + "BOLD")
+    private val presets = listOf(default, minimal)
+    private var saved: EditorToolbarConfiguration? = null
+    private var dismissed = false
 
     @Test
-    fun `field preset choices do not offer a private toolbar`() {
-        showPresets(forField = true)
+    fun `customizing a toolbar opens its buttons without a second edit step`() {
+        showPresets()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsSelected()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).assertExists()
         composeRule.onNodeWithText("This field only").assertDoesNotExist()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsSelected()
     }
 
     @Test
     fun `choosing a preset assigns its identity without modifying either preset`() {
-        showPresets(forField = true)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsSelected()
-        composeRule.onNodeWithText("Minimal").performClick()
-        assertEquals(minimal.id, selection)
-        assertEquals(listOf(default, minimal), presets.value)
+        showPresets()
+        choose("Minimal")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).assertIsSelected()
+        assertNull(saved)
+        save()
+        assertEquals(EditorToolbarConfiguration(presets, minimal.id, true), saved)
     }
 
     @Test
-    fun `hiding the toolbar disables preset selection but keeps its choice and shared editing`() {
-        showPresets(forField = true)
+    fun `switching presets preserves pending edits and saves them together`() {
+        showPresets()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
+        choose("Minimal")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
+        choose(getResourceString(R.string.compose_editor_default_toolbar))
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).assertIsSelected()
+        assertNull(saved)
+        save()
+        val result = assertNotNull(saved)
+        assertTrue("BOLD" in result.presets.first().hiddenButtons)
+        assertTrue("ITALIC" in result.presets.last().hiddenButtons)
+        assertEquals(default.id, result.presetId)
+    }
+
+    @Test
+    fun `hiding the toolbar disables preset selection and preserves shared editing`() {
+        showPresets()
+        choose("Minimal")
         val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
         visibility.performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsNotEnabled().assertIsSelected()
-        val other = composeRule.onNodeWithText("Minimal")
-        other.assertIsNotEnabled().performClick()
-        assertEquals("not selected", selection)
-        composeRule
-            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_edit_preset, "Minimal"))
-            .assertIsEnabled()
-            .performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
-        visibility.performClick()
-        other.assertIsEnabled().performClick()
-        assertEquals(minimal.id, selection)
-        assertEquals(listOf(default, minimal), presets.value)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).assertIsEnabled()
+        assertNull(saved)
+        save()
+        assertEquals(EditorToolbarConfiguration(presets, minimal.id, false), saved)
     }
 
     @Test
-    fun `shared editing saves explicitly and cancellation discards button changes`() {
+    fun `cancellation discards pending visibility choice and shared button changes`() {
         showPresets()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
+        choose("Minimal")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick()
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
-        assertEquals(default, presets.value.first())
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
-        assertTrue("BOLD" in presets.value.first().hiddenButtons)
-        assertEquals(minimal, presets.value.last())
-        assertEquals("not selected", selection)
+        assertTrue(dismissed)
+        assertNull(saved)
     }
 
     @Test
-    fun `adding validates names and cancelling the button editor does not create a preset`() {
+    fun `adding validates names and cancellation does not create a preset`() {
         showPresets()
+        openChoices()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
-        val save = composeRule.onNodeWithText(getResourceString(CommonString.save))
-        save.assertIsNotEnabled()
+        val ok = composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok))
+        ok.assertIsNotEnabled()
         val name = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name))
         name.performTextReplacement(" minimal ")
-        save.assertIsNotEnabled()
+        ok.assertIsNotEnabled()
+        name.performTextReplacement(" default ")
+        ok.assertIsNotEnabled()
         name.performTextReplacement("Reading")
-        save.performClick()
-        assertEquals(2, presets.value.size)
+        ok.performClick()
+        composeRule.onNodeWithText("Reading").assertExists()
+        assertNull(saved)
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
-        assertEquals(2, presets.value.size)
+        assertNull(saved)
     }
 
     @Test
-    fun `duplicates keep the button choices but get an independent identity`() {
+    fun `duplicating selects an independent copy without changing its source`() {
         showPresets()
+        choose("Minimal")
         options("Minimal")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_duplicate_preset)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).performTextReplacement("Reading")
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
-        val copy = presets.value.last()
+        namePreset("Reading")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
+        save()
+        val result = assertNotNull(saved)
+        val copy = result.presets.last()
         assertEquals("Reading", copy.name)
-        assertEquals(minimal.hiddenButtons, copy.hiddenButtons)
-        assertTrue(copy.id != minimal.id)
-        assertEquals(minimal, presets.value[1])
+        assertEquals(minimal.hiddenButtons + "ITALIC", copy.hiddenButtons)
+        assertNotEquals(minimal.id, copy.id)
+        assertEquals(copy.id, result.presetId)
+        assertEquals(presets, result.presets.take(2))
     }
 
     @Test
-    fun `rename retains identity and deletion requires confirmation`() {
+    fun `renaming preserves identity and pending button edits`() {
         showPresets()
+        choose("Minimal")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
         options("Minimal")
         composeRule.onNodeWithText(getResourceString(CommonString.rename)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).performTextReplacement("Reading")
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
-        assertEquals(minimal.id, presets.value.last().id)
-        options("Reading")
+        namePreset("Reading")
+        assertNull(saved)
+        save()
+        val result = assertNotNull(saved)
+        assertEquals(minimal.id, result.presetId)
+        assertEquals("Reading", result.presets.last().name)
+        assertTrue("ITALIC" in result.presets.last().hiddenButtons)
+    }
+
+    @Test
+    fun `deleting requires confirmation and selects Default without saving early`() {
+        showPresets()
+        choose("Minimal")
+        options("Minimal")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_delete_preset)).performClick()
-        assertEquals(2, presets.value.size)
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
-        assertEquals(2, presets.value.size)
-        options("Reading")
+        composeRule.onNodeWithText("Minimal").assertExists()
+        options("Minimal")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_delete_preset)).performClick()
         composeRule.onNode(hasText(getResourceString(R.string.compose_editor_delete_preset)) and hasClickAction()).performClick()
-        assertEquals(listOf(default), presets.value)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertExists()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsSelected()
+        assertNull(saved)
+        save()
+        assertEquals(EditorToolbarConfiguration(listOf(default), default.id, true), saved)
+    }
+
+    private fun openChoices() = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).performClick()
+
+    private fun choose(name: String) {
+        openChoices()
+        composeRule.onNode(hasText(name) and hasAnyAncestor(isPopup())).performClick()
     }
 
     private fun options(name: String) {
         composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_preset_options, name)).performClick()
     }
 
-    private fun showPresets(forField: Boolean = false) {
+    private fun namePreset(name: String) {
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).performTextReplacement(name)
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok)).performClick()
+    }
+
+    private fun save() = composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+
+    private fun showPresets() {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
-                EditorToolbarPresetsDialog(
-                    presets = presets.value,
+                EditorCustomizeToolbarDialog(
+                    presets = presets,
                     templates = emptyList(),
-                    onSavePreset = { updated ->
-                        presets.value =
-                            if (presets.value.any { it.id == updated.id }) {
-                                presets.value.map {
-                                    if (it.id ==
-                                        updated.id
-                                    ) {
-                                        updated
-                                    } else {
-                                        it
-                                    }
-                                }
-                            } else {
-                                presets.value + updated
-                            }
-                    },
-                    onDeletePreset = { id -> presets.value = presets.value.filterNot { it.id == id } },
+                    onSave = { saved = it },
                     onCustomButtons = {},
-                    onDismiss = {},
+                    onDismiss = { dismissed = true },
                     field =
-                        if (forField) {
-                            EditorFieldState(
-                                "Front",
-                                "",
-                                "Arial",
-                                20,
-                                false,
-                                null,
-                                false,
-                                false,
-                                false,
-                                toolbar = EditorFieldToolbar(showToolbar = toolbarVisible.value),
-                            )
-                        } else {
-                            null
-                        },
+                        EditorFieldState(
+                            "Front",
+                            "",
+                            "Arial",
+                            20,
+                            false,
+                            null,
+                            false,
+                            false,
+                            false,
+                            toolbar = default.applyTo(EditorFieldToolbar(), emptyList()),
+                        ),
                     noteTypeName = "Basic",
-                    onSelect = { selection = it },
-                    onToolbarVisibility = { toolbarVisible.value = it },
                 )
             }
         }

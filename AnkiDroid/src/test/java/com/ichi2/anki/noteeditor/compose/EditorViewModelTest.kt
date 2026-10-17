@@ -37,6 +37,32 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `toolbar customization saves shared edits and field selection without reloading the document`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 1)
+            val shared = before.toolbarPresets.single().copy(hiddenButtons = setOf("BOLD"))
+            val copy = EditorToolbarPreset(name = "Reading", hiddenButtons = setOf("ITALIC"))
+            val configuration = EditorToolbarConfiguration(listOf(shared, copy), copy.id, false)
+            vm.setToolbarConfiguration(target, configuration)
+            val after = assertNotNull(vm.state.value)
+            assertEquals(copy.id, after.fields[1].toolbarPresetId)
+            assertEquals(setOf("ITALIC"), after.fields[1].toolbar.hiddenButtons)
+            assertFalse(after.fields[1].toolbar.showToolbar)
+            assertEquals(setOf("BOLD"), after.fields[0].toolbar.hiddenButtons)
+            assertTrue(after.fields[0].toolbar.showToolbar)
+            assertEquals(before.generation, after.generation)
+            assertEquals(before.fields.map { it.html }, after.fields.map { it.html })
+            assertEquals(after.fields, loadAdd().state.value?.fields)
+            vm.setToolbarConfiguration(
+                target.copy(generation = target.generation + 1),
+                configuration.copy(presets = listOf(shared), presetId = shared.id),
+            )
+            assertEquals(after, vm.state.value, "A stale field target must not change even the shared library")
+        }
+
+    @Test
     fun `field toolbar visibility preserves its preset and applies only to the focused field`() =
         runTest {
             val vm = loadAdd()

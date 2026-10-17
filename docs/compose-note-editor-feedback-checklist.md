@@ -86,15 +86,21 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 - [x] **09. Support adding, deleting, editing, and renaming presets, like Manage note types.**
 
-  **Decision: implemented with 07.** Manage toolbar presets opens from the
-  wrench menu; Toolbar buttons in field options also opens the preset chooser.
-  Presets can be added, duplicated, renamed, edited and deleted. The shared
-  Default can be edited or duplicated. Deleting a named preset requires
-  confirmation and returns its fields to Default. Editing explains its shared
-  scope; cancelling leaves the previous button choices intact.
-  **Verification:** interaction tests cover assignment, name validation,
-  cancellation, duplication, renaming and confirmed deletion. Light/dark
-  screenshots cover management, long field/type/preset names and editing.
+  **Decision: consolidated 2026-10-17.** Both the wrench and toolbar overflow
+  open **Customize toolbar** for the current field. Its selected preset and
+  draggable Active/Available button list are on the same screen; there is no
+  separate top-level preset-management destination. The preset dropdown offers
+  selection and creation; the adjacent options menu offers duplication, rename,
+  and confirmed deletion. Default can be edited or duplicated.
+  Choosing a preset changes the field assignment. Editing its buttons affects
+  every field using that preset, as explained above the list. New and duplicated
+  presets are selected immediately in the pending configuration. The tick saves
+  all pending preset changes, selection and visibility together; closing without
+  saving discards them. Switching presets preserves pending edits.
+  **Verification:** interaction tests cover direct editing, assignment, name
+  validation, cancellation, duplication, renaming, deletion and pending edits
+  across preset switches. Light/dark screenshots cover both entry points,
+  hidden toolbars, long names, the dropdown and opaque options menu.
 
 - [ ] **10. Include toolbar and quick-action commands in the preset editor, excluding Pin field and Edit HTML.**
 
@@ -114,17 +120,17 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 - [x] **12. Make the bottom toolbar's three-dot button open an overflow menu.**
 
   **Implemented:** The three-dot button opens a Material menu with icons and
-  labeled entries for Field options, Toolbar buttons, and Quick actions. Field
+  labeled entries for Field options, Customize toolbar, and Quick actions. Field
   options opens the existing sheet. The menu closes when its field or document
   changes. Opening it preserves the keyboard and caret; Back dismisses the menu
   first. Toolbar commands remain where the preset places them; the separate
   Toolbar / Menu / Hidden configuration in 11 is still pending.
 
-- [ ] **13. Add a custom-toolbar-item creation button at the bottom of the preset editor.**
+- [x] **13. Add a custom-toolbar-item creation button at the bottom of the preset editor.**
 
-  **Assessment: agree with the capability; reconsider placement.** A button
-  below a long command list is easy to miss. Prefer a visible action near the
-  top or another persistent entry.
+  **Implemented 2026-10-17:** Custom buttons remains available at the bottom of
+  Customize toolbar while the button list scrolls. It opens the shared template
+  library without discarding pending toolbar changes.
 
 - [ ] **14. Give custom items an edit button, with deletion available through editing.**
 
@@ -143,7 +149,7 @@ remains a separate proposal (06).
 | Template editor | Current Cards entry |
 | Manage fields | Current Fields entry |
 | Field options | Expanded version of the current field-settings panel |
-| Manage toolbar presets | New management screen for shared toolbar configurations |
+| Customize toolbar | One screen for the current field’s preset selection and shared button configuration |
 
 The bottom toolbar's three-dot control is covered separately by item 12. The
 proposal does not specify where the current global Font size option goes.

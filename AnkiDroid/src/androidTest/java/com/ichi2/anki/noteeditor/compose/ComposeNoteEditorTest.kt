@@ -929,15 +929,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.openToolbarOverflow()
             val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
             checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
-            val presetName =
-                scenario
-                    .editorState()
-                    .toolbarPresets
-                    .single { it.id == scenario.editorState().fields[0].toolbarPresetId }
-                    .name
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_edit_preset, presetName))), 5_000),
-            ).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             // Manage shared definitions without committing the pending removal of Bold.
             checkNotNull(

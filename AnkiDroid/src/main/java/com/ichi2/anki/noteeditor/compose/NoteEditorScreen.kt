@@ -166,13 +166,10 @@ fun NoteEditorScreen(
     onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
-    onFieldToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
     onQuickActions: (EditorFieldTarget, List<String>) -> Unit = { _, _ -> },
-    onToolbarPreset: (EditorFieldTarget, String) -> Unit = { _, _ -> },
-    onSaveToolbarPreset: (EditorToolbarPreset) -> Unit = {},
-    onDeleteToolbarPreset: (String) -> Unit = {},
+    onToolbarConfiguration: (EditorFieldTarget, EditorToolbarConfiguration) -> Unit = { _, _ -> },
     onCustomButtonTemplates: (List<EditorCustomToolbarButton>) -> Unit = {},
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
@@ -180,7 +177,6 @@ fun NoteEditorScreen(
     var fontTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var quickActionsTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
-    var showToolbarPresets by rememberSaveable { mutableStateOf(false) }
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
@@ -208,25 +204,19 @@ fun NoteEditorScreen(
             },
         )
     }
-    val presetTarget = toolbarTarget?.takeIf { it.matches(state) }
-    if (state != null && (showToolbarPresets || presetTarget != null)) {
-        EditorToolbarPresetsDialog(
-            presets = state.toolbarPresets,
+    toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
+        val current = requireNotNull(state)
+        EditorCustomizeToolbarDialog(
+            presets = current.toolbarPresets,
             enabled = enabled,
-            templates = state.customButtonTemplates,
-            onSavePreset = onSaveToolbarPreset,
-            onDeletePreset = onDeleteToolbarPreset,
+            templates = current.customButtonTemplates,
+            field = current.fields[target.field],
+            noteTypeName = current.noteTypeName,
+            toolbarHiddenGlobally = current.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
             onCustomButtons = { showCustomButtons = true },
-            onDismiss = {
-                showToolbarPresets = false
-                toolbarTarget = null
-            },
-            field = presetTarget?.let { state.fields[it.field] },
-            noteTypeName = state.noteTypeName,
-            toolbarHiddenGlobally = state.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
-            onToolbarVisibility = { visible -> presetTarget?.let { onFieldToolbarVisibility(it, visible) } },
-            onSelect = { id ->
-                presetTarget?.let { onToolbarPreset(it, id) }
+            onDismiss = { toolbarTarget = null },
+            onSave = {
+                onToolbarConfiguration(target, it)
                 toolbarTarget = null
             },
         )
@@ -334,7 +324,6 @@ fun NoteEditorScreen(
                                                 toolbarTarget = EditorFieldTarget(it.sessionId, it.generation, field)
                                             }
                                         },
-                                        onToolbarPresets = { showToolbarPresets = true },
                                     )
                                 }
                                 EditorActionButton(

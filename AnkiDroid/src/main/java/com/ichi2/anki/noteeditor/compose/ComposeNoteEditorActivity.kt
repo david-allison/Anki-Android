@@ -304,11 +304,8 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
-            onFieldToolbarVisibility = { target, visible -> updateMetadata { model.setFieldToolbarVisibility(target, visible) } },
             onQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
-            onToolbarPreset = { target, id -> updateMetadata { model.setFieldToolbarPreset(target, id) } },
-            onSaveToolbarPreset = { preset -> updateMetadata { model.saveToolbarPreset(preset) } },
-            onDeleteToolbarPreset = { id -> updateMetadata { model.deleteToolbarPreset(id) } },
+            onToolbarConfiguration = { target, configuration -> updateMetadata { model.setToolbarConfiguration(target, configuration) } },
             onCustomButtonTemplates = { buttons -> updateMetadata { model.setCustomButtonTemplates(buttons) } },
             onCustomAction = { field, button ->
                 launchEditorTask {

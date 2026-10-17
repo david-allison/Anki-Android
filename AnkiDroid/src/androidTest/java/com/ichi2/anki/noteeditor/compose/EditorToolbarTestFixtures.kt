@@ -11,8 +11,13 @@ internal suspend fun EditorViewModel.setFieldToolbar(
     check(target.matches(current))
     val name = "Test toolbar ${target.field + 1}"
     val preset = current.toolbarPresets.firstOrNull { it.name == name } ?: EditorToolbarPreset(name = name)
-    saveToolbarPreset(preset.withToolbar(toolbar))
-    setFieldToolbarPreset(target, preset.id)
+    setToolbarConfiguration(
+        target,
+        EditorToolbarConfiguration(
+            current.toolbarPresets.filterNot { it.id == preset.id } + preset.withToolbar(toolbar),
+            preset.id,
+            toolbar.showToolbar,
+        ),
+    )
     setFieldQuickActions(target, toolbar.quickActions)
-    setFieldToolbarVisibility(target, toolbar.showToolbar)
 }
