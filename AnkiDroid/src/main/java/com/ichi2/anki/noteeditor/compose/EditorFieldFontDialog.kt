@@ -4,7 +4,6 @@ package com.ichi2.anki.noteeditor.compose
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,18 +28,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
-import com.ichi2.anki.utils.openUrl
 
 /** Edits the shared note-type font and size used for editing and typed answers. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,18 +56,7 @@ internal fun EditorFieldFontDialog(
     val menuColor = colors.surfaceContainer.compositeOver(AlertDialogDefaults.containerColor)
     AlertDialog(
         onDismissRequest = dismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.compose_editor_field_font), Modifier.weight(1f))
-                val context = LocalContext.current
-                EditorActionButton(
-                    icon = R.drawable.help_outline,
-                    label = CommonString.help,
-                    enabled = true,
-                    onClick = { context.openUrl(R.string.link_manual_customizing_fields) },
-                )
-            }
-        },
+        title = { Text(stringResource(R.string.compose_editor_field_font)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.compose_editor_field_font_help))
