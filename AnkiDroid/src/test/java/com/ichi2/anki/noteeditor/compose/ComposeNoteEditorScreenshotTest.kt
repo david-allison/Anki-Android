@@ -1051,6 +1051,24 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldOptionsFitAbovePixelKeyboardWithoutScrolling() {
+        RuntimeEnvironment.setQualifiers("+w427dp-h952dp")
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        composeRule.runOnIdle { activity.simulateKeyboard(keyboardHeight = 374.dp, navBarBottom = 24.dp) }
+        openFieldOptions()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).assertIsDisplayed()
+        val scroll =
+            composeRule
+                .onNodeWithTag("editor_field_options")
+                .fetchSemanticsNode()
+                .config[SemanticsProperties.VerticalScrollAxisRange]
+        assertEquals(0f, scroll.maxValue(), "Use the space over Deck and Note type before clipping field options")
+        settleMenuTransition(activity)
+        captureScreen("field_options_pixel_keyboard_all_settings")
+    }
+
+    @Test
     fun fieldOptionsStayAboveChangingKeyboardInsets() {
         val (activity, keyboard) = showEditor()
         hideKeyboard(activity, keyboard)

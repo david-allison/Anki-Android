@@ -369,20 +369,7 @@ fun NoteEditorScreen(
                         .background(MaterialTheme.colorScheme.surface),
                 ) {
                     Column(Modifier.weight(1f)) {
-                        EditorCollapsingHeader(headerVisible) {
-                            EditorMetadata(
-                                deckName = state.deckName,
-                                noteTypeName = state.noteTypeName,
-                                enabled = enabled,
-                                onDeck = onDeck,
-                                onType = {
-                                    if (state.isAdding) dialog = "type" else onEditType()
-                                },
-                            )
-                        }
-                        // Only the field area and toolbar follow the keyboard. Keep the
-                        // metadata and top bar out of its changing layout constraints.
-                        EditorFieldArea(
+                        EditorPane(
                             editorState = state,
                             snackbar = snackbar,
                             tablet = tablet,
@@ -407,7 +394,20 @@ fun NoteEditorScreen(
                             onCustomAction = onCustomAction,
                             onTags = onTags,
                             onRemoveTag = onRemoveTag,
-                            modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            header = {
+                                EditorCollapsingHeader(headerVisible) {
+                                    EditorMetadata(
+                                        deckName = state.deckName,
+                                        noteTypeName = state.noteTypeName,
+                                        enabled = enabled,
+                                        onDeck = onDeck,
+                                        onType = {
+                                            if (state.isAdding) dialog = "type" else onEditType()
+                                        },
+                                    )
+                                }
+                            },
                         ) { modifier ->
                             EditorFields(
                                 ready = ready,
@@ -537,7 +537,7 @@ private fun EditorFields(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun EditorFieldArea(
+private fun EditorPane(
     editorState: EditorState,
     snackbar: SnackbarHostState,
     tablet: Boolean,
@@ -563,6 +563,7 @@ private fun EditorFieldArea(
     onTags: () -> Unit,
     onRemoveTag: (String) -> Unit,
     modifier: Modifier,
+    header: @Composable () -> Unit,
     fields: @Composable (Modifier) -> Unit,
 ) {
     val toolbarState by state
@@ -601,91 +602,100 @@ private fun EditorFieldArea(
     val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
     BackHandler(enabled = showFieldOptions, onBack = closeOptions)
     val toolbarBackground = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
-    // The standard sheet shares the editor window, so opening it leaves the IME connected.
-    BottomSheetScaffold(
-        // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
-        modifier = modifier.clipToBounds(),
-        containerColor = MaterialTheme.colorScheme.surface,
-        scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
-        snackbarHost = { if (showFieldOptions) EditorSnackbarHost(snackbar) },
-        sheetPeekHeight = 0.dp,
-        sheetDragHandle = null,
-        sheetSwipeEnabled = false,
-        sheetContainerColor = toolbarBackground,
-        sheetShadowElevation = 4.dp,
-        sheetContent = {
-            // Retain the controls through dismissal, then remove their layout and semantics work.
-            if (showFieldOptions && target != null) {
-                Box(
-                    Modifier.onGloballyPositioned {
-                        onFieldOptionsBounds(it.boundsInRoot())
-                        onFieldOptionsTop(it.boundsInWindow().top)
-                    },
-                ) {
-                    EditorFieldOptions(
-                        field = editorState.fields[target.field],
-                        noteTypeName = editorState.noteTypeName,
-                        enabled = enabled,
-                        onPinned = { onPinned(target, it) },
-                        onLanguageHint = { onLanguageHint(target) },
-                        onFont = { onFont(target) },
-                        onDescription = { onDescription(target) },
-                        onDirection = { onDirection(target, it) },
-                        onHtmlByDefault = { onHtmlByDefault(target, it) },
-                        onCollapseByDefault = { onCollapseByDefault(target, it) },
-                        onCollapse = closeOptions,
-                    )
-                }
-            }
-        },
-    ) {
+    Box(modifier) {
         Column(Modifier.fillMaxSize()) {
-            // Overlay feedback above the footer without resizing or obscuring the tags and toolbar.
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                fields(Modifier.fillMaxSize())
-                if (!showFieldOptions) EditorSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
-            }
-            // Retain the footer under the sheet to avoid rebuilding its buttons and resizing WebView.
-            // Its controls are covered while options are open, including for accessibility.
-            Column(if (showFieldOptions) Modifier.clearAndSetSemantics {} else Modifier) {
-                EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
-                if (editorState.showsToolbar(toolbarState.activeField)) {
-                    Row(
-                        // The IME changes the screen height, not the toolbar's content height.
-                        // Keep those constraints out of button composition and measurement.
-                        Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).background(toolbarBackground),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        EditorFormattingButtons(
-                            toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
-                            state = toolbarState,
-                            enabled = enabled,
-                            isCloze = editorState.isCloze,
-                            textColor = editorState.toolbarTextColor,
-                            highlightColor = editorState.toolbarHighlightColor,
-                            onAction = onAction,
-                            onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
-                            onMedia = onMedia,
-                            onRecordAudio = onRecordAudio,
-                        ) { items, button ->
-                            if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
-                                FlowRow(
-                                    Modifier
-                                        .weight(1f)
-                                        .heightIn(max = 144.dp)
-                                        .verticalScroll(rememberScrollState(), reverseScrolling = true)
-                                        .padding(horizontal = 8.dp)
-                                        .centerToolbarColumns(),
-                                    horizontalArrangement = Arrangement.Start,
-                                    verticalArrangement = ToolbarRowsFromBottom,
-                                ) { items.forEach { button(it) } }
-                            } else {
-                                EditorScrollingToolbar(items, toolbarScrollState, Modifier.weight(1f), button)
+            // Keep selectors outside changing IME constraints.
+            header()
+            Column(Modifier.weight(1f).fillMaxWidth().imePadding()) {
+                // Overlay feedback above the footer without resizing or obscuring the tags and toolbar.
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    fields(Modifier.fillMaxSize())
+                    if (!showFieldOptions) EditorSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                }
+                // Retain the footer under the sheet to avoid rebuilding its buttons and resizing WebView.
+                // Its controls are covered while options are open, including for accessibility.
+                Column(if (showFieldOptions) Modifier.clearAndSetSemantics {} else Modifier) {
+                    EditorTags(editorState.tags, enabled, tablet, onTags, onRemoveTag)
+                    if (editorState.showsToolbar(toolbarState.activeField)) {
+                        Row(
+                            // The IME changes the screen height, not the toolbar's content height.
+                            // Keep those constraints out of button composition and measurement.
+                            Modifier.fillMaxWidth().wrapContentHeight(unbounded = true).background(toolbarBackground),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            EditorFormattingButtons(
+                                toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
+                                state = toolbarState,
+                                enabled = enabled,
+                                isCloze = editorState.isCloze,
+                                textColor = editorState.toolbarTextColor,
+                                highlightColor = editorState.toolbarHighlightColor,
+                                onAction = onAction,
+                                onCustomAction = { button -> target?.let { onCustomAction(it, button) } },
+                                onMedia = onMedia,
+                                onRecordAudio = onRecordAudio,
+                            ) { items, button ->
+                                if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
+                                    FlowRow(
+                                        Modifier
+                                            .weight(1f)
+                                            .heightIn(max = 144.dp)
+                                            .verticalScroll(rememberScrollState(), reverseScrolling = true)
+                                            .padding(horizontal = 8.dp)
+                                            .centerToolbarColumns(),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalArrangement = ToolbarRowsFromBottom,
+                                    ) { items.forEach { button(it) } }
+                                } else {
+                                    EditorScrollingToolbar(items, toolbarScrollState, Modifier.weight(1f), button)
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+        // The sheet may cover the selectors when space above the keyboard is limited.
+        // Keep it separate from the editor layout so fields and toolbar never resize on opening.
+        if (showFieldOptions) {
+            // The standard sheet shares the editor window, so opening it leaves the IME connected.
+            BottomSheetScaffold(
+                // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
+                modifier = Modifier.matchParentSize().imePadding().clipToBounds(),
+                containerColor = Color.Transparent,
+                scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
+                snackbarHost = { EditorSnackbarHost(snackbar) },
+                sheetPeekHeight = 0.dp,
+                sheetDragHandle = null,
+                sheetSwipeEnabled = false,
+                sheetContainerColor = toolbarBackground,
+                sheetShadowElevation = 4.dp,
+                sheetContent = {
+                    // Retain the controls through dismissal, then remove their layout and semantics work.
+                    if (target != null) {
+                        Box(
+                            Modifier.onGloballyPositioned {
+                                onFieldOptionsBounds(it.boundsInRoot())
+                                onFieldOptionsTop(it.boundsInWindow().top)
+                            },
+                        ) {
+                            EditorFieldOptions(
+                                field = editorState.fields[target.field],
+                                noteTypeName = editorState.noteTypeName,
+                                enabled = enabled,
+                                onPinned = { onPinned(target, it) },
+                                onLanguageHint = { onLanguageHint(target) },
+                                onFont = { onFont(target) },
+                                onDescription = { onDescription(target) },
+                                onDirection = { onDirection(target, it) },
+                                onHtmlByDefault = { onHtmlByDefault(target, it) },
+                                onCollapseByDefault = { onCollapseByDefault(target, it) },
+                                onCollapse = closeOptions,
+                            )
+                        }
+                    }
+                },
+            ) {}
         }
     }
 }
