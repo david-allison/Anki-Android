@@ -168,6 +168,29 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun htmlByDefaultFieldOptions() {
+        val htmlDefault = mutableStateOf(false)
+        val requested = mutableListOf<Pair<EditorFieldTarget, Boolean>>()
+        showEditor(
+            sourceMode = true, // The saved default is independent of the active input mode.
+            htmlDefaultState = htmlDefault,
+            onHtmlByDefault = { target, value ->
+                requested.add(target to value)
+                htmlDefault.value = value
+            },
+        )
+        fieldOptionsButton().performClick()
+        val toggle = composeRule.onNodeWithText(TR.fieldsHtmlByDefault())
+        toggle.performScrollTo().assertIsOff()
+        captureScreen("field_options_html_default_off")
+        toggle.performClick().assertIsOn()
+        captureScreen("field_options_html_default_on")
+        toggle.performClick().assertIsOff()
+        assertEquals(listOf(true, false), requested.map { it.second })
+        assertTrue(requested.all { it.first == EditorFieldTarget("screenshot", 0, 1) })
+    }
+
+    @Test
     fun collapseByDefaultFieldOptions() {
         val collapsed = mutableStateOf(false)
         val requested = mutableListOf<Pair<EditorFieldTarget, Boolean>>()
@@ -1531,6 +1554,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pinned: Boolean = true,
         rtl: Boolean = false,
         onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+        htmlDefaultState: State<Boolean>? = null,
+        onHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         collapsedState: State<Boolean>? = null,
         onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         presets: List<EditorToolbarPreset>? = null,
@@ -1563,6 +1588,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                                 toolbar = fieldToolbarState?.value ?: toolbar,
                                                 sticky = pinned,
                                                 rtl = rtl,
+                                                sourceMode = htmlDefaultState?.value ?: false,
                                                 collapsed = collapsedState?.value ?: false,
                                                 toolbarPresetId =
                                                     presetSelection?.value ?: EditorToolbarPreset.DEFAULT_ID,
@@ -1594,6 +1620,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
                     onFieldDirection = onDirection,
+                    onFieldHtmlByDefault = onHtmlByDefault,
                     onFieldCollapseByDefault = onCollapseByDefault,
                     onFieldToolbarVisibility = onToolbarVisibility,
                     onToolbarPreset = onPreset,

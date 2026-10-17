@@ -162,6 +162,7 @@ fun NoteEditorScreen(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
     onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+    onFieldHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
@@ -395,6 +396,7 @@ fun NoteEditorScreen(
                             onLanguageHint = onLanguageHint,
                             onFont = { fontTarget = it },
                             onDirection = onFieldDirection,
+                            onHtmlByDefault = onFieldHtmlByDefault,
                             onCollapseByDefault = onFieldCollapseByDefault,
                             onToolbarVisibility = onFieldToolbarVisibility,
                             onToolbarPreset = onToolbarPreset,
@@ -550,6 +552,7 @@ private fun EditorFieldArea(
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onFont: (EditorFieldTarget) -> Unit,
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
+    onHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit,
     onToolbarPreset: (EditorFieldTarget, String) -> Unit,
@@ -620,6 +623,7 @@ private fun EditorFieldArea(
                         onLanguageHint = { onLanguageHint(target) },
                         onFont = { onFont(target) },
                         onDirection = { onDirection(target, it) },
+                        onHtmlByDefault = { onHtmlByDefault(target, it) },
                         onCollapseByDefault = { onCollapseByDefault(target, it) },
                         presets = editorState.toolbarPresets,
                         toolbarHiddenGlobally = editorState.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
@@ -760,6 +764,7 @@ private fun EditorFieldOptions(
     onLanguageHint: () -> Unit,
     onFont: () -> Unit,
     onDirection: (Boolean) -> Unit,
+    onHtmlByDefault: (Boolean) -> Unit,
     onCollapseByDefault: (Boolean) -> Unit,
     presets: List<EditorToolbarPreset>,
     toolbarHiddenGlobally: Boolean,
@@ -885,6 +890,12 @@ private fun EditorFieldOptions(
             checked = field.rtl,
             enabled = enabled,
             onCheckedChange = onDirection,
+        )
+        EditorFieldOptionSwitch(
+            label = TR.fieldsHtmlByDefault(),
+            checked = field.sourceMode,
+            enabled = enabled,
+            onCheckedChange = onHtmlByDefault,
         )
         EditorFieldOptionSwitch(
             label = TR.fieldsCollapseByDefault(),

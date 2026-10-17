@@ -293,6 +293,7 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
+            onFieldHtmlByDefault = { target, html -> updateMetadata { model.setFieldHtmlByDefault(target, html) } },
             onFieldCollapseByDefault = { target, collapsed ->
                 updateMetadata { model.setFieldCollapsedByDefault(target, collapsed) }
             },
