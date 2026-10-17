@@ -103,18 +103,11 @@ class DeckPickerFloatingActionMenu(
     }
 
     /**
-     * This function takes a parameter which decides if we want to apply the rise and shrink animation
-     * for FAB or not.
-     *
-     * Case 1: When the FAB is already opened and we close it by pressing the back button then we need to show
-     * the rise and shrink animation and get back to the FAB with `+` icon.
-     *
-     * Case 2: When the user opens the side navigation drawer (without touching the FAB). In that case we don't
-     * want to show any type of rise and shrink animation for the FAB so we put the value `false` for the parameter.
+     * Closes the menu using the selected animation [style].
      */
-    fun closeFloatingActionMenu(applyRiseAndShrinkAnimation: Boolean) {
+    fun closeFloatingActionMenu(style: CloseAnimation) {
         toggleListener.onBeginToggle(isOpening = false)
-        if (applyRiseAndShrinkAnimation) {
+        if (style == CloseAnimation.SHORT) {
             linearLayout.alpha = 1f
             studyOptionsFrame?.let { it.alpha = 1f }
             isFABOpen = false
@@ -130,10 +123,10 @@ class DeckPickerFloatingActionMenu(
                     addSharedButton.animate().alpha(0f).duration = 50
                     addDeckButton.animate().alpha(0f).duration = 100
                     addFilteredDeckButton.animate().alpha(0f).duration = 100
-                    addSharedButton.animate().translationY(400f).duration = 100
+                    addSharedButton.animate().translationY(style.otherOffset).duration = 100
                     addDeckButton
                         .animate()
-                        .translationY(300f)
+                        .translationY(style.deckOffset)
                         .setDuration(50)
                         .setListener(
                             object : Animator.AnimatorListener {
@@ -199,10 +192,10 @@ class DeckPickerFloatingActionMenu(
                     addSharedButton.animate().alpha(0f).duration = 70
                     addDeckButton.animate().alpha(0f).duration = 50
                     addFilteredDeckButton.animate().alpha(0f).duration = 50
-                    addSharedButton.animate().translationY(600f).duration = 100
+                    addSharedButton.animate().translationY(style.otherOffset).duration = 100
                     addDeckButton
                         .animate()
-                        .translationY(400f)
+                        .translationY(style.deckOffset)
                         .setDuration(50)
                         .setListener(
                             object : Animator.AnimatorListener {
@@ -265,7 +258,7 @@ class DeckPickerFloatingActionMenu(
     fun hideFloatingActionButton() {
         if (binding.fabMain.isShown) {
             // close the menu if it's open so the other menu items are hidden as well
-            closeFloatingActionMenu(false)
+            closeFloatingActionMenu(style = CloseAnimation.LONG)
             Timber.i("DeckPicker:: hideFloatingActionButton()")
             binding.fabMain.visibility = View.GONE
         }
@@ -322,7 +315,7 @@ class DeckPickerFloatingActionMenu(
                     KeyEvent.KEYCODE_ESCAPE -> {
                         if (isFABOpen) {
                             Timber.d("FAB main button: ESC key pressed - closing menu")
-                            closeFloatingActionMenu(applyRiseAndShrinkAnimation = true)
+                            closeFloatingActionMenu(style = CloseAnimation.SHORT)
                             return@setOnKeyListener true
                         }
                     }
@@ -331,11 +324,11 @@ class DeckPickerFloatingActionMenu(
             false
         }
 
-        binding.fabBGLayout.setOnClickListener { closeFloatingActionMenu(applyRiseAndShrinkAnimation = true) }
+        binding.fabBGLayout.setOnClickListener { closeFloatingActionMenu(style = CloseAnimation.SHORT) }
         val addDeckListener =
             View.OnClickListener {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     deckPicker.showCreateDeckDialog()
                 }
             }
@@ -346,7 +339,7 @@ class DeckPickerFloatingActionMenu(
         val addDeckKeyListener =
             createActivationKeyListener("Add Deck button: ENTER key pressed") {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     deckPicker.showCreateDeckDialog()
                 }
             }
@@ -354,7 +347,7 @@ class DeckPickerFloatingActionMenu(
         val addFilteredDeckListener =
             View.OnClickListener {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     deckPicker.showCreateFilteredDeckDialog()
                 }
             }
@@ -364,7 +357,7 @@ class DeckPickerFloatingActionMenu(
         val addFilteredDeckKeyListener =
             createActivationKeyListener("Add Filtered Deck button: ENTER key pressed") {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     deckPicker.showCreateFilteredDeckDialog()
                 }
             }
@@ -372,7 +365,7 @@ class DeckPickerFloatingActionMenu(
         val addSharedListener =
             View.OnClickListener {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     Timber.d("configureFloatingActionsMenu::addSharedButton::onClickListener - Adding Shared Deck")
                     deckPicker.openAnkiWebSharedDecks()
                 }
@@ -383,7 +376,7 @@ class DeckPickerFloatingActionMenu(
         val addSharedKeyListener =
             createActivationKeyListener("Add Shared Deck button: ENTER key pressed") {
                 if (isFABOpen) {
-                    closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+                    closeFloatingActionMenu(style = CloseAnimation.LONG)
                     deckPicker.openAnkiWebSharedDecks()
                 }
             }
@@ -412,7 +405,7 @@ class DeckPickerFloatingActionMenu(
      * @see DeckPicker.addNote
      */
     private fun addNote() {
-        closeFloatingActionMenu(applyRiseAndShrinkAnimation = false)
+        closeFloatingActionMenu(style = CloseAnimation.LONG)
         deckPicker.addNote()
     }
 
@@ -425,6 +418,18 @@ class DeckPickerFloatingActionMenu(
             contentDescription = text
             isExtended = true
         }
+    }
+
+    /** Animation styles for closing the FAB menu, with offsets in pixels. */
+    enum class CloseAnimation(
+        val deckOffset: Float,
+        val otherOffset: Float,
+    ) {
+        /** Back or an outside tap moves the menu buttons a shorter distance. */
+        SHORT(deckOffset = 300f, otherOffset = 400f),
+
+        /** Menu actions, the navigation drawer, or hiding the FAB move the buttons farther. */
+        LONG(deckOffset = 400f, otherOffset = 600f),
     }
 
     fun interface FloatingActionBarToggleListener {
