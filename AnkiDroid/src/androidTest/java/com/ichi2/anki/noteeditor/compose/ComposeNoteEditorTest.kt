@@ -1591,7 +1591,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.openFieldOptions()
             val title = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertNotNull(device.wait(Until.findObject(title), 5_000))
-            val lastOption = By.text(testContext.getString(R.string.compose_editor_start_collapsed))
+            val lastOption = By.text(testContext.getString(R.string.compose_editor_right_to_left))
 
             for ((index, visible) in listOf(true, false, true, false, true).withIndex()) {
                 scenario.onActivity {

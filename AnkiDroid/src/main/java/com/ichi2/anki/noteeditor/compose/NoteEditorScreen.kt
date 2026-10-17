@@ -885,13 +885,6 @@ private fun EditorFieldOptions(
         )
         Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
             EditorFieldOptionSwitch(
-                icon = R.drawable.ic_editor_text_direction_rtl,
-                label = stringResource(R.string.compose_editor_right_to_left),
-                checked = field.rtl,
-                enabled = enabled,
-                onCheckedChange = onDirection,
-            )
-            EditorFieldOptionSwitch(
                 icon = R.drawable.ic_code,
                 label = stringResource(R.string.compose_editor_start_in_html_mode),
                 checked = field.sourceMode,
@@ -904,6 +897,13 @@ private fun EditorFieldOptions(
                 checked = field.collapsed,
                 enabled = enabled,
                 onCheckedChange = onCollapseByDefault,
+            )
+            EditorFieldOptionSwitch(
+                icon = R.drawable.ic_editor_text_direction_rtl,
+                label = stringResource(R.string.compose_editor_right_to_left),
+                checked = field.rtl,
+                enabled = enabled,
+                onCheckedChange = onDirection,
             )
         }
     }
