@@ -312,7 +312,7 @@ replacement, Undo and Redo in both entry points.
 
 ## Native UI and performance constraints
 
-The formatting toolbar scrolls horizontally; field options stay fixed at its end.
+The formatting toolbar scrolls horizontally; settings live in the app-bar wrench menu.
 Colours, selective removal, alignment and equations open native dialogs. Editor
 options remain separate from changes to note content. The toolbar reports the
 active field, selection/composition, source mode and active rich-text formats.

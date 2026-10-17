@@ -69,7 +69,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
                     onCards = {},
                     toolbarDisplay = EditorToolbarDisplay.SCROLL,
                     onToolbarDisplay = {},
-                    fieldOptionsEnabled = true,
+                    fieldTarget = EditorFieldTarget("test", 1, 0),
                     onFieldOptions = {},
                     onQuickActions = {},
                     onToolbar = {},

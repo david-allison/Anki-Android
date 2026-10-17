@@ -319,7 +319,10 @@ fun NoteEditorScreen(
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,
                                         onToolbarDisplay = onToolbarDisplay,
-                                        fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
+                                        fieldTarget =
+                                            toolbarState.value.activeField?.takeIf { field -> field in it.fields.indices }?.let { field ->
+                                                EditorFieldTarget(it.sessionId, it.generation, field)
+                                            },
                                         onFieldOptions = { fieldOptionsRequested.value = true },
                                         onQuickActions = {
                                             toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->
@@ -409,8 +412,6 @@ fun NoteEditorScreen(
                             onDirection = onFieldDirection,
                             onHtmlByDefault = onFieldHtmlByDefault,
                             onCollapseByDefault = onFieldCollapseByDefault,
-                            onToolbar = { toolbarTarget = it },
-                            onQuickActions = { quickActionsTarget = it },
                             onCustomAction = onCustomAction,
                             onTags = onTags,
                             onRemoveTag = onRemoveTag,
@@ -564,8 +565,6 @@ private fun EditorFieldArea(
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
     onHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit,
-    onToolbar: (EditorFieldTarget) -> Unit,
-    onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
     onTags: () -> Unit,
     onRemoveTag: (String) -> Unit,
@@ -691,16 +690,6 @@ private fun EditorFieldArea(
                                     items(items, key = { it.key }) { button(it) }
                                 }
                             }
-                        }
-                        if (editorState.toolbarDisplay == EditorToolbarDisplay.SCROLL) {
-                            VerticalDivider(Modifier.height(32.dp))
-                            EditorToolbarOverflowMenu(
-                                target = target,
-                                enabled = enabled,
-                                onFieldOptions = { onFieldOptionsRequested(true) },
-                                onToolbar = onToolbar,
-                                onQuickActions = onQuickActions,
-                            )
                         }
                     }
                 }

@@ -809,7 +809,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 }
                 web.focusField(1)
             }
-            device.openToolbarOverflow()
+            device.openEditorOptions()
             clickText(testContext.getString(R.string.compose_editor_quick_actions))
             device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
             clickText(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
@@ -932,7 +932,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(
                 device.wait(Until.findObject(By.desc(testContext.getString(com.ichi2.anki.CommonString.dialog_cancel))), 5_000),
             ).click()
-            device.openToolbarOverflow()
+            device.openEditorOptions()
             checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             // Manage shared definitions without committing the pending removal of Bold.
@@ -1049,14 +1049,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                             return
                         }
                     }
-                    val end =
-                        checkNotNull(
-                            device.findObject(
-                                By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)),
-                            ),
-                        ).visibleBounds
-                    val start = end.left - end.width() * 2
-                    device.swipe(start, end.centerY(), start / 3, end.centerY(), 30)
+                    val bounds = device.findObjects(By.scrollable(true)).maxBy { it.visibleBounds.bottom }.visibleBounds
+                    device.swipe(
+                        bounds.right - bounds.width() / 5,
+                        bounds.centerY(),
+                        bounds.left + bounds.width() / 5,
+                        bounds.centerY(),
+                        30,
+                    )
                     device.waitForIdle()
                 }
                 error("Eraser did not scroll into view")
@@ -1214,18 +1214,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                         button.click()
                         return
                     }
-                    val end =
-                        checkNotNull(
-                            device.findObject(
-                                By
-                                    .desc(
-                                        testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
-                                    ).enabled(true),
-                            ),
-                        ).visibleBounds
-                    // The icon bounds are narrower than the fixed button's touch target.
-                    val start = end.left - end.width() * 2
-                    device.swipe(start, end.centerY(), start / 3, end.centerY(), 30)
+                    val bounds = device.findObjects(By.scrollable(true)).maxBy { it.visibleBounds.bottom }.visibleBounds
+                    device.swipe(
+                        bounds.right - bounds.width() / 5,
+                        bounds.centerY(),
+                        bounds.left + bounds.width() / 5,
+                        bounds.centerY(),
+                        30,
+                    )
                     device.waitForIdle()
                 }
                 error("Toolbar item not found: ${testContext.getString(label)}")
@@ -1509,7 +1505,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun toolbarOverflowPreservesKeyboardAndCaret() {
+    fun mainMenuPreservesKeyboardAndCaret() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             web.setField(1, "Keep the caret here")
@@ -1522,15 +1518,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val overflow =
                 By
                     .desc(
-                        testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
+                        testContext.getString(R.string.compose_editor_options),
                     ).enabled(true)
             val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
             val caret = assertNotNull(runBlocking { web.captureTarget() })
             checkNotNull(device.wait(Until.findObject(overflow), 5_000)).click()
             assertTrue(device.wait(Until.hasObject(menu), 5_000))
             device.waitForIdle()
-            captureScreenshot("toolbar-overflow-keyboard", web)
-            assertTrue(scenario.keyboardVisible(), "Opening the overflow must leave the keyboard open")
+            captureScreenshot("main-menu-keyboard", web)
+            assertTrue(scenario.keyboardVisible(), "Opening the menu must leave the keyboard open")
             assertTrue(scenario.keyboardHeight() > minimumKeyboardHeight, "The on-screen keyboard must remain visible")
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 // Before the platform overlay Back API, the IME consumes the first Back itself.
@@ -1538,9 +1534,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 waitUntil(message = { "The keyboard did not close" }) { !scenario.keyboardVisible() }
             }
             device.pressBack()
-            assertTrue(device.wait(Until.gone(menu), 5_000), "Back must dismiss the overflow first")
+            assertTrue(device.wait(Until.gone(menu), 5_000), "Back must dismiss the menu first")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                assertTrue(scenario.keyboardVisible(), "Dismissing the overflow must leave the keyboard open")
+                assertTrue(scenario.keyboardVisible(), "Dismissing the menu must leave the keyboard open")
             }
             assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
 
@@ -1556,7 +1552,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun toolbarOverflowStaysAnchoredWithAndWithoutOnScreenKeyboard() {
+    fun mainMenuStaysAnchoredWithAndWithoutOnScreenKeyboard() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             runBlocking { web.focusField(1) }
@@ -1565,7 +1561,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.keyboardHeight() > 100 * density
             }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description))
+            val overflow = By.desc(testContext.getString(R.string.compose_editor_options))
             val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
             for (keyboardVisible in listOf(true, false)) {
                 if (!keyboardVisible) {
@@ -1579,14 +1575,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val anchor = button.parent.visibleBounds
                 button.click()
                 val item = checkNotNull(device.wait(Until.findObject(menu), 5_000))
-                captureScreenshot("toolbar-overflow-anchored-keyboard-$keyboardVisible", web)
+                captureScreenshot("main-menu-anchored-keyboard-$keyboardVisible", web)
                 val bounds = item.parent.parent.visibleBounds
-                val gap = anchor.top - bounds.bottom
-                assertTrue(gap >= -1 && gap <= 8 * density, "The overflow must sit above its button; gap was ${gap / density}dp")
+                val gap = bounds.top - anchor.bottom
+                assertTrue(gap >= -1 && gap <= 8 * density, "The menu must sit below its button; gap was ${gap / density}dp")
                 assertTrue(anchor.centerX() in bounds.left..bounds.right, "The menu must align horizontally with its button")
                 assertEquals(keyboardVisible, scenario.keyboardVisible())
                 // Dismiss outside the menu without touching a field or changing its focus.
-                device.click(anchor.left / 2, anchor.top - (16 * density).toInt())
+                device.click(anchor.left / 2, anchor.centerY())
                 assertTrue(device.wait(Until.gone(menu), 5_000))
             }
         }
@@ -1755,7 +1751,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
+            val options = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
             // Initial focus happens after fields mount; wait for the native controls before changing it.
             assertNotNull(device.wait(Until.findObject(options), 5_000))
             runBlocking { web.focusField(1) }
@@ -1800,7 +1796,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
             waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
+            val options = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
 
             fun toggleOptions() {
@@ -2672,13 +2668,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         }
     }
 
-    private fun UiDevice.openToolbarOverflow() {
-        val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
+    private fun UiDevice.openEditorOptions() {
+        val overflow = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
         checkNotNull(wait(Until.findObject(overflow), 5_000)).click()
     }
 
     private fun UiDevice.openFieldOptions() {
-        openToolbarOverflow()
+        openEditorOptions()
         checkNotNull(wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_field_options))), 5_000)).click()
     }
 

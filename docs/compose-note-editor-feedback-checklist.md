@@ -86,8 +86,7 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 - [x] **09. Support adding, deleting, editing, and renaming presets, like Manage note types.**
 
-  **Decision: consolidated 2026-10-17.** Both the wrench and toolbar overflow
-  open **Customize toolbar** for the current field. Its selected preset and
+  **Decision: consolidated 2026-10-17.** The wrench menu opens **Customize toolbar** for the current field. Its selected preset and
   draggable Active/Available button list are on the same screen; there is no
   separate top-level preset-management destination. The preset dropdown offers
   selection and creation; the adjacent options menu offers duplication, rename,
@@ -99,7 +98,7 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   saving discards them. Switching presets preserves pending edits.
   **Verification:** interaction tests cover direct editing, assignment, name
   validation, cancellation, duplication, renaming, deletion and pending edits
-  across preset switches. Light/dark screenshots cover both entry points,
+  across preset switches. Light/dark screenshots cover the main menu,
   hidden toolbars, long names, the dropdown and opaque options menu.
 
 - [ ] **10. Include toolbar and quick-action commands in the preset editor, excluding Pin field and Edit HTML.**
@@ -119,12 +118,12 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
 - [x] **12. Make the bottom toolbar's three-dot button open an overflow menu.**
 
-  **Implemented:** The three-dot button opens a Material menu with icons and
-  labeled entries for Field options, Customize toolbar, and Quick actions. Field
-  options opens the existing sheet. The menu closes when its field or document
-  changes. Opening it preserves the keyboard and caret; Back dismisses the menu
-  first. Toolbar commands remain where the preset places them; the separate
-  Toolbar / Menu / Hidden configuration in 11 is still pending.
+  **Superseded 2026-10-17:** Removed the bottom three-dot button and divider.
+  Field options, Customize toolbar and Quick actions already live in the wrench
+  menu, so the scrolling toolbar now uses the full width for editing commands.
+  The wrench menu preserves the keyboard and caret, closes when the field or
+  document changes, and handles Back before the keyboard. Scroll upward to
+  reveal the app bar when it is collapsed. Item 11 remains a separate proposal.
 
 - [x] **13. Add a custom-toolbar-item creation button at the bottom of the preset editor.**
 
@@ -154,16 +153,16 @@ remains a separate proposal (06).
 
 The main menu now has three groups, each with consistent leading icons:
 
-- **Current field:** Field options, Customize toolbar, Quick actions. These match
-  the bottom overflow's order and remain visible across all toolbar layouts.
+- **Current field:** Field options, Customize toolbar, Quick actions. These remain
+  available across all toolbar layouts.
 - **This device:** Toolbar layout. The global Editor text size override was
   removed; font size is configured under Field options → Font.
 - **Note type:** Manage fields and Card templates. These labels distinguish
   structural editing from settings for the current field.
 
 Custom button creation has one entry inside Customize toolbar. Field-dependent
-entries remain visible but disabled when no field is focused. The bottom
-toolbar's three-dot control is covered separately by item 12.
+entries remain visible but disabled when no field is focused. The duplicate
+bottom toolbar menu has been removed (12).
 
 ## Field settings
 
