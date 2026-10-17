@@ -320,6 +320,13 @@ the keyboard. Long-press explanations and the shared help catalogue remain.
   the edited text. Roborazzi covers native layout; rendered equation
   captures come from the emulator. The input test IME has no visible keyboard.
 
+## Localization follow-up
+
+- [ ] Add en-GB translations for **Customize → Customise**, including
+  **Customise toolbar** (`compose_editor_toolbar`) and its mention in the custom
+  buttons explanation (`compose_editor_custom_buttons_scope`). Recorded
+  2026-10-17; translation changes are still pending.
+
 ## Dependencies and review order
 
 - Decide shared defaults and preset inheritance (07) before committing to the
