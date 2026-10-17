@@ -844,6 +844,10 @@ class EditorViewModel(
                 rtl = field.jsonObject.optBoolean("rtl"),
                 languageTag = field.languageHint?.toLanguageTag(),
                 sticky = field.sticky,
+                // Anki Desktop remembers chevron changes by note type within the same editor instance:
+                // ts/routes/editor/NoteEditor.svelte uses toggleField(), saveSession() and setCollapsed().
+                // These changes do not update the saved default; Fields > Collapse by default does
+                // (qt/aqt/fields.py). Here we read that default without Desktop's session override.
                 collapsed = field.jsonObject.optBoolean("collapsed"),
                 sourceMode = field.jsonObject.optBoolean("plainText"),
                 toolbar = toolbarPreferences.load(requireNotNull(collectionKey), id, field.editorKey(), presets),
