@@ -413,9 +413,16 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             .assertIsDisplayed()
         captureScreen("field_font_settings")
         val font = composeRule.onNode(hasSetTextAction() and hasText("Arial"))
+        val unfocused = font.captureToImage().toPixelMap()
         font.performClick()
         composeRule.onNode(isPopup()).assertIsDisplayed()
         captureScreen("field_font_choices")
+        val focused = font.captureToImage().toPixelMap()
+        assertEquals(
+            unfocused[unfocused.width / 2, 2],
+            focused[focused.width / 2, 2],
+            "Opening the font selector should not change its surface color",
+        )
         composeRule.onNode(hasText("serif") and hasAnyAncestor(isPopup())).performClick()
         composeRule.onNode(isPopup()).assertDoesNotExist()
         composeRule.onNode(hasSetTextAction() and hasText("serif")).assertIsDisplayed()

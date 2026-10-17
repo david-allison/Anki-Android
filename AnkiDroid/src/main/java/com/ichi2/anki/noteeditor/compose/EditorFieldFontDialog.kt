@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
@@ -55,7 +56,8 @@ internal fun EditorFieldFontDialog(
     val dismiss = rememberEditorDismiss(font != field.font || size != field.fontSize.toString(), onDismiss)
     val valid = font.isNotBlank() && font.none { it.isISOControl() } && size.toIntOrNull() in 5..300
     val colors = MaterialTheme.colorScheme
-    val menuColor = colors.surfaceContainer.compositeOver(colors.surface)
+    // The theme's container tint is translucent: blend it over this dialog, not the page.
+    val menuColor = colors.surfaceContainer.compositeOver(AlertDialogDefaults.containerColor)
     AlertDialog(
         onDismissRequest = dismiss,
         title = {
@@ -84,7 +86,7 @@ internal fun EditorFieldFontDialog(
                         shape = MaterialTheme.shapes.large,
                         colors =
                             TextFieldDefaults.colors(
-                                focusedContainerColor = colors.surfaceContainerHigh.compositeOver(colors.surface),
+                                focusedContainerColor = menuColor,
                                 unfocusedContainerColor = menuColor,
                                 focusedTrailingIconColor = editorControlColor(),
                                 unfocusedTrailingIconColor = editorControlColor(),
