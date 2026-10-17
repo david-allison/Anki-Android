@@ -56,6 +56,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -888,40 +889,56 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onClick = onFont,
         )
-        EditorFieldOptionSwitch(
-            label = stringResource(R.string.compose_editor_right_to_left),
-            checked = field.rtl,
-            enabled = enabled,
-            onCheckedChange = onDirection,
-        )
-        EditorFieldOptionSwitch(
-            label = TR.fieldsHtmlByDefault(),
-            checked = field.sourceMode,
-            enabled = enabled,
-            onCheckedChange = onHtmlByDefault,
-        )
-        EditorFieldOptionSwitch(
-            label = TR.fieldsCollapseByDefault(),
-            checked = field.collapsed,
-            enabled = enabled,
-            onCheckedChange = onCollapseByDefault,
-        )
-        EditorFieldOptionSwitch(
-            label = stringResource(R.string.compose_editor_show_field_toolbar),
-            checked = field.toolbar.showToolbar,
-            enabled = enabled,
-            onCheckedChange = onToolbarVisibility,
-        )
-        if (toolbarHiddenGlobally) {
-            Text(
-                stringResource(R.string.compose_editor_toolbar_hidden_globally),
-                Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        EditorFieldOptionsGroup {
+            EditorFieldOptionSwitch(
+                label = stringResource(R.string.compose_editor_right_to_left),
+                checked = field.rtl,
+                enabled = enabled,
+                onCheckedChange = onDirection,
             )
-        } else if (field.toolbar.showToolbar) {
-            EditorFieldToolbarPresetSelector(presets, field.toolbarPresetId, enabled, onToolbarPreset)
+            EditorFieldOptionSwitch(
+                label = TR.fieldsHtmlByDefault(),
+                checked = field.sourceMode,
+                enabled = enabled,
+                onCheckedChange = onHtmlByDefault,
+            )
+            EditorFieldOptionSwitch(
+                label = TR.fieldsCollapseByDefault(),
+                checked = field.collapsed,
+                enabled = enabled,
+                onCheckedChange = onCollapseByDefault,
+            )
         }
+        Spacer(Modifier.height(12.dp))
+        EditorFieldOptionsGroup {
+            EditorFieldOptionSwitch(
+                label = stringResource(R.string.compose_editor_show_field_toolbar),
+                checked = field.toolbar.showToolbar,
+                enabled = enabled,
+                onCheckedChange = onToolbarVisibility,
+            )
+            if (toolbarHiddenGlobally) {
+                Text(
+                    stringResource(R.string.compose_editor_toolbar_hidden_globally),
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (field.toolbar.showToolbar) {
+                EditorFieldToolbarPresetSelector(presets, field.toolbarPresetId, enabled, onToolbarPreset)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorFieldOptionsGroup(content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(Modifier.padding(vertical = 4.dp)) { content() }
     }
 }
 
@@ -1138,11 +1155,23 @@ private fun EditorFieldOptionSwitch(
         Modifier
             .fillMaxWidth()
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.width(16.dp))
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            // Our dark theme also uses a light thumb; its usual on-primary-container is white.
+            colors = SwitchDefaults.colors(checkedIconColor = MaterialTheme.colorScheme.primary),
+            thumbContent =
+                if (checked) {
+                    { Icon(painterResource(R.drawable.ic_done), null, Modifier.size(SwitchDefaults.IconSize)) }
+                } else {
+                    null
+                },
+        )
     }
 }
