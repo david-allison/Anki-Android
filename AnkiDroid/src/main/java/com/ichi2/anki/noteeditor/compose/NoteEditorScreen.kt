@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,7 +38,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,9 +55,6 @@ import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -106,7 +104,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -798,74 +795,60 @@ private fun EditorFieldOptions(
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                maxItemsInEachRow = if (maxWidth / LocalDensity.current.fontScale < 300.dp) 1 else 2,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                EditorTooltip(
-                    text = stringResource(EditorFieldOption.PIN.help),
-                    modifier = Modifier.weight(1f).fillMaxRowHeight(),
-                ) {
-                    Surface(
-                        checked = field.sticky,
-                        onCheckedChange = onPinned,
-                        enabled = enabled,
-                        modifier = Modifier.fillMaxSize(),
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (field.sticky) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                        contentColor =
-                            if (field.sticky) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+            val columns = if (maxWidth / LocalDensity.current.fontScale < 300.dp) 1 else 2
+            val options =
+                listOf(
+                    EditorFieldOption.PIN,
+                    EditorFieldOption.KEYBOARD,
+                    EditorFieldOption.FONT,
+                    EditorFieldOption.HTML,
+                    EditorFieldOption.COLLAPSED,
+                    EditorFieldOption.RIGHT_TO_LEFT,
+                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (row in options.chunked(columns)) {
+                    Row(
+                        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Row(
-                            Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                painterResource(EditorFieldOption.PIN.icon),
-                                stringResource(EditorFieldOption.PIN.label),
-                                modifier = Modifier.size(24.dp),
-                                tint = controlColor,
+                        for (option in row) {
+                            EditorFieldOptionTile(
+                                option = option,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                summary =
+                                    when (option) {
+                                        EditorFieldOption.KEYBOARD ->
+                                            field.languageTag?.let { Locale.forLanguageTag(it).displayName }
+                                                ?: stringResource(R.string.compose_editor_language_hint_default)
+                                        EditorFieldOption.FONT ->
+                                            stringResource(
+                                                R.string.compose_editor_field_font_summary,
+                                                field.font,
+                                                field.fontSize,
+                                            )
+                                        else -> null
+                                    },
+                                checked =
+                                    when (option) {
+                                        EditorFieldOption.PIN -> field.sticky
+                                        EditorFieldOption.HTML -> field.sourceMode
+                                        EditorFieldOption.COLLAPSED -> field.collapsed
+                                        EditorFieldOption.RIGHT_TO_LEFT -> field.rtl
+                                        else -> null
+                                    },
+                                onClick = {
+                                    when (option) {
+                                        EditorFieldOption.PIN -> onPinned(!field.sticky)
+                                        EditorFieldOption.KEYBOARD -> onLanguageHint()
+                                        EditorFieldOption.FONT -> onFont()
+                                        EditorFieldOption.HTML -> onHtmlByDefault(!field.sourceMode)
+                                        EditorFieldOption.COLLAPSED -> onCollapseByDefault(!field.collapsed)
+                                        EditorFieldOption.RIGHT_TO_LEFT -> onDirection(!field.rtl)
+                                        EditorFieldOption.DESCRIPTION -> onDescription()
+                                    }
+                                },
                             )
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(EditorFieldOption.PIN.label), style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
-                }
-                EditorTooltip(
-                    text = stringResource(EditorFieldOption.KEYBOARD.help),
-                    modifier = Modifier.weight(1f).fillMaxRowHeight(),
-                ) {
-                    Surface(
-                        onClick = onLanguageHint,
-                        enabled = enabled,
-                        modifier = Modifier.fillMaxSize(),
-                        shape = MaterialTheme.shapes.medium,
-                        color = Color.Transparent,
-                    ) {
-                        Row(
-                            Modifier.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                painterResource(EditorFieldOption.KEYBOARD.icon),
-                                stringResource(R.string.compose_editor_language_hint),
-                                modifier = Modifier.size(24.dp),
-                                tint = controlColor,
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(stringResource(EditorFieldOption.KEYBOARD.label), style = MaterialTheme.typography.labelLarge)
-                                Text(
-                                    field.languageTag?.let { Locale.forLanguageTag(it).displayName }
-                                        ?: stringResource(R.string.compose_editor_language_hint_default),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
                         }
                     }
                 }
@@ -880,37 +863,6 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onClick = onDescription,
         )
-        EditorFieldOptionsLink(
-            icon = EditorFieldOption.FONT.icon,
-            title = EditorFieldOption.FONT.label,
-            summary = stringResource(R.string.compose_editor_field_font_summary, field.font, field.fontSize),
-            iconTint = controlColor,
-            enabled = enabled,
-            onClick = onFont,
-        )
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-            EditorFieldOptionSwitch(
-                icon = EditorFieldOption.HTML.icon,
-                label = stringResource(EditorFieldOption.HTML.label),
-                checked = field.sourceMode,
-                enabled = enabled,
-                onCheckedChange = onHtmlByDefault,
-            )
-            EditorFieldOptionSwitch(
-                icon = EditorFieldOption.COLLAPSED.icon,
-                label = stringResource(EditorFieldOption.COLLAPSED.label),
-                checked = field.collapsed,
-                enabled = enabled,
-                onCheckedChange = onCollapseByDefault,
-            )
-            EditorFieldOptionSwitch(
-                icon = EditorFieldOption.RIGHT_TO_LEFT.icon,
-                label = stringResource(EditorFieldOption.RIGHT_TO_LEFT.label),
-                checked = field.rtl,
-                enabled = enabled,
-                onCheckedChange = onDirection,
-            )
-        }
     }
 }
 
@@ -1085,42 +1037,5 @@ internal fun EditorToggleButton(
                     checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
         ) { Icon(painterResource(icon), text) }
-    }
-}
-
-@Composable
-internal fun EditorFieldOptionSwitch(
-    label: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    icon: Int? = null,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) {
-            Icon(painterResource(icon), null, Modifier.size(24.dp), tint = editorControlColor())
-            Spacer(Modifier.width(12.dp))
-        }
-        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.width(16.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            // Our dark theme also uses a light thumb; its usual on-primary-container is white.
-            colors = SwitchDefaults.colors(checkedIconColor = MaterialTheme.colorScheme.primary),
-            thumbContent =
-                if (checked) {
-                    { Icon(painterResource(R.drawable.ic_done), null, Modifier.size(SwitchDefaults.IconSize)) }
-                } else {
-                    null
-                },
-        )
     }
 }

@@ -196,14 +196,94 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldOptionSwitchesWithMixedStates() {
+    fun fieldOptionsGridUsesTwoEqualColumns() {
+        showEditor()
+        openFieldOptions()
+        val options =
+            listOf(
+                EditorFieldOption.PIN,
+                EditorFieldOption.KEYBOARD,
+                EditorFieldOption.FONT,
+                EditorFieldOption.HTML,
+                EditorFieldOption.COLLAPSED,
+                EditorFieldOption.RIGHT_TO_LEFT,
+            )
+        val bounds =
+            options.map {
+                composeRule
+                    .onNodeWithTag("editor_field_option_${it.name}")
+                    .assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+            }
+        for ((left, right) in bounds.chunked(2)) {
+            assertEquals(left.top, right.top, 1f)
+            assertEquals(left.bottom, right.bottom, 1f)
+            assertEquals(left.width, right.width, 1f)
+            assertEquals(
+                bounds.first().height,
+                left.height,
+                targetContext.resources.displayMetrics.density,
+                "Normal-size labels should fit equally compact rows (within 1dp of font rounding)",
+            )
+            assertTrue(left.right < right.left)
+            assertEquals(bounds.first().left, left.left, 1f)
+            assertEquals(bounds[1].right, right.right, 1f)
+        }
+        val description =
+            composeRule
+                .onNodeWithText(
+                    getResourceString(R.string.compose_editor_field_description),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        assertTrue(description.top >= bounds.last().bottom, "Description belongs below the six tiles")
+        captureScreen("field_options_grid")
+    }
+
+    @Test
+    fun fieldOptionsGridAllTogglesEnabled() {
+        showEditor(
+            rtl = true,
+            htmlDefaultState = mutableStateOf(true),
+            collapsedState = mutableStateOf(true),
+            description = "Write an example sentence and explain its meaning, including the context in which you found it.",
+        )
+        openFieldOptions()
+        for (option in listOf(
+            EditorFieldOption.PIN,
+            EditorFieldOption.HTML,
+            EditorFieldOption.COLLAPSED,
+            EditorFieldOption.RIGHT_TO_LEFT,
+        )) {
+            composeRule.onNodeWithTag("editor_field_option_${option.name}").assertIsOn()
+        }
+        captureScreen("field_options_grid_all_enabled")
+    }
+
+    @Test
+    fun fieldOptionsGridAllTogglesOff() {
+        showEditor(pinned = false)
+        openFieldOptions()
+        for (option in listOf(
+            EditorFieldOption.PIN,
+            EditorFieldOption.HTML,
+            EditorFieldOption.COLLAPSED,
+            EditorFieldOption.RIGHT_TO_LEFT,
+        )) {
+            composeRule.onNodeWithTag("editor_field_option_${option.name}").assertIsOff()
+        }
+        captureScreen("field_options_grid_all_off")
+    }
+
+    @Test
+    fun fieldOptionTilesWithMixedStates() {
         val (activity, keyboard) = showEditor(rtl = true, htmlDefaultState = mutableStateOf(true))
         hideKeyboard(activity, keyboard)
         openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).assertIsOn()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_in_html_mode)).assertIsOn()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed)).assertIsOff()
-        captureScreen("field_options_mixed_switches")
+        captureScreen("field_options_mixed_tiles")
     }
 
     @Test
@@ -951,7 +1031,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             val viewport = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
             val availableBottom = height - maxOf(48, imeHeight) * density
             assertTrue(viewport.bottom <= availableBottom + 1, "Options extend below the usable viewport: $viewport / $availableBottom")
-            val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left))
+            val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description))
             lastOption.performScrollTo().assertIsDisplayed()
             assertTrue(lastOption.fetchSemanticsNode().boundsInRoot.bottom <= availableBottom + 1)
         }

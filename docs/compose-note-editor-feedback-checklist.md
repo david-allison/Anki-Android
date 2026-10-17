@@ -170,6 +170,13 @@ For note-type field settings, make it clear that changes affect that field on
 every note using the note type. Reuse Anki's collection properties where they
 exist; distinguish these settings from device-local presentation preferences.
 
+**Layout updated 2026-10-17:** Field options uses a two-column, three-row grid:
+Pin field / Keyboard, Font / Start in HTML mode, Start collapsed / Right-to-left
+text. Enabled toggles use a blue container and tick, with accessible checked
+states. Description stays full-width below the grid to accommodate its hint.
+Narrow windows and large text use one column; the sheet remains scrollable above
+the keyboard. Long-press explanations and the shared help catalogue remain.
+
 - [ ] **15. Make Field options a screen with one tab per field.**
 
   **Assessment: disagree with tabs as the general solution.** Tabs work for a
@@ -220,7 +227,7 @@ exist; distinguish these settings from device-local presentation preferences.
 
 - [x] **20. Include Use HTML editor by default.**
 
-  **Implemented:** The field-options switch uses Anki's translated label and
+  **Implemented:** The field-options toggle uses Anki's translated label and
   saves its collection-backed `plainText` default. It applies when opening a
   note or starting the next Add, without switching the current input or
   changing its HTML. The A/<> control remains a temporary mode switch; draft
@@ -228,7 +235,7 @@ exist; distinguish these settings from device-local presentation preferences.
 
 - [x] **21. Include Collapse by default.**
 
-  **Implemented:** The field-options switch saves Anki's collection-backed
+  **Implemented:** The field-options toggle saves Anki's collection-backed
   `collapsed` default, using its existing translation. It applies when opening
   a note or starting the next Add; changing the default leaves the current
   field expansion and text intact. Automatic focus skips collapsed fields,

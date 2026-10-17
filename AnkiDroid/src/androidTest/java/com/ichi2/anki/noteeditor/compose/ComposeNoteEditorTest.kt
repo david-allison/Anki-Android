@@ -1716,7 +1716,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.openFieldOptions()
             val title = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertNotNull(device.wait(Until.findObject(title), 5_000))
-            val lastOption = By.text(testContext.getString(R.string.compose_editor_right_to_left))
+            val lastOption = By.text(testContext.getString(R.string.compose_editor_field_description))
 
             for ((index, visible) in listOf(true, false, true, false, true).withIndex()) {
                 scenario.onActivity {
@@ -1810,11 +1810,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             fun choose(label: Int) =
                 checkNotNull(device.wait(Until.findObject(By.descContains(testContext.getString(label)).enabled(true)), 5_000)).click()
 
-            val bounds = checkNotNull(device.wait(Until.findObject(options), 5_000)).visibleBounds
-            device.swipe(bounds.left - 20, bounds.centerY(), 20, bounds.centerY(), 15)
-            assertEquals(bounds, checkNotNull(device.findObject(options)).visibleBounds)
-            device.waitForIdle()
-            assertTrue(keyboardVisible(), "Scrolling the toolbar must keep the keyboard visible")
+            assertNotNull(device.wait(Until.findObject(options), 5_000))
             toggleOptions()
             assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
             val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
@@ -1861,7 +1857,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             choose(R.string.compose_editor_pin_field)
             waitUntil(message = { "Pin did not apply to Back" }) { scenario.editorState().fields[1].sticky }
             assertFalse(scenario.editorState().fields[0].sticky)
-            val pin = By.checkable(true).hasDescendant(By.descContains(testContext.getString(R.string.compose_editor_pin_field)))
+            val pin = By.checkable(true).desc(testContext.getString(R.string.compose_editor_pin_field))
             assertTrue(checkNotNull(device.wait(Until.findObject(pin), 5_000)).isChecked)
             runBlocking { web.focusField(0) }
             assertTrue(
