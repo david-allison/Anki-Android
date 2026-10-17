@@ -81,6 +81,7 @@ import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.anki.testutil.withTestKeyboard
+import com.ichi2.utils.LanguageUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -114,8 +115,49 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     @Before
     fun createSyntheticCollection() {
         ensureWebViewIsSupported()
-        CollectionManager.setColForTests(emptyCol)
+        // Only the synthetic backend uses English fixture names; leave app/device locales alone.
+        LanguageUtil.setDefaultBackendLanguages("en")
+        runBlocking { CollectionManager.discardBackend() }
+        try {
+            CollectionManager.setColForTests(emptyCol)
+        } finally {
+            LanguageUtil.setDefaultBackendLanguages()
+        }
         col.notetypes.setCurrent(col.notetypes.basic)
+    }
+
+    @Test
+    fun htmlDefaultIsShownByTheModeSwitchBeforeFocusingAField() {
+        val type = col.notetypes.basic.deepClone()
+        type.fields[0].jsonObject.put("plainText", true)
+        col.notetypes.save(type)
+        val note = addNoteUsingBasicNoteType("<b>Original front</b>", "Original back")
+        val arguments =
+            Bundle().apply {
+                putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.EDIT.value)
+                putLong(NoteEditorFragment.EXTRA_CARD_ID, note.firstCard(col).id)
+            }
+        withEditor(arguments) { scenario ->
+            val web = scenario.awaitEditor(firstFieldSourceMode = true)
+            val state = scenario.editorState()
+            runBlocking {
+                withContext(Dispatchers.Main) {
+                    scenario.editorModel().setFieldToolbar(
+                        EditorFieldTarget(state.sessionId, state.generation, 0),
+                        EditorFieldToolbar(buttonOrder = listOf(EditorToolbarButton.SOURCE_MODE.name)),
+                    )
+                }
+            }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val richText = By.desc(testContext.getString(R.string.compose_editor_rich_text))
+            val html = By.desc(testContext.getString(R.string.compose_editor_source))
+            assertNotNull(device.wait(Until.findObject(richText), 5_000), "An unfocused HTML field must show HTML mode")
+            runBlocking { web.focusField(0) }
+            assertTrue(device.wait(Until.findObject(richText), 5_000).isEnabled)
+            device.findObject(richText).click()
+            assertNotNull(device.wait(Until.findObject(html), 5_000), "A temporary rich-text mode must override the saved default")
+            assertFalse(runBlocking { web.snapshot().hasChanges })
+        }
     }
 
     @Test
@@ -2722,7 +2764,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         ActivityScenario.launch<ComposeNoteEditorActivity>(intent).use(block)
     }
 
-    private fun ActivityScenario<ComposeNoteEditorActivity>.awaitEditor(): WebEditorView {
+    private fun ActivityScenario<ComposeNoteEditorActivity>.awaitEditor(firstFieldSourceMode: Boolean = false): WebEditorView {
         var editor: WebEditorView? = null
         waitUntil(timeout = 30.seconds, message = { "The production field editor did not appear" }) {
             onActivity { activity ->
@@ -2735,7 +2777,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             editor != null
         }
         return checkNotNull(editor).also {
-            it.awaitJavascript("${richField(0)}?.isContentEditable === true")
+            val firstField =
+                if (firstFieldSourceMode) "document.querySelector('.field-container[data-index=\"0\"] .CodeMirror')" else richField(0)
+            it.awaitJavascript(if (firstFieldSourceMode) "$firstField !== null" else "$firstField?.isContentEditable === true")
             // Mounted fields precede completion of loadDocument; serialize past that load.
             runBlocking { it.snapshot() }
             // A mounted editor can still be clipped by a zero-height viewport.
@@ -2743,11 +2787,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             it.awaitJavascript(
                 """
                 (() => {
-                    const field = ${richField(0)};
+                    const field = $firstField;
                     const bounds = field.getBoundingClientRect();
                     if (bounds.width <= 0 || bounds.height <= 0 || bounds.top < 0 || bounds.bottom > innerHeight) return false;
                     const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
-                    return hit === field.getRootNode().host;
+                    return hit === field.getRootNode().host || field === hit || field.contains(hit);
                 })()
                 """.trimIndent(),
             )

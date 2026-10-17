@@ -164,7 +164,9 @@
             activeField,
             activeFormats,
             ...historyState,
-            sourceMode: !!lastTarget && JSON.parse(lastTarget.bookmark).kind === "source",
+            // Edit opens without a caret. Report the live mode even before a selection
+            // exists; the field spec also retains temporary mode changes in drafts.
+            sourceMode: fields[activeField ?? 0]?.spec.sourceMode ?? false,
         });
     }
 
