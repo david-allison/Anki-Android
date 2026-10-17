@@ -138,7 +138,12 @@ private fun EditorColorButton(
     val label = stringResource(button.label)
     val shape = RoundedCornerShape(1.dp)
     EditorTooltip(label) {
-        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.semantics { stateDescription = color }) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.semantics { stateDescription = color },
+            colors = editorIconButtonColors(),
+        ) {
             Box(Modifier.size(24.dp)) {
                 Icon(painterResource(button.icon), label, Modifier.fillMaxSize())
                 Box(

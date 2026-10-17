@@ -99,7 +99,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -118,7 +117,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
-import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewDialog
 import com.ichi2.anki.noteeditor.web.WebEditorAction
@@ -298,7 +296,7 @@ fun NoteEditorScreen(
                                 )
                             },
                             navigationIcon = {
-                                IconButton(onClick = onBack, enabled = !busy) {
+                                IconButton(onClick = onBack, enabled = !busy, colors = editorIconButtonColors()) {
                                     Icon(
                                         painterResource(R.drawable.ic_baseline_arrow_back_24),
                                         stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
@@ -765,8 +763,7 @@ private fun EditorFieldOptions(
     onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
+    val controlColor = editorControlColor()
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Row(
@@ -985,6 +982,7 @@ private fun FieldOptionsHelp(
                                 painterResource(R.drawable.ic_baseline_push_pin_24),
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
+                                tint = iconTint,
                             )
                             Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.titleSmall)
                         }
@@ -996,6 +994,7 @@ private fun FieldOptionsHelp(
                                 painterResource(R.drawable.ic_language_black_24dp),
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
+                                tint = iconTint,
                             )
                             Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.titleSmall)
                         }
@@ -1003,14 +1002,24 @@ private fun FieldOptionsHelp(
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(painterResource(R.drawable.ic_touch), contentDescription = null, modifier = Modifier.size(20.dp))
+                            Icon(
+                                painterResource(R.drawable.ic_touch),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = iconTint,
+                            )
                             Text(stringResource(R.string.compose_editor_quick_actions), style = MaterialTheme.typography.titleSmall)
                         }
                         Text(stringResource(R.string.compose_editor_quick_actions_help))
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(painterResource(R.drawable.ic_toolbar), contentDescription = null, modifier = Modifier.size(20.dp))
+                            Icon(
+                                painterResource(R.drawable.ic_toolbar),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = iconTint,
+                            )
                             Text(stringResource(R.string.compose_editor_toolbar), style = MaterialTheme.typography.titleSmall)
                         }
                         Text(stringResource(R.string.compose_editor_toolbar_help))
@@ -1079,7 +1088,7 @@ internal fun EditorActionButton(
 ) {
     val text = stringResource(label)
     EditorTooltip(text) {
-        IconButton(onClick = onClick, enabled = enabled) { Icon(painterResource(icon), text) }
+        IconButton(onClick = onClick, enabled = enabled, colors = editorIconButtonColors()) { Icon(painterResource(icon), text) }
     }
 }
 
@@ -1100,6 +1109,7 @@ internal fun EditorToggleButton(
             enabled = enabled,
             colors =
                 IconButtonDefaults.iconToggleButtonColors(
+                    contentColor = editorControlColor(),
                     checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),

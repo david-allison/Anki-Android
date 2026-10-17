@@ -102,7 +102,7 @@ internal fun EditorToolbarContent(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
                         Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
                     }
                 },
@@ -195,6 +195,7 @@ internal fun EditorToolbarRow(
     moveDown: (() -> Boolean)?,
     supportingText: String? = null,
 ) {
+    val controlColor = editorControlColor()
     val toggleLabel =
         stringResource(
             if (checked) R.string.compose_editor_remove_custom_button else R.string.compose_editor_add_toolbar_button,
@@ -225,7 +226,7 @@ internal fun EditorToolbarRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.padding(start = 12.dp).size(20.dp)) {
-                    Icon(painterResource(icon), contentDescription = null)
+                    Icon(painterResource(icon), contentDescription = null, tint = controlColor)
                 }
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 4.dp)) {
                     Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -234,7 +235,11 @@ internal fun EditorToolbarRow(
                     }
                 }
                 Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                    Icon(painterResource(if (checked) R.drawable.ic_remove else R.drawable.ic_add), contentDescription = null)
+                    Icon(
+                        painterResource(if (checked) R.drawable.ic_remove else R.drawable.ic_add),
+                        contentDescription = null,
+                        tint = controlColor,
+                    )
                 }
             }
             Box(
@@ -253,7 +258,7 @@ internal fun EditorToolbarRow(
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(R.drawable.ic_drag_indicator_24), contentDescription = null)
+                Icon(painterResource(R.drawable.ic_drag_indicator_24), contentDescription = null, tint = controlColor)
             }
         }
     }

@@ -159,6 +159,6 @@ private fun PreviewIcon(
         painterResource(icon),
         contentDescription = null,
         modifier = modifier.size(20.dp).padding(2.dp),
-        tint = MaterialTheme.colorScheme.onSurface,
+        tint = editorControlColor(),
     )
 }

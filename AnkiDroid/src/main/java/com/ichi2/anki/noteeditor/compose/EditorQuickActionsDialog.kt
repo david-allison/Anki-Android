@@ -52,7 +52,7 @@ internal fun EditorQuickActionsDialog(
                 TopAppBar(
                     title = { Text(stringResource(R.string.compose_editor_quick_actions)) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
                             Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
                         }
                     },

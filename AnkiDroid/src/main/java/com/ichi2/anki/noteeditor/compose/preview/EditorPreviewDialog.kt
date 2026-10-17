@@ -28,6 +28,7 @@ import androidx.core.view.WindowCompat
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.getColorFromAttr
+import com.ichi2.anki.noteeditor.compose.editorIconButtonColors
 
 /** Keep the field WebView mounted underneath; preview only exists while explicitly opened. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +62,7 @@ internal fun EditorPreviewDialog(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = background, scrolledContainerColor = background),
                     title = { Text(stringResource(CommonString.card_editor_preview_card)) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
                             Icon(
                                 painterResource(R.drawable.ic_baseline_arrow_back_24),
                                 stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),

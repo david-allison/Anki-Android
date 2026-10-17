@@ -235,12 +235,15 @@ exist; distinguish these settings from device-local presentation preferences.
 
 ## Icons, attachments, and MathJax
 
-- [ ] **24. Make black, filled icons less distracting.**
+- [x] **24. Make black, filled icons less distracting.**
 
-  **Assessment: agree with an audit.** Some controls already use
-  `colorControlNormal`. Review the remaining weights and consistency without
-  indiscriminately lowering opacity. Preserve contrast and useful filled
-  selected states.
+  **Decision: implemented 2026-10-17.** The remaining unselected toolbar,
+  navigation, configuration-list, help, and alignment icons now use the theme's
+  `colorControlNormal`, matching the wrench and field quick actions. Keep the
+  existing icon shapes, selected formatting colours, colour indicators, and
+  Save emphasis. Disabled buttons retain Material's disabled styling, and
+  E-ink retains its intentionally black controls. Screenshot regressions cover
+  the toolbar and alignment tint in light and dark themes.
 
 - [x] **27. Remove the decorative icon above the MathJax dialog title.**
 
