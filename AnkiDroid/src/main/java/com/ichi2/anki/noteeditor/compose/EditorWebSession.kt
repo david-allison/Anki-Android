@@ -85,6 +85,8 @@ class EditorWebSession(
                     activeField = it.activeField,
                     sourceMode = it.sourceMode,
                     activeFormats = it.activeFormats,
+                    canUndo = it.canUndo,
+                    canRedo = it.canRedo,
                 )
             if (mutableReady.value) mutableToolbarState.value = latestToolbarState
             if (lastContentRevision != it.revision) {
@@ -270,6 +272,8 @@ data class EditorToolbarState(
     val activeField: Int? = null,
     val sourceMode: Boolean = false,
     val activeFormats: Set<WebEditorAction> = emptySet(),
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
 )
 
 private fun EditorState.toWebDocument(actions: List<List<WebEditorFieldAction>>) =

@@ -33,6 +33,7 @@ import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.evaluate
 import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
+import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.compose.theme.toMaterial3ColorScheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -46,6 +47,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -60,6 +62,79 @@ class WebEditorViewTest : InstrumentedTest() {
 
     @get:Rule
     val keyboard = TestInputMethodRule()
+
+    @Test
+    fun historyAvailabilityFollowsTheFocusedFieldAndResetsWithTheDocument() =
+        withEditor {
+            val status = AtomicReference<WebEditorStatus>()
+            getInstrumentation().runOnMainSync { onChanged = status::set }
+            loadDocument(document("front"))
+            select(0, 0, 5)
+            status.awaitHistory(0, undo = false, redo = false)
+            assertTrue(execute(WebEditorAction.BOLD))
+            status.awaitHistory(0, undo = true, redo = false)
+            select(1, 0, 4)
+            status.awaitHistory(1, undo = false, redo = false)
+            assertTrue(execute(WebEditorAction.ITALIC))
+            status.awaitHistory(1, undo = true, redo = false)
+            assertTrue(execute(WebEditorAction.UNDO))
+            status.awaitHistory(1, undo = false, redo = true)
+            focusField(0)
+            status.awaitHistory(0, undo = true, redo = false)
+            assertTrue(execute(WebEditorAction.UNDO))
+            status.awaitHistory(0, undo = false, redo = true)
+            assertFalse(snapshot().hasChanges, "Redo remains available even when the note matches its initial content")
+            assertTrue(execute(WebEditorAction.REDO))
+            status.awaitHistory(0, undo = true, redo = false)
+            focusField(1)
+            status.awaitHistory(1, undo = false, redo = true)
+            loadDocument(document("replacement").copy(generation = 1))
+            focusField(0)
+            status.awaitHistory(0, undo = false, redo = false)
+        }
+
+    @Test
+    fun historyAvailabilityFollowsTypingAndIsSharedWithHtmlMode() =
+        withEditor {
+            val status = AtomicReference<WebEditorStatus>()
+            getInstrumentation().runOnMainSync { onChanged = status::set }
+            loadDocument(document(""))
+            focusField(0)
+            status.awaitHistory(0, undo = false, redo = false)
+            keyboard.awaitEditor()
+            keyboard.perform("commit", "typed")
+            status.awaitHistory(0, undo = true, redo = false)
+            assertTrue(execute(WebEditorAction.SOURCE_MODE))
+            status.awaitHistory(0, undo = true, redo = false, sourceMode = true)
+            assertTrue(execute(WebEditorAction.UNDO))
+            status.awaitHistory(0, undo = false, redo = true, sourceMode = true)
+            assertEquals("", snapshot().fields[0])
+            assertTrue(execute(WebEditorAction.REDO))
+            status.awaitHistory(0, undo = true, redo = false, sourceMode = true)
+            assertEquals("typed", snapshot().fields[0])
+            assertTrue(execute(WebEditorAction.UNDO))
+            status.awaitHistory(0, undo = false, redo = true, sourceMode = true)
+            evaluate("document.querySelector('.CodeMirror').CodeMirror.setValue('replacement')")
+            status.awaitHistory(0, undo = true, redo = false, sourceMode = true)
+            assertTrue(execute(WebEditorAction.SOURCE_MODE))
+            status.awaitHistory(0, undo = true, redo = false)
+            assertEquals("replacement", snapshot().fields[0])
+        }
+
+    private fun AtomicReference<WebEditorStatus>.awaitHistory(
+        field: Int,
+        undo: Boolean,
+        redo: Boolean,
+        sourceMode: Boolean = false,
+    ) {
+        waitUntil(message = { "Expected field $field undo=$undo, redo=$redo, source=$sourceMode; got ${get()}" }) {
+            get()?.let {
+                it.hasSelection && it.activeField == field && it.canUndo == undo && it.canRedo == redo &&
+                    it.sourceMode == sourceMode
+            } ==
+                true
+        }
+    }
 
     @Test
     fun fieldTypographyPreservesContentTargetsHistoryAndDraft() =

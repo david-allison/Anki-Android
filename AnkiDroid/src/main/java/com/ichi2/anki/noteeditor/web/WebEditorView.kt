@@ -487,6 +487,8 @@ class WebEditorView(
                                     }
                                 }
                             }.orEmpty(),
+                        message.optBoolean("canUndo"),
+                        message.optBoolean("canRedo"),
                     ),
                 )
             "error" -> {

@@ -60,6 +60,8 @@ data class WebEditorStatus(
     val activeField: Int? = null,
     val sourceMode: Boolean = false,
     val activeFormats: Set<WebEditorAction> = emptySet(),
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
 )
 
 data class WebEditorSnapshot(
