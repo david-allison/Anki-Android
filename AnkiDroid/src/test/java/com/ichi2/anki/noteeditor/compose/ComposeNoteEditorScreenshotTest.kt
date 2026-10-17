@@ -96,7 +96,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         // Match other text-field screenshots to avoid Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         val toolbar = mutableStateOf(EditorFieldToolbar())
-        val selection = mutableStateOf<String?>(EditorToolbarPreset.DEFAULT_ID)
+        val selection = mutableStateOf(EditorToolbarPreset.DEFAULT_ID)
         val (activity, keyboard) =
             showEditor(
                 presets = samplePresets(),
@@ -722,7 +722,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
+                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
             ).performClick()
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
@@ -783,7 +783,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
+                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
             ).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
@@ -1507,9 +1507,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         presets: List<EditorToolbarPreset>? = null,
         fieldToolbarState: State<EditorFieldToolbar>? = null,
-        presetSelection: State<String?>? = null,
+        presetSelection: State<String>? = null,
         onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
-        onPreset: (EditorFieldTarget, String?) -> Unit = { _, _ -> },
+        onPreset: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
@@ -1525,7 +1525,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                 toolbarTextColor = textColor,
                                 toolbarHighlightColor = highlightColor,
                                 customButtonTemplates = currentTemplates.value,
-                                toolbarPresets = presets ?: state.toolbarPresets,
+                                toolbarPresets = presets ?: state.toolbarPresets.map { it.withToolbar(toolbar) },
                                 fields =
                                     state.fields.mapIndexed { index, field ->
                                         if (index ==
@@ -1536,14 +1536,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                                 sticky = pinned,
                                                 rtl = rtl,
                                                 toolbarPresetId =
-                                                    presetSelection?.value
-                                                        ?: if (toolbar ==
-                                                            EditorFieldToolbar()
-                                                        ) {
-                                                            EditorToolbarPreset.DEFAULT_ID
-                                                        } else {
-                                                            null
-                                                        },
+                                                    presetSelection?.value ?: EditorToolbarPreset.DEFAULT_ID,
                                             )
                                         } else {
                                             field

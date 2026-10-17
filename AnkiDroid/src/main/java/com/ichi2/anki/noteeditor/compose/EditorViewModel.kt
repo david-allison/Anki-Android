@@ -414,13 +414,6 @@ class EditorViewModel(
         rtl: Boolean,
     ) = updateFieldSettings(target) { jsonObject.put("rtl", rtl) }
 
-    suspend fun setFieldToolbar(
-        target: EditorFieldTarget,
-        toolbar: EditorFieldToolbar,
-    ) = updateFieldToolbar(target) { collection, noteType, field ->
-        toolbarPreferences.save(collection, noteType, field, toolbar)
-    }
-
     suspend fun setFieldQuickActions(
         target: EditorFieldTarget,
         actions: List<String>,
@@ -437,7 +430,7 @@ class EditorViewModel(
 
     suspend fun setFieldToolbarPreset(
         target: EditorFieldTarget,
-        presetId: String?,
+        presetId: String,
     ) = updateFieldToolbar(target) { collection, noteType, field ->
         toolbarPreferences.selectPreset(collection, noteType, field, presetId)
     }

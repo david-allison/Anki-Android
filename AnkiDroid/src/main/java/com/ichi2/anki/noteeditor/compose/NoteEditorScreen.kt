@@ -166,9 +166,8 @@ fun NoteEditorScreen(
     onFieldToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
-    onToolbar: (EditorFieldTarget, EditorFieldToolbar) -> Unit = { _, _ -> },
     onQuickActions: (EditorFieldTarget, List<String>) -> Unit = { _, _ -> },
-    onToolbarPreset: (EditorFieldTarget, String?) -> Unit = { _, _ -> },
+    onToolbarPreset: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     onSaveToolbarPreset: (EditorToolbarPreset) -> Unit = {},
     onDeleteToolbarPreset: (String) -> Unit = {},
     onCustomButtonTemplates: (List<EditorCustomToolbarButton>) -> Unit = {},
@@ -219,15 +218,12 @@ fun NoteEditorScreen(
                 showToolbarPresets = false
                 toolbarTarget = null
             },
-            target = presetTarget,
             field = presetTarget?.let { state.fields[it.field] },
             noteTypeName = state.noteTypeName,
-            isCloze = state.isCloze,
             onSelect = { id ->
                 presetTarget?.let { onToolbarPreset(it, id) }
                 toolbarTarget = null
             },
-            onSaveField = { toolbar -> presetTarget?.let { onToolbar(it, toolbar) } },
         )
     }
     quickActionsTarget?.takeIf { it.matches(state) }?.let { target ->
@@ -554,7 +550,7 @@ private fun EditorFieldArea(
     onFont: (EditorFieldTarget) -> Unit,
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
     onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit,
-    onToolbarPreset: (EditorFieldTarget, String?) -> Unit,
+    onToolbarPreset: (EditorFieldTarget, String) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,

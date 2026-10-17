@@ -68,8 +68,9 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
   **Decision: implemented 2026-10-15.** Unconfigured fields inherit an editable
   shared Default. Named presets are references: edits update every field using
-  them across note types. Existing field-specific toolbars remain independent,
-  and “This field only” copies the current choices when leaving a preset.
+  them across note types. The “This field only” option has been removed. Existing
+  field-specific configurations migrate to named presets, reusing matching
+  presets and preserving button choices, order, and custom buttons.
   Quick actions and Scroll/Stack/Hidden remain separate. Storage is local in
   SharedPreferences, with a TODO to move it into the Anki collection.
   **Verification:** storage and editor-state tests cover inheritance, existing
@@ -229,8 +230,8 @@ exist; distinguish these settings from device-local presentation preferences.
 
   **Implemented:** Field options include a shared-preset dropdown with Use
   default. The dropdown is hidden when this field’s toolbar or the global
-  layout is hidden; hiding retains the chosen preset. Existing field-only
-  configurations remain intact until a shared preset is explicitly selected.
+  layout is hidden; hiding retains the chosen preset. Migrated field-specific
+  configurations appear as named presets in the same dropdown.
 
 ## Icons, attachments, and MathJax
 

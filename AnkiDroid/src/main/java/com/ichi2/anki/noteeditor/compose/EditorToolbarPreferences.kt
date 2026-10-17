@@ -4,6 +4,8 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.SharedPreferences
 import android.os.Parcelable
+import com.ichi2.anki.AnkiDroidApp
+import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.CustomToolbarButton
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
@@ -62,32 +64,73 @@ internal class EditorToolbarPreferences(
                             ?.distinct() ?: defaults.quickActions,
                 )
             }.getOrElse { defaults }
-        val preset = presetId(json, presets)?.let { id -> presets.first { it.id == id } }
-        return preset?.applyTo(local, buttons.values.toList()) ?: local
+        val preset = presets.first { it.id == presetId(json, presets) }
+        return preset.applyTo(local, buttons.values.toList())
     }
 
     fun loadPresets(): List<EditorToolbarPreset> {
         val saved = preferences.getString(PRESETS_KEY, null)
-        if (saved == null) {
-            return listOf(
-                EditorToolbarPreset(
-                    id = EditorToolbarPreset.DEFAULT_ID,
-                    name = "",
-                    customButtonIds = library().getJSONArray("defaults").strings(),
-                ),
-            )
+        val presets =
+            if (saved == null) {
+                listOf(
+                    EditorToolbarPreset(
+                        id = EditorToolbarPreset.DEFAULT_ID,
+                        name = "",
+                        customButtonIds = library().getJSONArray("defaults").strings(),
+                    ),
+                )
+            } else {
+                val array = JSONArray(saved)
+                (0 until array.length()).map { index ->
+                    val preset = array.getJSONObject(index)
+                    EditorToolbarPreset(
+                        id = preset.getString("id"),
+                        name = preset.getString("name"),
+                        hiddenButtons = preset.getJSONArray("hidden").strings().toSet(),
+                        customButtonIds = preset.getJSONArray("customIds").strings(),
+                        buttonOrder = preset.getJSONArray("order").strings(),
+                    )
+                }
+            }
+        return migrateFieldToolbars(presets)
+    }
+
+    /** Preserve old private toolbars as shared presets, once; never scan all fields on subsequent loads. */
+    private fun migrateFieldToolbars(existing: List<EditorToolbarPreset>): List<EditorToolbarPreset> {
+        if (preferences.getBoolean(SHARED_TOOLBARS_KEY, false)) return existing
+        // Import copied custom definitions before reading their new IDs from field settings.
+        val defaultButtons = library().getJSONArray("defaults").strings()
+        val presets = existing.toMutableList()
+        val editor = preferences.edit()
+        var nextName = 1
+        preferences.all.filterKeys { it.startsWith(FIELD_PREFIX) }.forEach { (key, value) ->
+            val json = runCatching { JSONObject(value as String) }.getOrNull() ?: return@forEach
+            if (json.has("preset") || !json.has("hidden")) return@forEach
+            val hidden =
+                json
+                    .optJSONArray("hidden")
+                    ?.strings()
+                    ?.toSet()
+                    .orEmpty()
+            val custom = json.optJSONArray("customIds")?.strings() ?: defaultButtons
+            val order = json.optJSONArray("order")?.strings().orEmpty()
+            val preset =
+                presets.firstOrNull {
+                    it.hiddenButtons == hidden && it.customButtonIds == custom && it.buttonOrder == order
+                } ?: run {
+                    var name: String
+                    do {
+                        name = AnkiDroidApp.appResources.getString(R.string.compose_editor_imported_toolbar, nextName++)
+                    } while (presets.any { it.name.equals(name, ignoreCase = true) })
+                    EditorToolbarPreset(name = name, hiddenButtons = hidden, customButtonIds = custom, buttonOrder = order)
+                        .also(presets::add)
+                }
+            editor.putString(key, json.put("preset", preset.id).toString())
         }
-        val array = JSONArray(saved)
-        return (0 until array.length()).map { index ->
-            val preset = array.getJSONObject(index)
-            EditorToolbarPreset(
-                id = preset.getString("id"),
-                name = preset.getString("name"),
-                hiddenButtons = preset.getJSONArray("hidden").strings().toSet(),
-                customButtonIds = preset.getJSONArray("customIds").strings(),
-                buttonOrder = preset.getJSONArray("order").strings(),
-            )
+        check(editor.putString(PRESETS_KEY, presets.presetJson().toString()).putBoolean(SHARED_TOOLBARS_KEY, true).commit()) {
+            "Unable to migrate field toolbar presets."
         }
+        return presets
     }
 
     /** Replacing the library atomically also makes deleted assignments inherit Default. */
@@ -97,47 +140,39 @@ internal class EditorToolbarPreferences(
         require(presets.all { it.id.isNotBlank() && (it.id == EditorToolbarPreset.DEFAULT_ID || it.name.isNotBlank()) })
         val named = presets.filter { it.id != EditorToolbarPreset.DEFAULT_ID }.map { it.name.trim().lowercase(java.util.Locale.ROOT) }
         require(named.distinct().size == named.size)
-        val json =
-            JSONArray(
-                presets.map {
-                    JSONObject()
-                        .put("id", it.id)
-                        .put("name", it.name.trim())
-                        .put("hidden", JSONArray(it.hiddenButtons.toList()))
-                        .put("customIds", JSONArray(it.customButtonIds))
-                        .put("order", JSONArray(it.buttonOrder))
-                },
-            )
-        check(preferences.edit().putString(PRESETS_KEY, json.toString()).commit()) { "Unable to save toolbar presets." }
+        check(preferences.edit().putString(PRESETS_KEY, presets.presetJson().toString()).commit()) { "Unable to save toolbar presets." }
     }
 
-    /** Null means an existing field-only override; absent settings inherit the shared default. */
+    private fun List<EditorToolbarPreset>.presetJson(): JSONArray =
+        JSONArray(
+            map {
+                JSONObject()
+                    .put("id", it.id)
+                    .put("name", it.name.trim())
+                    .put("hidden", JSONArray(it.hiddenButtons.toList()))
+                    .put("customIds", JSONArray(it.customButtonIds))
+                    .put("order", JSONArray(it.buttonOrder))
+            },
+        )
+
     fun presetId(
         collection: String,
         noteType: Long,
         field: String,
         presets: List<EditorToolbarPreset> = loadPresets(),
-    ): String? = presetId(fieldSettings(collection, noteType, field), presets)
+    ): String = presetId(fieldSettings(collection, noteType, field), presets)
 
     private fun presetId(
         json: JSONObject,
         presets: List<EditorToolbarPreset>,
-    ): String? {
-        if (!json.has("preset") && json.has("hidden")) return null
-        return json.optString("preset").takeIf { id -> presets.any { it.id == id } } ?: EditorToolbarPreset.DEFAULT_ID
-    }
+    ): String = json.optString("preset").takeIf { id -> presets.any { it.id == id } } ?: EditorToolbarPreset.DEFAULT_ID
 
     fun selectPreset(
         collection: String,
         noteType: Long,
         field: String,
-        presetId: String?,
+        presetId: String,
     ) {
-        if (presetId == null) {
-            // Detach by copying the current appearance, including this field's quick actions.
-            save(collection, noteType, field, load(collection, noteType, field))
-            return
-        }
         require(loadPresets().any { it.id == presetId })
         val json = fieldSettings(collection, noteType, field).put("preset", presetId)
         check(
@@ -185,27 +220,6 @@ internal class EditorToolbarPreferences(
         library.put("defaults", JSONArray(library.getJSONArray("defaults").strings().filter { id -> buttons.any { it.id == id } }))
         check(preferences.edit().putString(LIBRARY_KEY, library.toString()).commit()) {
             "Unable to save custom toolbar buttons."
-        }
-    }
-
-    /** The definitions are resolved from the global library; field overrides only store references. */
-    fun save(
-        collection: String,
-        noteType: Long,
-        field: String,
-        toolbar: EditorFieldToolbar,
-    ) {
-        val available = loadCustomButtons().map { it.id }.toSet()
-        require(toolbar.customButtons.all { it.id in available })
-        val json =
-            JSONObject()
-                .put("hidden", JSONArray(toolbar.hiddenButtons.toList()))
-                .put("customIds", JSONArray(toolbar.customButtons.map { it.id }))
-                .put("order", JSONArray(toolbar.buttonOrder))
-                .put("quickActions", JSONArray(toolbar.quickActions.distinct()))
-                .put("showToolbar", toolbar.showToolbar)
-        check(preferences.edit().putString(key(collection, noteType, field), json.toString()).commit()) {
-            "Unable to save field toolbar settings."
         }
     }
 
@@ -280,6 +294,7 @@ internal class EditorToolbarPreferences(
     private companion object {
         const val FIELD_PREFIX = "composeEditorFieldToolbar:"
         const val LIBRARY_KEY = "composeEditorCustomButtonTemplates"
+        const val SHARED_TOOLBARS_KEY = "composeEditorSharedToolbarsMigrated"
         const val PRESETS_KEY = "composeEditorToolbarPresets"
     }
 }

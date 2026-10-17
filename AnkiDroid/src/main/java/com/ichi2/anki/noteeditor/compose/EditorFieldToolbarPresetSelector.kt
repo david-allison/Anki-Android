@@ -31,13 +31,13 @@ import com.ichi2.anki.R
 @Composable
 internal fun EditorFieldToolbarPresetSelector(
     presets: List<EditorToolbarPreset>,
-    selectedId: String?,
+    selectedId: String,
     enabled: Boolean,
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selected = presets.firstOrNull { it.id == selectedId }
-    val value = selected?.displayName() ?: stringResource(R.string.compose_editor_field_only_toolbar)
+    val value = selected?.displayName() ?: stringResource(R.string.compose_editor_default_toolbar)
     ExposedDropdownMenuBox(
         expanded = expanded && enabled,
         onExpandedChange = { if (enabled) expanded = it },
