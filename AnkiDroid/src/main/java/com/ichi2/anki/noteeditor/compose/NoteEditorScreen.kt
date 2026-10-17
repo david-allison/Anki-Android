@@ -691,11 +691,13 @@ private fun EditorFieldArea(
                         }
                         if (editorState.toolbarDisplay == EditorToolbarDisplay.SCROLL) {
                             VerticalDivider(Modifier.height(32.dp))
-                            EditorActionButton(
-                                R.drawable.ic_more_vertical,
-                                R.string.compose_editor_field_options,
-                                enabled && target != null,
-                            ) { onFieldOptionsRequested(true) }
+                            EditorToolbarOverflowMenu(
+                                target = target,
+                                enabled = enabled,
+                                onFieldOptions = { onFieldOptionsRequested(true) },
+                                onToolbar = onToolbar,
+                                onQuickActions = onQuickActions,
+                            )
                         }
                     }
                 }
