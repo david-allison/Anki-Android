@@ -981,6 +981,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         drawing.assertIsNotSelected()
         drawing.performClick().assertIsSelected()
         drawing.performClick().assertIsNotSelected()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).assertIsDisplayed()
         captureScreen("quick_actions_configuration")
         composeRule
             .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
@@ -995,6 +996,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).assertIsDisplayed()
         captureScreen("quick_actions_configuration_none_active")
     }
 
