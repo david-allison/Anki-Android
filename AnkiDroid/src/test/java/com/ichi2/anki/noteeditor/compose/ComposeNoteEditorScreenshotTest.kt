@@ -915,6 +915,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsDisplayed()
         captureScreen("customize_toolbar_large_text")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick().assertIsOff()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
+        captureScreen("customize_toolbar_large_text_hidden")
     }
 
     @Test
