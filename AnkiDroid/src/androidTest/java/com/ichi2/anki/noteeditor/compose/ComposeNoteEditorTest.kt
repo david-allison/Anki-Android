@@ -32,6 +32,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
@@ -1575,6 +1576,47 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val restored = assertNotNull(runBlocking { web.captureTarget() })
                 assertEquals(target.field, restored.field)
                 assertEquals(target.bookmark, restored.bookmark, "Outside dismissal must preserve the caret")
+            }
+        }
+    }
+
+    @Test
+    fun fieldOptionsRemainReachableWhenKeyboardReopens() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val density = testContext.resources.displayMetrics.density
+            runBlocking { web.focusField(1) }
+            waitUntil(message = { "The on-screen keyboard did not open" }) { scenario.keyboardHeight() > 100 * density }
+            device.openFieldOptions()
+            val title = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+            assertNotNull(device.wait(Until.findObject(title), 5_000))
+            val lastOption = By.text(TR.fieldsCollapseByDefault())
+
+            for ((index, visible) in listOf(true, false, true, false, true).withIndex()) {
+                scenario.onActivity {
+                    val controller = WindowCompat.getInsetsController(it.window, it.window.decorView)
+                    if (visible) controller.show(WindowInsetsCompat.Type.ime()) else controller.hide(WindowInsetsCompat.Type.ime())
+                }
+                waitUntil(message = { "The keyboard did not reach visible=$visible" }) {
+                    if (visible) scenario.keyboardHeight() > 100 * density else !scenario.keyboardVisible()
+                }
+                device.waitForIdle()
+                val keyboardTop = device.displayHeight - scenario.keyboardHeight()
+                captureScreenshot("field-options-keyboard-before-scroll-$index-$visible", web)
+                // Target the actual scroll container: display coordinates can start inside
+                // the gesture-navigation area when the keyboard is hidden.
+                val sheet =
+                    checkNotNull(device.wait(Until.findObject(By.pkg(testContext.packageName).clazz("android.widget.ScrollView")), 5_000))
+                repeat(2) { sheet.scroll(Direction.DOWN, 0.8f) }
+                captureScreenshot("field-options-keyboard-$index-$visible", web)
+                val last =
+                    checkNotNull(
+                        device.wait(Until.findObject(lastOption), 5_000),
+                    ) { "Last option missing at iteration $index, IME=$visible" }
+                assertTrue(last.visibleBounds.height() > 16 * density, "The last setting must be readable")
+                assertTrue(last.visibleBounds.bottom <= keyboardTop, "The last setting must be above the keyboard")
+                assertEquals(visible, scenario.keyboardVisible(), "Scrolling options must not dismiss the keyboard")
             }
         }
     }
