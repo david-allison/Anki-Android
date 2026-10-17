@@ -23,6 +23,11 @@ internal enum class EditorFieldOption(
         R.drawable.ic_language_black_24dp,
         R.string.compose_editor_language_hint_summary,
     ),
+    DESCRIPTION(
+        R.string.compose_editor_field_description,
+        R.drawable.ic_notes,
+        R.string.compose_editor_field_description_help,
+    ),
     FONT(
         R.string.compose_editor_field_font,
         R.drawable.ic_format_font_size_24dp,

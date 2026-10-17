@@ -570,6 +570,17 @@
             await api().setFieldActions(actions);
             return {};
         },
+        async setFieldDescriptions({ descriptions }) {
+            await reconcile();
+            await api().setFieldDescriptions(descriptions);
+            fields.forEach((field, index) => {
+                field.spec.description = descriptions[index];
+                model.fields[index].description = descriptions[index];
+            });
+            checkpointNeeded = true;
+            await checkpoint();
+            return {};
+        },
         async setFieldTypography({ fonts }) {
             await reconcile();
             await api().setFieldTypography(fonts);

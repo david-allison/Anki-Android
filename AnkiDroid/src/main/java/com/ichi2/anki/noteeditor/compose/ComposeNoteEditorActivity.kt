@@ -217,7 +217,7 @@ class ComposeNoteEditorActivity :
         }
         val fieldsAvailable =
             runCatching {
-                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 9 }
+                assets.open("backend/editor-fields.json").bufferedReader().use { JSONObject(it.readText()).getInt("version") == 10 }
             }.getOrDefault(false)
         if (!fieldsAvailable) {
             reportError(getString(R.string.compose_editor_update_backend))
@@ -293,6 +293,7 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
+            onFieldDescription = { target, description -> updateMetadata { model.setFieldDescription(target, description) } },
             onFieldHtmlByDefault = { target, html -> updateMetadata { model.setFieldHtmlByDefault(target, html) } },
             onFieldCollapseByDefault = { target, collapsed ->
                 updateMetadata { model.setFieldCollapsedByDefault(target, collapsed) }

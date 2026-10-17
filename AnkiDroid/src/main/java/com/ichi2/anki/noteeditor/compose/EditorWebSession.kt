@@ -58,6 +58,7 @@ class EditorWebSession(
     private var lastHostState: String? = null
     private var lastFieldActions: List<List<WebEditorFieldAction>>? = null
     private var lastFieldTypography: List<WebEditorFieldTypography>? = null
+    private var lastFieldDescriptions: List<String>? = null
     private var lastSettings: WebEditorSettings? = null
     private var previewNoteType: String? = null
     private var binding: Job? = null
@@ -71,6 +72,7 @@ class EditorWebSession(
         documentToken = null
         lastHostState = null
         lastSettings = null
+        lastFieldDescriptions = null
         lastFieldTypography = null
         lastFieldActions = null
         lastContentRevision = null
@@ -131,6 +133,7 @@ class EditorWebSession(
                             documentToken = draft.document.sessionId to draft.document.generation
                             lastSettings = draft.document.settings
                             lastFieldTypography = draft.document.fields.map { WebEditorFieldTypography(it.fontName, it.fontSize, it.rtl) }
+                            lastFieldDescriptions = draft.document.fields.map { it.description }
                             lastHostState = draft.hostStateJson
                         }
                         synchronize(editor, focusFirstField = !model.hasAttachedEditor && draft == null && current.isAdding)
@@ -197,6 +200,7 @@ class EditorWebSession(
         }
         val hostState = model.hostState()
         val fieldActions = state.fieldActions(editor.context)
+        val descriptions = state.fields.map { it.description }
         val typography = state.fields.map { WebEditorFieldTypography(it.font, it.fontSize, it.rtl) }
         if (documentToken != token) {
             mutableReady.value = false
@@ -210,6 +214,7 @@ class EditorWebSession(
             lastSettings = state.settings
             lastFieldTypography = typography
             lastFieldActions = fieldActions
+            lastFieldDescriptions = descriptions
             previewDirty = true
         } else if (lastHostState != hostState) {
             editor.updateHostState(hostState)
@@ -222,6 +227,10 @@ class EditorWebSession(
         if (lastFieldTypography != typography) {
             editor.updateFieldTypography(typography)
             lastFieldTypography = typography
+        }
+        if (lastFieldDescriptions != descriptions) {
+            editor.updateFieldDescriptions(descriptions)
+            lastFieldDescriptions = descriptions
         }
         if (lastFieldActions != fieldActions) {
             editor.updateFieldActions(fieldActions)
@@ -293,6 +302,7 @@ private fun EditorState.toWebDocument(actions: List<List<WebEditorFieldAction>>)
                     field.collapsed,
                     field.sourceMode,
                     actions[index],
+                    description = field.description,
                 )
             },
         isCloze = isCloze,

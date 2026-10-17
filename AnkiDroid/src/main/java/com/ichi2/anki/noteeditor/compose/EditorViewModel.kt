@@ -404,6 +404,11 @@ class EditorViewModel(
         pinned: Boolean,
     ) = updateFieldSettings(target, optimisticPinned = pinned) { sticky = pinned }
 
+    suspend fun setFieldDescription(
+        target: EditorFieldTarget,
+        description: String,
+    ) = updateFieldSettings(target) { this.description = description }
+
     suspend fun setFieldLanguageHint(
         target: EditorFieldTarget,
         locale: Locale?,
@@ -587,6 +592,7 @@ class EditorViewModel(
                                 if (i == target.field) {
                                     val saved = updated.fields[i]
                                     f.copy(
+                                        description = saved.description,
                                         sticky = saved.sticky,
                                         languageTag = saved.languageHint?.toLanguageTag(),
                                         font = saved.font,
@@ -859,6 +865,7 @@ class EditorViewModel(
         return fields.mapIndexed { index, field ->
             EditorFieldState(
                 name = field.name,
+                description = field.description,
                 html = html[index],
                 font = field.font,
                 fontSize = field.fontSize,

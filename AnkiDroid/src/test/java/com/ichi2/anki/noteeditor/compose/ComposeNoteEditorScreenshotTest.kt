@@ -57,6 +57,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.get
@@ -247,6 +249,44 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         toggle.performClick().assertIsOff()
         assertEquals(listOf(true, false), requested.map { it.second })
         assertTrue(requested.all { it.first == EditorFieldTarget("screenshot", 0, 1) })
+    }
+
+    @Test
+    fun fieldDescriptionSettings() {
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val changes = mutableListOf<Pair<EditorFieldTarget, String>>()
+        val (activity, keyboard) = showEditor(onDescription = { target, value -> changes.add(target to value) })
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).performScrollTo().performClick()
+        val input = composeRule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog()))
+        input.assertIsDisplayed()
+        captureScreen("field_description_empty")
+        val hint = "Write a sentence using this word, then explain its meaning. Include an example from a book or a conversation."
+        input.performTextInput(hint)
+        input.assertTextContains(hint)
+        captureScreen("field_description_long")
+        composeRule.onNode(hasText(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
+        assertEquals(EditorFieldTarget("screenshot", 0, 1), changes.single().first)
+        assertTrue(changes.single().second.startsWith("Write a sentence"))
+    }
+
+    @Test
+    fun fieldDescriptionCanBeClearedOrCancelled() {
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val changes = mutableListOf<String>()
+        val (activity, keyboard) = showEditor(description = "An existing hint", onDescription = { _, value -> changes.add(value) })
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).performScrollTo().performClick()
+        val input = composeRule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog()))
+        input.assertTextContains("An existing hint").performTextReplacement("")
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
+        assertTrue(changes.isEmpty())
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).performScrollTo().performClick()
+        input.assertTextContains("An existing hint").performTextReplacement("")
+        composeRule.onNode(hasText(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
+        assertEquals(listOf(""), changes)
     }
 
     @Test
@@ -1883,6 +1923,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
         focusState: State<EditorToolbarState>? = null,
+        description: String = "",
+        onDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
         pinned: Boolean = true,
         rtl: Boolean = false,
         onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
@@ -1934,6 +1976,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                                             fieldToolbarState?.value ?: currentToolbar.value,
                                                             currentTemplates.value,
                                                         ),
+                                                description = description,
                                                 sticky = pinned,
                                                 rtl = rtl,
                                                 sourceMode = htmlDefaultState?.value ?: false,
@@ -1967,6 +2010,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onRemoveTag = onRemoveTag,
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
+                    onFieldDescription = onDescription,
                     onFieldDirection = onDirection,
                     onFieldHtmlByDefault = onHtmlByDefault,
                     onFieldCollapseByDefault = onCollapseByDefault,

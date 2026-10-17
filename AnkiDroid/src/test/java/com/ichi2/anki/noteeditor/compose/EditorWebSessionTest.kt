@@ -147,6 +147,10 @@ class EditorWebSessionTest : JvmTest() {
                 val original = checkNotNull(model.state.value)
                 assertTrue(session.ready.value)
                 coVerify(exactly = 0) { web.updateFieldTypography(any()) }
+                coVerify(exactly = 0) { web.updateFieldDescriptions(any()) }
+                model.setFieldDescription(EditorFieldTarget(original.sessionId, original.generation, 1), "Meaning and example")
+                runCurrent()
+                coVerify(exactly = 1) { web.updateFieldDescriptions(listOf("", "Meaning and example")) }
                 model.setFieldTypography(EditorFieldTarget(original.sessionId, original.generation, 1), "serif", 30)
                 runCurrent()
                 model.setFieldDirection(EditorFieldTarget(original.sessionId, original.generation, 1), true)
@@ -173,6 +177,7 @@ class EditorWebSessionTest : JvmTest() {
                 runCurrent()
                 assertTrue(session.ready.value)
                 coVerify(exactly = 1) { restored.updateFieldTypography(fonts) }
+                coVerify(exactly = 1) { restored.updateFieldDescriptions(listOf("", "Meaning and example")) }
                 coVerify(exactly = 0) { restored.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
                 assertTrue(errors.isEmpty(), errors.joinToString())
             } finally {

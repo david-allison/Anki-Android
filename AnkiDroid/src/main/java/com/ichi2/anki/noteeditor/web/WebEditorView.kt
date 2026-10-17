@@ -400,6 +400,10 @@ class WebEditorView(
         )
     }
 
+    suspend fun updateFieldDescriptions(descriptions: List<String>) {
+        request("setFieldDescriptions", JSONObject().put("descriptions", JSONArray(descriptions)))
+    }
+
     suspend fun updateFieldActions(actions: List<List<WebEditorFieldAction>>) {
         request("setFieldActions", JSONObject().put("actions", JSONArray(actions.map { it.toJsonActions() })))
     }
@@ -646,6 +650,7 @@ private fun WebEditorDocument.toJson(): JSONObject =
                 fields.forEach { field ->
                     put(
                         JSONObject()
+                            .put("description", field.description)
                             .put("name", field.name)
                             .put("html", field.html)
                             .put("fontName", field.fontName)
@@ -706,6 +711,7 @@ private fun JSONObject.toDocument(): WebEditorDocument =
                 val field = fields.getJSONObject(index)
                 WebEditorField(
                     name = field.getString("name"),
+                    description = field.optString("description"),
                     html = field.getString("html"),
                     fontName = field.getString("fontName"),
                     fontSize = field.getInt("fontSize"),

@@ -162,6 +162,7 @@ fun NoteEditorScreen(
     onFieldOptionsVisibility: (Boolean) -> Unit = {},
     onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
+    onFieldDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
     onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
@@ -174,6 +175,7 @@ fun NoteEditorScreen(
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var descriptionTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var fontTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var quickActionsTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
@@ -190,6 +192,18 @@ fun NoteEditorScreen(
     val enabled = ready && !busy && state?.isSaving == false
     val toolbarVisible by remember(state, toolbarState) {
         derivedStateOf { state?.showsToolbar(toolbarState.value.activeField) != false }
+    }
+    descriptionTarget?.takeIf { it.matches(state) }?.let { target ->
+        val current = requireNotNull(state)
+        EditorFieldDescriptionDialog(
+            field = current.fields[target.field],
+            noteTypeName = current.noteTypeName,
+            onDismiss = { descriptionTarget = null },
+            onSave = { description ->
+                onFieldDescription(target, description)
+                descriptionTarget = null
+            },
+        )
     }
     fontTarget?.takeIf { it.matches(state) }?.let { target ->
         val current = requireNotNull(state)
@@ -396,6 +410,7 @@ fun NoteEditorScreen(
                             onPinned = onPinned,
                             onLanguageHint = onLanguageHint,
                             onFont = { fontTarget = it },
+                            onDescription = { descriptionTarget = it },
                             onDirection = onFieldDirection,
                             onHtmlByDefault = onFieldHtmlByDefault,
                             onCollapseByDefault = onFieldCollapseByDefault,
@@ -550,6 +565,7 @@ private fun EditorFieldArea(
     onPinned: (EditorFieldTarget, Boolean) -> Unit,
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onFont: (EditorFieldTarget) -> Unit,
+    onDescription: (EditorFieldTarget) -> Unit,
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
     onHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit,
@@ -619,6 +635,7 @@ private fun EditorFieldArea(
                         onPinned = { onPinned(target, it) },
                         onLanguageHint = { onLanguageHint(target) },
                         onFont = { onFont(target) },
+                        onDescription = { onDescription(target) },
                         onDirection = { onDirection(target, it) },
                         onHtmlByDefault = { onHtmlByDefault(target, it) },
                         onCollapseByDefault = { onCollapseByDefault(target, it) },
@@ -756,6 +773,7 @@ private fun EditorFieldOptions(
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
     onFont: () -> Unit,
+    onDescription: () -> Unit,
     onDirection: (Boolean) -> Unit,
     onHtmlByDefault: (Boolean) -> Unit,
     onCollapseByDefault: (Boolean) -> Unit,
@@ -871,6 +889,14 @@ private fun EditorFieldOptions(
         }
         Spacer(Modifier.height(12.dp))
         EditorFieldOptionsLink(
+            icon = EditorFieldOption.DESCRIPTION.icon,
+            title = EditorFieldOption.DESCRIPTION.label,
+            summary = field.description.ifEmpty { stringResource(R.string.compose_editor_field_description_empty) },
+            iconTint = controlColor,
+            enabled = enabled,
+            onClick = onDescription,
+        )
+        EditorFieldOptionsLink(
             icon = EditorFieldOption.FONT.icon,
             title = EditorFieldOption.FONT.label,
             summary = stringResource(R.string.compose_editor_field_font_summary, field.font, field.fontSize),
@@ -920,7 +946,7 @@ private fun EditorFieldOptionsLink(
             Modifier
                 .padding(horizontal = 8.dp)
                 .clip(MaterialTheme.shapes.medium),
-        supportingContent = { Text(summary) },
+        supportingContent = { Text(summary, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp), tint = iconTint) },
         trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp), tint = iconTint) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),

@@ -123,6 +123,33 @@ async function load(page, fields, generation = 0) {
 }
 
 try {
+    // Description changes must preserve live text, delayed command targets and the draft.
+    const descriptionPage = await open();
+    const hints = specs(400).map(field => ({ ...field, html: "", description: "Meaning and example" }));
+    await load(descriptionPage, hints);
+    const mountedBefore = await descriptionPage.locator("anki-editable").count();
+    assert.ok(mountedBefore < 400, "descriptions must retain lazy field mounting");
+    await descriptionPage.evaluate(() => request("focusField", { index: 0 }));
+    const savedTarget = await descriptionPage.evaluate(() => request("captureTarget"));
+    const description = 'A "quote", a \\slash, <b>markup</b>, and 日本語';
+    await descriptionPage.evaluate(description => request("setFieldDescriptions", {
+        descriptions: Array.from({ length: 400 }, () => description),
+    }), description);
+    assert.equal(await descriptionPage.locator("anki-editable").count(), mountedBefore);
+    assert.deepEqual(await descriptionPage.evaluate(() => request("captureTarget")), savedTarget);
+    assert.equal(await descriptionPage.locator("anki-editable").first().getAttribute("aria-description"), description);
+    assert.ok((await descriptionPage.evaluate(async () => (await request("snapshot")).fields)).every(value => value === ""));
+    assert.equal((await descriptionPage.evaluate(() => request("snapshot"))).hasChanges, false);
+    assert.ok((await descriptionPage.evaluate(() => window.AnkiEditorFields.snapshotDocument())).every(field => field.description === description));
+    await descriptionPage.evaluate(() => request("focusField", { index: 399 }));
+    assert.equal(await descriptionPage.locator("anki-editable#field-399").getAttribute("aria-description"), description);
+    // Recovery runs in a new renderer, rather than replacing an actively mounting field list.
+    await descriptionPage.reload();
+    await descriptionPage.waitForFunction(() => !!window.AnkiEditorFields);
+    await descriptionPage.evaluate(() => request("restoreDraft", { draftId: "quick-actions-test" }));
+    assert.equal(await descriptionPage.locator("anki-editable").first().getAttribute("aria-description"), description);
+    await descriptionPage.close();
+
     const page = await open();
     const fields = specs(2);
     fields[1].quickActions = [action, pin];

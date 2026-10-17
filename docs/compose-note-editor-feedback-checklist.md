@@ -178,11 +178,14 @@ exist; distinguish these settings from device-local presentation preferences.
   searchable field selector or list, initially selecting the current field.
   Avoid making common field actions unnecessarily distant.
 
-- [ ] **16. Include a field Description setting.**
+- [x] **16. Include a field Description setting.** (Item **6** in the current feedback list.)
 
-  **Assessment: agree.** Particularly useful for unfamiliar or shared note
-  types. Keep descriptions optional and avoid permanently expanding every
-  field header to show them.
+  **Implemented 2026-10-17:** Description in Field options edits Anki’s existing
+  collection property, shared with desktop and all notes of that type. It appears
+  as a hint inside an empty field and never becomes note content. Editing or
+  clearing it updates the field without reloading, losing selection or resetting
+  undo. Off-screen fields remain lazy. Tests cover collection persistence, stale
+  targets, draft restoration, special characters, and light/dark dialog layouts.
 
 - [ ] **17. Include Keyboard language in field settings.**
 

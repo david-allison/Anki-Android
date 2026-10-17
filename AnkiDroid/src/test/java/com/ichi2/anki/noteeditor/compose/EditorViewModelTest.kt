@@ -555,6 +555,29 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `descriptions round trip through the note type without modifying notes`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            val description = "Write a sentence with \"quotes\", <tags>, and \\slashes\n日本語"
+            vm.setFieldDescription(target, description)
+            val updated = assertNotNull(vm.state.value)
+            assertEquals(description, assertNotNull(col.notetypes.get(original.noteTypeId)).fields[1].description)
+            assertEquals(original.fields[1].copy(description = description), updated.fields[1])
+            assertEquals(original.fields[0], updated.fields[0])
+            assertEquals(original.generation, updated.generation)
+            assertFalse(updated.hasMetadataChanges)
+            assertEquals(description, assertNotNull(loadAdd().state.value).fields[1].description)
+            val note = addBasicNote()
+            assertEquals(description, assertNotNull(loadEdit(note.firstCard().id).state.value).fields[1].description)
+            vm.setFieldDescription(target.copy(generation = target.generation + 1), "stale")
+            assertEquals(description, assertNotNull(vm.state.value).fields[1].description)
+            vm.setFieldDescription(target, "")
+            assertEquals("", assertNotNull(loadAdd().state.value).fields[1].description)
+        }
+
+    @Test
     fun `field typography persists without changing text history or other fields`() =
         runTest {
             val vm = loadAdd()

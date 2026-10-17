@@ -26,6 +26,7 @@ data class WebEditorField(
     val collapsed: Boolean = false,
     val sourceMode: Boolean = false,
     val quickActions: List<WebEditorFieldAction> = emptyList(),
+    val description: String = "",
 )
 
 /** Font, size and paragraph direction; these never change the field's HTML. */

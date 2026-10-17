@@ -29,7 +29,6 @@ import org.json.JSONObject
  *  in this class. Accessors should be created.
  *
  * * collapsed
- * * description - text to show inside the field when it's empty
  * * excludeFromSearch
  * * id
  * * plainText
@@ -49,6 +48,13 @@ data class Field(
      * Card template substitutions use the name (`{{Front}}`, where [name] = `Front`)
      */
     var name by jsonString("name")
+
+    /** Hint shown inside an empty field in the note editor; never part of the note content. */
+    var description: String
+        get() = jsonObject.optString("description")
+        set(value) {
+            jsonObject.put("description", value)
+        }
 
     /** The 0-based ordinal of the field */
     val ord by jsonInt("ord")
