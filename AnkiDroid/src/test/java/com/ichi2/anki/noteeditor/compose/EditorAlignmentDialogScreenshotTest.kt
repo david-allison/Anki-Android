@@ -3,11 +3,14 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
+import android.widget.TextView
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.core.widget.TextViewCompat
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.ScreenshotTest
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.compose.theme.AnkiDroidTheme
@@ -28,6 +31,14 @@ class EditorAlignmentDialogScreenshotTest : ScreenshotTest() {
         var applied: Pair<WebEditorAction, String>? = null
         var dismissed = 0
         val dialog = showDialog(onDismiss = { dismissed++ }, onApply = { action, value -> applied = action to value })
+        composeRule.runOnIdle {
+            val row = dialog.listView.getChildAt(0) as TextView
+            assertEquals(
+                getColorFromAttr(dialog.context, android.R.attr.colorControlNormal),
+                TextViewCompat.getCompoundDrawableTintList(row)?.defaultColor,
+                "Alignment icons must use the standard control colour independently of their labels",
+            )
+        }
         captureScreen("alignment_and_indentation")
 
         // Selecting a row applies immediately; automatic dismissal must not also cancel the command.

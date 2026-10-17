@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.content.res.ColorStateList
 import android.os.Parcelable
 import android.view.View
 import android.view.ViewGroup
@@ -57,6 +58,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.utils.android.getColorFromAttr
 import com.ichi2.anki.noteeditor.web.WebEditorAction
 import com.ichi2.anki.noteeditor.web.WebEditorTarget
 import com.ichi2.anki.ui.windows.reviewer.whiteboard.showColorPickerDialog
@@ -125,6 +127,7 @@ internal fun EditorFormattingDialog(
         DisposableEffect(context, request, iconPadding) {
             var applied = false
             val builder = MaterialAlertDialogBuilder(context)
+            val iconTint = ColorStateList.valueOf(getColorFromAttr(builder.context, android.R.attr.colorControlNormal))
             val adapter =
                 object : ArrayAdapter<String>(
                     builder.context,
@@ -139,7 +142,7 @@ internal fun EditorFormattingDialog(
                         (super.getView(position, convertView, parent) as TextView).apply {
                             setCompoundDrawablesRelativeWithIntrinsicBoundsKt(start = alignments[position].icon)
                             compoundDrawablePadding = iconPadding
-                            TextViewCompat.setCompoundDrawableTintList(this, textColors)
+                            TextViewCompat.setCompoundDrawableTintList(this, iconTint)
                         }
                 }
             val dialog =

@@ -60,7 +60,7 @@ internal fun EditorCustomButtonsDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(painterResource(R.drawable.ic_widgets), null) },
+        icon = { Icon(painterResource(R.drawable.ic_widgets), null, tint = editorControlColor()) },
         title = { Text(stringResource(R.string.compose_editor_custom_buttons)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -71,11 +71,11 @@ internal fun EditorCustomButtonsDialog(
                             Modifier.weight(1f).heightIn(min = 48.dp).clickable { editing = custom },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(painterResource(R.drawable.ic_mode_edit_white), null, Modifier.size(20.dp))
+                            Icon(painterResource(R.drawable.ic_mode_edit_white), null, Modifier.size(20.dp), tint = editorControlColor())
                             Spacer(Modifier.width(12.dp))
                             Text(custom.label)
                         }
-                        IconButton(onClick = { buttons = buttons.filterNot { it.id == custom.id } }) {
+                        IconButton(onClick = { buttons = buttons.filterNot { it.id == custom.id } }, colors = editorIconButtonColors()) {
                             Icon(
                                 painterResource(R.drawable.ic_delete),
                                 stringResource(R.string.compose_editor_remove_custom_button, custom.label),

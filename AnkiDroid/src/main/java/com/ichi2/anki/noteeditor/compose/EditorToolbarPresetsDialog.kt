@@ -31,14 +31,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -48,7 +45,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
-import com.ichi2.anki.common.utils.android.getColorFromAttr
 
 @Composable
 internal fun EditorToolbarPreset.displayName(): String =
@@ -69,8 +65,7 @@ internal fun EditorToolbarPresetsDialog(
     enabled: Boolean = true,
     onSelect: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
+    val controlColor = editorControlColor()
     var editing by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
@@ -110,7 +105,7 @@ internal fun EditorToolbarPresetsDialog(
                 TopAppBar(
                     title = { Text(stringResource(R.string.compose_editor_toolbar_presets)) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
                             Icon(painterResource(R.drawable.ic_baseline_arrow_back_24), stringResource(CommonString.close))
                         }
                     },
@@ -157,7 +152,7 @@ internal fun EditorToolbarPresetsDialog(
                         onEdit = { editing = preset },
                         more = {
                             Box {
-                                IconButton(onClick = { menu = true }, enabled = enabled) {
+                                IconButton(onClick = { menu = true }, enabled = enabled, colors = editorIconButtonColors()) {
                                     Icon(
                                         painterResource(R.drawable.ic_more_vertical),
                                         stringResource(R.string.compose_editor_preset_options, name),
@@ -294,7 +289,7 @@ private fun PresetRow(
         leadingContent = if (selected != null) ({ RadioButton(selected = selected, onClick = null) }) else null,
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onEdit, enabled = enabled) {
+                IconButton(onClick = onEdit, enabled = enabled, colors = editorIconButtonColors()) {
                     Icon(painterResource(R.drawable.ic_mode_edit_white), stringResource(R.string.compose_editor_edit_preset, name))
                 }
                 more()
