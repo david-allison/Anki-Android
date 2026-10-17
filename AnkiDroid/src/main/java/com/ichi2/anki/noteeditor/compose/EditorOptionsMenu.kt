@@ -48,7 +48,6 @@ internal fun EditorOptionsMenu(
     onFieldOptions: () -> Unit,
     onQuickActions: () -> Unit,
     onToolbar: () -> Unit,
-    onToolbarPresets: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
@@ -114,10 +113,15 @@ internal fun EditorOptionsMenu(
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
             })
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_manage_toolbar_presets)) }, onClick = {
-                expanded = false
-                onToolbarPresets()
-            })
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.compose_editor_toolbar)) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_toolbar), null, tint = controlColor) },
+                enabled = fieldOptionsEnabled,
+                onClick = {
+                    expanded = false
+                    onToolbar()
+                },
+            )
             DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar_layout)) }, onClick = {
                 expanded = false
                 showToolbarDisplay = true
@@ -137,15 +141,6 @@ internal fun EditorOptionsMenu(
                     onClick = {
                         expanded = false
                         onFieldOptions()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.compose_editor_toolbar)) },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_toolbar), null, tint = controlColor) },
-                    enabled = fieldOptionsEnabled,
-                    onClick = {
-                        expanded = false
-                        onToolbar()
                     },
                 )
                 DropdownMenuItem(

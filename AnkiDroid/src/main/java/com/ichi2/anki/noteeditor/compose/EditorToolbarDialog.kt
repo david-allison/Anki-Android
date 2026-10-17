@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.res.painterResource
@@ -61,19 +63,30 @@ internal fun EditorToolbarDialog(
     title: String? = null,
     subtitle: String? = null,
 ) {
+    var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        EditorToolbarContent(target, field, isCloze, templates, onCustomButtons, onDismiss, onSave, title, subtitle)
+        EditorToolbarContent(
+            pendingToolbar,
+            { pendingToolbar = it },
+            isCloze,
+            templates,
+            onCustomButtons,
+            onDismiss,
+            onSave,
+            title,
+            subtitle,
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EditorToolbarContent(
-    target: EditorFieldTarget,
-    field: EditorFieldState,
+    pendingToolbar: EditorFieldToolbar,
+    onToolbarChange: (EditorFieldToolbar) -> Unit,
     isCloze: Boolean,
     templates: List<EditorCustomToolbarButton>,
     onCustomButtons: () -> Unit,
@@ -81,8 +94,9 @@ internal fun EditorToolbarContent(
     onSave: (EditorFieldToolbar) -> Unit,
     title: String? = null,
     subtitle: String? = null,
+    enabled: Boolean = true,
+    header: @Composable () -> Unit = {},
 ) {
-    var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
     // The shared library can change while this dialog stays open. Resolve its latest
     // definitions without discarding pending visibility/order changes for this field.
     val templatesById = templates.associateBy { it.id }
@@ -107,25 +121,37 @@ internal fun EditorToolbarContent(
                     }
                 },
                 actions = {
-                    EditorSaveButton(onClick = { onSave(toolbar) }, modifier = Modifier.padding(end = 8.dp))
+                    EditorSaveButton(onClick = { onSave(toolbar) }, enabled = enabled, modifier = Modifier.padding(end = 8.dp))
                 },
             )
+        },
+        bottomBar = {
+            Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+                Row(Modifier.navigationBarsPadding().padding(horizontal = 16.dp)) {
+                    TextButton(onClick = onCustomButtons, enabled = enabled) {
+                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.compose_editor_custom_buttons))
+                    }
+                }
+            }
         },
     ) { insets ->
         EditorToolbarList(
             items = items.map { it.key },
             activeCount = enabledKeys.size,
-            onMove = { from, to -> pendingToolbar = toolbar.moveButtonTo(from, to, templates, isCloze) },
-            canMove = { from, to -> (from in enabledKeys) == (to in enabledKeys) },
-            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
+            onMove = { from, to -> onToolbarChange(toolbar.moveButtonTo(from, to, templates, isCloze)) },
+            canMove = { from, to -> enabled && (from in enabledKeys) == (to in enabledKeys) },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(insets)
+                    .padding(horizontal = 16.dp)
+                    .clipToBounds(),
             header = {
                 Column {
+                    header()
                     subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
-                    TextButton(onClick = onCustomButtons) {
-                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.compose_editor_custom_buttons))
-                    }
                 }
             },
         ) { key, index, dragging, startDrag, move ->
@@ -153,7 +179,7 @@ internal fun EditorToolbarContent(
                         toolbar.copy(
                             buttonOrder = allItems.map { if (it.appliesTo(isCloze)) displayed.next().key else it.key },
                         )
-                    pendingToolbar =
+                    onToolbarChange(
                         when (item) {
                             is EditorToolbarItem.Builtin ->
                                 ordered.copy(
@@ -171,8 +197,10 @@ internal fun EditorToolbarContent(
                                             }
                                         },
                                 )
-                        }
+                        },
+                    )
                 },
+                enabled = enabled,
                 startDrag = startDrag,
                 moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
                 moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
@@ -194,6 +222,7 @@ internal fun EditorToolbarRow(
     moveUp: (() -> Boolean)?,
     moveDown: (() -> Boolean)?,
     supportingText: String? = null,
+    enabled: Boolean = true,
 ) {
     val controlColor = editorControlColor()
     val toggleLabel =
@@ -221,7 +250,7 @@ internal fun EditorToolbarRow(
                 Modifier
                     .weight(1f)
                     .heightIn(min = 48.dp)
-                    .clickable(role = Role.Button, onClickLabel = toggleLabel) { onCheckedChange(!checked) }
+                    .clickable(enabled = enabled, role = Role.Button, onClickLabel = toggleLabel) { onCheckedChange(!checked) }
                     .semantics { selected = checked },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -253,7 +282,7 @@ internal fun EditorToolbarRow(
                                 moveDown?.let { add(CustomAccessibilityAction(downLabel, it)) }
                             }
                     }.pointerInteropFilter { event ->
-                        if (event.actionMasked == MotionEvent.ACTION_DOWN) startDrag()
+                        if (enabled && event.actionMasked == MotionEvent.ACTION_DOWN) startDrag()
                         true
                     },
                 contentAlignment = Alignment.Center,

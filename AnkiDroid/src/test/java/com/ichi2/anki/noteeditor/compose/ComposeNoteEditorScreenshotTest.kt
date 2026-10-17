@@ -34,6 +34,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
@@ -96,51 +97,42 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun fieldToolbarSettingsRetainPresetWhenHidden() {
-        val toolbar = mutableStateOf(EditorFieldToolbar())
-        val selection = mutableStateOf(EditorToolbarPreset.DEFAULT_ID)
-        val targets = mutableListOf<EditorFieldTarget>()
-        val (activity, keyboard) =
-            showEditor(
-                presets = samplePresets(),
-                fieldToolbarState = toolbar,
-                presetSelection = selection,
-                onToolbarVisibility = { target, visible ->
-                    targets.add(target)
-                    toolbar.value = toolbar.value.copy(showToolbar = visible)
-                },
-                onPreset = { target, id ->
-                    targets.add(target)
-                    selection.value = id
-                },
-            )
+        val (activity, keyboard) = showEditor(presets = samplePresets())
         hideKeyboard(activity, keyboard)
         toolbarOverflowButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule.onNodeWithText("Language learning").performClick()
+        chooseToolbarPreset("Language learning")
+        captureScreen("field_toolbar_preset_selected")
+        saveToolbarConfiguration()
         toolbarOverflowButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule.onNodeWithText("Language learning").assertIsSelected()
-        captureScreen("field_toolbar_preset_selected")
-        val selectedId = selection.value
+        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
         val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
         visibility.performClick()
         visibility.assertIsOff()
-        composeRule.onNodeWithText("Language learning").assertIsSelected().assertIsNotEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
         captureScreen("field_toolbar_preset_hidden")
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.close)).performClick()
+        saveToolbarConfiguration()
         toolbarOverflowButton().assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
         visibility.performClick()
         visibility.assertIsOn()
-        assertEquals(selectedId, selection.value)
-        composeRule.onNodeWithText("Language learning").assertIsSelected()
-        composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
-            ).performClick()
-        assertEquals(EditorToolbarPreset.DEFAULT_ID, selection.value)
-        assertEquals(List(4) { EditorFieldTarget("screenshot", 0, 1) }, targets)
+        chooseToolbarPreset(getResourceString(R.string.compose_editor_default_toolbar))
+        saveToolbarConfiguration()
+        toolbarOverflowButton().assertIsDisplayed()
+    }
+
+    private fun chooseToolbarPreset(name: String) {
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).performClick()
+        composeRule.onNode(hasText(name) and hasAnyAncestor(isPopup())).performClick()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertTextContains(name)
+    }
+
+    private fun saveToolbarConfiguration() {
+        composeRule.onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
     }
 
     @Test
@@ -152,9 +144,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden_globally)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
         composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
-            ).assertIsSelected()
+            .onNodeWithText(getResourceString(R.string.compose_editor_preset))
+            .assertIsDisplayed()
+            .assertTextContains(getResourceString(R.string.compose_editor_default_toolbar))
         captureScreen("field_toolbar_hidden_globally")
     }
 
@@ -165,9 +157,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
         composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
-            ).assertIsSelected()
+            .onNodeWithText(getResourceString(R.string.compose_editor_preset))
+            .assertIsDisplayed()
+            .assertTextContains(getResourceString(R.string.compose_editor_default_toolbar))
     }
 
     @Test
@@ -675,7 +667,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule
             .onNode(
-                hasText(getResourceString(R.string.compose_editor_toolbar_presets)) and hasAnyAncestor(isDialog()),
+                hasText(getResourceString(R.string.compose_editor_toolbar)) and hasAnyAncestor(isDialog()),
             ).assertIsDisplayed()
         composeRule.onNode(isPopup()).assertDoesNotExist()
     }
@@ -709,7 +701,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor(toolbarDisplay = display, toolbar = EditorFieldToolbar(showToolbar = fieldToolbarVisible))
         toolbarOverflowButton().assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule
             .onNode(hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(isDialog()))
@@ -846,48 +838,39 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun toolbarPresetsOpen() {
+    fun customizeToolbarFromWrench() {
         val (activity, _) = showEditor(presets = samplePresets())
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
-            ).assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_presets)).assertIsDisplayed()
+            .onNodeWithText(getResourceString(R.string.compose_editor_preset))
+            .assertIsDisplayed()
+            .assertTextContains(getResourceString(R.string.compose_editor_default_toolbar))
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
         composeRule.mainClock.advanceTimeBy(300)
         settleMenuTransition(activity)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertDoesNotExist()
-        captureScreen("toolbar_presets")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
+        composeRule.onNodeWithText("Manage toolbar presets").assertDoesNotExist()
+        captureScreen("customize_toolbar")
     }
 
     @Test
     fun toolbarPresetOptionsMenuIsOpaque() {
         val (activity, _) = showEditor(presets = samplePresets())
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        chooseToolbarPreset("Language learning")
         composeRule
             .onNodeWithContentDescription(
                 targetContext.getString(R.string.compose_editor_preset_options, "Language learning"),
             ).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_duplicate_preset)).assertIsDisplayed()
         settleMenuTransition(activity)
-        val underneath =
-            composeRule
-                .onNodeWithContentDescription(
-                    targetContext.getString(R.string.compose_editor_preset_options, samplePresets().last().name),
-                ).fetchSemanticsNode()
-                .layoutInfo.coordinates
-        val point = underneath.localToScreen(Offset(underneath.size.width / 2f, underneath.size.height / 2f))
-        val popup = composeRule.onNode(isPopup())
-        val popupCoordinates = popup.fetchSemanticsNode().layoutInfo.coordinates
-        val local = popupCoordinates.screenToLocal(point)
-        val pixels = popup.captureToImage().toPixelMap()
-        // This list row's overflow icon lies behind an otherwise empty part of the menu.
-        assertTrue(local.x in 0f..pixels.width.toFloat() && local.y in 0f..pixels.height.toFloat())
+        val pixels = composeRule.onNode(isPopup()).captureToImage().toPixelMap()
         val colors = activity.toMaterial3ColorScheme()
         val opaque = colors.surfaceContainer.compositeOver(colors.surface).toArgb()
-        assertEquals(opaque, pixels[local.x.toInt(), local.y.toInt()].toArgb(), "The menu must obscure controls underneath it")
+        assertEquals(opaque, pixels[pixels.width / 2, 2].toArgb(), "The menu background must be opaque")
         captureScreen("toolbar_preset_options")
     }
 
@@ -901,36 +884,56 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         toolbarOverflowButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule
-            .onNode(
-                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
-            ).assertIsSelected()
+            .onNodeWithText(getResourceString(R.string.compose_editor_preset))
+            .assertIsDisplayed()
+            .assertTextContains(getResourceString(R.string.compose_editor_default_toolbar))
         captureScreen("field_toolbar_presets")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isPopup()),
+            ).assertIsSelected()
+        captureScreen("toolbar_preset_choices")
+        composeRule.onNode(hasText(samplePresets().last().name) and hasAnyAncestor(isPopup())).performClick()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertTextContains(samplePresets().last().name)
+        captureScreen("toolbar_long_preset_selected")
+    }
+
+    @Test
+    fun customizeToolbarWithLargeText() {
+        RuntimeEnvironment.setQualifiers("+w320dp-h640dp")
+        RuntimeEnvironment.setFontScale(2f)
+        showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsDisplayed()
+        captureScreen("customize_toolbar_large_text")
     }
 
     @Test
     fun sharedToolbarPresetEditing() {
-        showEditor()
+        val (activity, _) = showEditor(presets = samplePresets())
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_manage_toolbar_presets)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         val dialog = composeRule.onNode(isDialog()).fetchSemanticsNode().id
-        composeRule
-            .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
-            ).performClick()
+        chooseToolbarPreset("Language learning")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).assertIsDisplayed()
-        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Editing must retain the existing dialog window")
-        val scope = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).fetchSemanticsNode().boundsInWindow
-        val custom =
-            composeRule
-                .onNodeWithText(
-                    getResourceString(R.string.compose_editor_custom_buttons),
-                ).fetchSemanticsNode()
-                .boundsInWindow
-        assertTrue(scope.bottom <= custom.top, "The shared-scope description must not overlap the custom button action")
+        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Changing presets must retain the dialog window")
+        val footer = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot
+        val pixels = composeRule.onNode(isDialog()).captureToImage().toPixelMap()
+        assertEquals(
+            activity.toMaterial3ColorScheme().surface.toArgb(),
+            pixels[pixels.width / 2, footer.center.y.toInt()].toArgb(),
+            "The scrolling list must not draw behind the fixed footer",
+        )
         captureScreen("shared_toolbar_preset_editing")
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_presets)).assertIsDisplayed()
-        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Returning must retain the existing dialog window")
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(CommonString.dialog_cancel)) and hasAnyAncestor(isDialog()),
+            ).performClick()
+        composeRule.onNode(isDialog()).assertDoesNotExist()
     }
 
     @Test
@@ -945,10 +948,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         )
         toolbarOverflowButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule
-            .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
-            ).performClick()
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
         bold.assertIsSelected()
@@ -1011,10 +1010,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
         toolbarOverflowButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule
-            .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_default_toolbar)),
-            ).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
         captureScreen("toolbar_configuration_none_active")
@@ -1781,6 +1776,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             AnkiDroidTheme {
                 val display = remember { mutableStateOf(toolbarDisplay) }
                 val currentTemplates = remember { mutableStateOf(templates) }
+                val currentPresets =
+                    remember {
+                        mutableStateOf(
+                            presets ?: listOf(EditorToolbarPreset(id = EditorToolbarPreset.DEFAULT_ID, name = "").withToolbar(toolbar)),
+                        )
+                    }
+                val currentToolbar = remember { mutableStateOf(toolbar) }
+                val currentPreset = remember { mutableStateOf(EditorToolbarPreset.DEFAULT_ID) }
                 NoteEditorScreen(
                     state =
                         editorState(fieldName, noteTypeName, deckName).let { state ->
@@ -1790,20 +1793,28 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                 toolbarTextColor = textColor,
                                 toolbarHighlightColor = highlightColor,
                                 customButtonTemplates = currentTemplates.value,
-                                toolbarPresets = presets ?: state.toolbarPresets.map { it.withToolbar(toolbar) },
+                                toolbarPresets = currentPresets.value,
                                 fields =
                                     state.fields.mapIndexed { index, field ->
                                         if (index ==
                                             1
                                         ) {
                                             field.copy(
-                                                toolbar = fieldToolbarState?.value ?: toolbar,
+                                                toolbar =
+                                                    currentPresets.value
+                                                        .first {
+                                                            it.id ==
+                                                                (presetSelection?.value ?: currentPreset.value)
+                                                        }.applyTo(
+                                                            fieldToolbarState?.value ?: currentToolbar.value,
+                                                            currentTemplates.value,
+                                                        ),
                                                 sticky = pinned,
                                                 rtl = rtl,
                                                 sourceMode = htmlDefaultState?.value ?: false,
                                                 collapsed = collapsedState?.value ?: false,
                                                 toolbarPresetId =
-                                                    presetSelection?.value ?: EditorToolbarPreset.DEFAULT_ID,
+                                                    presetSelection?.value ?: currentPreset.value,
                                             )
                                         } else {
                                             field
@@ -1834,8 +1845,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onFieldDirection = onDirection,
                     onFieldHtmlByDefault = onHtmlByDefault,
                     onFieldCollapseByDefault = onCollapseByDefault,
-                    onFieldToolbarVisibility = onToolbarVisibility,
-                    onToolbarPreset = onPreset,
+                    onToolbarConfiguration = { target, configuration ->
+                        currentPresets.value = configuration.presets
+                        currentPreset.value = configuration.presetId
+                        currentToolbar.value = currentToolbar.value.copy(showToolbar = configuration.showToolbar)
+                        onToolbarVisibility(target, configuration.showToolbar)
+                        onPreset(target, configuration.presetId)
+                    },
                     onAction = onAction,
                     onMedia = {},
                     onAttachMedia = {},

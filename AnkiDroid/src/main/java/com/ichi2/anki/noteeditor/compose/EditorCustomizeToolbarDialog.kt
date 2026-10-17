@@ -1,0 +1,297 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package com.ichi2.anki.noteeditor.compose
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.ichi2.anki.CommonString
+import com.ichi2.anki.R
+import java.util.UUID
+
+@Composable
+internal fun EditorToolbarPreset.displayName(): String =
+    if (id == EditorToolbarPreset.DEFAULT_ID) stringResource(R.string.compose_editor_default_toolbar) else name
+
+/** Field assignment and shared buttons in one screen, with all changes pending until Save. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EditorCustomizeToolbarDialog(
+    presets: List<EditorToolbarPreset>,
+    templates: List<EditorCustomToolbarButton>,
+    field: EditorFieldState,
+    noteTypeName: String,
+    onSave: (EditorToolbarConfiguration) -> Unit,
+    onCustomButtons: () -> Unit,
+    onDismiss: () -> Unit,
+    enabled: Boolean = true,
+    toolbarHiddenGlobally: Boolean = false,
+) {
+    var pending by rememberSaveable {
+        mutableStateOf(EditorToolbarConfiguration(presets, field.toolbarPresetId, field.toolbar.showToolbar))
+    }
+    var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
+    var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
+    val selected = pending.presets.first { it.id == pending.presetId }
+    val defaultName = stringResource(R.string.compose_editor_default_toolbar)
+
+    fun updatePreset(updated: EditorToolbarPreset) {
+        pending = pending.copy(presets = pending.presets.map { if (it.id == updated.id) updated else it })
+    }
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        EditorToolbarContent(
+            pendingToolbar = selected.applyTo(EditorFieldToolbar(), templates),
+            onToolbarChange = { updatePreset(selected.withToolbar(it)) },
+            // A shared preset can also be used on cloze note types.
+            isCloze = true,
+            templates = templates,
+            onCustomButtons = onCustomButtons,
+            onDismiss = onDismiss,
+            onSave = {
+                // Template definitions may have changed while their library was open.
+                onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))
+            },
+            enabled = enabled,
+            header = {
+                Column(Modifier.padding(horizontal = 12.dp)) {
+                    Text(
+                        stringResource(R.string.compose_editor_preset_field, field.name, noteTypeName),
+                        Modifier.padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    EditorFieldOptionSwitch(
+                        label = stringResource(R.string.compose_editor_show_field_toolbar),
+                        checked = pending.showToolbar,
+                        enabled = enabled,
+                        onCheckedChange = { pending = pending.copy(showToolbar = it) },
+                    )
+                    if (toolbarHiddenGlobally) {
+                        Text(
+                            stringResource(R.string.compose_editor_toolbar_hidden_globally),
+                            Modifier.padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    ToolbarPresetSelector(
+                        presets = pending.presets,
+                        selected = selected,
+                        enabled = enabled,
+                        selectionEnabled = pending.showToolbar,
+                        onSelect = { pending = pending.copy(presetId = it) },
+                        onAdd = { naming = EditorToolbarPreset(name = "") },
+                        onRename = { naming = selected },
+                        onDuplicate = { naming = selected.copy(id = UUID.randomUUID().toString(), name = "") },
+                        onDelete = { deleting = selected },
+                    )
+                    Text(
+                        stringResource(R.string.compose_editor_preset_scope),
+                        Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+    }
+    naming?.let { preset ->
+        var name by rememberSaveable(preset.id) { mutableStateOf(preset.name) }
+        val exists = pending.presets.any { it.id == preset.id }
+        val duplicate =
+            name.trim().equals(defaultName, ignoreCase = true) ||
+                pending.presets.any { it.id != preset.id && it.name.equals(name.trim(), ignoreCase = true) }
+        AlertDialog(
+            onDismissRequest = { naming = null },
+            title = { Text(stringResource(if (exists) CommonString.rename else R.string.compose_editor_add_preset)) },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.compose_editor_preset_name)) },
+                    singleLine = true,
+                    isError = duplicate,
+                    supportingText = if (duplicate) ({ Text(stringResource(R.string.compose_editor_preset_name_error)) }) else null,
+                )
+            },
+            confirmButton = {
+                TextButton(enabled = enabled && name.isNotBlank() && !duplicate, onClick = {
+                    val updated = preset.copy(name = name.trim())
+                    if (exists) {
+                        updatePreset(updated)
+                    } else {
+                        pending = pending.copy(presets = pending.presets + updated, presetId = updated.id)
+                    }
+                    naming = null
+                }) { Text(stringResource(CommonString.dialog_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { naming = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
+        )
+    }
+    deleting?.let { preset ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(stringResource(R.string.compose_editor_delete_preset)) },
+            text = { Text(stringResource(R.string.compose_editor_delete_preset_message, preset.name)) },
+            confirmButton = {
+                TextButton(enabled = enabled, onClick = {
+                    pending =
+                        pending.copy(
+                            presets = pending.presets.filterNot { it.id == preset.id },
+                            presetId = EditorToolbarPreset.DEFAULT_ID,
+                        )
+                    deleting = null
+                }) { Text(stringResource(R.string.compose_editor_delete_preset)) }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ToolbarPresetSelector(
+    presets: List<EditorToolbarPreset>,
+    selected: EditorToolbarPreset,
+    enabled: Boolean,
+    selectionEnabled: Boolean,
+    onSelect: (String) -> Unit,
+    onAdd: () -> Unit,
+    onRename: () -> Unit,
+    onDuplicate: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var choosing by rememberSaveable { mutableStateOf(false) }
+    var options by rememberSaveable { mutableStateOf(false) }
+    val controlColor = editorControlColor()
+    val menuColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        ExposedDropdownMenuBox(
+            expanded = choosing,
+            onExpandedChange = { if (enabled && selectionEnabled) choosing = it },
+            modifier = Modifier.weight(1f),
+        ) {
+            OutlinedTextField(
+                value = selected.displayName(),
+                onValueChange = {},
+                readOnly = true,
+                enabled = enabled && selectionEnabled,
+                label = { Text(stringResource(R.string.compose_editor_preset)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = choosing) },
+                singleLine = true,
+                modifier =
+                    Modifier.fillMaxWidth().menuAnchor(
+                        ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                        enabled && selectionEnabled,
+                    ),
+            )
+            ExposedDropdownMenu(
+                expanded = choosing,
+                onDismissRequest = { choosing = false },
+                containerColor = menuColor,
+            ) {
+                presets.forEach { preset ->
+                    DropdownMenuItem(
+                        text = { Text(preset.displayName(), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                        trailingIcon = {
+                            if (preset.id == selected.id) Icon(painterResource(R.drawable.ic_done_white), null, tint = controlColor)
+                        },
+                        modifier = Modifier.semantics { this.selected = preset.id == selected.id },
+                        onClick = {
+                            onSelect(preset.id)
+                            choosing = false
+                        },
+                    )
+                }
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.compose_editor_add_preset)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_add), null, tint = controlColor) },
+                    onClick = {
+                        choosing = false
+                        onAdd()
+                    },
+                )
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        Box {
+            IconButton(onClick = { options = true }, enabled = enabled, colors = editorIconButtonColors()) {
+                Icon(
+                    painterResource(R.drawable.ic_more_vertical),
+                    stringResource(R.string.compose_editor_preset_options, selected.displayName()),
+                )
+            }
+            DropdownMenu(expanded = options, onDismissRequest = { options = false }, containerColor = menuColor) {
+                if (selected.id != EditorToolbarPreset.DEFAULT_ID) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(CommonString.rename)) },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_edit_note), null, tint = controlColor) },
+                        onClick = {
+                            options = false
+                            onRename()
+                        },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.compose_editor_duplicate_preset)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.baseline_content_copy_24), null, tint = controlColor) },
+                    enabled = selectionEnabled,
+                    onClick = {
+                        options = false
+                        onDuplicate()
+                    },
+                )
+                if (selected.id != EditorToolbarPreset.DEFAULT_ID) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_editor_delete_preset)) },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null, tint = controlColor) },
+                        onClick = {
+                            options = false
+                            onDelete()
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
