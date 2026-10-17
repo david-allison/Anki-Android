@@ -102,10 +102,11 @@ internal fun EditorFormattingButtons(
         }
         val button = (item as EditorToolbarItem.Builtin).button
         val actionEnabled =
-            if (button == EditorToolbarButton.SOURCE_MODE) {
-                enabled && state.hasSelection
-            } else {
-                formatEnabled && (!state.sourceMode || !button.richOnly)
+            when (button) {
+                EditorToolbarButton.SOURCE_MODE -> enabled && state.hasSelection
+                EditorToolbarButton.UNDO -> formatEnabled && state.canUndo
+                EditorToolbarButton.REDO -> formatEnabled && state.canRedo
+                else -> formatEnabled && (!state.sourceMode || !button.richOnly)
             }
         val click = {
             when (button) {

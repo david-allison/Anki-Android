@@ -56,6 +56,21 @@ states are exposed to accessibility services. Browser tests cover caret/mixed
 selections and field/source changes; an emulator test exercises the native bridge
 and commands, and light/dark Roborazzi captures the selected buttons.
 
+Undo and Redo are enabled only when the selected field has the corresponding
+history. Fields API version 9 exposes the existing per-field stacks; the native
+toolbar receives these flags with its usual selection updates. Reading the flags
+does not create history, mount another field, or add a startup request. Rich text
+and HTML source share the same history. Undoing back to the original content
+disables Undo while retaining Redo; another field's edits do not clear it.
+
+Verification: 84 backend unit tests, 10 Android unit tests and five emulator
+history/toolbar tests pass. The toolbar test uses the controlled test IME so the
+normal keyboard cannot start composition during synthetic edits. Backend web
+assets build successfully. Repository-wide backend checks still report existing
+contributor, formatting and lint problems. The local debug build refreshes only
+web assets and the capability marker in the working AAR, preserving its compiled
+code; rebuilding that AAR normally requires its missing generated protobuf sources.
+
 The fixed **Field options** button sits at the logical end of the toolbar, outside
 the scrolling buttons. It opens a standard Material bottom sheet above the
 keyboard, hiding formatting controls while open. The sheet shares the editor's

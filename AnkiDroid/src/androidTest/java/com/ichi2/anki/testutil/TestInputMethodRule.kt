@@ -19,6 +19,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+/** Scope the test IME to one case in a class whose other tests require a visible keyboard. */
+fun withTestKeyboard(block: () -> Unit) {
+    TestInputMethodRule()
+        .apply(
+            object : Statement() {
+                override fun evaluate() = block()
+            },
+            Description.EMPTY,
+        ).evaluate()
+}
+
 /** Temporarily selects the test APK's IME and restores the previous keyboard even on failure. */
 class TestInputMethodRule(
     private val executeShellCommand: (String) -> String = ::executeImeCommand,

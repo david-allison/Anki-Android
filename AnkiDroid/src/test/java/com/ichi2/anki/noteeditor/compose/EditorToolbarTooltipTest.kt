@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
@@ -37,6 +39,48 @@ class EditorToolbarTooltipTest : RobolectricTest() {
     private var actions = 0
 
     @Test
+    fun `undo and redo are disabled for an untouched field`() {
+        toolbar.value = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("UNDO", "REDO"))
+        showButtons()
+        composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.UNDO.label)).assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.REDO.label)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun `undo and redo follow the active fields history in either editing mode`() {
+        toolbar.value = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("UNDO", "REDO"))
+        showButtons()
+        val undo = composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.UNDO.label))
+        val redo = composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.REDO.label))
+        for (sourceMode in listOf(false, true)) {
+            composeRule.runOnIdle { state.value = EditorToolbarState(hasSelection = true, sourceMode = sourceMode, canUndo = true) }
+            undo.assertIsEnabled().performClick()
+            redo.assertIsNotEnabled()
+            composeRule.runOnIdle { state.value = state.value.copy(canUndo = false, canRedo = true) }
+            undo.assertIsNotEnabled()
+            redo.assertIsEnabled().performClick()
+            composeRule.runOnIdle { state.value = state.value.copy(activeField = 1, canRedo = false) }
+            undo.assertIsNotEnabled()
+            redo.assertIsNotEnabled()
+        }
+        assertEquals(4, actions)
+    }
+
+    @Test
+    fun `available history stays disabled during composition or without a selection`() {
+        toolbar.value = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("UNDO", "REDO"))
+        state.value = EditorToolbarState(hasSelection = true, composing = true, canUndo = true, canRedo = true)
+        showButtons()
+        val undo = composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.UNDO.label))
+        val redo = composeRule.onNodeWithContentDescription(getResourceString(EditorToolbarButton.REDO.label))
+        undo.assertIsNotEnabled()
+        redo.assertIsNotEnabled()
+        composeRule.runOnIdle { state.value = state.value.copy(composing = false, hasSelection = false) }
+        undo.assertIsNotEnabled()
+        redo.assertIsNotEnabled()
+    }
+
+    @Test
     fun `mode switch follows the active field and describes the next mode`() {
         toolbar.value = EditorFieldToolbar(buttonOrder = listOf("SOURCE_MODE"))
         showButtons()
@@ -56,6 +100,7 @@ class EditorToolbarTooltipTest : RobolectricTest() {
 
     @Test
     fun `every Anki button shows its label without executing its action`() {
+        state.value = state.value.copy(canUndo = true, canRedo = true)
         showButtons()
         for (button in EditorToolbarButton.entries) {
             composeRule.runOnIdle {

@@ -11,7 +11,8 @@
         inputEnabled = true,
         lastTarget = null,
         activeField = null,
-        activeFormats = [];
+        activeFormats = [],
+        historyState = { canUndo: false, canRedo: false };
     let draftId = null,
         hostStateJson = "",
         database;
@@ -162,6 +163,7 @@
             hasSelection: !!lastTarget,
             activeField,
             activeFormats,
+            ...historyState,
             sourceMode: !!lastTarget && JSON.parse(lastTarget.bookmark).kind === "source",
         });
     }
@@ -198,6 +200,7 @@
         lastTarget = null;
         activeField = null;
         activeFormats = [];
+        historyState = { canUndo: false, canRedo: false };
         await api().load(model.fields, model.isCloze, model.settings);
         await api().setInputEnabled(inputEnabled);
         const rendered = await api().snapshot();
@@ -250,6 +253,7 @@
         } else {
             lastTarget = null;
         }
+        historyState = api().historyState(lastTarget?.field ?? -1);
         return lastTarget || {};
     }
 
