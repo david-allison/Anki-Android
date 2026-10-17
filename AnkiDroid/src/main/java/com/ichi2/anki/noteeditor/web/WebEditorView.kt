@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Color
 import android.net.Uri
 import android.os.LocaleList
+import android.text.InputType
 import android.util.Base64
 import android.util.TypedValue
 import android.view.ViewGroup
@@ -72,6 +73,7 @@ class WebEditorView(
     var onMediaPaste: ((WebEditorTarget, Uri) -> Unit)? = null
 
     private val ready = CompletableDeferred<Unit>()
+    private val firstEditorInputConnection = CompletableDeferred<Unit>()
     private val pending = mutableMapOf<Int, CancellableContinuation<JSONObject>>()
     private var nextRequest = 0
     private var languageTag: String? = null
@@ -299,6 +301,10 @@ class WebEditorView(
         withContext(Dispatchers.Main.immediate) {
             requestFocus()
             request("focusField", JSONObject().put("index", index).put("highlightError", highlightError))
+            // The JS focus acknowledgement can arrive before Chromium supplies the native
+            // input connection. Opening Gboard with the dummy connection changes its height
+            // mid-animation, making the toolbar jump when the real field becomes available.
+            firstEditorInputConnection.await()
             SoftwareKeyboardControllerCompat(this@WebEditorView).show()
         }
     }
@@ -558,10 +564,15 @@ class WebEditorView(
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? =
         super.onCreateInputConnection(outAttrs).also {
             outAttrs.hintLocales = languageTag?.let { LocaleList(Locale.forLanguageTag(it)) }
+            if (it != null && outAttrs.inputType != InputType.TYPE_NULL && !firstEditorInputConnection.isCompleted) {
+                // Let InputMethodManager receive the connection before resuming the show request.
+                post { firstEditorInputConnection.complete(Unit) }
+            }
         }
 
     private fun fail(exception: Exception) {
         ready.completeExceptionally(exception)
+        firstEditorInputConnection.completeExceptionally(exception)
         val requests = pending.values.toList()
         pending.clear()
         requests.forEach { it.resumeWithException(exception) }
