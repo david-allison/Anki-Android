@@ -103,12 +103,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
@@ -774,7 +776,13 @@ private fun EditorFieldOptions(
 ) {
     val controlColor = editorControlColor()
     val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .testTag("editor_field_options")
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 8.dp),
+    ) {
         Row(
             Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -808,7 +816,7 @@ private fun EditorFieldOptions(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 EditorTooltip(
-                    text = stringResource(R.string.compose_editor_pin_field_summary),
+                    text = stringResource(EditorFieldOption.PIN.help),
                     modifier = Modifier.weight(1f).fillMaxRowHeight(),
                 ) {
                     Surface(
@@ -826,18 +834,18 @@ private fun EditorFieldOptions(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                painterResource(R.drawable.ic_baseline_push_pin_24),
-                                stringResource(R.string.compose_editor_pin_field),
+                                painterResource(EditorFieldOption.PIN.icon),
+                                stringResource(EditorFieldOption.PIN.label),
                                 modifier = Modifier.size(24.dp),
                                 tint = controlColor,
                             )
                             Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.labelLarge)
+                            Text(stringResource(EditorFieldOption.PIN.label), style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
                 EditorTooltip(
-                    text = stringResource(R.string.compose_editor_language_hint_summary),
+                    text = stringResource(EditorFieldOption.KEYBOARD.help),
                     modifier = Modifier.weight(1f).fillMaxRowHeight(),
                 ) {
                     Surface(
@@ -852,14 +860,14 @@ private fun EditorFieldOptions(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                painterResource(R.drawable.ic_language_black_24dp),
+                                painterResource(EditorFieldOption.KEYBOARD.icon),
                                 stringResource(R.string.compose_editor_language_hint),
                                 modifier = Modifier.size(24.dp),
                                 tint = controlColor,
                             )
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(EditorFieldOption.KEYBOARD.label), style = MaterialTheme.typography.labelLarge)
                                 Text(
                                     field.languageTag?.let { Locale.forLanguageTag(it).displayName }
                                         ?: stringResource(R.string.compose_editor_language_hint_default),
@@ -876,8 +884,8 @@ private fun EditorFieldOptions(
         }
         Spacer(Modifier.height(12.dp))
         EditorFieldOptionsLink(
-            icon = R.drawable.ic_format_font_size_24dp,
-            title = R.string.compose_editor_field_font,
+            icon = EditorFieldOption.FONT.icon,
+            title = EditorFieldOption.FONT.label,
             summary = stringResource(R.string.compose_editor_field_font_summary, field.font, field.fontSize),
             iconTint = controlColor,
             enabled = enabled,
@@ -885,22 +893,22 @@ private fun EditorFieldOptions(
         )
         Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
             EditorFieldOptionSwitch(
-                icon = R.drawable.ic_code,
-                label = stringResource(R.string.compose_editor_start_in_html_mode),
+                icon = EditorFieldOption.HTML.icon,
+                label = stringResource(EditorFieldOption.HTML.label),
                 checked = field.sourceMode,
                 enabled = enabled,
                 onCheckedChange = onHtmlByDefault,
             )
             EditorFieldOptionSwitch(
-                icon = R.drawable.ic_expand_less_black_24dp,
-                label = stringResource(R.string.compose_editor_start_collapsed),
+                icon = EditorFieldOption.COLLAPSED.icon,
+                label = stringResource(EditorFieldOption.COLLAPSED.label),
                 checked = field.collapsed,
                 enabled = enabled,
                 onCheckedChange = onCollapseByDefault,
             )
             EditorFieldOptionSwitch(
-                icon = R.drawable.ic_editor_text_direction_rtl,
-                label = stringResource(R.string.compose_editor_right_to_left),
+                icon = EditorFieldOption.RIGHT_TO_LEFT.icon,
+                label = stringResource(EditorFieldOption.RIGHT_TO_LEFT.label),
                 checked = field.rtl,
                 enabled = enabled,
                 onCheckedChange = onDirection,
@@ -970,53 +978,23 @@ private fun FieldOptionsHelp(
                             ),
                         ),
                     )
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_push_pin_24),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = iconTint,
-                            )
-                            Text(stringResource(R.string.compose_editor_pin_field), style = MaterialTheme.typography.titleSmall)
+                    for (option in EditorFieldOption.entries) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    painterResource(option.icon),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = iconTint,
+                                )
+                                Text(
+                                    stringResource(option.label),
+                                    modifier = Modifier.semantics { heading() },
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                            }
+                            Text(stringResource(option.help))
                         }
-                        Text(stringResource(R.string.compose_editor_pin_field_summary))
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                painterResource(R.drawable.ic_language_black_24dp),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = iconTint,
-                            )
-                            Text(stringResource(CommonString.keyboard), style = MaterialTheme.typography.titleSmall)
-                        }
-                        Text(stringResource(R.string.compose_editor_language_hint_summary))
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                painterResource(R.drawable.ic_touch),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = iconTint,
-                            )
-                            Text(stringResource(R.string.compose_editor_quick_actions), style = MaterialTheme.typography.titleSmall)
-                        }
-                        Text(stringResource(R.string.compose_editor_quick_actions_help))
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                painterResource(R.drawable.ic_toolbar),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = iconTint,
-                            )
-                            Text(stringResource(R.string.compose_editor_toolbar), style = MaterialTheme.typography.titleSmall)
-                        }
-                        Text(stringResource(R.string.compose_editor_toolbar_help))
                     }
                 }
             }

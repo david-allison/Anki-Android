@@ -37,8 +37,10 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
@@ -1382,6 +1384,32 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldHelpDescribesEveryVisibleOption() {
+        openOptions()
+        // Check the actual controls too, so adding one without registering its help fails this test.
+        val controls =
+            composeRule
+                .onAllNodes(
+                    hasClickAction() and hasAnyAncestor(hasTestTag("editor_field_options")) and
+                        !hasContentDescription(getResourceString(R.string.compose_editor_field_options_help)) and
+                        !hasContentDescription(getResourceString(R.string.compose_editor_close_field_options)),
+                ).fetchSemanticsNodes()
+        val labels = controls.map { it.config[SemanticsProperties.Text].first().text }
+        assertEquals(EditorFieldOption.entries.size, labels.size)
+        assertEquals(EditorFieldOption.entries.map { getResourceString(it.label) }.toSet(), labels.toSet())
+
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        for (option in EditorFieldOption.entries) {
+            composeRule.onNode(hasText(getResourceString(option.label)) and hasAnyAncestor(isPopup())).performScrollTo().assertIsDisplayed()
+            val help = getResourceString(option.help)
+            assertTrue(help.isNotBlank())
+            composeRule.onNode(hasText(help) and hasAnyAncestor(isPopup())).performScrollTo().assertIsDisplayed()
+        }
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertDoesNotExist()
+    }
+
+    @Test
     fun helpOpen() {
         val (activity, _) = openOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
@@ -1391,10 +1419,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             ).assertIsDisplayed()
         settleMenuTransition(activity)
         captureScreen("help_open")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_help)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left_help)).performScrollTo().assertIsDisplayed()
         settleMenuTransition(activity)
-        captureScreen("help_open_actions")
+        captureScreen("help_open_field_defaults")
     }
 
     @Test
@@ -1406,9 +1433,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         openFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
         captureScreen("help_open_small_screen_large_text")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_help)).performScrollTo().assertIsDisplayed()
-        captureScreen("help_open_actions_small_screen_large_text")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left_help)).performScrollTo().assertIsDisplayed()
+        captureScreen("help_open_field_defaults_small_screen_large_text")
     }
 
     @Test
