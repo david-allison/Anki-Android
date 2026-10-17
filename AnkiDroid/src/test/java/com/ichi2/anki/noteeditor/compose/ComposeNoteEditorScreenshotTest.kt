@@ -203,11 +203,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val options =
             listOf(
                 EditorFieldOption.PIN,
-                EditorFieldOption.KEYBOARD,
-                EditorFieldOption.FONT,
                 EditorFieldOption.HTML,
                 EditorFieldOption.COLLAPSED,
                 EditorFieldOption.RIGHT_TO_LEFT,
+                EditorFieldOption.FONT,
+                EditorFieldOption.KEYBOARD,
             )
         val bounds =
             options.map {
@@ -1131,10 +1131,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_top")
-        composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_controls")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_bottom")
     }

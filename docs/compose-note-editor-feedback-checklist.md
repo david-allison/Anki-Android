@@ -171,9 +171,10 @@ every note using the note type. Reuse Anki's collection properties where they
 exist; distinguish these settings from device-local presentation preferences.
 
 **Layout updated 2026-10-17:** Field options uses a two-column, three-row grid:
-Pin field / Keyboard, Font / Start in HTML mode, Start collapsed / Right-to-left
-text. Enabled toggles use a blue container and tick, with accessible checked
-states. Description stays full-width below the grid to accommodate its hint.
+Pin field / Start in HTML mode, Start collapsed / Right-to-left text, and
+Font / Keyboard. The bottom row groups the settings that open their own dialogs
+and use a trailing chevron. Enabled toggles use a blue container and tick, with
+accessible checked states. Description stays full-width below the grid to accommodate its hint.
 Narrow windows and large text use one column; the sheet remains scrollable above
 the keyboard. Long-press explanations and the shared help catalogue remain.
 

@@ -778,14 +778,15 @@ private fun EditorFieldOptions(
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
             val columns = if (maxWidth / LocalDensity.current.fontScale < 300.dp) 1 else 2
+            // Font and Keyboard share the bottom row: both open their own dialogs and have a trailing chevron.
             val options =
                 listOf(
                     EditorFieldOption.PIN,
-                    EditorFieldOption.KEYBOARD,
-                    EditorFieldOption.FONT,
                     EditorFieldOption.HTML,
                     EditorFieldOption.COLLAPSED,
                     EditorFieldOption.RIGHT_TO_LEFT,
+                    EditorFieldOption.FONT,
+                    EditorFieldOption.KEYBOARD,
                 )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (row in options.chunked(columns)) {
