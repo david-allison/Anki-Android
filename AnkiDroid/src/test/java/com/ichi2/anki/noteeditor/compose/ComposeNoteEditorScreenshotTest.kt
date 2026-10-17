@@ -29,6 +29,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -106,7 +107,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 onPreset = { _, id -> selection.value = id },
             )
         hideKeyboard(activity, keyboard)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         val selector = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset))
         selector.performScrollTo().performClick()
         composeRule.onNodeWithText("Language learning").performClick()
@@ -158,7 +159,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun rightToLeftFieldOptions() {
         var requested: Pair<EditorFieldTarget, Boolean>? = null
         showEditor(rtl = true, onDirection = { target, rtl -> requested = target to rtl })
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         val toggle = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left))
         toggle.performScrollTo().assertIsOn()
         captureScreen("field_options_right_to_left")
@@ -179,7 +180,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 htmlDefault.value = value
             },
         )
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         val toggle = composeRule.onNodeWithText(TR.fieldsHtmlByDefault())
         toggle.performScrollTo().assertIsOff()
         captureScreen("field_options_html_default_off")
@@ -201,7 +202,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 collapsed.value = value
             },
         )
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         val toggle = composeRule.onNodeWithText(TR.fieldsCollapseByDefault())
         toggle.performScrollTo().assertIsOff()
         captureScreen("field_options_collapse_default_off")
@@ -217,7 +218,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         showEditor()
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_font)).performScrollTo().performClick()
         composeRule.onNodeWithText(TR.fieldsEditingFont()).assertIsDisplayed()
         captureScreen("field_font_settings")
@@ -310,7 +311,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).fetchSemanticsNode().boundsInRoot
         assertTrue(tag.bottom <= bold.top && bold.top - tag.bottom < 80.dp.toPx(activity))
         captureScreen("tags_above_toolbar")
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText("Vocabulary").assertDoesNotExist()
     }
 
@@ -527,7 +528,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         for (label in listOf(
             R.string.compose_editor_options,
             R.string.compose_editor_italic,
-            R.string.compose_editor_field_options,
+            androidx.appcompat.R.string.abc_action_menu_overflow_description,
             CommonString.card_editor_preview_card,
             androidx.appcompat.R.string.abc_action_bar_up_description,
         )) {
@@ -563,15 +564,82 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarOverflowOpensMenuBeforeFieldOptions() {
+        showEditor()
+        toolbarOverflowButton().performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_field_options)) and hasAnyAncestor(isPopup()),
+            ).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsDisplayed()
+    }
+
+    @Test
+    fun toolbarOverflowWithoutKeyboard() {
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        toolbarOverflowButton().performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        captureScreen("toolbar_overflow_without_keyboard")
+    }
+
+    @Test
+    fun toolbarOverflowClosesWhenTheFieldChanges() {
+        val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1))
+        showEditor(focusState = focus)
+        toolbarOverflowButton().performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        composeRule.runOnIdle { focus.value = focus.value.copy(activeField = 0) }
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        toolbarOverflowButton().performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        composeRule.runOnIdle { focus.value = focus.value.copy(activeField = null) }
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        toolbarOverflowButton().assertIsNotEnabled()
+    }
+
+    @Test
+    fun toolbarOverflowOpensQuickActionsDirectly() {
+        showEditor()
+        toolbarOverflowButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(isDialog()),
+            ).assertIsDisplayed()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).assertDoesNotExist()
+        toolbarOverflowButton().assertIsDisplayed()
+    }
+
+    @Test
+    fun toolbarOverflowOpensToolbarPresetsDirectly() {
+        showEditor()
+        toolbarOverflowButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_toolbar_presets)) and hasAnyAncestor(isDialog()),
+            ).assertIsDisplayed()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+    }
+
+    @Test
     fun optionsOpen() {
         showEditor()
         val pin = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field))
         pin.assertDoesNotExist()
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         pin.assertIsDisplayed()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
         pin.assertDoesNotExist()
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         pin.assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
         captureScreen("options_open")
@@ -581,7 +649,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun optionsOpenWithoutKeyboard() {
         val (activity, keyboard) = showEditor()
         hideKeyboard(activity, keyboard)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         settleMenuTransition(activity)
         captureScreen("options_open_without_keyboard")
@@ -590,8 +658,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun fieldOptionsFinishSlidingOutBeforeRemovingContent() {
         showEditor()
-        val editorBottom = fieldOptionsButton().fetchSemanticsNode().boundsInRoot.bottom
-        fieldOptionsButton().performClick()
+        val editorBottom = toolbarOverflowButton().fetchSemanticsNode().boundsInRoot.bottom
+        openFieldOptions()
         composeRule.waitForIdle()
         val close = hasContentDescription(getResourceString(R.string.compose_editor_close_field_options))
         var lastTop =
@@ -626,7 +694,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         for (keyboardVisible in listOf(true, false)) {
             if (!keyboardVisible) hideKeyboard(activity, keyboard)
             val before = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
-            fieldOptionsButton().performClick()
+            openFieldOptions()
             composeRule.onNodeWithText("Japanese").assertIsDisplayed()
             assertEquals(before, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
@@ -639,7 +707,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun optionsUnpinned() {
         showEditor(pinned = false)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsOff().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_unpinned")
@@ -658,7 +726,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setFontScale(2f)
         val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
         hideKeyboard(activity, keyboard)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_top")
@@ -722,7 +790,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             noteTypeName = "A very long shared note type name",
             presets = samplePresets(),
         )
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNode(
@@ -767,7 +835,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC", "UNDERLINE"),
                 ),
         )
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
@@ -792,7 +860,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun quickActionsConfigurationOpen() {
         showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")))
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule.moveToolbarButton(
             getResourceString(R.string.compose_editor_pin_field),
@@ -818,7 +886,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun quickActionsConfigurationWithNoneActive() {
         showEditor(toolbar = EditorFieldToolbar(quickActions = emptyList()))
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.user_active_columns)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.user_potential_columns)).assertIsDisplayed()
@@ -828,7 +896,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun toolbarConfigurationWithNoneActive() {
         showEditor(toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet()))
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performScrollTo().performClick()
         composeRule
             .onNodeWithContentDescription(
@@ -1016,9 +1084,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     assertEquals(screenCenter, (row.first().left + row.last().right) / 2f, 1f, "Full row $index must be centered")
                 }
             }
-            fieldOptionsButton().assertDoesNotExist()
+            toolbarOverflowButton().assertDoesNotExist()
         } else {
-            fieldOptionsButton().assertIsDisplayed()
+            toolbarOverflowButton().assertIsDisplayed()
         }
         captureScreen(name)
     }
@@ -1039,7 +1107,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .fetchSemanticsNode()
                 .boundsInRoot
         assertTrue(nextRow.bottom <= first.top, "Keep Bold in the bottom row and wrap later buttons above it")
-        fieldOptionsButton().assertDoesNotExist()
+        toolbarOverflowButton().assertDoesNotExist()
         captureScreen("toolbar_stacked")
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).assertIsDisplayed()
@@ -1079,7 +1147,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText(getResourceString(next.label)).performClick()
             composeRule.onNodeWithText(getResourceString(next.label)).assertDoesNotExist()
         }
-        fieldOptionsButton().assertIsDisplayed()
+        toolbarOverflowButton().assertIsDisplayed()
     }
 
     @Test
@@ -1142,7 +1210,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun hiddenToolbarKeepsFieldOptionsAccessible() {
         showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN)
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
-        fieldOptionsButton().assertDoesNotExist()
+        toolbarOverflowButton().assertDoesNotExist()
         captureScreen("toolbar_hidden")
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
@@ -1177,7 +1245,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     getResourceString(R.string.compose_editor_bold),
                 ).fetchSemanticsNode()
                 .boundsInRoot
-        val options = fieldOptionsButton().fetchSemanticsNode().boundsInRoot
+        val options = toolbarOverflowButton().fetchSemanticsNode().boundsInRoot
         assertEquals(rtl, bold.center.x > options.center.x)
         val name = if (rtl) "toolbar_end_fade_rtl" else "toolbar_end_fade"
         captureScreen(name)
@@ -1186,7 +1254,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val axis = toolbar.fetchSemanticsNode().config[SemanticsProperties.HorizontalScrollAxisRange]
         assertEquals(axis.maxValue(), axis.value())
         captureScreen("${name}_fully_scrolled")
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
     }
 
@@ -1228,7 +1296,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setFontScale(1.5f)
         val (activity, keyboard) = showEditor()
         hideKeyboard(activity, keyboard)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
         captureScreen("help_open_small_screen_large_text")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).performScrollTo().assertIsDisplayed()
@@ -1449,11 +1517,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldOptionsLongPress() {
+    fun toolbarOverflowLongPress() {
         showEditor()
-        fieldOptionsButton().performTouchInput { longClick() }
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).assertIsDisplayed()
-        captureScreen("field_options_long_press")
+        toolbarOverflowButton().performTouchInput { longClick() }
+        composeRule.onNodeWithText(getResourceString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).assertDoesNotExist()
+        captureScreen("toolbar_overflow_long_press")
     }
 
     @Test
@@ -1498,7 +1567,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         templates: List<EditorCustomToolbarButton> = emptyList(),
     ): Pair<AnkiActivity, View> {
         val editor = showEditor(fieldName = fieldName, noteTypeName = noteTypeName, templates = templates)
-        fieldOptionsButton().performClick()
+        openFieldOptions()
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         composeRule.waitForIdle()
         return editor
@@ -1510,7 +1579,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.waitForIdle()
     }
 
-    private fun fieldOptionsButton() = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options))
+    private fun toolbarOverflowButton() =
+        composeRule.onNodeWithContentDescription(getResourceString(androidx.appcompat.R.string.abc_action_menu_overflow_description))
+
+    private fun openFieldOptions() {
+        toolbarOverflowButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
+    }
 
     private fun captureMetadataNames(
         name: String,

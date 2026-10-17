@@ -111,11 +111,14 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   "Disabled" can mean temporarily unavailable in the current context. Provide
   accessible alternatives to dragging between sections.
 
-- [ ] **12. Make the bottom toolbar's three-dot button open an overflow menu.**
+- [x] **12. Make the bottom toolbar's three-dot button open an overflow menu.**
 
-  **Assessment: strongly agree.** This directly addresses the tester's
-  expectation. Keep Field options accessible through a clearly named entry or
-  another discoverable control. This is separate from replacing the top gear.
+  **Implemented:** The three-dot button opens a Material menu with icons and
+  labeled entries for Field options, Toolbar buttons, and Quick actions. Field
+  options opens the existing sheet. The menu closes when its field or document
+  changes. Opening it preserves the keyboard and caret; Back dismisses the menu
+  first. Toolbar commands remain where the preset places them; the separate
+  Toolbar / Menu / Hidden configuration in 11 is still pending.
 
 - [ ] **13. Add a custom-toolbar-item creation button at the bottom of the preset editor.**
 

@@ -374,9 +374,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             web.setField(1, "Back text")
             runBlocking { web.focusField(1) }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
-            ).click()
+            device.openFieldOptions()
             val pin = checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_pin_field))), 5_000))
             val entered = CountDownLatch(1)
             val release = CountDownLatch(1)
@@ -801,9 +799,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 }
                 web.focusField(1)
             }
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
-            ).click()
+            device.openFieldOptions()
             clickText(testContext.getString(R.string.compose_editor_quick_actions))
             device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
             clickText(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
@@ -921,9 +917,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
             assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
-            ).click()
+            device.openFieldOptions()
             val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
             if (!device.hasObject(
                     toolbarEntry,
@@ -1061,7 +1055,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     }
                     val end =
                         checkNotNull(
-                            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))),
+                            device.findObject(
+                                By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)),
+                            ),
                         ).visibleBounds
                     val start = end.left - end.width() * 2
                     device.swipe(start, end.centerY(), start / 3, end.centerY(), 30)
@@ -1224,7 +1220,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     }
                     val end =
                         checkNotNull(
-                            device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)),
+                            device.findObject(
+                                By
+                                    .desc(
+                                        testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
+                                    ).enabled(true),
+                            ),
                         ).visibleBounds
                     // The icon bounds are narrower than the fixed button's touch target.
                     val start = end.left - end.width() * 2
@@ -1387,15 +1388,49 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun toolbarOverflowPreservesKeyboardAndCaret() =
+        withTestKeyboard {
+            withEditor { scenario ->
+                val web = scenario.awaitEditor()
+                web.setField(1, "Keep the caret here")
+                runBlocking { web.focusField(1) }
+                waitUntil(message = { "The keyboard did not open" }) { scenario.keyboardVisible() }
+                val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+                val overflow =
+                    By
+                        .desc(
+                            testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
+                        ).enabled(true)
+                val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
+                val caret = assertNotNull(runBlocking { web.captureTarget() })
+                checkNotNull(device.wait(Until.findObject(overflow), 5_000)).click()
+                assertTrue(device.wait(Until.hasObject(menu), 5_000))
+                device.waitForIdle()
+                assertTrue(scenario.keyboardVisible(), "Opening the overflow must leave the keyboard open")
+                captureScreenshot("toolbar-overflow-keyboard", web)
+                device.pressBack()
+                assertTrue(device.wait(Until.gone(menu), 5_000), "Back must dismiss the overflow first")
+                assertTrue(scenario.keyboardVisible(), "Dismissing the overflow must leave the keyboard open")
+                assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+
+                device.openFieldOptions()
+                val sheet = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+                assertTrue(device.wait(Until.hasObject(sheet), 5_000))
+                assertTrue(scenario.keyboardVisible(), "Opening field options from the menu must keep the keyboard open")
+                assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+                assertEquals("Keep the caret here", runBlocking { web.snapshot().fields[1] })
+            }
+        }
+
+    @Test
     fun tappingCurrentOrDifferentFieldClosesOptions() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             runBlocking { web.focusField(1) }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
             val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
             for (index in listOf(1, 0)) {
-                checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+                device.openFieldOptions()
                 assertTrue(device.wait(Until.hasObject(By.text("Pin field")), 5_000))
                 // Restoring focus for a native control must not count as a field tap.
                 runBlocking { web.focusField(1) }
@@ -1414,6 +1449,10 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     }
                     hidden
                 }
+                // The expanded settings now cover both inputs below the metadata header.
+                // Use the editor's scrolled-header state to expose them for a real field tap.
+                scenario.onActivity { web.onHeaderVisibility?.invoke(false) }
+                assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_deck))), 5_000))
                 device.waitForIdle()
                 assertFalse(device.hasObject(bold), "Hiding the keyboard must leave field options open")
 
@@ -1431,13 +1470,20 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     )
                 val location = IntArray(2)
                 scenario.onActivity { web.getLocationOnScreen(location) }
+                val tapY = location[1] + (point.getDouble("y") * point.getDouble("scale")).toInt()
+                val sheetTop =
+                    checkNotNull(
+                        device.findObject(By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))),
+                    ).visibleBounds.top
+                assertTrue(tapY < sheetTop, "The target input must be visible above the sheet")
                 assertTrue(
                     device.click(
                         location[0] + (point.getDouble("x") * point.getDouble("scale")).toInt(),
-                        location[1] + (point.getDouble("y") * point.getDouble("scale")).toInt(),
+                        tapY,
                     ),
                 )
                 assertTrue(device.wait(Until.hasObject(bold), 5_000), "Tapping field $index must restore formatting controls")
+                assertEquals(index, runBlocking { web.captureTarget() }?.field)
             }
         }
     }
@@ -1448,7 +1494,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val web = scenario.awaitEditor()
             web.setField(1, "Keep the caret here")
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
             val heading = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             val pin = By.desc(testContext.getString(R.string.compose_editor_pin_field))
             val density = testContext.resources.displayMetrics.density
@@ -1470,7 +1515,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     waitUntil(message = { "The keyboard did not hide" }) { !keyboardVisible() }
                 }
                 val target = assertNotNull(runBlocking { web.captureTarget() })
-                checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+                device.openFieldOptions()
                 assertNotNull(device.wait(Until.findObject(heading), 5_000))
                 device.waitForIdle()
 
@@ -1499,7 +1544,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            val options = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
             // Initial focus happens after fields mount; wait for the native controls before changing it.
             assertNotNull(device.wait(Until.findObject(options), 5_000))
             runBlocking { web.focusField(1) }
@@ -1512,7 +1557,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 return visible
             }
             waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
-            checkNotNull(device.wait(Until.findObject(options), 5_000)).click()
+            device.openFieldOptions()
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
 
@@ -1544,20 +1589,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
             waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_field_options)).enabled(true)
+            val options = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
 
             fun toggleOptions() {
-                val button =
-                    if (device.hasObject(
-                            backOptions,
-                        )
-                    ) {
-                        By.desc(testContext.getString(R.string.compose_editor_close_field_options))
-                    } else {
-                        options
-                    }
-                checkNotNull(device.wait(Until.findObject(button), 5_000)).click()
+                if (device.hasObject(backOptions)) {
+                    checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+                } else {
+                    device.openFieldOptions()
+                }
             }
 
             fun choose(label: Int) =
@@ -2419,6 +2459,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 """.trimIndent(),
             )
         }
+    }
+
+    private fun UiDevice.openFieldOptions() {
+        val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
+        checkNotNull(wait(Until.findObject(overflow), 5_000)).click()
+        checkNotNull(wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_field_options))), 5_000)).click()
     }
 
     private fun ActivityScenario<ComposeNoteEditorActivity>.keyboardVisible(): Boolean {
