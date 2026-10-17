@@ -1,16 +1,18 @@
 <!--
   SPDX-License-Identifier: Apache-2.0
   SPDX-FileCopyrightText: Google LLC
-  SPDX-FileComment: Style: Filled; intentionally not mirrored, because this setting always means right-to-left.
-  Source: https://fonts.gstatic.com/s/i/materialicons/format_textdirection_r_to_l/v12/24px.xml
+  SPDX-FileComment: Material Symbols Outlined, fill 0, weight 300, optical size 24; intentionally not mirrored, because this setting always means right-to-left.
+  Source: https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/format_textdirection_r_to_l/wght300/24px.svg
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
     android:tint="?attr/colorControlNormal">
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M10,10v5h2L12,4h2v11h2L16,4h2L18,2h-8C7.79,2 6,3.79 6,6s1.79,4 4,4zM8,17v-3l-4,4 4,4v-3h12v-2L8,17z"/>
+  <group android:translateY="960">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M382.69-370v-195.39h-8.84q-61 0-103.96-43.15-42.96-43.15-42.96-104.15 0-61 42.96-104.15Q312.85-860 373.85-860h284.61v60h-77.69v430h-60v-430h-78.08v430h-60ZM253.92-213.46l71.69 71.31L283.46-100 140-243.85l143.46-143.46L326-344.77l-71.69 71.31H820v60H253.92Zm128.77-411.92V-800h-8.84q-36.08 0-61.5 25.66-25.43 25.66-25.43 61.69 0 36.04 25.43 61.65 25.42 25.62 61.5 25.62h8.84Zm0-87.31Z"/>
+  </group>
 </vector>
