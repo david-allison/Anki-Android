@@ -1436,6 +1436,43 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun toolbarOverflowStaysAnchoredWithAndWithoutOnScreenKeyboard() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            runBlocking { web.focusField(1) }
+            val density = testContext.resources.displayMetrics.density
+            waitUntil(message = { "A visible on-screen keyboard is required for this regression" }) {
+                scenario.keyboardHeight() > 100 * density
+            }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description))
+            val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
+            for (keyboardVisible in listOf(true, false)) {
+                if (!keyboardVisible) {
+                    scenario.onActivity {
+                        WindowCompat.getInsetsController(it.window, it.window.decorView).hide(WindowInsetsCompat.Type.ime())
+                    }
+                    waitUntil(message = { "The keyboard did not close" }) { !scenario.keyboardVisible() }
+                }
+                device.waitForIdle()
+                val button = checkNotNull(device.wait(Until.findObject(overflow), 5_000))
+                val anchor = button.parent.visibleBounds
+                button.click()
+                val item = checkNotNull(device.wait(Until.findObject(menu), 5_000))
+                captureScreenshot("toolbar-overflow-anchored-keyboard-$keyboardVisible", web)
+                val bounds = item.parent.parent.visibleBounds
+                val gap = anchor.top - bounds.bottom
+                assertTrue(gap >= -1 && gap <= 8 * density, "The overflow must sit above its button; gap was ${gap / density}dp")
+                assertTrue(anchor.centerX() in bounds.left..bounds.right, "The menu must align horizontally with its button")
+                assertEquals(keyboardVisible, scenario.keyboardVisible())
+                // Dismiss outside the menu without touching a field or changing its focus.
+                device.click(anchor.left / 2, anchor.top - (16 * density).toInt())
+                assertTrue(device.wait(Until.gone(menu), 5_000))
+            }
+        }
+    }
+
+    @Test
     fun tappingCurrentOrDifferentFieldClosesOptions() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
