@@ -169,6 +169,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldOptionSwitchesWithMixedStates() {
+        val (activity, keyboard) = showEditor(rtl = true, htmlDefaultState = mutableStateOf(true))
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).assertIsOn()
+        composeRule.onNodeWithText(TR.fieldsHtmlByDefault()).assertIsOn()
+        composeRule.onNodeWithText(TR.fieldsCollapseByDefault()).assertIsOff()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
+        captureScreen("field_options_mixed_switches")
+    }
+
+    @Test
     fun htmlByDefaultFieldOptions() {
         val htmlDefault = mutableStateOf(false)
         val requested = mutableListOf<Pair<EditorFieldTarget, Boolean>>()
