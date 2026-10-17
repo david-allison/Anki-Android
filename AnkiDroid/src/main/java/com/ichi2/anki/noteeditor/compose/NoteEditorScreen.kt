@@ -116,7 +116,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
@@ -894,14 +893,14 @@ private fun EditorFieldOptions(
             )
             EditorFieldOptionSwitch(
                 icon = R.drawable.ic_code,
-                label = TR.fieldsHtmlByDefault(),
+                label = stringResource(R.string.compose_editor_start_in_html_mode),
                 checked = field.sourceMode,
                 enabled = enabled,
                 onCheckedChange = onHtmlByDefault,
             )
             EditorFieldOptionSwitch(
                 icon = R.drawable.ic_expand_less_black_24dp,
-                label = TR.fieldsCollapseByDefault(),
+                label = stringResource(R.string.compose_editor_start_collapsed),
                 checked = field.collapsed,
                 enabled = enabled,
                 onCheckedChange = onCollapseByDefault,

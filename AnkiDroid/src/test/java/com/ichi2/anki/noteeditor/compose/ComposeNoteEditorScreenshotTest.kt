@@ -199,8 +199,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         hideKeyboard(activity, keyboard)
         openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).assertIsOn()
-        composeRule.onNodeWithText(TR.fieldsHtmlByDefault()).assertIsOn()
-        composeRule.onNodeWithText(TR.fieldsCollapseByDefault()).assertIsOff()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_in_html_mode)).assertIsOn()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed)).assertIsOff()
         captureScreen("field_options_mixed_switches")
     }
 
@@ -217,7 +217,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             },
         )
         openFieldOptions()
-        val toggle = composeRule.onNodeWithText(TR.fieldsHtmlByDefault())
+        val toggle = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_in_html_mode))
         toggle.performScrollTo().assertIsOff()
         captureScreen("field_options_html_default_off")
         toggle.performClick().assertIsOn()
@@ -239,7 +239,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             },
         )
         openFieldOptions()
-        val toggle = composeRule.onNodeWithText(TR.fieldsCollapseByDefault())
+        val toggle = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed))
         toggle.performScrollTo().assertIsOff()
         captureScreen("field_options_collapse_default_off")
         toggle.performClick().assertIsOn()
@@ -781,7 +781,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             val viewport = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
             val availableBottom = height - maxOf(48, imeHeight) * density
             assertTrue(viewport.bottom <= availableBottom + 1, "Options extend below the usable viewport: $viewport / $availableBottom")
-            val lastOption = composeRule.onNodeWithText(TR.fieldsCollapseByDefault())
+            val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed))
             lastOption.performScrollTo().assertIsDisplayed()
             assertTrue(lastOption.fetchSemanticsNode().boundsInRoot.bottom <= availableBottom + 1)
         }
@@ -834,7 +834,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_controls")
-        composeRule.onNodeWithText(TR.fieldsCollapseByDefault()).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed)).performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_bottom")
     }
