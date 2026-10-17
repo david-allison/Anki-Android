@@ -192,7 +192,7 @@ internal fun EditorToolbarPresetsDialog(
                                         DropdownMenuItem(
                                             leadingIcon = {
                                                 Icon(
-                                                    painterResource(R.drawable.ic_mode_edit_white),
+                                                    painterResource(R.drawable.ic_edit_note),
                                                     null,
                                                     tint = controlColor,
                                                 )
