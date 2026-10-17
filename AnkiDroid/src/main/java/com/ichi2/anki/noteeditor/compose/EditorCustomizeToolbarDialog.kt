@@ -31,14 +31,19 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -143,6 +148,8 @@ internal fun EditorCustomizeToolbarDialog(
     }
     naming?.let { preset ->
         var name by rememberSaveable(preset.id) { mutableStateOf(preset.name) }
+        val nameFocus = remember(preset.id) { FocusRequester() }
+        val keyboard = LocalSoftwareKeyboardController.current
         val exists = pending.presets.any { it.id == preset.id }
         val duplicate =
             name.isNotBlank() && (
@@ -156,6 +163,7 @@ internal fun EditorCustomizeToolbarDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
+                    modifier = Modifier.focusRequester(nameFocus),
                     label = { Text(stringResource(R.string.compose_editor_preset_name)) },
                     singleLine = true,
                     isError = duplicate,
@@ -175,6 +183,10 @@ internal fun EditorCustomizeToolbarDialog(
             },
             dismissButton = { TextButton(onClick = { naming = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
         )
+        LaunchedEffect(preset.id) {
+            nameFocus.requestFocus()
+            keyboard?.show()
+        }
     }
     deleting?.let { preset ->
         AlertDialog(

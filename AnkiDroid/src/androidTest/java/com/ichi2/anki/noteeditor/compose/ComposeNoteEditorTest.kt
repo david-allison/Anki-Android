@@ -1097,6 +1097,44 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
+    fun addingToolbarPresetOpensTheKeyboardForItsName() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            runBlocking { web.focusField(1) }
+            waitUntil(message = { "The field keyboard did not open" }) { scenario.keyboardVisible() }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            device.pressBack()
+            waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
+            device.openEditorOptions()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_add_preset))), 5_000)).click()
+            val name =
+                checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)) {
+                    "Add preset must focus its name without another tap"
+                }
+            waitUntil(message = { "Add preset must open the keyboard without tapping its name field" }) {
+                var visible = false
+                scenario.onActivity {
+                    visible =
+                        android.view.inspector.WindowInspector.getGlobalWindowViews().any { root ->
+                            root.hasWindowFocus() &&
+                                ViewCompat.getRootWindowInsets(root)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                        }
+                }
+                visible
+            }
+            captureScreenshot("add-toolbar-preset-keyboard", web)
+            device.pressKeyCode(KeyEvent.KEYCODE_P)
+            assertTrue(name.wait(Until.textEquals("p"), 5_000), "Typing must go directly into the preset name")
+            checkNotNull(device.findObject(By.text(testContext.getString(CommonString.dialog_cancel)))).click()
+            checkNotNull(device.findObject(By.desc(testContext.getString(CommonString.dialog_cancel)))).click()
+            assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun formattingDialogsRestoreTheKeyboardAndSelectionOnCancel() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

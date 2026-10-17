@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -133,6 +134,14 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
         assertTrue(dismissed)
         assertNull(saved)
+    }
+
+    @Test
+    fun `new preset names receive focus when the dialog opens`() {
+        showPresets()
+        openChoices()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).assertIsFocused()
     }
 
     @Test
