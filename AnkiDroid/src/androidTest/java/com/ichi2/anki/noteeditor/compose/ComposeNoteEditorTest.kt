@@ -800,7 +800,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 }
                 web.focusField(1)
             }
-            device.openFieldOptions()
+            device.openToolbarOverflow()
             clickText(testContext.getString(R.string.compose_editor_quick_actions))
             device.findObjects(By.text(testContext.getString(R.string.compose_editor_pin_field))).last().click()
             clickText(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
@@ -811,7 +811,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .fields[1]
                     .toolbar.quickActions == listOf("pin", "gallery")
             }
-            device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))).click()
             web.setField(0, "Keep the Front caret here")
             web.setField(1, "Insert media in Back")
             runBlocking { web.focusField(0) }
@@ -918,14 +917,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
             assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
-            device.openFieldOptions()
+            device.openToolbarOverflow()
             val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
-            if (!device.hasObject(
-                    toolbarEntry,
-                )
-            ) {
-                device.findObject(By.scrollable(true)).scroll(androidx.test.uiautomator.Direction.DOWN, 0.8f)
-            }
             checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
             val presetName =
                 scenario
@@ -973,9 +966,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             }
             // Saving returns to the preset list in the same dialog window.
             device.pressBack()
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))), 5_000),
-            ).click()
             assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(
@@ -2511,9 +2501,13 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         }
     }
 
-    private fun UiDevice.openFieldOptions() {
+    private fun UiDevice.openToolbarOverflow() {
         val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
         checkNotNull(wait(Until.findObject(overflow), 5_000)).click()
+    }
+
+    private fun UiDevice.openFieldOptions() {
+        openToolbarOverflow()
         checkNotNull(wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_field_options))), 5_000)).click()
     }
 

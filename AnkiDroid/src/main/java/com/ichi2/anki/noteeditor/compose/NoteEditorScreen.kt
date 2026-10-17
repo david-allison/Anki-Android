@@ -320,6 +320,11 @@ fun NoteEditorScreen(
                                         fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
                                         fieldToolbarVisible = it.showsToolbar(toolbarState.value.activeField),
                                         onFieldOptions = { fieldOptionsRequested.value = true },
+                                        onQuickActions = {
+                                            toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->
+                                                quickActionsTarget = EditorFieldTarget(it.sessionId, it.generation, field)
+                                            }
+                                        },
                                         onToolbarPresets = { showToolbarPresets = true },
                                     )
                                 }
@@ -629,8 +634,6 @@ private fun EditorFieldArea(
                         toolbarHiddenGlobally = editorState.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
                         onToolbarVisibility = { onToolbarVisibility(target, it) },
                         onToolbarPreset = { onToolbarPreset(target, it) },
-                        onToolbar = { onToolbar(target) },
-                        onQuickActions = { onQuickActions(target) },
                         onCollapse = closeOptions,
                     )
                 }
@@ -772,8 +775,6 @@ private fun EditorFieldOptions(
     toolbarHiddenGlobally: Boolean,
     onToolbarVisibility: (Boolean) -> Unit,
     onToolbarPreset: (String) -> Unit,
-    onToolbar: () -> Unit,
-    onQuickActions: () -> Unit,
     onCollapse: () -> Unit,
 ) {
     val controlColor = editorControlColor()
@@ -905,14 +906,6 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onCheckedChange = onCollapseByDefault,
         )
-        EditorFieldOptionsLink(
-            icon = R.drawable.ic_touch,
-            title = R.string.compose_editor_quick_actions,
-            summary = stringResource(R.string.compose_editor_quick_actions_summary),
-            iconTint = controlColor,
-            enabled = enabled,
-            onClick = onQuickActions,
-        )
         EditorFieldOptionSwitch(
             label = stringResource(R.string.compose_editor_show_field_toolbar),
             checked = field.toolbar.showToolbar,
@@ -929,14 +922,6 @@ private fun EditorFieldOptions(
         } else if (field.toolbar.showToolbar) {
             EditorFieldToolbarPresetSelector(presets, field.toolbarPresetId, enabled, onToolbarPreset)
         }
-        EditorFieldOptionsLink(
-            icon = R.drawable.ic_toolbar,
-            title = R.string.compose_editor_toolbar,
-            summary = stringResource(R.string.compose_editor_toolbar_summary),
-            iconTint = controlColor,
-            enabled = enabled,
-            onClick = onToolbar,
-        )
     }
 }
 
