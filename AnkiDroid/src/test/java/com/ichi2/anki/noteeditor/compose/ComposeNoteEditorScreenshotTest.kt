@@ -40,6 +40,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -60,7 +61,6 @@ import androidx.core.graphics.get
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.AnkiActivity
-import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
@@ -258,7 +258,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         showEditor()
         openFieldOptions()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_font)).performScrollTo().performClick()
-        composeRule.onNodeWithText(TR.fieldsEditingFont()).assertIsDisplayed()
+        composeRule
+            .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
+            .assertIsDisplayed()
         captureScreen("field_font_settings")
     }
 
@@ -289,7 +291,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 )
             }
         }
-        composeRule.onNodeWithText(TR.fieldsEditingFont()).assertIsDisplayed()
+        composeRule
+            .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
+            .assertIsDisplayed()
         captureScreen("field_font_settings_override")
     }
 

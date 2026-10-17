@@ -51,7 +51,7 @@ internal fun EditorFieldFontDialog(
     val valid = font.isNotBlank() && font.none { it.isISOControl() } && size.toIntOrNull() in 5..300
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(TR.fieldsEditingFont()) },
+        title = { Text(stringResource(R.string.compose_editor_field_font)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
