@@ -164,13 +164,11 @@ class EquationPreviewTest : InstrumentedTest() {
     }
 
     @Test
-    fun expandingPreservesTheRendererAndPendingText() {
+    fun editingPreservesTheRendererAndPendingText() {
         withDialog(dark = false) { web, applied ->
             web.awaitJavascript("!!document.querySelector('mjx-mfrac')")
             val originalPage = web.evaluate("performance.timeOrigin")
             val device = UiDevice.getInstance(getInstrumentation())
-            device.findObject(By.text(testContext.getString(R.string.compose_editor_equation_expand))).click()
-            assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_equation_collapse))), 5_000))
             val formula = checkNotNull(device.findObject(By.clazz("android.widget.EditText")))
             formula.click()
             formula.text = "\\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx = \\sqrt{\\pi}"
@@ -179,10 +177,8 @@ class EquationPreviewTest : InstrumentedTest() {
             capture(web, "equation-preview-expanded-focused-input")
             device.pressBack()
             capture(web, "equation-preview-expanded")
-            device.findObject(By.text(testContext.getString(R.string.compose_editor_equation_collapse))).click()
-            assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_equation_expand))), 5_000))
-            assertEquals(originalPage, web.evaluate("performance.timeOrigin"), "Expanding must retain the renderer")
-            assertNull(applied.get(), "Expanding must not apply the equation")
+            assertEquals(originalPage, web.evaluate("performance.timeOrigin"), "Editing must retain the renderer")
+            assertNull(applied.get(), "Editing must not apply the equation")
             device.findObject(By.text(testContext.getString(CommonString.dialog_ok))).click()
             waitUntil(message = { "The expanded editor did not apply its equation" }) { applied.get() != null }
             assertEquals(WebEditorAction.MATHJAX_INLINE to formula.text, applied.get())
