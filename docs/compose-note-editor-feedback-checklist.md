@@ -260,6 +260,10 @@ exist; distinguish these settings from device-local presentation preferences.
   E-ink retains its intentionally black controls. Screenshot regressions cover
   the toolbar and alignment tint in light and dark themes.
 
+  **MathJax exception:** its fine-stroked equation symbol uses `onSurface` in the
+  toolbar and customization list so it does not look disabled. Its unavailable
+  state keeps the standard disabled appearance, covered in both themes.
+
 - [x] **27. Remove the decorative icon above the MathJax dialog title.**
 
   **Decision: implemented 2026-10-15.** Removed the top decoration, which

@@ -1049,7 +1049,9 @@ internal fun EditorActionButton(
 ) {
     val text = stringResource(label)
     EditorTooltip(text) {
-        IconButton(onClick = onClick, enabled = enabled, colors = editorIconButtonColors()) { Icon(painterResource(icon), text) }
+        IconButton(onClick = onClick, enabled = enabled, colors = editorIconButtonColors(editorToolbarIconColor(icon))) {
+            Icon(painterResource(icon), text)
+        }
     }
 }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -583,6 +584,47 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_italic)).assertIsOff()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_underline)).assertIsOn()
         captureScreen("selected_formatting")
+    }
+
+    @Test
+    fun mathJaxIconKeepsEnabledAndDisabledStatesDistinct() {
+        val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1))
+        val (activity, _) =
+            showEditor(
+                toolbarDisplay = EditorToolbarDisplay.STACK,
+                toolbar =
+                    EditorFieldToolbar(
+                        hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "EQUATIONS", "RECORD_AUDIO"),
+                    ),
+                focusState = focus,
+            )
+        val equation = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_equations))
+        val enabledColor = activity.toMaterial3ColorScheme().onSurface.toArgb()
+        val enabledPixels = equation.assertIsEnabled().captureToImage().toPixelMap()
+        assertTrue(
+            (0 until enabledPixels.width).any { x ->
+                (0 until enabledPixels.height).any { y -> enabledPixels[x, y].toArgb() == enabledColor }
+            },
+            "The fine MathJax strokes need the theme's text contrast when enabled",
+        )
+        captureScreen("mathjax_toolbar_icon_enabled")
+        composeRule.runOnIdle { focus.value = focus.value.copy(hasSelection = false) }
+        val disabledPixels = equation.assertIsNotEnabled().captureToImage().toPixelMap()
+        val disabledColor =
+            activity
+                .toMaterial3ColorScheme()
+                .onSurface
+                .copy(alpha = 0.38f)
+                .compositeOver(disabledPixels[0, 0])
+                .toArgb()
+        assertNotEquals(enabledColor, disabledColor)
+        assertTrue(
+            (0 until disabledPixels.width).any { x ->
+                (0 until disabledPixels.height).any { y -> disabledPixels[x, y].toArgb() == disabledColor }
+            },
+            "An unavailable MathJax action must retain Material's disabled appearance",
+        )
+        captureScreen("mathjax_toolbar_icon_disabled")
     }
 
     @Test

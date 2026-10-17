@@ -258,7 +258,7 @@ internal fun EditorToolbarRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.padding(start = 12.dp).size(20.dp)) {
-                    Icon(painterResource(icon), contentDescription = null, tint = controlColor)
+                    Icon(painterResource(icon), contentDescription = null, tint = editorToolbarIconColor(icon))
                 }
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 4.dp)) {
                     Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
