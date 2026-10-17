@@ -1588,16 +1588,97 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun toolbarEndFade() {
-        captureToolbarEndFade(rtl = false)
+    fun overflowingToolbarPeeksWhenTheEdgeFallsBetweenIcons() {
+        RuntimeEnvironment.setQualifiers("+w400dp")
+        showEditor()
+        assertToolbarHasVisibleClippedContent()
+        captureScreen("toolbar_overflow_peek")
     }
 
     @Test
-    fun toolbarEndFadeRtl() {
-        captureToolbarEndFade(rtl = true)
+    fun overflowingToolbarWithCustomButtonsPeeks() {
+        RuntimeEnvironment.setQualifiers("+w400dp")
+        showEditor(
+            toolbar =
+                EditorFieldToolbar(
+                    customButtons =
+                        listOf(
+                            EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>"),
+                            EditorCustomToolbarButton(id = "long", label = "A long custom button", prefix = "<b>", suffix = "</b>"),
+                        ),
+                ),
+        )
+        assertToolbarHasVisibleClippedContent()
+        captureScreen("toolbar_custom_overflow_peek")
     }
 
-    private fun captureToolbarEndFade(rtl: Boolean) {
+    @Test
+    fun overflowingToolbarPeeksInRtl() {
+        RuntimeEnvironment.setQualifiers("+ldrtl-w400dp")
+        showEditor()
+        assertToolbarHasVisibleClippedContent(rtl = true)
+        captureScreen("toolbar_overflow_peek_rtl")
+    }
+
+    @Test
+    fun toolbarKeepsPixelSpacingWhenAnIconAlreadyPeeks() {
+        RuntimeEnvironment.setQualifiers("w426dp-h952dp-mdpi")
+        showEditor()
+        assertToolbarHasVisibleClippedContent()
+        val bold =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_bold),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        val italic =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_italic),
+                ).fetchSemanticsNode()
+                .boundsInRoot
+        assertEquals(12f, bold.left, 1f)
+        assertEquals(48f, italic.left - bold.left, 1f, "Keep the Pixel's existing spacing")
+        captureScreen("toolbar_pixel_spacing_without_fade")
+    }
+
+    private fun assertToolbarHasVisibleClippedContent(rtl: Boolean = false) {
+        val toolbar = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+        val axis = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().config[SemanticsProperties.HorizontalScrollAxisRange]
+        assertTrue(axis.maxValue() > 0, "This case must overflow")
+        val icons =
+            EditorToolbarButton.entries.filterNot { it.clozeOnly }.flatMap { button ->
+                composeRule.onAllNodes(hasContentDescription(getResourceString(button.label)), useUnmergedTree = true).fetchSemanticsNodes()
+            }
+        assertTrue(
+            icons.any {
+                val inset =
+                    if (it.config.contains(SemanticsProperties.Role) &&
+                        it.config[SemanticsProperties.Role] == Role.Switch
+                    ) {
+                        2 * targetContext.resources.displayMetrics.density
+                    } else {
+                        0f
+                    }
+                val left = it.positionInRoot.x + inset
+                val right = it.positionInRoot.x + it.size.width - inset
+                if (rtl) left < toolbar.left && right > toolbar.left else left < toolbar.right && right > toolbar.right
+            },
+            "An overflowing initial toolbar must visibly cut through an icon, not just its touch padding",
+        )
+    }
+
+    @Test
+    fun toolbarClippedEdge() {
+        captureToolbarClippedEdge(rtl = false)
+    }
+
+    @Test
+    fun toolbarClippedEdgeRtl() {
+        captureToolbarClippedEdge(rtl = true)
+    }
+
+    private fun captureToolbarClippedEdge(rtl: Boolean) {
         // Place the edge through an icon, rather than through the gap between buttons.
         RuntimeEnvironment.setQualifiers("+${if (rtl) "ldrtl" else "ldltr"}-w420dp")
         showEditor()
@@ -1610,7 +1691,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val viewport = composeRule.onRoot().fetchSemanticsNode().boundsInRoot
         assertEquals(rtl, bold.center.x > viewport.center.x)
         toolbarOverflowButton().assertDoesNotExist()
-        val name = if (rtl) "toolbar_end_fade_rtl" else "toolbar_end_fade"
+        val name = if (rtl) "toolbar_clipped_edge_rtl" else "toolbar_clipped_edge"
         captureScreen(name)
         val toolbar = composeRule.onNode(hasScrollAction())
         toolbar.performSemanticsAction(SemanticsActions.ScrollBy) { it(10_000f, 0f) }

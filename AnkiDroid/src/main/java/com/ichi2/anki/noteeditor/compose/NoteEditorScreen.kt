@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -33,9 +32,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -84,11 +80,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -113,7 +106,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -677,15 +669,7 @@ private fun EditorFieldArea(
                                     verticalArrangement = ToolbarRowsFromBottom,
                                 ) { items.forEach { button(it) } }
                             } else {
-                                // Only compose visible buttons during editor/IME startup. Stable keys
-                                // retain each button's tooltip state when a field changes its order.
-                                LazyRow(
-                                    state = toolbarScrollState,
-                                    modifier = Modifier.weight(1f).toolbarEndFade(toolbarScrollState, toolbarBackground),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                ) {
-                                    items(items, key = { it.key }) { button(it) }
-                                }
+                                EditorScrollingToolbar(items, toolbarScrollState, Modifier.weight(1f), button)
                             }
                         }
                     }
@@ -721,29 +705,6 @@ private object ToolbarRowsFromBottom : Arrangement.Vertical {
         }
     }
 }
-
-/** Fade clipped buttons into the solid toolbar surface without allocating an offscreen layer. */
-private fun Modifier.toolbarEndFade(
-    scrollState: LazyListState,
-    background: Color,
-): Modifier =
-    drawWithCache {
-        val width = 16.dp.toPx().coerceAtMost(size.width)
-        val rtl = layoutDirection == LayoutDirection.Rtl
-        val left = if (rtl) 0f else size.width - width
-        val brush =
-            Brush.horizontalGradient(
-                colors = listOf(background.copy(alpha = 0f), background),
-                startX = if (rtl) width else left,
-                endX = if (rtl) 0f else size.width,
-            )
-        onDrawWithContent {
-            drawContent()
-            if (scrollState.canScrollForward) {
-                drawRect(brush, topLeft = Offset(left, 0f), size = Size(width, size.height))
-            }
-        }
-    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
