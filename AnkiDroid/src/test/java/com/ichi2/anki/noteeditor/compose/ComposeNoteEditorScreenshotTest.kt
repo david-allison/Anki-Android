@@ -412,6 +412,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
             .assertIsDisplayed()
         captureScreen("field_font_settings")
+        val font = composeRule.onNode(hasSetTextAction() and hasText("Arial"))
+        font.performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        captureScreen("field_font_choices")
+        composeRule.onNode(hasText("serif") and hasAnyAncestor(isPopup())).performClick()
+        composeRule.onNode(isPopup()).assertDoesNotExist()
+        composeRule.onNode(hasSetTextAction() and hasText("serif")).assertIsDisplayed()
     }
 
     @Test
