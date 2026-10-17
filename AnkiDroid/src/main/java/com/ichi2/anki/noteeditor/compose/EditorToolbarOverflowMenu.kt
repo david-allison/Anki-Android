@@ -2,7 +2,11 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.os.Build
 import android.view.WindowManager
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -10,11 +14,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.PopupProperties
@@ -30,6 +37,7 @@ internal fun EditorToolbarOverflowMenu(
 ) {
     // A menu opened for one field must not silently retarget after a field/document change.
     var expanded by remember(target, enabled) { mutableStateOf(false) }
+    EditorOverflowBackHandler(expanded) { expanded = false }
     val controlColor = editorControlColor()
     Box {
         EditorActionButton(
@@ -41,10 +49,13 @@ internal fun EditorToolbarOverflowMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
-            // Retain keyboard navigation/Back in the menu without taking IME focus from the field.
+            // Keep input focus in the field while the menu is open, including with a visible IME.
             properties =
                 PopupProperties(
-                    flags = WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
+                    flags =
+                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                            WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 ),
         ) {
             DropdownMenuItem(
@@ -71,6 +82,28 @@ internal fun EditorToolbarOverflowMenu(
                     target?.let(onQuickActions)
                 },
             )
+        }
+    }
+}
+
+/** A non-focusable popup cannot receive Back; handle it in the editor's window instead. */
+@Composable
+private fun EditorOverflowBackHandler(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = expanded, onBack = onDismiss)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val view = LocalView.current
+        val dismiss by rememberUpdatedState(onDismiss)
+        DisposableEffect(view, expanded) {
+            val dispatcher = view.findOnBackInvokedDispatcher()
+            val callback = OnBackInvokedCallback { dismiss() }
+            if (expanded) {
+                // Match Popup's priority so Back dismisses the menu before the visible keyboard.
+                dispatcher?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback)
+            }
+            onDispose { dispatcher?.unregisterOnBackInvokedCallback(callback) }
         }
     }
 }
