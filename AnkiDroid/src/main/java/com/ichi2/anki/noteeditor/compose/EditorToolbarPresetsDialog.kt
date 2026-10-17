@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -160,6 +161,7 @@ internal fun EditorToolbarPresetsDialog(
                     var menu by rememberSaveable(preset.id) { mutableStateOf(false) }
                     PresetRow(
                         enabled = enabled,
+                        selectionEnabled = field?.toolbar?.showToolbar != false,
                         name = name,
                         selected = if (field != null) field.toolbarPresetId == preset.id else null,
                         description =
@@ -303,12 +305,15 @@ private fun PresetRow(
     onEdit: () -> Unit,
     description: String? = null,
     enabled: Boolean = true,
+    selectionEnabled: Boolean = true,
     more: @Composable () -> Unit = { Spacer(Modifier.width(48.dp)) },
 ) {
+    val canSelect = enabled && selectionEnabled
+    val textModifier = Modifier.alpha(if (canSelect) 1f else 0.38f)
     ListItem(
-        content = { Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        supportingContent = description?.let { { Text(it) } },
-        leadingContent = if (selected != null) ({ RadioButton(selected = selected, onClick = null) }) else null,
+        content = { Text(name, textModifier, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        supportingContent = description?.let { { Text(it, textModifier) } },
+        leadingContent = if (selected != null) ({ RadioButton(selected = selected, onClick = null, enabled = canSelect) }) else null,
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onEdit, enabled = enabled, colors = editorIconButtonColors()) {
@@ -320,7 +325,7 @@ private fun PresetRow(
         modifier =
             Modifier.fillMaxWidth().then(
                 if (selected != null) {
-                    Modifier.selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+                    Modifier.selectable(selected = selected, enabled = canSelect, role = Role.RadioButton, onClick = onClick)
                 } else {
                     Modifier.clickable(enabled = enabled, onClick = onClick)
                 },
