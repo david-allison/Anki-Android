@@ -196,12 +196,13 @@ exist; distinguish these settings from device-local presentation preferences.
   `rtl` flag. Changes apply to existing fields without reloading or changing
   their HTML, selection or undo history.
 
-- [ ] **20. Include Use HTML editor by default.**
+- [x] **20. Include Use HTML editor by default.**
 
-  **Assessment: agree.** Keep the persistent default separate from changing
-  modes during the current edit. The Compose editor already reads the backend's
-  `plainText` setting; convenient configuration is the missing part of this
-  proposal.
+  **Implemented:** The field-options switch uses Anki's translated label and
+  saves its collection-backed `plainText` default. It applies when opening a
+  note or starting the next Add, without switching the current input or
+  changing its HTML. The A/<> control remains a temporary mode switch; draft
+  recovery preserves that temporary mode independently of the saved default.
 
 - [x] **21. Include Collapse by default.**
 

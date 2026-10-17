@@ -62,6 +62,7 @@ data class EditorFieldState(
     val sticky: Boolean,
     /** Note-type default; temporary expansion lives in the WebView and its draft. */
     val collapsed: Boolean,
+    /** Note-type default; the active editing mode lives in the WebView and its draft. */
     val sourceMode: Boolean,
     val toolbar: EditorFieldToolbar = EditorFieldToolbar(),
     val toolbarPresetId: String = EditorToolbarPreset.DEFAULT_ID,

@@ -568,6 +568,34 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `HTML editor defaults persist for add and edit without changing content or other fields`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.setFieldHtmlByDefault(target, true)
+            val updated = assertNotNull(vm.state.value)
+            val saved = assertNotNull(col.notetypes.get(original.noteTypeId))
+            assertTrue(saved.fields[1].jsonObject.getBoolean("plainText"))
+            assertEquals(saved.toString(), updated.notetypeJson)
+            assertEquals(original.fields[1].copy(sourceMode = true), updated.fields[1])
+            assertEquals(original.fields[0], updated.fields[0])
+            assertEquals(original.generation, updated.generation)
+            assertFalse(updated.hasMetadataChanges)
+            assertTrue(assertNotNull(loadAdd().state.value).fields[1].sourceMode)
+            val note = addBasicNote()
+            assertTrue(assertNotNull(loadEdit(note.firstCard().id).state.value).fields[1].sourceMode)
+
+            assertIs<EditorSaveResult.Added>(vm.save(listOf("new front", "new back")))
+            val next = assertNotNull(vm.state.value)
+            assertTrue(next.fields[1].sourceMode, "The next Add must use the saved default")
+            vm.setFieldHtmlByDefault(target.copy(generation = next.generation), false)
+            assertFalse(assertNotNull(vm.state.value).fields[1].sourceMode)
+            assertFalse(assertNotNull(loadAdd().state.value).fields[1].sourceMode)
+            assertEquals(listOf("", ""), assertNotNull(vm.state.value).fields.map { it.html })
+        }
+
+    @Test
     fun `collapse defaults persist for add and edit without changing content or other fields`() =
         runTest {
             val vm = loadAdd()
@@ -628,6 +656,7 @@ class EditorViewModelTest : JvmTest() {
             vm.setFieldTypography(target, "serif", 30)
             vm.setFieldDirection(target, true)
             vm.setFieldCollapsedByDefault(target, true)
+            vm.setFieldHtmlByDefault(target, true)
 
             assertEquals(changed, vm.state.value)
             assertNull(

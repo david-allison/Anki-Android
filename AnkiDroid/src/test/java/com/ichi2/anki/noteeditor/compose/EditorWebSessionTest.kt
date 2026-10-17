@@ -33,6 +33,55 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorWebSessionTest : JvmTest() {
     @Test
+    fun `HTML defaults load with the document and changes wait for the next note`() =
+        runTest {
+            val originalDispatcher = ioDispatcher
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+            val model = EditorViewModel(SavedStateHandle())
+            val store = ViewModelStore().apply { put("editor", model) }
+            val errors = mutableListOf<String>()
+            val session = EditorWebSession(model, backgroundScope, errors::add)
+            val web = mockk<WebEditorView>(relaxed = true)
+            every { web.context } returns ApplicationProvider.getApplicationContext()
+            try {
+                model.load(NoteEditorFragment.addNoteArgs())
+                val original = checkNotNull(model.state.value)
+                val target = EditorFieldTarget(original.sessionId, original.generation, 0)
+                model.setFieldHtmlByDefault(target, true)
+                session.attach(web)
+                runCurrent()
+                assertTrue(session.ready.value)
+                coVerify(exactly = 1) {
+                    web.loadDocumentAndCreateDraft(
+                        match { it.fields.map { field -> field.sourceMode } == listOf(true, false) },
+                        any(),
+                        any(),
+                        any(),
+                    )
+                }
+                model.setFieldHtmlByDefault(target, false)
+                runCurrent()
+                coVerify(exactly = 1) { web.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                coVerify(exactly = 0) { web.execute(any(), any(), any()) }
+                assertEquals(EditorSaveResult.Added(1), model.save(listOf("<b>front</b>", "back")))
+                runCurrent()
+                coVerify(exactly = 1) {
+                    web.loadDocumentAndCreateDraft(
+                        match { it.generation == original.generation + 1 && it.fields.none { field -> field.sourceMode } },
+                        any(),
+                        any(),
+                        any(),
+                    )
+                }
+                assertTrue(errors.isEmpty(), errors.joinToString())
+            } finally {
+                session.detach()
+                store.clear()
+                ioDispatcher = originalDispatcher
+            }
+        }
+
+    @Test
     fun `initial focus skips collapsed fields and stays closed when all fields are collapsed`() =
         runTest {
             val originalDispatcher = ioDispatcher

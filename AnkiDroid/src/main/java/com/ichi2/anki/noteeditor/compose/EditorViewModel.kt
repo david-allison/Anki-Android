@@ -414,6 +414,12 @@ class EditorViewModel(
         rtl: Boolean,
     ) = updateFieldSettings(target) { jsonObject.put("rtl", rtl) }
 
+    /** Save the note type's default without switching the active WebView input. */
+    suspend fun setFieldHtmlByDefault(
+        target: EditorFieldTarget,
+        html: Boolean,
+    ) = updateFieldSettings(target) { jsonObject.put("plainText", html) }
+
     /** Save the note type's default without changing the WebView's current expanded/collapsed state. */
     suspend fun setFieldCollapsedByDefault(
         target: EditorFieldTarget,
@@ -580,6 +586,7 @@ class EditorViewModel(
                                         fontSize = saved.fontSize,
                                         rtl = saved.jsonObject.optBoolean("rtl"),
                                         collapsed = saved.jsonObject.optBoolean("collapsed"),
+                                        sourceMode = saved.jsonObject.optBoolean("plainText"),
                                     )
                                 } else {
                                     f

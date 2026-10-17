@@ -64,6 +64,42 @@ class WebEditorViewTest : InstrumentedTest() {
     val keyboard = TestInputMethodRule()
 
     @Test
+    fun htmlDefaultsAllowTemporaryModeChangesAndDraftRecovery() =
+        withEditor {
+            val draftId = "html-default-test-${UUID.randomUUID()}"
+            val defaults =
+                document("<b>front</b>").let {
+                    it.copy(fields = it.fields.mapIndexed { index, field -> field.copy(sourceMode = index == 0) })
+                }
+            val status = AtomicReference<WebEditorStatus>()
+            getInstrumentation().runOnMainSync { onChanged = status::set }
+            try {
+                loadDocumentAndCreateDraft(defaults, draftId, "{}")
+                focusField(0)
+                status.awaitHistory(0, undo = false, redo = false, sourceMode = true)
+                awaitJavascript("document.querySelector('.editor-field[data-field-ordinal=\"0\"] .CodeMirror') !== null")
+                assertTrue(execute(WebEditorAction.SOURCE_MODE))
+                status.awaitHistory(0, undo = false, redo = false)
+                assertFalse(snapshot().hasChanges, "Changing the input mode must not modify the note")
+                updateHostState("{}")
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertTrue(restored.document.fields.none { it.sourceMode }, "Draft recovery must retain the temporary rich-text mode")
+                focusField(0)
+                status.awaitHistory(0, undo = false, redo = false)
+                assertEquals(listOf("<b>front</b>", "back"), snapshot().fields)
+
+                loadDocument(defaults.copy(generation = 1))
+                focusField(0)
+                status.awaitHistory(0, undo = false, redo = false, sourceMode = true)
+                assertEquals(listOf("<b>front</b>", "back"), snapshot().fields)
+                assertFalse(snapshot().hasChanges)
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun collapsedDefaultsAllowTemporaryExpansionAndValidationFocus() =
         withEditor {
             val draftId = "collapse-test-${UUID.randomUUID()}"
