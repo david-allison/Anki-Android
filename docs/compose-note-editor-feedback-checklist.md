@@ -265,9 +265,9 @@ exist; distinguish these settings from device-local presentation preferences.
   a larger or expandable editing surface; do not shrink equations until they
   become unreadable.
 
-  **Implemented:** Expand editor opens the same equation dialog at full size,
+  **Implemented:** The equation dialog always opens at full size,
   retaining its text, format and renderer. The source uses a monospace font,
-  disables autocorrection and shows up to 12 lines when expanded. The larger
+  disables autocorrection and shows up to 12 lines. The larger
   preview pans wide equations and tall matrices at their original readable size.
   Confirmation and cancellation remain outside the scrolling content. These
   changes are only created when the equation dialog opens.
@@ -275,7 +275,7 @@ exist; distinguish these settings from device-local presentation preferences.
   **Verification:** 16 light/dark Roborazzi cases pass, including long single-line
   and multiline source, 1.5× text and a short window. Six emulator WebView tests
   pass, including touch panning to the last term/row, renderer reuse and applying
-  text after expanding. Roborazzi covers native layout; rendered equation
+  the edited text. Roborazzi covers native layout; rendered equation
   captures come from the emulator. The input test IME has no visible keyboard.
 
 ## Dependencies and review order

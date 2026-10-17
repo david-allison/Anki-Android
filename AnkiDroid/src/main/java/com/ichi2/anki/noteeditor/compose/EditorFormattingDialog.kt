@@ -180,7 +180,6 @@ internal fun EditorFormattingDialog(
     }
     var text by rememberSaveable(request) { mutableStateOf(request.text) }
     var action by rememberSaveable(request) { mutableStateOf(request.action) }
-    var expanded by rememberSaveable(request) { mutableStateOf(false) }
     val removing = request.action == WebEditorAction.REMOVE_FORMAT_CHOICES
     var removedFormats by rememberSaveable(request) {
         mutableStateOf(
@@ -200,9 +199,9 @@ internal fun EditorFormattingDialog(
         }
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = if (expanded) Modifier.fillMaxSize() else Modifier,
-        shape = if (expanded) RectangleShape else AlertDialogDefaults.shape,
-        properties = DialogProperties(usePlatformDefaultWidth = !expanded),
+        modifier = if (equation) Modifier.fillMaxSize() else Modifier,
+        shape = if (equation) RectangleShape else AlertDialogDefaults.shape,
+        properties = DialogProperties(usePlatformDefaultWidth = !equation),
         title = {
             val title =
                 stringResource(
@@ -228,7 +227,7 @@ internal fun EditorFormattingDialog(
         },
         text = {
             Column(
-                (if (expanded) Modifier.fillMaxSize() else Modifier).verticalScroll(rememberScrollState()),
+                (if (equation) Modifier.fillMaxSize() else Modifier).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(if (removing) 0.dp else 16.dp),
             ) {
                 when {
@@ -291,9 +290,9 @@ internal fun EditorFormattingDialog(
                             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
                             minLines = 2,
-                            maxLines = if (expanded) 12 else 6,
+                            maxLines = 12,
                         )
-                        EquationPreview(text, action, expanded = expanded, onToggleExpanded = { expanded = !expanded })
+                        EquationPreview(text, action)
                     }
                 }
             }
