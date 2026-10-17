@@ -636,12 +636,56 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             R.string.compose_editor_shrink_images,
             R.string.compose_editor_mathjax_preview,
             R.string.compose_editor_auto_close_tags,
+            R.string.compose_editor_custom_buttons,
         )) {
             composeRule.onNodeWithText(getResourceString(label)).assertDoesNotExist()
         }
-        composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_text_size)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).assertIsDisplayed()
+        val labels =
+            listOf(
+                R.string.compose_editor_field_options,
+                R.string.compose_editor_toolbar,
+                R.string.compose_editor_quick_actions,
+                R.string.compose_editor_toolbar_layout,
+                R.string.compose_editor_text_size,
+                R.string.compose_editor_fields,
+                R.string.compose_editor_cards,
+            )
+        val tops =
+            labels.map { label ->
+                composeRule
+                    .onNodeWithText(getResourceString(label))
+                    .assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
+        assertEquals(tops.sorted(), tops, "Group field settings, editor appearance and note-type editing in that order")
         captureScreen("global_options")
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
+    }
+
+    @Test
+    fun globalOptionsKeepUnavailableFieldSettingsVisible() {
+        showEditor(focusState = mutableStateOf(EditorToolbarState(hasSelection = false, activeField = null)))
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        for (label in listOf(
+            R.string.compose_editor_field_options,
+            R.string.compose_editor_quick_actions,
+            R.string.compose_editor_toolbar,
+        )) {
+            composeRule.onNodeWithText(getResourceString(label)).assertIsDisplayed().assertIsNotEnabled()
+        }
+        for (label in listOf(
+            R.string.compose_editor_text_size,
+            R.string.compose_editor_toolbar_layout,
+            R.string.compose_editor_fields,
+            R.string.compose_editor_cards,
+        )) {
+            composeRule.onNodeWithText(getResourceString(label)).assertIsEnabled()
+        }
+        captureScreen("global_options_without_focused_field")
     }
 
     @Test
@@ -651,9 +695,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val labels =
             listOf(
                 R.string.compose_editor_toolbar,
-                CommonString.menu_font_size,
+                R.string.compose_editor_text_size,
                 R.string.compose_editor_toolbar_layout,
-                R.string.compose_editor_custom_buttons,
                 R.string.compose_editor_field_options,
                 R.string.compose_editor_quick_actions,
                 R.string.compose_editor_fields,
@@ -778,6 +821,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         toolbarOverflowButton().assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
+        captureScreen(if (fieldToolbarVisible) "global_options_${display.name.lowercase()}" else "global_options_field_toolbar_hidden")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule
             .onNode(hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(isDialog()))
@@ -1099,11 +1144,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val (activity, _) =
             showEditor(
                 templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
-                focusState = mutableStateOf(EditorToolbarState()),
             )
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
-        captureScreen("editor_options_custom_buttons")
+        captureScreen("customize_toolbar_custom_buttons")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
         composeRule.onNodeWithText("Ruby").assertIsDisplayed()
         settleMenuTransition(activity)

@@ -906,6 +906,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(
                 device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options))), 5_000),
             ).click()
+            val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
+            checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
             checkNotNull(
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
             ).click()
@@ -926,8 +928,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
             assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
+            // Templates are already saved; dismiss the unchanged toolbar configuration.
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(com.ichi2.anki.CommonString.dialog_cancel))), 5_000),
+            ).click()
             device.openToolbarOverflow()
-            val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
             checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             // Manage shared definitions without committing the pending removal of Bold.

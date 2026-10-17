@@ -310,9 +310,7 @@ fun NoteEditorScreen(
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,
                                         onToolbarDisplay = onToolbarDisplay,
-                                        onCustomButtons = { showCustomButtons = true },
                                         fieldOptionsEnabled = toolbarState.value.activeField in it.fields.indices,
-                                        fieldToolbarVisible = it.showsToolbar(toolbarState.value.activeField),
                                         onFieldOptions = { fieldOptionsRequested.value = true },
                                         onQuickActions = {
                                             toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->

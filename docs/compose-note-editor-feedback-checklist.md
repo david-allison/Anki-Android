@@ -130,7 +130,8 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
 
   **Implemented 2026-10-17:** Custom buttons remains available at the bottom of
   Customize toolbar while the button list scrolls. It opens the shared template
-  library without discarding pending toolbar changes.
+  library without discarding pending toolbar changes. The duplicate shortcut in
+  the main options menu has been removed.
 
 - [ ] **14. Give custom items an edit button, with deletion available through editing.**
 
@@ -146,14 +147,23 @@ remains a separate proposal (06).
 
 | Proposed destination | Relationship to the current editor |
 | --- | --- |
-| Template editor | Current Cards entry |
-| Manage fields | Current Fields entry |
+| Template editor | Card templates entry |
+| Manage fields | Manage fields entry |
 | Field options | Expanded version of the current field-settings panel |
 | Customize toolbar | One screen for the current field’s preset selection and shared button configuration |
 
-The bottom toolbar's three-dot control is covered separately by item 12. The
-proposal does not specify where the current global Font size option goes.
-Custom button creation is later placed in preset editing by items 13–14.
+The main menu now has three groups, each with consistent leading icons:
+
+- **Current field:** Field options, Customize toolbar, Quick actions. These match
+  the bottom overflow's order and remain visible across all toolbar layouts.
+- **This device:** Toolbar layout and Editor text size. The latter is the global
+  size override, distinct from a field's saved Font setting.
+- **Note type:** Manage fields and Card templates. These labels distinguish
+  structural editing from settings for the current field.
+
+Custom button creation has one entry inside Customize toolbar. Field-dependent
+entries remain visible but disabled when no field is focused. The bottom
+toolbar's three-dot control is covered separately by item 12.
 
 ## Field settings
 

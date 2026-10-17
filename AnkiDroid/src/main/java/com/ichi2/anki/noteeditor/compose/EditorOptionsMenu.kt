@@ -43,9 +43,7 @@ internal fun EditorOptionsMenu(
     onCards: () -> Unit,
     toolbarDisplay: EditorToolbarDisplay,
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
-    onCustomButtons: () -> Unit,
     fieldOptionsEnabled: Boolean,
-    fieldToolbarVisible: Boolean = toolbarDisplay != EditorToolbarDisplay.HIDDEN,
     onFieldOptions: () -> Unit,
     onQuickActions: () -> Unit,
     onToolbar: () -> Unit,
@@ -66,7 +64,7 @@ internal fun EditorOptionsMenu(
     fontSize?.let { value ->
         AlertDialog(
             onDismissRequest = { fontSize = null },
-            title = { Text(stringResource(CommonString.menu_font_size)) },
+            title = { Text(stringResource(R.string.compose_editor_text_size)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(R.string.compose_editor_font_size_override_help))
@@ -110,9 +108,14 @@ internal fun EditorOptionsMenu(
             // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
             // These niche options are intended for future user-defined JS; keep their implementation.
             // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
-            EditorSettingsMenuItem(CommonString.menu_font_size, R.drawable.ic_format_font_size_24dp) {
+            // Field settings stay in the same order as the toolbar overflow, regardless of layout.
+            EditorSettingsMenuItem(
+                label = R.string.compose_editor_field_options,
+                icon = R.drawable.ic_tune_white,
+                enabled = fieldOptionsEnabled,
+            ) {
                 expanded = false
-                fontSize = (settings.fontSize ?: 20).toString()
+                onFieldOptions()
             }
             EditorSettingsMenuItem(
                 label = R.string.compose_editor_toolbar,
@@ -122,33 +125,26 @@ internal fun EditorOptionsMenu(
                 expanded = false
                 onToolbar()
             }
+            EditorSettingsMenuItem(
+                label = R.string.compose_editor_quick_actions,
+                icon = R.drawable.ic_touch,
+                enabled = fieldOptionsEnabled,
+            ) {
+                expanded = false
+                onQuickActions()
+            }
+            HorizontalDivider()
+            // Device-wide presentation settings, separate from shared field and preset properties.
             EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_list_white_24dp) {
                 expanded = false
                 showToolbarDisplay = true
             }
-            EditorSettingsMenuItem(R.string.compose_editor_custom_buttons, R.drawable.ic_widgets) {
+            EditorSettingsMenuItem(R.string.compose_editor_text_size, R.drawable.ic_format_font_size_24dp) {
                 expanded = false
-                onCustomButtons()
-            }
-            if (toolbarDisplay != EditorToolbarDisplay.SCROLL || !fieldToolbarVisible) {
-                EditorSettingsMenuItem(
-                    label = R.string.compose_editor_field_options,
-                    icon = R.drawable.ic_tune_white,
-                    enabled = fieldOptionsEnabled,
-                ) {
-                    expanded = false
-                    onFieldOptions()
-                }
-                EditorSettingsMenuItem(
-                    label = R.string.compose_editor_quick_actions,
-                    icon = R.drawable.ic_touch,
-                    enabled = fieldOptionsEnabled,
-                ) {
-                    expanded = false
-                    onQuickActions()
-                }
+                fontSize = (settings.fontSize ?: 20).toString()
             }
             HorizontalDivider()
+            // Note-type structure and card templates.
             EditorSettingsMenuItem(R.string.compose_editor_fields, R.drawable.ic_list_black) {
                 expanded = false
                 onFields()

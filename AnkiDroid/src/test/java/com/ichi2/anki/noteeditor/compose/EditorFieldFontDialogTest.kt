@@ -73,7 +73,6 @@ class EditorFieldFontDialogTest : RobolectricTest() {
                     onCards = {},
                     toolbarDisplay = EditorToolbarDisplay.SCROLL,
                     onToolbarDisplay = {},
-                    onCustomButtons = {},
                     fieldOptionsEnabled = true,
                     onFieldOptions = {},
                     onQuickActions = {},
@@ -82,7 +81,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
             }
         }
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_text_size)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_use_field_sizes)).performClick()
         assertNull(settings.fontSize)
     }
