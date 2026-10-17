@@ -769,6 +769,27 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldOptionsStayAboveChangingKeyboardInsets() {
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        val height = activity.window.decorView.height
+        val density = activity.resources.displayMetrics.density
+        for (imeHeight in listOf(100, 200, 300, 420, 300, 100, 0, 300)) {
+            composeRule.runOnIdle { activity.dispatchInsets(navBarBottom = 48.dp, imeBottom = imeHeight.dp) }
+            composeRule.waitForIdle()
+            val viewport = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+            val availableBottom = height - maxOf(48, imeHeight) * density
+            assertTrue(viewport.bottom <= availableBottom + 1, "Options extend below the usable viewport: $viewport / $availableBottom")
+            val lastOption = composeRule.onNodeWithText(TR.fieldsCollapseByDefault())
+            lastOption.performScrollTo().assertIsDisplayed()
+            assertTrue(lastOption.fetchSemanticsNode().boundsInRoot.bottom <= availableBottom + 1)
+        }
+        composeRule.runOnIdle { activity.simulateKeyboard() }
+        captureScreen("field_options_after_keyboard_reopens")
+    }
+
+    @Test
     fun fieldOptionsDoNotResizeWebFields() {
         val (activity, keyboard) = showEditor(tags = listOf("Vocabulary"))
         for (keyboardVisible in listOf(true, false)) {
