@@ -106,6 +106,8 @@
     <string name="compose_editor_use_field_sizes">Use field sizes</string>
     <string name="compose_editor_font_size_override_help">Override field sizes in this editor on this device.</string>
     <string name="compose_editor_right_to_left">Right-to-left text</string>
+    <string name="compose_editor_start_in_html_mode">Start in HTML mode</string>
+    <string name="compose_editor_start_collapsed">Start collapsed</string>
     <string name="compose_editor_show_field_toolbar">Show toolbar</string>
     <string name="compose_editor_toolbar_hidden_globally">The toolbar layout is set to Hidden.</string>
 </resources>
