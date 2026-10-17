@@ -123,7 +123,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
         visibility.performClick()
         visibility.assertIsOff()
-        composeRule.onNodeWithText("Language learning").assertIsSelected()
+        composeRule.onNodeWithText("Language learning").assertIsSelected().assertIsNotEnabled()
         captureScreen("field_toolbar_preset_hidden")
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.close)).performClick()
         toolbarOverflowButton().assertDoesNotExist()

@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -34,6 +35,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     private val minimal = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
     private val presets = mutableStateOf(listOf(default, minimal))
     private var selection: String? = "not selected"
+    private val toolbarVisible = mutableStateOf(true)
 
     @Test
     fun `field preset choices do not offer a private toolbar`() {
@@ -47,6 +49,26 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         showPresets(forField = true)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsSelected()
         composeRule.onNodeWithText("Minimal").performClick()
+        assertEquals(minimal.id, selection)
+        assertEquals(listOf(default, minimal), presets.value)
+    }
+
+    @Test
+    fun `hiding the toolbar disables preset selection but keeps its choice and shared editing`() {
+        showPresets(forField = true)
+        val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
+        visibility.performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsNotEnabled().assertIsSelected()
+        val other = composeRule.onNodeWithText("Minimal")
+        other.assertIsNotEnabled().performClick()
+        assertEquals("not selected", selection)
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_edit_preset, "Minimal"))
+            .assertIsEnabled()
+            .performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        visibility.performClick()
+        other.assertIsEnabled().performClick()
         assertEquals(minimal.id, selection)
         assertEquals(listOf(default, minimal), presets.value)
     }
@@ -146,9 +168,26 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
                     onDeletePreset = { id -> presets.value = presets.value.filterNot { it.id == id } },
                     onCustomButtons = {},
                     onDismiss = {},
-                    field = if (forField) EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false) else null,
+                    field =
+                        if (forField) {
+                            EditorFieldState(
+                                "Front",
+                                "",
+                                "Arial",
+                                20,
+                                false,
+                                null,
+                                false,
+                                false,
+                                false,
+                                toolbar = EditorFieldToolbar(showToolbar = toolbarVisible.value),
+                            )
+                        } else {
+                            null
+                        },
                     noteTypeName = "Basic",
                     onSelect = { selection = it },
+                    onToolbarVisibility = { toolbarVisible.value = it },
                 )
             }
         }
