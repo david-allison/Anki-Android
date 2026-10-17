@@ -867,6 +867,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .filter { it.startsWith("composeEditorFieldToolbar:") }
                     .forEach { remove(it) }
                 remove("composeEditorCustomButtonTemplates")
+                remove("composeEditorToolbarPresets")
+                remove("composeEditorSharedToolbarsMigrated")
                 remove("note_editor_custom_buttons")
             }.commit()
         withEditor { scenario ->
@@ -915,7 +917,23 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(
                 device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
             ).click()
-            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
+            val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
+            if (!device.hasObject(
+                    toolbarEntry,
+                )
+            ) {
+                device.findObject(By.scrollable(true)).scroll(androidx.test.uiautomator.Direction.DOWN, 0.8f)
+            }
+            checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
+            val presetName =
+                scenario
+                    .editorState()
+                    .toolbarPresets
+                    .single { it.id == scenario.editorState().fields[0].toolbarPresetId }
+                    .name
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_edit_preset, presetName))), 5_000),
+            ).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             // Manage shared definitions without committing the pending removal of Bold.
             checkNotNull(
@@ -951,7 +969,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .toolbar.customButtons
                     .any { it.label == buttonLabel }
             }
-            device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))).click()
+            // Saving returns to the preset list in the same dialog window.
+            device.pressBack()
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options))), 5_000),
+            ).click()
             assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(

@@ -2,9 +2,12 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.content.SharedPreferences
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import com.ichi2.anki.noteeditor.CustomToolbarButton
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
@@ -22,7 +25,7 @@ class EditorToolbarPreferencesTest {
 
     @Test
     fun `explicitly hidden quick actions stay hidden`() {
-        store.save("collection", 1, "front", EditorFieldToolbar(quickActions = emptyList()))
+        preferences.seedLegacyToolbar("collection", 1, "front", EditorFieldToolbar(quickActions = emptyList()))
         assertTrue(EditorToolbarPreferences(preferences).load("collection", 1, "front").quickActions.isEmpty())
     }
 
@@ -36,9 +39,9 @@ class EditorToolbarPreferencesTest {
             ).commit()
         val original = store.load("collection", 1, "front")
         assertEquals(listOf("pin", "attachMedia"), original.quickActions)
-        store.save("collection", 1, "front", original.copy(quickActions = listOf("gallery", "pin")))
+        preferences.seedLegacyToolbar("collection", 1, "front", original.copy(quickActions = listOf("gallery", "pin")))
         val configured = store.load("collection", 1, "front")
-        store.save("collection", 1, "front", configured.copy(hiddenButtons = setOf("BOLD")))
+        preferences.seedLegacyToolbar("collection", 1, "front", configured.copy(hiddenButtons = setOf("BOLD")))
         assertEquals(listOf("gallery", "pin"), store.load("collection", 1, "front").quickActions)
     }
 
@@ -52,7 +55,7 @@ class EditorToolbarPreferencesTest {
                 quickActions = listOf("gallery", "pin"),
             )
         store.saveCustomButtons(toolbar.customButtons)
-        store.save("collection", 1, "id:front", toolbar)
+        preferences.seedLegacyToolbar("collection", 1, "id:front", toolbar)
         assertEquals(toolbar, EditorToolbarPreferences(preferences).load("collection", 1, "id:front"))
         assertEquals(EditorFieldToolbar(), store.load("other collection", 1, "id:front"))
         assertEquals(EditorFieldToolbar(), store.load("collection", 2, "id:front"))
@@ -65,7 +68,7 @@ class EditorToolbarPreferencesTest {
         preferences.edit().putStringSet("note_editor_custom_buttons", old).commit()
         val original = store.load("collection", 1, "id:front")
         assertEquals("H1", original.customButtons.single().label)
-        store.save("collection", 1, "id:front", original.copy(customButtons = emptyList()))
+        preferences.seedLegacyToolbar("collection", 1, "id:front", original.copy(customButtons = emptyList()))
         assertTrue(store.load("collection", 1, "id:front").customButtons.isEmpty())
         assertEquals(original, store.load("collection", 1, "id:back"))
         assertEquals(old, preferences.getStringSet("note_editor_custom_buttons", null))
@@ -76,8 +79,8 @@ class EditorToolbarPreferencesTest {
         val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
         store.saveCustomButtons(listOf(ruby))
         assertTrue(store.load("collection", 1, "front").customButtons.isEmpty())
-        store.save("collection", 1, "front", EditorFieldToolbar(customButtons = listOf(ruby)))
-        store.save("other collection", 2, "back", EditorFieldToolbar(customButtons = listOf(ruby)))
+        preferences.seedLegacyToolbar("collection", 1, "front", EditorFieldToolbar(customButtons = listOf(ruby)))
+        preferences.seedLegacyToolbar("other collection", 2, "back", EditorFieldToolbar(customButtons = listOf(ruby)))
         val changed = ruby.copy(label = "Heading", prefix = "<h1>", suffix = "</h1>")
         store.saveCustomButtons(listOf(changed))
         val reopened = EditorToolbarPreferences(preferences)
@@ -130,4 +133,26 @@ class EditorToolbarPreferencesTest {
         assertEquals(back, EditorToolbarPreferences(preferences).load("collection", 1, "back"))
         assertEquals(old, preferences.getStringSet("note_editor_custom_buttons", null))
     }
+}
+
+/** Seed the previous app version's private-field storage for migration tests. */
+internal fun SharedPreferences.seedLegacyToolbar(
+    collection: String,
+    noteType: Long,
+    field: String,
+    toolbar: EditorFieldToolbar,
+) {
+    val json =
+        JSONObject()
+            .put("hidden", JSONArray(toolbar.hiddenButtons.toList()))
+            .put("customIds", JSONArray(toolbar.customButtons.map { it.id }))
+            .put("order", JSONArray(toolbar.buttonOrder))
+            .put("quickActions", JSONArray(toolbar.quickActions))
+            .put("showToolbar", toolbar.showToolbar)
+    check(
+        edit()
+            .remove("composeEditorSharedToolbarsMigrated")
+            .putString("composeEditorFieldToolbar:" + JSONArray(listOf(collection, noteType, field)), json.toString())
+            .commit(),
+    )
 }

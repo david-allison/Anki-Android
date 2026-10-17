@@ -64,49 +64,27 @@ internal fun EditorToolbarPresetsDialog(
     onDeletePreset: (String) -> Unit,
     onCustomButtons: () -> Unit,
     onDismiss: () -> Unit,
-    target: EditorFieldTarget? = null,
     field: EditorFieldState? = null,
     noteTypeName: String = "",
-    isCloze: Boolean = false,
     enabled: Boolean = true,
-    onSelect: (String?) -> Unit = {},
-    onSaveField: (EditorFieldToolbar) -> Unit = {},
+    onSelect: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val controlColor = remember(context) { Color(getColorFromAttr(context, android.R.attr.colorControlNormal)) }
     var editing by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
-    var editField by rememberSaveable { mutableStateOf(false) }
     val defaultName = stringResource(R.string.compose_editor_default_toolbar)
-    val fieldOnlyName = stringResource(R.string.compose_editor_field_only_toolbar)
     val baseToolbar = field?.toolbar ?: presets.first { it.id == EditorToolbarPreset.DEFAULT_ID }.applyTo(EditorFieldToolbar(), templates)
     Dialog(
         onDismissRequest = {
             when {
-                editField -> editField = false
                 editing != null -> editing = null
                 else -> onDismiss()
             }
         },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        if (editField && field != null && target != null) {
-            EditorToolbarContent(
-                target = target,
-                field = field,
-                isCloze = isCloze,
-                templates = templates,
-                onCustomButtons = onCustomButtons,
-                onDismiss = { editField = false },
-                onSave = {
-                    onSaveField(it)
-                    editField = false
-                },
-                title = fieldOnlyName,
-            )
-            return@Dialog
-        }
         editing?.let { preset ->
             EditorToolbarContent(
                 target = EditorFieldTarget("preset:${preset.id}", 0, 0),
@@ -246,17 +224,6 @@ internal fun EditorToolbarPresetsDialog(
                             }
                         },
                     )
-                }
-                if (field != null) {
-                    item {
-                        PresetRow(
-                            enabled = enabled,
-                            name = fieldOnlyName,
-                            selected = field.toolbarPresetId == null,
-                            onClick = { onSelect(null) },
-                            onEdit = { editField = true },
-                        )
-                    }
                 }
             }
         }

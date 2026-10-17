@@ -63,7 +63,7 @@ data class EditorFieldState(
     val collapsed: Boolean,
     val sourceMode: Boolean,
     val toolbar: EditorFieldToolbar = EditorFieldToolbar(),
-    val toolbarPresetId: String? = EditorToolbarPreset.DEFAULT_ID,
+    val toolbarPresetId: String = EditorToolbarPreset.DEFAULT_ID,
 )
 
 sealed interface EditorSaveResult {

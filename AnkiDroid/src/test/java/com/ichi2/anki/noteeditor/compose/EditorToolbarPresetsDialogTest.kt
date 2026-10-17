@@ -24,7 +24,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
@@ -35,7 +34,13 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     private val minimal = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
     private val presets = mutableStateOf(listOf(default, minimal))
     private var selection: String? = "not selected"
-    private var fieldToolbar: EditorFieldToolbar? = null
+
+    @Test
+    fun `field preset choices do not offer a private toolbar`() {
+        showPresets(forField = true)
+        composeRule.onNodeWithText("This field only").assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_default_toolbar)).assertIsSelected()
+    }
 
     @Test
     fun `choosing a preset assigns its identity without modifying either preset`() {
@@ -44,7 +49,6 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         composeRule.onNodeWithText("Minimal").performClick()
         assertEquals(minimal.id, selection)
         assertEquals(listOf(default, minimal), presets.value)
-        assertNull(fieldToolbar)
     }
 
     @Test
@@ -112,19 +116,6 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         assertEquals(listOf(default), presets.value)
     }
 
-    @Test
-    fun `field only editing saves a private configuration without editing its shared preset`() {
-        showPresets(forField = true)
-        composeRule
-            .onNodeWithContentDescription(
-                targetContext.getString(R.string.compose_editor_edit_preset, getResourceString(R.string.compose_editor_field_only_toolbar)),
-            ).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
-        assertTrue("BOLD" in fieldToolbar!!.hiddenButtons)
-        assertEquals(listOf(default, minimal), presets.value)
-    }
-
     private fun options(name: String) {
         composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_preset_options, name)).performClick()
     }
@@ -155,11 +146,9 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
                     onDeletePreset = { id -> presets.value = presets.value.filterNot { it.id == id } },
                     onCustomButtons = {},
                     onDismiss = {},
-                    target = if (forField) EditorFieldTarget("presets", 0, 0) else null,
                     field = if (forField) EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false) else null,
                     noteTypeName = "Basic",
                     onSelect = { selection = it },
-                    onSaveField = { fieldToolbar = it },
                 )
             }
         }

@@ -101,16 +101,19 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `field-only edits detach from presets and stale preset assignments do nothing`() =
+    fun `fields can choose independent presets and stale assignments do nothing`() =
         runTest {
             val vm = loadAdd()
             val before = assertNotNull(vm.state.value)
             val default = before.toolbarPresets.single()
             vm.saveToolbarPreset(default.copy(hiddenButtons = setOf("BOLD")))
             val target = EditorFieldTarget(before.sessionId, before.generation, 0)
-            vm.setFieldToolbarPreset(target, null)
+            val independent = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
+            vm.saveToolbarPreset(independent)
+            vm.setFieldToolbarPreset(target, independent.id)
             vm.saveToolbarPreset(default.copy(hiddenButtons = setOf("ITALIC")))
-            assertNull(
+            assertEquals(
+                independent.id,
                 vm.state.value!!
                     .fields
                     .first()
@@ -132,7 +135,8 @@ class EditorViewModelTest : JvmTest() {
             )
             assertIs<EditorSaveResult.Added>(vm.save(listOf("front", "back")))
             vm.setFieldToolbarPreset(target, EditorToolbarPreset.DEFAULT_ID)
-            assertNull(
+            assertEquals(
+                independent.id,
                 vm.state.value!!
                     .fields
                     .first()
@@ -220,12 +224,7 @@ class EditorViewModelTest : JvmTest() {
             val before = assertNotNull(vm.state.value)
             val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
             vm.setCustomButtonTemplates(listOf(ruby))
-            before.fields.indices.forEach { index ->
-                vm.setFieldToolbar(
-                    EditorFieldTarget(before.sessionId, before.generation, index),
-                    EditorFieldToolbar(customButtons = listOf(ruby)),
-                )
-            }
+            vm.saveToolbarPreset(before.toolbarPresets.single().copy(customButtonIds = listOf(ruby.id)))
             val updated = ruby.copy(label = "Heading", prefix = "<h1>", suffix = "</h1>")
             vm.setCustomButtonTemplates(listOf(updated))
             val after = assertNotNull(vm.state.value)
@@ -257,7 +256,9 @@ class EditorViewModelTest : JvmTest() {
             val before = assertNotNull(vm.state.value)
             val target = EditorFieldTarget(before.sessionId, before.generation, 1)
             val toolbar = EditorFieldToolbar(hiddenButtons = setOf("BOLD"), buttonOrder = listOf("ITALIC", "BOLD"))
-            vm.setFieldToolbar(target, toolbar)
+            val preset = EditorToolbarPreset(name = "Answer").withToolbar(toolbar)
+            vm.saveToolbarPreset(preset)
+            vm.setFieldToolbarPreset(target, preset.id)
             assertEquals(before.notetypeJson, col.notetypes.get(before.noteTypeId).toString())
             assertEquals(before.generation, vm.state.value?.generation)
             assertFalse(vm.state.value!!.hasMetadataChanges)
@@ -292,7 +293,7 @@ class EditorViewModelTest : JvmTest() {
                     .fields[1]
                     .toolbar,
             )
-            vm.setFieldToolbar(target, EditorFieldToolbar(hiddenButtons = setOf("ITALIC")))
+            vm.setFieldToolbarPreset(target, EditorToolbarPreset.DEFAULT_ID)
             assertEquals(
                 toolbar,
                 vm.state.value!!

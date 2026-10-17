@@ -8,13 +8,35 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
+import kotlin.test.assertNotNull
 
 @RunWith(AndroidJUnit4::class)
 class EditorToolbarPresetTest {
     private val preferences = SPMockBuilder().createSharedPreferences()
     private val store = EditorToolbarPreferences(preferences)
     private val default get() = store.loadPresets().first { it.id == EditorToolbarPreset.DEFAULT_ID }
+
+    @Test
+    fun `legacy field customization becomes a reusable preset without changing its appearance`() {
+        val old =
+            EditorFieldToolbar(
+                hiddenButtons = setOf("ITALIC"),
+                buttonOrder = listOf("BOLD", "ITALIC"),
+                quickActions = listOf("gallery"),
+                showToolbar = false,
+            )
+        preferences.seedLegacyToolbar("collection", 1, "front", old)
+        val presets = store.loadPresets()
+        val id = assertNotNull(store.presetId("collection", 1, "front", presets))
+        val imported = presets.single { it.id == id }
+        assertEquals(old, store.load("collection", 1, "front", presets))
+        store.selectPreset("collection", 2, "back", id)
+        store.savePresets(presets.map { if (it.id == id) imported.copy(hiddenButtons = setOf("BOLD")) else it })
+        assertEquals(setOf("BOLD"), store.load("collection", 1, "front").hiddenButtons)
+        assertEquals(setOf("BOLD"), store.load("collection", 2, "back").hiddenButtons)
+        assertEquals(false, store.load("collection", 1, "front").showToolbar)
+        assertEquals(true, store.load("collection", 2, "back").showToolbar)
+    }
 
     @Test
     fun `hiding a toolbar keeps its preset and follows shared edits while hidden`() {
@@ -36,7 +58,9 @@ class EditorToolbarPresetTest {
     @Test
     fun `preset changes and quick action edits keep a toolbar hidden`() {
         store.saveToolbarVisibility("collection", 1, "front", false)
-        store.selectPreset("collection", 1, "front", null)
+        val shared = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
+        store.savePresets(listOf(default, shared))
+        store.selectPreset("collection", 1, "front", shared.id)
         store.saveQuickActions("collection", 1, "front", emptyList())
         assertEquals(false, store.load("collection", 1, "front").showToolbar)
         store.selectPreset("collection", 1, "front", EditorToolbarPreset.DEFAULT_ID)
@@ -58,10 +82,20 @@ class EditorToolbarPresetTest {
     @Test
     fun `existing field overrides and quick actions survive adopting presets`() {
         val old = EditorFieldToolbar(hiddenButtons = setOf("ITALIC"), quickActions = listOf("gallery"))
-        store.save("collection", 1, "front", old)
-        store.savePresets(listOf(default.copy(hiddenButtons = setOf("BOLD"))))
+        preferences.seedLegacyToolbar("collection", 1, "front", old)
+        store.savePresets(
+            store.loadPresets().map {
+                if (it.id ==
+                    EditorToolbarPreset.DEFAULT_ID
+                ) {
+                    it.copy(hiddenButtons = setOf("BOLD"))
+                } else {
+                    it
+                }
+            },
+        )
         assertEquals(old, store.load("collection", 1, "front"))
-        assertNull(store.presetId("collection", 1, "front"))
+        assertNotNull(store.loadPresets().singleOrNull { it.id == store.presetId("collection", 1, "front") })
         store.selectPreset("collection", 1, "front", EditorToolbarPreset.DEFAULT_ID)
         assertEquals(setOf("BOLD"), store.load("collection", 1, "front").hiddenButtons)
         assertEquals(listOf("gallery"), store.load("collection", 1, "front").quickActions)
@@ -95,12 +129,38 @@ class EditorToolbarPresetTest {
     }
 
     @Test
-    fun `detaching keeps the current appearance without following subsequent preset changes`() {
-        store.savePresets(listOf(default.copy(hiddenButtons = setOf("BOLD"))))
-        store.selectPreset("collection", 1, "front", null)
-        store.savePresets(listOf(default.copy(hiddenButtons = setOf("ITALIC"))))
-        assertNull(store.presetId("collection", 1, "front"))
-        assertEquals(setOf("BOLD"), store.load("collection", 1, "front").hiddenButtons)
+    fun `migration reuses matching presets and is stable after reopening and deletion`() {
+        val shared = EditorToolbarPreset(name = "Minimal", hiddenButtons = setOf("BOLD"))
+        store.savePresets(listOf(default, shared))
+        preferences.seedLegacyToolbar("collection", 1, "front", EditorFieldToolbar(hiddenButtons = setOf("BOLD")))
+        preferences.seedLegacyToolbar("collection", 1, "back", EditorFieldToolbar())
+        assertEquals(listOf(default, shared), store.loadPresets())
+        assertEquals(shared.id, store.presetId("collection", 1, "front"))
+        assertEquals(EditorToolbarPreset.DEFAULT_ID, store.presetId("collection", 1, "back"))
+        assertEquals(store.loadPresets(), EditorToolbarPreferences(preferences).loadPresets())
+        store.savePresets(listOf(default))
+        val reopened = EditorToolbarPreferences(preferences)
+        assertEquals(listOf(default), reopened.loadPresets(), "Do not import the same legacy settings again")
+        assertEquals(EditorToolbarPreset.DEFAULT_ID, reopened.presetId("collection", 1, "front"))
+    }
+
+    @Test
+    fun `migration preserves custom buttons and ordering with unique reusable names`() {
+        val button = EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
+        store.saveCustomButtons(listOf(button))
+        val existing = EditorToolbarPreset(name = "Imported toolbar 1", hiddenButtons = setOf("BOLD"))
+        store.savePresets(listOf(default, existing))
+        val old =
+            EditorFieldToolbar(customButtons = listOf(button), hiddenButtons = setOf("ITALIC"), buttonOrder = listOf("custom:ruby", "BOLD"))
+        preferences.seedLegacyToolbar("collection", 1, "front", old)
+        preferences.seedLegacyToolbar("collection", 2, "back", old)
+        val presets = store.loadPresets()
+        assertEquals(3, presets.size)
+        assertEquals("Imported toolbar 2", presets.last().name)
+        assertEquals(old, store.load("collection", 1, "front"))
+        assertEquals(old, store.load("collection", 2, "back"))
+        assertEquals(presets.last().id, store.presetId("collection", 1, "front"))
+        assertEquals(presets.last().id, store.presetId("collection", 2, "back"))
     }
 
     @Test
