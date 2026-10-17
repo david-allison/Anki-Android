@@ -111,6 +111,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         visibility.performClick()
         visibility.assertIsOff()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsNotEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).assertIsNotEnabled()
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_preset_options, "Language learning"))
+            .assertIsNotEnabled()
         captureScreen("field_toolbar_preset_hidden")
         saveToolbarConfiguration()
         toolbarOverflowButton().assertDoesNotExist()

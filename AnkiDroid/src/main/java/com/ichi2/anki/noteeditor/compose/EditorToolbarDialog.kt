@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -41,6 +42,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,6 +97,7 @@ internal fun EditorToolbarContent(
     title: String? = null,
     subtitle: String? = null,
     enabled: Boolean = true,
+    buttonsEnabled: Boolean = enabled,
     header: @Composable () -> Unit = {},
 ) {
     // The shared library can change while this dialog stays open. Resolve its latest
@@ -128,7 +131,7 @@ internal fun EditorToolbarContent(
         bottomBar = {
             Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
                 Row(Modifier.navigationBarsPadding().padding(horizontal = 16.dp)) {
-                    TextButton(onClick = onCustomButtons, enabled = enabled) {
+                    TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
                         Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(stringResource(R.string.compose_editor_custom_buttons))
@@ -141,7 +144,7 @@ internal fun EditorToolbarContent(
             items = items.map { it.key },
             activeCount = enabledKeys.size,
             onMove = { from, to -> onToolbarChange(toolbar.moveButtonTo(from, to, templates, isCloze)) },
-            canMove = { from, to -> enabled && (from in enabledKeys) == (to in enabledKeys) },
+            canMove = { from, to -> buttonsEnabled && (from in enabledKeys) == (to in enabledKeys) },
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -200,7 +203,7 @@ internal fun EditorToolbarContent(
                         },
                     )
                 },
-                enabled = enabled,
+                enabled = buttonsEnabled,
                 startDrag = startDrag,
                 moveUp = if (index > 0 && toolbar.isEnabled(items[index - 1]) == checked) ({ move(-1) }) else null,
                 moveDown = if (index < items.lastIndex && toolbar.isEnabled(items[index + 1]) == checked) ({ move(1) }) else null,
@@ -245,7 +248,7 @@ internal fun EditorToolbarRow(
             },
         tonalElevation = if (dragging) 4.dp else 0.dp,
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().alpha(if (enabled) 1f else 0.38f), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
                     .weight(1f)
@@ -276,14 +279,17 @@ internal fun EditorToolbarRow(
                     .size(48.dp)
                     .semantics {
                         contentDescription = dragLabel
+                        if (!enabled) disabled()
                         customActions =
                             buildList {
-                                moveUp?.let { add(CustomAccessibilityAction(upLabel, it)) }
-                                moveDown?.let { add(CustomAccessibilityAction(downLabel, it)) }
+                                if (enabled) {
+                                    moveUp?.let { add(CustomAccessibilityAction(upLabel, it)) }
+                                    moveDown?.let { add(CustomAccessibilityAction(downLabel, it)) }
+                                }
                             }
                     }.pointerInteropFilter { event ->
                         if (enabled && event.actionMasked == MotionEvent.ACTION_DOWN) startDrag()
-                        true
+                        enabled
                     },
                 contentAlignment = Alignment.Center,
             ) {

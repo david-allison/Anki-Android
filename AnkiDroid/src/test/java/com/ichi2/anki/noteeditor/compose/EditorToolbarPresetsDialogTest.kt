@@ -4,6 +4,7 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import androidx.activity.compose.setContent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -81,16 +82,43 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun `hiding the toolbar disables preset selection and preserves shared editing`() {
+    fun `hiding the toolbar disables customization while allowing save and cancellation`() {
         showPresets()
         choose("Minimal")
         val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
         visibility.performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).assertIsEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).assertIsNotEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsNotEnabled()
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_preset_options, "Minimal"))
+            .assertIsNotEnabled()
+        visibility.assertIsEnabled()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertIsEnabled()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).assertIsEnabled()
         assertNull(saved)
         save()
         assertEquals(EditorToolbarConfiguration(presets, minimal.id, false), saved)
+    }
+
+    @Test
+    fun `showing the toolbar again restores button editing and accessible reordering`() {
+        showPresets()
+        val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
+        val bold = getResourceString(R.string.compose_editor_bold)
+        val drag = composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_reorder_button, bold))
+        assertTrue(drag.fetchSemanticsNode().config[SemanticsActions.CustomActions].isNotEmpty())
+        visibility.performClick()
+        drag.assertIsNotEnabled()
+        assertTrue(drag.fetchSemanticsNode().config[SemanticsActions.CustomActions].isEmpty())
+        visibility.performClick()
+        drag.assertIsEnabled()
+        assertTrue(drag.fetchSemanticsNode().config[SemanticsActions.CustomActions].isNotEmpty())
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsEnabled()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsEnabled()
+        composeRule.onNodeWithText(bold).assertIsEnabled().performClick()
+        save()
+        assertTrue("BOLD" in assertNotNull(saved).presets.first().hiddenButtons)
     }
 
     @Test

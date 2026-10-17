@@ -231,7 +231,7 @@ exist; distinguish these settings from device-local presentation preferences.
   control.
 
   **Implemented:** Show toolbar is saved per field alongside its preset
-  assignment. The global Hidden layout takes precedence. Field options remain
+  assignment. The global Hidden layout takes precedence. Customize toolbar remains
   available from the wrench menu, so a hidden toolbar can be restored.
 
 - [x] **23. Include a toolbar-preset dropdown, hidden when the toolbar is off.**
@@ -241,10 +241,12 @@ exist; distinguish these settings from device-local presentation preferences.
   restoring it. Selecting a shared preset should have clear shared-edit
   semantics, rather than silently copying its current contents.
 
-  **Implemented:** Field options include a shared-preset dropdown with Use
-  default. The dropdown is hidden when this field’s toolbar or the global
-  layout is hidden; hiding retains the chosen preset. Migrated field-specific
-  configurations appear as named presets in the same dropdown.
+  **Implemented:** Customize toolbar includes a shared-preset dropdown with
+  Default. Turning Show toolbar off retains the chosen preset and disables
+  its selection, options menu, button toggles, reordering and Custom buttons.
+  The switch and Save/Close remain available. Migrated field-specific
+  configurations appear as named presets in the same dropdown. A separate
+  explanation appears when the global Hidden layout overrides this field.
 
 ## Icons, attachments, and MathJax
 

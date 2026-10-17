@@ -90,6 +90,7 @@ internal fun EditorCustomizeToolbarDialog(
                 onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))
             },
             enabled = enabled,
+            buttonsEnabled = enabled && pending.showToolbar,
             header = {
                 Column(Modifier.padding(horizontal = 12.dp)) {
                     Text(
@@ -116,8 +117,7 @@ internal fun EditorCustomizeToolbarDialog(
                     ToolbarPresetSelector(
                         presets = pending.presets,
                         selected = selected,
-                        enabled = enabled,
-                        selectionEnabled = pending.showToolbar,
+                        enabled = enabled && pending.showToolbar,
                         onSelect = { pending = pending.copy(presetId = it) },
                         onAdd = { naming = EditorToolbarPreset(name = "") },
                         onRename = { naming = selected },
@@ -193,7 +193,6 @@ private fun ToolbarPresetSelector(
     presets: List<EditorToolbarPreset>,
     selected: EditorToolbarPreset,
     enabled: Boolean,
-    selectionEnabled: Boolean,
     onSelect: (String) -> Unit,
     onAdd: () -> Unit,
     onRename: () -> Unit,
@@ -207,21 +206,21 @@ private fun ToolbarPresetSelector(
     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         ExposedDropdownMenuBox(
             expanded = choosing,
-            onExpandedChange = { if (enabled && selectionEnabled) choosing = it },
+            onExpandedChange = { if (enabled) choosing = it },
             modifier = Modifier.weight(1f),
         ) {
             OutlinedTextField(
                 value = selected.displayName(),
                 onValueChange = {},
                 readOnly = true,
-                enabled = enabled && selectionEnabled,
+                enabled = enabled,
                 label = { Text(stringResource(R.string.compose_editor_preset)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = choosing) },
                 singleLine = true,
                 modifier =
                     Modifier.fillMaxWidth().menuAnchor(
                         ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                        enabled && selectionEnabled,
+                        enabled,
                     ),
             )
             ExposedDropdownMenu(
@@ -275,7 +274,7 @@ private fun ToolbarPresetSelector(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.compose_editor_duplicate_preset)) },
                     leadingIcon = { Icon(painterResource(R.drawable.baseline_content_copy_24), null, tint = controlColor) },
-                    enabled = selectionEnabled,
+                    enabled = enabled,
                     onClick = {
                         options = false
                         onDuplicate()
