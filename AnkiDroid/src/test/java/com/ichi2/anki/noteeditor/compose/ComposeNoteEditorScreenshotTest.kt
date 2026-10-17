@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -238,6 +239,34 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .boundsInRoot
         assertTrue(description.top >= bounds.last().bottom, "Description belongs below the six tiles")
         captureScreen("field_options_grid")
+    }
+
+    @Test
+    fun keyboardLanguageOverrideHighlightsTheSettingsLink() {
+        val (activity, _) = showEditor()
+        openFieldOptions()
+        val keyboard = composeRule.onNodeWithTag("editor_field_option_KEYBOARD")
+        val pixels = keyboard.captureToImage().toPixelMap()
+        assertEquals(activity.toMaterial3ColorScheme().primaryContainer.toArgb(), pixels[pixels.width / 2, 4].toArgb())
+        keyboard.assertHasClickAction().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ToggleableState))
+        composeRule.onNodeWithText("Japanese").assertIsDisplayed()
+        captureScreen("field_keyboard_language_override")
+    }
+
+    @Test
+    fun defaultKeyboardLanguageKeepsTheNeutralSettingsLink() {
+        val (activity, _) =
+            showEditor(
+                deckName = "Test deck",
+                focusState = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 0)),
+            )
+        openFieldOptions()
+        val keyboard = composeRule.onNodeWithTag("editor_field_option_KEYBOARD")
+        val pixels = keyboard.captureToImage().toPixelMap()
+        assertEquals(activity.toMaterial3ColorScheme().surface.toArgb(), pixels[pixels.width / 2, 4].toArgb())
+        keyboard.assertHasClickAction().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ToggleableState))
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_language_hint_default)).assertIsDisplayed()
+        captureScreen("field_keyboard_language_default")
     }
 
     @Test

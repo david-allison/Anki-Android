@@ -34,13 +34,15 @@ internal fun EditorFieldOptionTile(
     modifier: Modifier = Modifier,
     summary: String? = null,
     checked: Boolean? = null,
+    highlighted: Boolean = false,
     onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val label = stringResource(option.label)
     val description = if (option == EditorFieldOption.KEYBOARD) stringResource(R.string.compose_editor_language_hint) else label
-    val background = if (checked == true) colors.primaryContainer else colors.surface
-    val foreground = if (checked == true) colors.onPrimaryContainer else colors.onSurface
+    val active = checked == true || highlighted
+    val background = if (active) colors.primaryContainer else colors.surface
+    val foreground = if (active) colors.onPrimaryContainer else colors.onSurface
     val alpha = if (enabled) 1f else 0.38f
     val controlColor = editorControlColor().let { it.copy(alpha = it.alpha * alpha) }
     val content: @Composable () -> Unit = {

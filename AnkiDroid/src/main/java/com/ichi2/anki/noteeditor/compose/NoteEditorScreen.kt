@@ -776,6 +776,7 @@ private fun EditorFieldOptions(
                             EditorFieldOptionTile(
                                 option = option,
                                 enabled = enabled,
+                                highlighted = option == EditorFieldOption.KEYBOARD && !field.languageTag.isNullOrEmpty(),
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 summary =
                                     when (option) {
