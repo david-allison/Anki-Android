@@ -60,6 +60,7 @@ data class EditorFieldState(
     val rtl: Boolean,
     val languageTag: String?,
     val sticky: Boolean,
+    /** Note-type default; temporary expansion lives in the WebView and its draft. */
     val collapsed: Boolean,
     val sourceMode: Boolean,
     val toolbar: EditorFieldToolbar = EditorFieldToolbar(),
@@ -87,3 +88,7 @@ sealed interface EditorSaveResult {
 internal fun EditorState.showsToolbar(activeField: Int?): Boolean =
     toolbarDisplay != EditorToolbarDisplay.HIDDEN &&
         fields.getOrNull(activeField ?: 0)?.toolbar?.showToolbar != false
+
+/** Automatic focus must not expand fields the user has chosen to collapse by default. */
+internal val EditorState.initialFocusField: Int?
+    get() = fields.indexOfFirst { !it.collapsed }.takeIf { it >= 0 }

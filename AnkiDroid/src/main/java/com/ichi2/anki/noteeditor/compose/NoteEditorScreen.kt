@@ -115,6 +115,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
@@ -161,6 +162,7 @@ fun NoteEditorScreen(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
     onFieldDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+    onFieldCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFieldToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
@@ -393,6 +395,7 @@ fun NoteEditorScreen(
                             onLanguageHint = onLanguageHint,
                             onFont = { fontTarget = it },
                             onDirection = onFieldDirection,
+                            onCollapseByDefault = onFieldCollapseByDefault,
                             onToolbarVisibility = onFieldToolbarVisibility,
                             onToolbarPreset = onToolbarPreset,
                             onToolbar = { toolbarTarget = it },
@@ -547,6 +550,7 @@ private fun EditorFieldArea(
     onLanguageHint: (EditorFieldTarget) -> Unit,
     onFont: (EditorFieldTarget) -> Unit,
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
+    onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit,
     onToolbarPreset: (EditorFieldTarget, String) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
@@ -616,6 +620,7 @@ private fun EditorFieldArea(
                         onLanguageHint = { onLanguageHint(target) },
                         onFont = { onFont(target) },
                         onDirection = { onDirection(target, it) },
+                        onCollapseByDefault = { onCollapseByDefault(target, it) },
                         presets = editorState.toolbarPresets,
                         toolbarHiddenGlobally = editorState.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
                         onToolbarVisibility = { onToolbarVisibility(target, it) },
@@ -755,6 +760,7 @@ private fun EditorFieldOptions(
     onLanguageHint: () -> Unit,
     onFont: () -> Unit,
     onDirection: (Boolean) -> Unit,
+    onCollapseByDefault: (Boolean) -> Unit,
     presets: List<EditorToolbarPreset>,
     toolbarHiddenGlobally: Boolean,
     onToolbarVisibility: (Boolean) -> Unit,
@@ -879,6 +885,12 @@ private fun EditorFieldOptions(
             checked = field.rtl,
             enabled = enabled,
             onCheckedChange = onDirection,
+        )
+        EditorFieldOptionSwitch(
+            label = TR.fieldsCollapseByDefault(),
+            checked = field.collapsed,
+            enabled = enabled,
+            onCheckedChange = onCollapseByDefault,
         )
         EditorFieldOptionsLink(
             icon = R.drawable.ic_touch,

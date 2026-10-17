@@ -568,6 +568,34 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `collapse defaults persist for add and edit without changing content or other fields`() =
+        runTest {
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(original.sessionId, original.generation, 1)
+            vm.setFieldCollapsedByDefault(target, true)
+            val updated = assertNotNull(vm.state.value)
+            val saved = assertNotNull(col.notetypes.get(original.noteTypeId))
+            assertTrue(saved.fields[1].jsonObject.getBoolean("collapsed"))
+            assertEquals(saved.toString(), updated.notetypeJson)
+            assertEquals(original.fields[1].copy(collapsed = true), updated.fields[1])
+            assertEquals(original.fields[0], updated.fields[0])
+            assertEquals(original.generation, updated.generation)
+            assertFalse(updated.hasMetadataChanges)
+            assertTrue(assertNotNull(loadAdd().state.value).fields[1].collapsed)
+            val note = addBasicNote()
+            assertTrue(assertNotNull(loadEdit(note.firstCard().id).state.value).fields[1].collapsed)
+
+            assertIs<EditorSaveResult.Added>(vm.save(listOf("new front", "new back")))
+            val next = assertNotNull(vm.state.value)
+            assertTrue(next.fields[1].collapsed, "The next Add must use the saved default")
+            vm.setFieldCollapsedByDefault(target.copy(generation = next.generation), false)
+            assertFalse(assertNotNull(vm.state.value).fields[1].collapsed)
+            assertFalse(assertNotNull(loadAdd().state.value).fields[1].collapsed)
+            assertEquals(listOf("", ""), assertNotNull(vm.state.value).fields.map { it.html })
+        }
+
+    @Test
     fun `invalid field typography cannot change the note type`() =
         runTest {
             val vm = loadAdd()
@@ -599,6 +627,7 @@ class EditorViewModelTest : JvmTest() {
             vm.setFieldLanguageHint(target, Locale.JAPANESE)
             vm.setFieldTypography(target, "serif", 30)
             vm.setFieldDirection(target, true)
+            vm.setFieldCollapsedByDefault(target, true)
 
             assertEquals(changed, vm.state.value)
             assertNull(

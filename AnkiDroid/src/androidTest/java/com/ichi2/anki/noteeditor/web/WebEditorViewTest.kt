@@ -64,6 +64,43 @@ class WebEditorViewTest : InstrumentedTest() {
     val keyboard = TestInputMethodRule()
 
     @Test
+    fun collapsedDefaultsAllowTemporaryExpansionAndValidationFocus() =
+        withEditor {
+            val draftId = "collapse-test-${UUID.randomUUID()}"
+            val defaults = document("").let { it.copy(fields = it.fields.map { field -> field.copy(collapsed = true) }) }
+            val firstToggle = "document.querySelector('.field-container[data-index=\"0\"] .collapse-toggle')"
+            val secondToggle = "document.querySelector('.field-container[data-index=\"1\"] .collapse-toggle')"
+            try {
+                loadDocumentAndCreateDraft(defaults, draftId, "{}")
+                awaitJavascript(
+                    "$firstToggle.getAttribute('aria-expanded') === 'false' && $secondToggle.getAttribute('aria-expanded') === 'false'",
+                )
+                captureRenderedScreenshot("editor-collapsed-defaults")
+                evaluate("$secondToggle.click()")
+                awaitJavascript("$secondToggle.getAttribute('aria-expanded') === 'true'")
+                assertFalse(snapshot().hasChanges, "Expanding a field must not make the note dirty")
+                updateHostState("{}")
+                loadDocument(document("temporary"))
+                val restored = assertNotNull(restoreDraft(draftId))
+                assertTrue(restored.document.fields[0].collapsed)
+                assertFalse(restored.document.fields[1].collapsed, "Draft recovery must retain a temporary expansion")
+
+                focusField(0, highlightError = true)
+                awaitJavascript("$firstToggle.getAttribute('aria-expanded') === 'true'")
+                assertEquals(0, assertNotNull(captureTarget()).field)
+                assertFalse(snapshot().hasChanges, "Revealing an invalid empty field must not change its content")
+
+                loadDocument(defaults.copy(generation = 1))
+                awaitJavascript(
+                    "$firstToggle.getAttribute('aria-expanded') === 'false' && $secondToggle.getAttribute('aria-expanded') === 'false'",
+                )
+                assertEquals(listOf("", "back"), snapshot().fields)
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun historyAvailabilityFollowsTheFocusedFieldAndResetsWithTheDocument() =
         withEditor {
             val status = AtomicReference<WebEditorStatus>()

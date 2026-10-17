@@ -230,7 +230,7 @@ class EditorWebSession(
         lastHostState = hostState
         editor.updateLanguageHints(state.fields.map { it.languageTag })
         model.rememberDraft()
-        if (focusFirstField) editor.focusField()
+        if (focusFirstField) state.initialFocusField?.let { editor.focusField(it) }
         // Both selection updates and enabling native controls schedule a frame.
         // Publish them together after persistence and the initial keyboard request.
         mutableToolbarState.value = latestToolbarState

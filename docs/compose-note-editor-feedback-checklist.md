@@ -203,12 +203,15 @@ exist; distinguish these settings from device-local presentation preferences.
   `plainText` setting; convenient configuration is the missing part of this
   proposal.
 
-- [ ] **21. Include Collapse by default.**
+- [x] **21. Include Collapse by default.**
 
-  **Assessment: agree.** Useful for large note types and rarely edited fields.
-  The editor already reads the backend's `collapsed` setting. Temporarily
-  expanding a field should not silently change its default, and validation
-  must still reveal a collapsed field that needs attention.
+  **Implemented:** The field-options switch saves Anki's collection-backed
+  `collapsed` default, using its existing translation. It applies when opening
+  a note or starting the next Add; changing the default leaves the current
+  field expansion and text intact. Automatic focus skips collapsed fields,
+  and is omitted if all fields are collapsed. Temporary expansion remains in
+  draft recovery without changing the default; validation still reveals a
+  collapsed field that needs attention.
 
 - [x] **22. Include a per-field Show toolbar toggle.**
 
