@@ -252,7 +252,7 @@ private fun ToolbarPresetSelector(
     var options by rememberSaveable { mutableStateOf(false) }
     val controlColor = editorControlColor()
     val menuColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         ExposedDropdownMenuBox(
             expanded = choosing,
             onExpandedChange = { if (enabled) choosing = it },
