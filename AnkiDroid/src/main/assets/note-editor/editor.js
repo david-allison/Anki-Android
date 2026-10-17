@@ -694,7 +694,14 @@
     }
 
     window.AnkiEditor = {
+        // Native sheets do not participate in Chromium's selection clipping.
+        // Change only paint bounds: keep field layout, focus, typing style and the IME intact.
+        clipFieldOptions(visibleHeight) {
+            const bottom = Math.max(0, innerHeight - visibleHeight / devicePixelRatio);
+            document.documentElement.style.clipPath = `inset(0 0 ${bottom}px 0)`;
+        },
         setFieldOptionsVisible(visible) {
+            if (!visible) document.documentElement.style.clipPath = "";
             if (visible) {
                 document.addEventListener("pointerdown", preserveFieldFocus);
                 // Chromium can reopen the IME before touchend, even if that is canceled.

@@ -253,6 +253,7 @@ class ComposeNoteEditorActivity :
             toolbarState = toolbarState,
             fieldTaps = webSession.fieldTaps,
             onFieldOptionsVisibility = { webSession.view?.setFieldOptionsVisible(it) },
+            onFieldOptionsTop = { webSession.view?.setFieldOptionsTop(it) },
             headerVisibility = webSession.headerVisibility,
             ready = ready,
             busy = showBusyState || state?.isSaving == true,

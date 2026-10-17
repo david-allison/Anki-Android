@@ -282,6 +282,15 @@ class WebEditorView(
         if (!destroyed) evaluateJavascript("AnkiEditor.setFieldOptionsVisible($visible)", null)
     }
 
+    /** Clip the covered web content in Chromium too, including its native selection handles. */
+    fun setFieldOptionsTop(topInWindow: Float) {
+        if (destroyed) return
+        val location = IntArray(2)
+        getLocationInWindow(location)
+        val visibleHeight = (topInWindow - location[1]).toInt().coerceIn(0, height)
+        evaluateJavascript("AnkiEditor.clipFieldOptions($visibleHeight)", null)
+    }
+
     /** Apply note-type hints without rebuilding fields, losing selection or resetting undo. */
     fun updateLanguageHints(hints: List<String?>) {
         languageHints = hints

@@ -1655,6 +1655,58 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 29)
+    fun fieldOptionsHideNativeCursorHandlesWithoutChangingTheCaretOrKeyboard() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            // Put the caret near the footer so the sheet covers it on taller screens too.
+            web.setField(1, (1..40).joinToString("<br>") { "Keep insertion point $it" })
+            val original = runBlocking { web.snapshot().fields }
+            runBlocking { web.focusField(1) }
+            waitUntil(message = { "The keyboard did not open" }) { scenario.keyboardVisible() }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val bounds = JSONObject(web.evaluate("${richField(1)}.getBoundingClientRect().toJSON()"))
+            val ratio = web.evaluate("devicePixelRatio").toDouble()
+            val tapY = minOf(bounds.getDouble("bottom") - 12, web.evaluate("innerHeight").toDouble() - 24)
+            val location = IntArray(2)
+            scenario.onActivity { web.getLocationOnScreen(location) }
+            device.click(
+                location[0] + ((bounds.getDouble("x") + 30) * ratio).toInt(),
+                location[1] + (tapY * ratio).toInt(),
+            )
+
+            fun visibleHandles(): Int {
+                var count = 0
+
+                fun visit(view: View) {
+                    if (view.javaClass.simpleName == "PopupTouchHandleDrawable" && view.isShown) count++
+                    if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
+                }
+                scenario.onActivity {
+                    android.view.inspector.WindowInspector
+                        .getGlobalWindowViews()
+                        .forEach(::visit)
+                }
+                return count
+            }
+            waitUntil(message = { "A real tap must expose Chromium's native insertion handle" }) { visibleHandles() > 0 }
+            val target = assertNotNull(runBlocking { web.captureTarget() })
+            device.openFieldOptions()
+            device.waitForIdle()
+            waitUntil(message = { "Native cursor handles must not draw over Field options" }) { visibleHandles() == 0 }
+            captureScreenshot("field-options-native-cursor", web)
+            assertTrue(scenario.keyboardVisible(), "Keep the keyboard connected while options are open")
+            assertEquals(target, runBlocking { web.captureTarget() })
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+            device.waitForIdle()
+            assertTrue(scenario.keyboardVisible())
+            assertEquals(target, runBlocking { web.captureTarget() }, "Closing options must preserve the insertion point")
+            web.awaitJavascript("document.documentElement.style.clipPath === ''")
+            assertEquals(original, runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun outsideTapClosesFieldOptionsWithoutChangingFocusOrKeyboard() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

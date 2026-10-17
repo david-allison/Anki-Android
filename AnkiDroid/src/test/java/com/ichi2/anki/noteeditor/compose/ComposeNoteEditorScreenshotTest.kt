@@ -1011,7 +1011,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
 
     @Test
     fun fieldOptionsFinishSlidingOutBeforeRemovingContent() {
-        showEditor()
+        var optionsVisible = false
+        showEditor(onFieldOptionsVisibility = { optionsVisible = it })
         val editorBottom =
             composeRule
                 .onNodeWithContentDescription(
@@ -1038,9 +1039,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     removed = true
                     break
                 }
+                assertTrue(optionsVisible, "Keep native cursor handles hidden throughout the closing animation")
                 lastTop = button.positionInRoot.y
             }
             assertTrue(removed, "The sheet must finish closing")
+            assertEquals(false, optionsVisible, "Restore native cursor handling after the sheet leaves")
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         } finally {
             composeRule.mainClock.autoAdvance = true
@@ -2115,6 +2118,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         textColor: String = "#000000",
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
+        onFieldOptionsVisibility: (Boolean) -> Unit = {},
         focusState: State<EditorToolbarState>? = null,
         description: String = "",
         onDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
@@ -2222,6 +2226,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onToolbarDisplay = { display.value = it },
                     onCustomButtonTemplates = { currentTemplates.value = it },
                     headerVisibility = headerVisibility,
+                    onFieldOptionsVisibility = onFieldOptionsVisibility,
                     editor = { Box(it.testTag("editor_fields")) },
                     preview = { Box(it) },
                 )

@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -148,6 +149,7 @@ fun NoteEditorScreen(
     fieldTaps: Flow<Unit> = emptyFlow(),
     headerVisibility: Flow<Boolean> = emptyFlow(),
     onFieldOptionsVisibility: (Boolean) -> Unit = {},
+    onFieldOptionsTop: (Float) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
@@ -171,7 +173,6 @@ fun NoteEditorScreen(
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
     val fieldOptionsRequested = rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
     val fieldOptionsBounds = remember(state?.sessionId, state?.generation) { mutableStateOf<Rect?>(null) }
-    ObserveFieldOptionsVisibility(fieldOptionsRequested, ready, onFieldOptionsVisibility)
     var headerVisible by remember(state?.sessionId, state?.generation) { mutableStateOf(true) }
     LaunchedEffect(headerVisibility, state?.sessionId, state?.generation) {
         headerVisibility.collect { headerVisible = it }
@@ -389,6 +390,8 @@ fun NoteEditorScreen(
                             state = toolbarState,
                             fieldTaps = fieldTaps,
                             fieldOptionsRequested = fieldOptionsRequested,
+                            onFieldOptionsVisibility = onFieldOptionsVisibility,
+                            onFieldOptionsTop = onFieldOptionsTop,
                             onFieldOptionsRequested = { fieldOptionsRequested.value = it },
                             onFieldOptionsBounds = { fieldOptionsBounds.value = it },
                             onAction = onAction,
@@ -451,14 +454,14 @@ fun NoteEditorScreen(
 /** Keep visibility observation out of the editor screen's composition scope. */
 @Composable
 private fun ObserveFieldOptionsVisibility(
-    requested: State<Boolean>,
-    ready: Boolean,
+    visible: Boolean,
     onVisibility: (Boolean) -> Unit,
 ) {
-    if (requested.value && ready) {
-        DisposableEffect(onVisibility) {
-            onVisibility(true)
-            onDispose { onVisibility(false) }
+    val notify by rememberUpdatedState(onVisibility)
+    if (visible) {
+        DisposableEffect(Unit) {
+            notify(true)
+            onDispose { notify(false) }
         }
     }
 }
@@ -542,6 +545,8 @@ private fun EditorFieldArea(
     state: State<EditorToolbarState>,
     fieldTaps: Flow<Unit>,
     fieldOptionsRequested: State<Boolean>,
+    onFieldOptionsVisibility: (Boolean) -> Unit,
+    onFieldOptionsTop: (Float) -> Unit,
     onFieldOptionsRequested: (Boolean) -> Unit,
     onFieldOptionsBounds: (Rect) -> Unit,
     onAction: (WebEditorAction) -> Unit,
@@ -581,6 +586,7 @@ private fun EditorFieldArea(
     val showFieldOptions by remember(fieldOptionsRequested, sheetState) {
         derivedStateOf { fieldOptionsRequested.value || sheetState.currentValue != SheetValue.Hidden }
     }
+    ObserveFieldOptionsVisibility(showFieldOptions, onFieldOptionsVisibility)
     val target =
         toolbarState.activeField?.takeIf { it in editorState.fields.indices }?.let {
             EditorFieldTarget(editorState.sessionId, editorState.generation, it)
@@ -610,7 +616,12 @@ private fun EditorFieldArea(
         sheetContent = {
             // Retain the controls through dismissal, then remove their layout and semantics work.
             if (showFieldOptions && target != null) {
-                Box(Modifier.onGloballyPositioned { onFieldOptionsBounds(it.boundsInRoot()) }) {
+                Box(
+                    Modifier.onGloballyPositioned {
+                        onFieldOptionsBounds(it.boundsInRoot())
+                        onFieldOptionsTop(it.boundsInWindow().top)
+                    },
+                ) {
                     EditorFieldOptions(
                         field = editorState.fields[target.field],
                         noteTypeName = editorState.noteTypeName,
