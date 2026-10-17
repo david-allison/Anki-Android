@@ -11,6 +11,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -1388,39 +1389,51 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun toolbarOverflowPreservesKeyboardAndCaret() =
-        withTestKeyboard {
-            withEditor { scenario ->
-                val web = scenario.awaitEditor()
-                web.setField(1, "Keep the caret here")
-                runBlocking { web.focusField(1) }
-                waitUntil(message = { "The keyboard did not open" }) { scenario.keyboardVisible() }
-                val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-                val overflow =
-                    By
-                        .desc(
-                            testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
-                        ).enabled(true)
-                val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
-                val caret = assertNotNull(runBlocking { web.captureTarget() })
-                checkNotNull(device.wait(Until.findObject(overflow), 5_000)).click()
-                assertTrue(device.wait(Until.hasObject(menu), 5_000))
-                device.waitForIdle()
-                assertTrue(scenario.keyboardVisible(), "Opening the overflow must leave the keyboard open")
-                captureScreenshot("toolbar-overflow-keyboard", web)
-                device.pressBack()
-                assertTrue(device.wait(Until.gone(menu), 5_000), "Back must dismiss the overflow first")
-                assertTrue(scenario.keyboardVisible(), "Dismissing the overflow must leave the keyboard open")
-                assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
-
-                device.openFieldOptions()
-                val sheet = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
-                assertTrue(device.wait(Until.hasObject(sheet), 5_000))
-                assertTrue(scenario.keyboardVisible(), "Opening field options from the menu must keep the keyboard open")
-                assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
-                assertEquals("Keep the caret here", runBlocking { web.snapshot().fields[1] })
+    fun toolbarOverflowPreservesKeyboardAndCaret() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(1, "Keep the caret here")
+            runBlocking { web.focusField(1) }
+            val minimumKeyboardHeight = (100 * testContext.resources.displayMetrics.density).toInt()
+            waitUntil(message = { "A visible on-screen keyboard is required for this regression" }) {
+                scenario.keyboardVisible() && scenario.keyboardHeight() > minimumKeyboardHeight
             }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val overflow =
+                By
+                    .desc(
+                        testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description),
+                    ).enabled(true)
+            val menu = By.text(testContext.getString(R.string.compose_editor_field_options))
+            val caret = assertNotNull(runBlocking { web.captureTarget() })
+            checkNotNull(device.wait(Until.findObject(overflow), 5_000)).click()
+            assertTrue(device.wait(Until.hasObject(menu), 5_000))
+            device.waitForIdle()
+            captureScreenshot("toolbar-overflow-keyboard", web)
+            assertTrue(scenario.keyboardVisible(), "Opening the overflow must leave the keyboard open")
+            assertTrue(scenario.keyboardHeight() > minimumKeyboardHeight, "The on-screen keyboard must remain visible")
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                // Before the platform overlay Back API, the IME consumes the first Back itself.
+                device.pressBack()
+                waitUntil(message = { "The keyboard did not close" }) { !scenario.keyboardVisible() }
+            }
+            device.pressBack()
+            assertTrue(device.wait(Until.gone(menu), 5_000), "Back must dismiss the overflow first")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                assertTrue(scenario.keyboardVisible(), "Dismissing the overflow must leave the keyboard open")
+            }
+            assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+
+            runBlocking { web.focusField(1) }
+            waitUntil(message = { "The keyboard did not reopen" }) { scenario.keyboardHeight() > minimumKeyboardHeight }
+            device.openFieldOptions()
+            val sheet = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
+            assertTrue(device.wait(Until.hasObject(sheet), 5_000))
+            assertTrue(scenario.keyboardVisible(), "Opening field options from the menu must keep the keyboard open")
+            assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
+            assertEquals("Keep the caret here", runBlocking { web.snapshot().fields[1] })
         }
+    }
 
     @Test
     fun tappingCurrentOrDifferentFieldClosesOptions() {
@@ -2465,6 +2478,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         val overflow = By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_menu_overflow_description)).enabled(true)
         checkNotNull(wait(Until.findObject(overflow), 5_000)).click()
         checkNotNull(wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_field_options))), 5_000)).click()
+    }
+
+    private fun ActivityScenario<ComposeNoteEditorActivity>.keyboardHeight(): Int {
+        var height = 0
+        onActivity {
+            height = ViewCompat.getRootWindowInsets(it.window.decorView)?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+        }
+        return height
     }
 
     private fun ActivityScenario<ComposeNoteEditorActivity>.keyboardVisible(): Boolean {
