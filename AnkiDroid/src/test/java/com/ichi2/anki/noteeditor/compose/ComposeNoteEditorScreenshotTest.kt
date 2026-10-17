@@ -93,54 +93,79 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     val composeRule = createEmptyComposeRule()
 
     @Test
-    fun fieldToolbarPresetDropdownRetainsSelectionWhenHidden() {
-        // Match other text-field screenshots to avoid Robolectric issue 8460.
-        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+    fun fieldToolbarSettingsRetainPresetWhenHidden() {
         val toolbar = mutableStateOf(EditorFieldToolbar())
         val selection = mutableStateOf(EditorToolbarPreset.DEFAULT_ID)
+        val targets = mutableListOf<EditorFieldTarget>()
         val (activity, keyboard) =
             showEditor(
                 presets = samplePresets(),
                 fieldToolbarState = toolbar,
                 presetSelection = selection,
-                onToolbarVisibility = { _, visible -> toolbar.value = toolbar.value.copy(showToolbar = visible) },
-                onPreset = { _, id -> selection.value = id },
+                onToolbarVisibility = { target, visible ->
+                    targets.add(target)
+                    toolbar.value = toolbar.value.copy(showToolbar = visible)
+                },
+                onPreset = { target, id ->
+                    targets.add(target)
+                    selection.value = id
+                },
             )
         hideKeyboard(activity, keyboard)
-        openFieldOptions()
-        val selector = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset))
-        selector.performScrollTo().performClick()
+        toolbarOverflowButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithText("Language learning").performClick()
-        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
+        toolbarOverflowButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText("Language learning").assertIsSelected()
         captureScreen("field_toolbar_preset_selected")
         val selectedId = selection.value
         val visibility = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar))
-        visibility.performScrollTo().performClick()
+        visibility.performClick()
         visibility.assertIsOff()
-        selector.assertDoesNotExist()
+        composeRule.onNodeWithText("Language learning").assertIsSelected()
         captureScreen("field_toolbar_preset_hidden")
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.close)).performClick()
+        toolbarOverflowButton().assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
-        visibility.performScrollTo().performClick()
-        selector.performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        visibility.performClick()
+        visibility.assertIsOn()
         assertEquals(selectedId, selection.value)
-        composeRule.onNodeWithText("Language learning").assertIsDisplayed()
-        selector.performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_use_default_toolbar)).performClick()
+        composeRule.onNodeWithText("Language learning").assertIsSelected()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).performClick()
         assertEquals(EditorToolbarPreset.DEFAULT_ID, selection.value)
+        assertEquals(List(4) { EditorFieldTarget("screenshot", 0, 1) }, targets)
     }
 
     @Test
-    fun globalHiddenLayoutHidesFieldPresetSelector() {
+    fun globalHiddenLayoutKeepsFieldToolbarSettingsAccessible() {
         val (activity, keyboard) = showEditor(toolbarDisplay = EditorToolbarDisplay.HIDDEN)
         hideKeyboard(activity, keyboard)
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden_globally)).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset)).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_hidden_globally)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).assertIsSelected()
         captureScreen("field_toolbar_hidden_globally")
+    }
+
+    @Test
+    fun stackedLayoutKeepsFieldToolbarSettingsAccessible() {
+        showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
+        composeRule
+            .onNode(
+                hasText(getResourceString(R.string.compose_editor_default_toolbar)) and hasAnyAncestor(isDialog()),
+            ).assertIsSelected()
     }
 
     @Test
@@ -176,7 +201,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).assertIsOn()
         composeRule.onNodeWithText(TR.fieldsHtmlByDefault()).assertIsOn()
         composeRule.onNodeWithText(TR.fieldsCollapseByDefault()).assertIsOff()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsOn()
         captureScreen("field_options_mixed_switches")
     }
 
@@ -658,7 +682,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).assertDoesNotExist()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).assertDoesNotExist()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_font)).assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertDoesNotExist()
+        composeRule.onNodeWithText("Toolbar preset").assertDoesNotExist()
         captureScreen("field_options_without_duplicate_shortcuts")
     }
 
@@ -788,7 +813,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_controls")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_preset)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(TR.fieldsCollapseByDefault()).performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_bottom")
     }
@@ -805,6 +830,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_presets)).assertIsDisplayed()
         composeRule.mainClock.advanceTimeBy(300)
         settleMenuTransition(activity)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertDoesNotExist()
         captureScreen("toolbar_presets")
     }
 

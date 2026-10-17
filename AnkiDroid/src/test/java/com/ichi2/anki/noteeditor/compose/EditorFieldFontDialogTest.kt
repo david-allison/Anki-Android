@@ -77,6 +77,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
                     fieldOptionsEnabled = true,
                     onFieldOptions = {},
                     onQuickActions = {},
+                    onToolbar = {},
                     onToolbarPresets = {},
                 )
             }
