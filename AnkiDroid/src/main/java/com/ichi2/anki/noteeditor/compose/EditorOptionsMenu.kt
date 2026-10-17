@@ -46,6 +46,7 @@ internal fun EditorOptionsMenu(
     fieldOptionsEnabled: Boolean,
     fieldToolbarVisible: Boolean = toolbarDisplay != EditorToolbarDisplay.HIDDEN,
     onFieldOptions: () -> Unit,
+    onQuickActions: () -> Unit,
     onToolbarPresets: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -135,6 +136,15 @@ internal fun EditorOptionsMenu(
                     onClick = {
                         expanded = false
                         onFieldOptions()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.compose_editor_quick_actions)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_touch), null, tint = controlColor) },
+                    enabled = fieldOptionsEnabled,
+                    onClick = {
+                        expanded = false
+                        onQuickActions()
                     },
                 )
             }
