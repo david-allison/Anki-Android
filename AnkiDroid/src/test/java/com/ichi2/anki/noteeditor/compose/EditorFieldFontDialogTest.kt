@@ -16,7 +16,6 @@ import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
-import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Rule
 import org.junit.Test
@@ -60,15 +59,12 @@ class EditorFieldFontDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun `use field sizes removes the device override`() {
-        var settings = WebEditorSettings(fontSize = 30)
+    fun `main options no longer offer a global text size`() {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
                 EditorOptionsMenu(
-                    settings = settings,
                     enabled = true,
-                    onSettings = { settings = it },
                     onFields = {},
                     onCards = {},
                     toolbarDisplay = EditorToolbarDisplay.SCROLL,
@@ -81,9 +77,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
             }
         }
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_text_size)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_use_field_sizes)).performClick()
-        assertNull(settings.fontSize)
+        composeRule.onNodeWithText("Editor text size").assertDoesNotExist()
     }
 
     private fun showFont() {
@@ -93,7 +87,6 @@ class EditorFieldFontDialogTest : RobolectricTest() {
                 EditorFieldFontDialog(
                     field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false),
                     noteTypeName = "Basic",
-                    fontSizeOverride = null,
                     onDismiss = { dismissed = true },
                     onSave = { font, size -> saved = font to size },
                 )

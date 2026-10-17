@@ -35,13 +35,12 @@ import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
-/** Edits note-type properties, not card CSS or the device-wide readability override. */
+/** Edits the shared note-type font and size used for editing and typed answers. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EditorFieldFontDialog(
     field: EditorFieldState,
     noteTypeName: String,
-    fontSizeOverride: Int?,
     onDismiss: () -> Unit,
     onSave: (String, Int) -> Unit,
 ) {
@@ -97,9 +96,6 @@ internal fun EditorFieldFontDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 Text(stringResource(R.string.compose_editor_field_font_help))
-                if (fontSizeOverride != null) {
-                    Text(stringResource(R.string.compose_editor_field_font_override, fontSizeOverride))
-                }
             }
         },
         confirmButton = {

@@ -9,6 +9,7 @@ data class WebEditorSettings(
     val shrinkImages: Boolean = true,
     val mathjaxPreview: Boolean = true,
     val autoCloseTags: Boolean = true,
+    /** Read old drafts so synchronization can clear their retired global size override. */
     val fontSize: Int? = null,
 ) {
     fun toJson(): JSONObject =

@@ -123,7 +123,6 @@ import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
 import com.ichi2.anki.noteeditor.compose.preview.EditorPreviewDialog
 import com.ichi2.anki.noteeditor.web.WebEditorAction
-import com.ichi2.anki.noteeditor.web.WebEditorSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
@@ -160,7 +159,6 @@ fun NoteEditorScreen(
     fieldTaps: Flow<Unit> = emptyFlow(),
     headerVisibility: Flow<Boolean> = emptyFlow(),
     onFieldOptionsVisibility: (Boolean) -> Unit = {},
-    onSettings: (WebEditorSettings) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
@@ -210,7 +208,6 @@ fun NoteEditorScreen(
         EditorFieldFontDialog(
             field = current.fields[target.field],
             noteTypeName = current.noteTypeName,
-            fontSizeOverride = current.settings.fontSize,
             onDismiss = { fontTarget = null },
             onSave = { font, size ->
                 onFieldTypography(target, font, size)
@@ -317,9 +314,7 @@ fun NoteEditorScreen(
                             actions = {
                                 state?.let {
                                     EditorOptionsMenu(
-                                        settings = it.settings,
                                         enabled = enabled && !toolbarState.value.composing,
-                                        onSettings = onSettings,
                                         onFields = onFields,
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,

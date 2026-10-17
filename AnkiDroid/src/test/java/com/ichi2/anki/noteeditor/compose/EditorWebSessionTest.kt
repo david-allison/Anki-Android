@@ -220,16 +220,21 @@ class EditorWebSessionTest : JvmTest() {
                 coVerify(exactly = 0) { restored.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
                 session.detach()
 
-                val older = mockk<WebEditorView>(relaxed = true)
-                every { older.context } returns ApplicationProvider.getApplicationContext()
-                coEvery { older.restoreDraft(model.draftId) } returns
-                    draft.copy(
-                        document = document.copy(settings = current.settings.copy(shrinkImages = !current.settings.shrinkImages)),
-                    )
-                session.attach(older)
-                runCurrent()
-                assertTrue(session.ready.value)
-                coVerify(exactly = 1) { older.updateSettings(current.settings) }
+                for (oldSettings in listOf(
+                    current.settings.copy(shrinkImages = !current.settings.shrinkImages),
+                    current.settings.copy(fontSize = 36),
+                )) {
+                    val older = mockk<WebEditorView>(relaxed = true)
+                    every { older.context } returns ApplicationProvider.getApplicationContext()
+                    coEvery { older.restoreDraft(model.draftId) } returns
+                        draft.copy(document = document.copy(settings = oldSettings))
+                    session.attach(older)
+                    runCurrent()
+                    assertTrue(session.ready.value)
+                    coVerify(exactly = 1) { older.updateSettings(current.settings) }
+                    coVerify(exactly = 0) { older.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                    session.detach()
+                }
                 assertTrue(errors.isEmpty(), errors.joinToString())
             } finally {
                 session.detach()

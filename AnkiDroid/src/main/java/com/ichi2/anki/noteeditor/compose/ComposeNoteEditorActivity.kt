@@ -326,20 +326,6 @@ class ComposeNoteEditorActivity :
             },
             onFields = { openNoteTypeEditor(fields = true) },
             onCards = { openNoteTypeEditor(fields = false) },
-            onSettings = { settings ->
-                updateMetadata {
-                    webSession.awaitReady()
-                    val editor = requireNotNull(webSession.view)
-                    val previous = requireNotNull(model.state.value).settings
-                    editor.updateSettings(settings)
-                    try {
-                        model.setEditorSettings(settings)
-                    } catch (e: Exception) {
-                        editor.updateSettings(previous)
-                        throw e
-                    }
-                }
-            },
             onMedia = { media.launch(it) },
             onAttachMedia = { if (!busy) media.showPicker() },
             onToolbarDisplay = { display -> updateMetadata { model.setToolbarDisplay(display) } },

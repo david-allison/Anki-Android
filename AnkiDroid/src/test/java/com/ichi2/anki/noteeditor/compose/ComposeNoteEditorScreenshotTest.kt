@@ -303,7 +303,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldFontSettingsWithGlobalOverride() {
+    fun fieldFontSettingsWithLongNames() {
         // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
@@ -323,7 +323,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                             false,
                         ),
                     noteTypeName = "A long note type name with more details",
-                    fontSizeOverride = 30,
                     onDismiss = {},
                     onSave = { _, _ -> },
                 )
@@ -332,7 +331,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule
             .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
             .assertIsDisplayed()
-        captureScreen("field_font_settings_override")
+        captureScreen("field_font_settings_long_names")
     }
 
     @Test
@@ -680,7 +679,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         )) {
             composeRule.onNodeWithText(getResourceString(label)).assertDoesNotExist()
         }
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_text_size)).assertIsDisplayed()
+        composeRule.onNodeWithText("Editor text size").assertDoesNotExist()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar_layout)).assertIsDisplayed()
         val labels =
             listOf(
@@ -688,7 +687,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 R.string.compose_editor_toolbar,
                 R.string.compose_editor_quick_actions,
                 R.string.compose_editor_toolbar_layout,
-                R.string.compose_editor_text_size,
                 R.string.compose_editor_fields,
                 R.string.compose_editor_cards,
             )
@@ -718,7 +716,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText(getResourceString(label)).assertIsDisplayed().assertIsNotEnabled()
         }
         for (label in listOf(
-            R.string.compose_editor_text_size,
             R.string.compose_editor_toolbar_layout,
             R.string.compose_editor_fields,
             R.string.compose_editor_cards,
@@ -735,7 +732,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val labels =
             listOf(
                 R.string.compose_editor_toolbar,
-                R.string.compose_editor_text_size,
                 R.string.compose_editor_toolbar_layout,
                 R.string.compose_editor_field_options,
                 R.string.compose_editor_quick_actions,

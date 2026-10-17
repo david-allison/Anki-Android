@@ -351,11 +351,46 @@ class EditorViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `global options persist without changing the note or draft generation`() =
+    fun `Compose uses field sizes and preserves the legacy editor override`() =
+        runTest {
+            val key = NoteEditorFragment.PREF_NOTE_EDITOR_FONT_SIZE
+            Prefs.sharedPrefs
+                .edit()
+                .putInt(key, 36)
+                .commit()
+            val vm = loadAdd()
+            val original = assertNotNull(vm.state.value)
+            assertNull(original.settings.fontSize)
+            vm.setFieldTypography(EditorFieldTarget(original.sessionId, original.generation, 1), "Arial", 27)
+            val reopened = assertNotNull(loadAdd().state.value)
+            assertEquals(27, reopened.fields[1].fontSize)
+            assertNull(reopened.settings.fontSize)
+            assertEquals(36, Prefs.sharedPrefs.getInt(key, 0))
+            val note = addBasicNote()
+            assertNull(assertNotNull(loadEdit(note.firstCard().id).state.value).settings.fontSize)
+        }
+
+    @Test
+    fun `changing hidden editor settings cannot reintroduce a global font override`() =
+        runTest {
+            val key = NoteEditorFragment.PREF_NOTE_EDITOR_FONT_SIZE
+            Prefs.sharedPrefs
+                .edit()
+                .putInt(key, 36)
+                .commit()
+            val vm = loadAdd()
+            vm.setEditorSettings(WebEditorSettings(mathjaxPreview = false, fontSize = 28))
+            assertNull(assertNotNull(vm.state.value).settings.fontSize)
+            assertFalse(assertNotNull(loadAdd().state.value).settings.mathjaxPreview)
+            assertEquals(36, Prefs.sharedPrefs.getInt(key, 0))
+        }
+
+    @Test
+    fun `other editor options persist without changing the note or draft generation`() =
         runTest {
             val vm = loadAdd()
             val before = assertNotNull(vm.state.value)
-            val settings = WebEditorSettings(shrinkImages = false, mathjaxPreview = false, autoCloseTags = false, fontSize = 28)
+            val settings = WebEditorSettings(shrinkImages = false, mathjaxPreview = false, autoCloseTags = false)
             vm.setEditorSettings(settings)
             val after = assertNotNull(vm.state.value)
             assertEquals(before.generation, after.generation)

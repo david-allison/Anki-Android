@@ -2,11 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -16,9 +12,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,17 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
-import com.ichi2.anki.noteeditor.web.WebEditorSettings
 
 @Composable
 internal fun EditorOptionsMenu(
-    settings: WebEditorSettings,
     enabled: Boolean,
-    onSettings: (WebEditorSettings) -> Unit,
     onFields: () -> Unit,
     onCards: () -> Unit,
     toolbarDisplay: EditorToolbarDisplay,
@@ -49,7 +37,6 @@ internal fun EditorOptionsMenu(
     onToolbar: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var fontSize by rememberSaveable { mutableStateOf<String?>(null) }
     var showToolbarDisplay by rememberSaveable { mutableStateOf(false) }
     if (showToolbarDisplay) {
         EditorToolbarDisplayDialog(
@@ -59,35 +46,6 @@ internal fun EditorOptionsMenu(
                 showToolbarDisplay = false
             },
             onDismiss = { showToolbarDisplay = false },
-        )
-    }
-    fontSize?.let { value ->
-        AlertDialog(
-            onDismissRequest = { fontSize = null },
-            title = { Text(stringResource(R.string.compose_editor_text_size)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(stringResource(R.string.compose_editor_font_size_override_help))
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) fontSize = it },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        label = { Text(stringResource(CommonString.menu_font_size)) },
-                    )
-                    TextButton(onClick = {
-                        onSettings(settings.copy(fontSize = null))
-                        fontSize = null
-                    }) { Text(stringResource(R.string.compose_editor_use_field_sizes)) }
-                }
-            },
-            confirmButton = {
-                TextButton(enabled = value.toIntOrNull() in 1..99, onClick = {
-                    onSettings(settings.copy(fontSize = value.toInt()))
-                    fontSize = null
-                }) { Text(stringResource(CommonString.dialog_ok)) }
-            },
-            dismissButton = { TextButton(onClick = { fontSize = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
         )
     }
     Box {
@@ -138,10 +96,6 @@ internal fun EditorOptionsMenu(
             EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_list_white_24dp) {
                 expanded = false
                 showToolbarDisplay = true
-            }
-            EditorSettingsMenuItem(R.string.compose_editor_text_size, R.drawable.ic_format_font_size_24dp) {
-                expanded = false
-                fontSize = (settings.fontSize ?: 20).toString()
             }
             HorizontalDivider()
             // Note-type structure and card templates.

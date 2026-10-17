@@ -156,8 +156,8 @@ The main menu now has three groups, each with consistent leading icons:
 
 - **Current field:** Field options, Customize toolbar, Quick actions. These match
   the bottom overflow's order and remain visible across all toolbar layouts.
-- **This device:** Toolbar layout and Editor text size. The latter is the global
-  size override, distinct from a field's saved Font setting.
+- **This device:** Toolbar layout. The global Editor text size override was
+  removed; font size is configured under Field options → Font.
 - **Note type:** Manage fields and Card templates. These labels distinguish
   structural editing from settings for the current field.
 
@@ -203,8 +203,9 @@ exist; distinguish these settings from device-local presentation preferences.
   **Implemented:** Font in the existing field options edits the collection's
   field font and size (5–300 pixels). The dialog explains the note-type scope,
   typed answers and unavailable-font fallback. HTML mode retains a monospace
-  font and follows the field size. The global editor-size override remains
-  device-local, with a “Use field sizes” action to clear it. Live updates preserve
+  font and follows the field size. The global editor-size override was removed
+  from Compose on 2026-10-17; saved overrides are ignored, including in recovered
+  drafts. The legacy editor retains its device preference. Live updates preserve
   text and undo history; first load uses the existing document settings without
   an extra typography request.
 
