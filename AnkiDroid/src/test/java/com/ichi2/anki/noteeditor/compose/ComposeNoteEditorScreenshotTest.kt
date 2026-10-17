@@ -580,6 +580,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun toolbarOverflowWithKeyboard() {
+        showEditor()
+        toolbarOverflowButton().performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        captureScreen("toolbar_overflow_with_keyboard")
+    }
+
+    @Test
     fun toolbarOverflowWithoutKeyboard() {
         val (activity, keyboard) = showEditor()
         hideKeyboard(activity, keyboard)
