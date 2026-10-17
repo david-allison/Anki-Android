@@ -141,12 +141,15 @@ private class EditorToolbarAdapter(
                 override fun getDragDirs(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder,
-                ): Int =
-                    if (items.getOrNull(viewHolder.bindingAdapterPosition) is ToolbarListEntry.Button) {
+                ): Int {
+                    val button = items.getOrNull(viewHolder.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return 0
+                    // ItemTouchHelper also starts drags on a long press outside the handle.
+                    return if (canMove(button.key, button.key)) {
                         super.getDragDirs(recyclerView, viewHolder)
                     } else {
                         0
                     }
+                }
 
                 override fun canDropOver(
                     recyclerView: RecyclerView,
