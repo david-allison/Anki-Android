@@ -81,6 +81,8 @@ internal fun EditorCustomizeToolbarDialog(
     var pending by rememberSaveable {
         mutableStateOf(EditorToolbarConfiguration(presets, field.toolbarPresetId, field.toolbar.showToolbar))
     }
+    val initial = rememberSaveable { EditorToolbarConfiguration(presets, field.toolbarPresetId, field.toolbar.showToolbar) }
+    val dismiss = rememberEditorDismiss(pending != initial, onDismiss)
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     val selected = pending.presets.first { it.id == pending.presetId }
@@ -90,7 +92,7 @@ internal fun EditorCustomizeToolbarDialog(
         pending = pending.copy(presets = pending.presets.map { if (it.id == updated.id) updated else it })
     }
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         EditorToolbarContent(
@@ -100,7 +102,7 @@ internal fun EditorCustomizeToolbarDialog(
             isCloze = true,
             templates = templates,
             onCustomButtons = onCustomButtons,
-            onDismiss = onDismiss,
+            onDismiss = dismiss,
             onSave = {
                 // Template definitions may have changed while their library was open.
                 onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))
@@ -151,6 +153,7 @@ internal fun EditorCustomizeToolbarDialog(
     }
     naming?.let { preset ->
         var name by rememberSaveable(preset.id) { mutableStateOf(preset.name) }
+        val dismissName = rememberEditorDismiss(name != preset.name) { naming = null }
         val nameFocus = remember(preset.id) { FocusRequester() }
         val keyboard = LocalSoftwareKeyboardController.current
         val exists = pending.presets.any { it.id == preset.id }
@@ -160,7 +163,7 @@ internal fun EditorCustomizeToolbarDialog(
                     pending.presets.any { it.id != preset.id && it.name.equals(name.trim(), ignoreCase = true) }
             )
         AlertDialog(
-            onDismissRequest = { naming = null },
+            onDismissRequest = dismissName,
             title = { Text(stringResource(if (exists) CommonString.rename else R.string.compose_editor_add_preset)) },
             text = {
                 OutlinedTextField(
@@ -184,7 +187,7 @@ internal fun EditorCustomizeToolbarDialog(
                     naming = null
                 }) { Text(stringResource(CommonString.dialog_ok)) }
             },
-            dismissButton = { TextButton(onClick = { naming = null }) { Text(stringResource(CommonString.dialog_cancel)) } },
+            dismissButton = { TextButton(onClick = dismissName) { Text(stringResource(CommonString.dialog_cancel)) } },
         )
         LaunchedEffect(preset.id) {
             nameFocus.requestFocus()

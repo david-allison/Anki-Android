@@ -30,13 +30,16 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
+@Config(qualifiers = "w320dp-h900dp-mdpi")
 class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
@@ -132,8 +135,26 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick()
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        assertFalse(dismissed)
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         assertTrue(dismissed)
         assertNull(saved)
+    }
+
+    @Test
+    fun `unfinished preset names require their own discard confirmation`() {
+        showPresets()
+        openChoices()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).performTextReplacement("Reading")
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
+        assertFalse(dismissed)
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).assertDoesNotExist()
+        assertNull(saved)
+        // Discarding the child leaves the unchanged parent free to close immediately.
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        assertTrue(dismissed)
     }
 
     @Test

@@ -194,6 +194,7 @@ internal fun EditorFormattingDialog(
             }.getOrDefault(editorRemovableFormats.map { it.first.name }),
         )
     }
+    val dismiss = rememberEditorDismiss(!removing && (text != request.text || action != request.action), onDismiss)
     val equation = !removing
     val valid =
         when {
@@ -201,7 +202,7 @@ internal fun EditorFormattingDialog(
             else -> text.isNotBlank() || request.editingEquation
         }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         modifier = if (equation) Modifier.fillMaxSize() else Modifier,
         shape = if (equation) RectangleShape else AlertDialogDefaults.shape,
         properties = DialogProperties(usePlatformDefaultWidth = !equation),
@@ -313,6 +314,6 @@ internal fun EditorFormattingDialog(
                 Text(stringResource(CommonString.dialog_ok))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }

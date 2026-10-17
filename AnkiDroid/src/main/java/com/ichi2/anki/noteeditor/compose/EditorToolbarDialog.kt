@@ -66,8 +66,9 @@ internal fun EditorToolbarDialog(
     subtitle: String? = null,
 ) {
     var pendingToolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
+    val dismiss = rememberEditorDismiss(pendingToolbar != field.toolbar, onDismiss)
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         EditorToolbarContent(
@@ -76,7 +77,7 @@ internal fun EditorToolbarDialog(
             isCloze,
             templates,
             onCustomButtons,
-            onDismiss,
+            dismiss,
             onSave,
             title,
             subtitle,

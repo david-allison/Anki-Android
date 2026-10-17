@@ -21,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -54,6 +55,8 @@ class EditorFieldFontDialogTest : RobolectricTest() {
         showFont()
         composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).performTextReplacement("35")
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
+        assertFalse(dismissed)
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         assertTrue(dismissed)
         assertNull(saved)
     }

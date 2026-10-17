@@ -40,6 +40,7 @@ internal fun EditorCustomButtonsDialog(
     onSave: (List<EditorCustomToolbarButton>) -> Unit,
 ) {
     var buttons by rememberSaveable { mutableStateOf(templates) }
+    val dismiss = rememberEditorDismiss(buttons != templates, onDismiss)
     var editing by rememberSaveable { mutableStateOf<EditorCustomToolbarButton?>(null) }
     val button = editing
     if (button != null) {
@@ -59,7 +60,7 @@ internal fun EditorCustomButtonsDialog(
         return
     }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         icon = { Icon(painterResource(R.drawable.ic_widgets), null, tint = editorControlColor()) },
         title = { Text(stringResource(R.string.compose_editor_custom_buttons)) },
         text = {
@@ -91,7 +92,7 @@ internal fun EditorCustomButtonsDialog(
             }
         },
         confirmButton = { TextButton(onClick = { onSave(buttons) }) { Text(stringResource(CommonString.save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }
 
@@ -104,8 +105,9 @@ private fun CustomToolbarButtonDialog(
     var label by rememberSaveable(button.id) { mutableStateOf(button.label) }
     var prefix by rememberSaveable(button.id) { mutableStateOf(button.prefix) }
     var suffix by rememberSaveable(button.id) { mutableStateOf(button.suffix) }
+    val dismiss = rememberEditorDismiss(label != button.label || prefix != button.prefix || suffix != button.suffix, onDismiss)
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.compose_editor_custom_button)) },
         text = {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -136,6 +138,6 @@ private fun CustomToolbarButtonDialog(
                 enabled = label.isNotBlank() && (prefix.isNotEmpty() || suffix.isNotEmpty()),
             ) { Text(stringResource(CommonString.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }

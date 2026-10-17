@@ -47,9 +47,10 @@ internal fun EditorFieldFontDialog(
     var font by rememberSaveable { mutableStateOf(field.font) }
     var size by rememberSaveable { mutableStateOf(field.fontSize.toString()) }
     var expanded by remember { mutableStateOf(false) }
+    val dismiss = rememberEditorDismiss(font != field.font || size != field.fontSize.toString(), onDismiss)
     val valid = font.isNotBlank() && font.none { it.isISOControl() } && size.toIntOrNull() in 5..300
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.compose_editor_field_font)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -101,6 +102,6 @@ internal fun EditorFieldFontDialog(
         confirmButton = {
             TextButton(enabled = valid, onClick = { onSave(font.trim(), size.toInt()) }) { Text(stringResource(CommonString.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }

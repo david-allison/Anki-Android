@@ -33,8 +33,9 @@ internal fun EditorFieldDescriptionDialog(
     onSave: (String) -> Unit,
 ) {
     var description by rememberSaveable { mutableStateOf(field.description) }
+    val dismiss = rememberEditorDismiss(description != field.description, onDismiss)
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.compose_editor_field_description)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -61,6 +62,6 @@ internal fun EditorFieldDescriptionDialog(
         confirmButton = {
             TextButton(onClick = { onSave(description) }) { Text(stringResource(CommonString.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(CommonString.dialog_cancel)) } },
     )
 }

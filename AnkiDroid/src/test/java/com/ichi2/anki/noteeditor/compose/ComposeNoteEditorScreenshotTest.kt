@@ -392,6 +392,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         input.assertTextContains("An existing hint").performTextReplacement("")
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
         assertTrue(changes.isEmpty())
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertIsDisplayed()
+        captureScreen("discard_field_description_changes")
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).performScrollTo().performClick()
         input.assertTextContains("An existing hint").performTextReplacement("")
         composeRule.onNode(hasText(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
@@ -1238,6 +1241,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             .onNode(
                 hasContentDescription(getResourceString(CommonString.dialog_cancel)) and hasAnyAncestor(isDialog()),
             ).performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         composeRule.onNode(isDialog()).assertDoesNotExist()
     }
 

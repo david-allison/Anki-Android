@@ -81,6 +81,7 @@ import com.ichi2.anki.testutil.grantPermissions
 import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.anki.testutil.withTestKeyboard
+import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.utils.LanguageUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1171,6 +1172,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.pressKeyCode(KeyEvent.KEYCODE_P)
             assertTrue(name.wait(Until.textEquals("p"), 5_000), "Typing must go directly into the preset name")
             checkNotNull(device.findObject(By.text(testContext.getString(CommonString.dialog_cancel)))).click()
+            val keepEditing = with(testContext) { TR.sentenceCase.keepEditing }
+            checkNotNull(device.wait(Until.findObject(By.text(keepEditing)), 5_000)).click()
+            assertEquals("p", checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)).text)
+            checkNotNull(device.findObject(By.text(testContext.getString(CommonString.dialog_cancel)))).click()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.discard))), 5_000)).click()
             checkNotNull(device.findObject(By.desc(testContext.getString(CommonString.dialog_cancel)))).click()
             assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
         }
