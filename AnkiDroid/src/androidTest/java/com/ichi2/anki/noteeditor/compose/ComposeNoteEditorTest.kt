@@ -13,14 +13,18 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.view.WindowInsets
+import android.view.WindowInsetsAnimation
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.widget.TextView
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
 import androidx.core.content.getSystemService
 import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
@@ -31,6 +35,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleCallback
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
@@ -41,6 +48,7 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
+import com.ichi2.anki.DeckPicker
 import com.ichi2.anki.NoteEditorFragment
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.R
@@ -1376,6 +1384,131 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.state == Lifecycle.State.DESTROYED
             }
             assertEquals(expected, runBlocking { withCol { getNote(note.id).fields.toList() } })
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
+    fun firstKeyboardOpeningDoesNotMoveToolbarDownAtAnimationEnd() {
+        data class Frame(
+            val launch: Int,
+            val time: Long,
+            val imeBottom: Int,
+            val fieldAreaBottom: Int,
+        )
+
+        val frames = CopyOnWriteArrayList<Frame>()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(instrumentation)
+        val current = AtomicReference<ComposeNoteEditorActivity>()
+        val removeListeners = mutableListOf<() -> Unit>()
+        val minimumKeyboardHeight = (100 * testContext.resources.displayMetrics.density).toInt()
+        var launches = 0
+        val callback =
+            ActivityLifecycleCallback { activity, stage ->
+                if (activity is ComposeNoteEditorActivity && stage == Stage.RESUMED && current.get() !== activity) {
+                    current.set(activity)
+                    val launch = launches++
+                    val root = activity.window.decorView
+                    var imeBottom = ViewCompat.getRootWindowInsets(root)?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+                    root.setWindowInsetsAnimationCallback(
+                        object : WindowInsetsAnimation.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                            override fun onProgress(
+                                insets: WindowInsets,
+                                runningAnimations: MutableList<WindowInsetsAnimation>,
+                            ): WindowInsets {
+                                imeBottom = insets.getInsets(WindowInsets.Type.ime()).bottom
+                                return insets
+                            }
+
+                            override fun onEnd(animation: WindowInsetsAnimation) {
+                                imeBottom = ViewCompat.getRootWindowInsets(root)?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+                            }
+                        },
+                    )
+                    val listener =
+                        ViewTreeObserver.OnPreDrawListener {
+                            val web = root.webViews().filterIsInstance<WebEditorView>().firstOrNull()
+                            if (web != null) {
+                                val location = IntArray(2)
+                                web.getLocationOnScreen(location)
+                                // Once the keyboard is open the footer has a fixed height, so its
+                                // movement is also the movement of the field area's bottom edge.
+                                frames.add(Frame(launch, SystemClock.uptimeMillis(), imeBottom, location[1] + web.height))
+                            }
+                            true
+                        }
+                    root.viewTreeObserver.addOnPreDrawListener(listener)
+                    removeListeners.add {
+                        if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(listener)
+                        root.setWindowInsetsAnimationCallback(null)
+                    }
+                }
+            }
+        val originalEnabled = Prefs.isComposeNoteEditorEnabled
+        val originalLayout = Prefs.sharedPrefs.getString("composeEditorToolbarDisplay", null)
+        Prefs.isComposeNoteEditorEnabled = true
+        Prefs.sharedPrefs.edit { putString("composeEditorToolbarDisplay", EditorToolbarDisplay.SCROLL.name) }
+        instrumentation.runOnMainSync { ActivityLifecycleMonitorRegistry.getInstance().addLifecycleCallback(callback) }
+        try {
+            // Direct ActivityScenario editor launches miss the race between Add navigation,
+            // Chromium's input connection and the first keyboard request. Repeat the real path.
+            ActivityScenario.launch<DeckPicker>(Intent(testContext, DeckPicker::class.java)).use {
+                repeat(12) {
+                    val previous = current.get()
+                    checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "fab_main")), 5_000)).click()
+                    checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.menu_add))), 5_000)).click()
+                    waitUntil(message = { "The first on-screen keyboard did not open" }) {
+                        var visible = false
+                        instrumentation.runOnMainSync {
+                            val editor = current.get()
+                            visible = editor != null && editor !== previous &&
+                                (
+                                    ViewCompat
+                                        .getRootWindowInsets(
+                                            editor.window.decorView,
+                                        )?.getInsets(WindowInsetsCompat.Type.ime())
+                                        ?.bottom
+                                        ?: 0
+                                ) >
+                                minimumKeyboardHeight
+                        }
+                        visible
+                    }
+                    device.waitForIdle()
+                    SystemClock.sleep(350) // Include the layout following the final animation frame.
+                    device.pressBack()
+                    device.waitForIdle()
+                    device.pressBack()
+                    checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "fab_main")), 5_000))
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                ActivityLifecycleMonitorRegistry.getInstance().removeLifecycleCallback(callback)
+                removeListeners.forEach { it() }
+            }
+            Prefs.isComposeNoteEditorEnabled = originalEnabled
+            Prefs.sharedPrefs.edit { putString("composeEditorToolbarDisplay", originalLayout) }
+            File(testContext.getExternalFilesDir(null), "keyboard-layout.csv").writeText(
+                "launch,time,imeBottom,fieldAreaBottom\n" +
+                    frames.joinToString("\n") {
+                        "${it.launch},${it.time},${it.imeBottom},${it.fieldAreaBottom}"
+                    },
+            )
+        }
+        val byLaunch = frames.groupBy { it.launch }
+        assertEquals(12, byLaunch.size)
+        for ((launch, samples) in byLaunch) {
+            val nearEnd = samples.maxOf { it.imeBottom } * 0.8
+            val openingFrames =
+                samples.zipWithNext().filter { (before, after) ->
+                    before.imeBottom >= nearEnd && after.imeBottom >= before.imeBottom && after.time - before.time < 100
+                }
+            assertTrue(openingFrames.isNotEmpty(), "No keyboard animation frames captured for launch $launch")
+            for ((before, after) in openingFrames) {
+                assertTrue(after.fieldAreaBottom - before.fieldAreaBottom <= 2, "Toolbar jumped down: $before -> $after")
+            }
         }
     }
 
