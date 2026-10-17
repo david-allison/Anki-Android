@@ -884,37 +884,29 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onClick = onFont,
         )
-        EditorFieldOptionsGroup {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
             EditorFieldOptionSwitch(
+                icon = R.drawable.ic_editor_text_direction_rtl,
                 label = stringResource(R.string.compose_editor_right_to_left),
                 checked = field.rtl,
                 enabled = enabled,
                 onCheckedChange = onDirection,
             )
             EditorFieldOptionSwitch(
+                icon = R.drawable.ic_code,
                 label = TR.fieldsHtmlByDefault(),
                 checked = field.sourceMode,
                 enabled = enabled,
                 onCheckedChange = onHtmlByDefault,
             )
             EditorFieldOptionSwitch(
+                icon = R.drawable.ic_expand_less_black_24dp,
                 label = TR.fieldsCollapseByDefault(),
                 checked = field.collapsed,
                 enabled = enabled,
                 onCheckedChange = onCollapseByDefault,
             )
         }
-    }
-}
-
-@Composable
-private fun EditorFieldOptionsGroup(content: @Composable () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(Modifier.padding(vertical = 4.dp)) { content() }
     }
 }
 
@@ -1126,6 +1118,7 @@ internal fun EditorFieldOptionSwitch(
     checked: Boolean,
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    icon: Int? = null,
 ) {
     Row(
         Modifier
@@ -1134,6 +1127,10 @@ internal fun EditorFieldOptionSwitch(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) {
+            Icon(painterResource(icon), null, Modifier.size(24.dp), tint = editorControlColor())
+            Spacer(Modifier.width(12.dp))
+        }
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.width(16.dp))
         Switch(
