@@ -145,8 +145,10 @@ internal fun EditorCustomizeToolbarDialog(
         var name by rememberSaveable(preset.id) { mutableStateOf(preset.name) }
         val exists = pending.presets.any { it.id == preset.id }
         val duplicate =
-            name.trim().equals(defaultName, ignoreCase = true) ||
-                pending.presets.any { it.id != preset.id && it.name.equals(name.trim(), ignoreCase = true) }
+            name.isNotBlank() && (
+                name.trim().equals(defaultName, ignoreCase = true) ||
+                    pending.presets.any { it.id != preset.id && it.name.equals(name.trim(), ignoreCase = true) }
+            )
         AlertDialog(
             onDismissRequest = { naming = null },
             title = { Text(stringResource(if (exists) CommonString.rename else R.string.compose_editor_add_preset)) },

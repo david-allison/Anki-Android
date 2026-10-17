@@ -5,6 +5,9 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import androidx.activity.compose.setContent
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -130,6 +133,31 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
         assertTrue(dismissed)
         assertNull(saved)
+    }
+
+    @Test
+    fun `blank new preset names are neutral until a duplicate is entered`() {
+        showPresets()
+        openChoices()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
+        val name = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name))
+        val error = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name_error))
+        val ok = composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok))
+        name.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        error.assertDoesNotExist()
+        ok.assertIsNotEnabled()
+        name.performTextReplacement("   ")
+        name.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        error.assertDoesNotExist()
+        ok.assertIsNotEnabled()
+        name.performTextReplacement(" minimal ")
+        name.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        error.assertExists()
+        ok.assertIsNotEnabled()
+        name.performTextReplacement("")
+        name.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        error.assertDoesNotExist()
+        ok.assertIsNotEnabled()
     }
 
     @Test
