@@ -154,11 +154,13 @@ abstract class InstrumentedTest : DeferredNavigation {
     // See: https://stackoverflow.com/questions/39457305/android-testing-waited-for-the-root-of-the-view-hierarchy-to-have-window-focus/54203607#54203607
     private fun closeAndroidNotRespondingDialog() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        var waitButton = device.findObject(UiSelector().textContains("Wait"))
+        // A text match can click unrelated content in the foreground app indefinitely.
+        val waitSelector = UiSelector().resourceId("android:id/aerr_wait")
+        var waitButton = device.findObject(waitSelector)
         // There may be multiple dialogs
         while (waitButton.exists()) {
             waitButton.click()
-            waitButton = device.findObject(UiSelector().textContains("Wait"))
+            waitButton = device.findObject(waitSelector)
         }
     }
 
