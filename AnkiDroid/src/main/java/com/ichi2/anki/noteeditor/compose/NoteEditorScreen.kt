@@ -222,6 +222,8 @@ fun NoteEditorScreen(
             },
             field = presetTarget?.let { state.fields[it.field] },
             noteTypeName = state.noteTypeName,
+            toolbarHiddenGlobally = state.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
+            onToolbarVisibility = { visible -> presetTarget?.let { onFieldToolbarVisibility(it, visible) } },
             onSelect = { id ->
                 presetTarget?.let { onToolbarPreset(it, id) }
                 toolbarTarget = null
@@ -326,6 +328,11 @@ fun NoteEditorScreen(
                                                 quickActionsTarget = EditorFieldTarget(it.sessionId, it.generation, field)
                                             }
                                         },
+                                        onToolbar = {
+                                            toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->
+                                                toolbarTarget = EditorFieldTarget(it.sessionId, it.generation, field)
+                                            }
+                                        },
                                         onToolbarPresets = { showToolbarPresets = true },
                                     )
                                 }
@@ -404,8 +411,6 @@ fun NoteEditorScreen(
                             onDirection = onFieldDirection,
                             onHtmlByDefault = onFieldHtmlByDefault,
                             onCollapseByDefault = onFieldCollapseByDefault,
-                            onToolbarVisibility = onFieldToolbarVisibility,
-                            onToolbarPreset = onToolbarPreset,
                             onToolbar = { toolbarTarget = it },
                             onQuickActions = { quickActionsTarget = it },
                             onCustomAction = onCustomAction,
@@ -560,8 +565,6 @@ private fun EditorFieldArea(
     onDirection: (EditorFieldTarget, Boolean) -> Unit,
     onHtmlByDefault: (EditorFieldTarget, Boolean) -> Unit,
     onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit,
-    onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit,
-    onToolbarPreset: (EditorFieldTarget, String) -> Unit,
     onToolbar: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget) -> Unit,
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit,
@@ -631,10 +634,6 @@ private fun EditorFieldArea(
                         onDirection = { onDirection(target, it) },
                         onHtmlByDefault = { onHtmlByDefault(target, it) },
                         onCollapseByDefault = { onCollapseByDefault(target, it) },
-                        presets = editorState.toolbarPresets,
-                        toolbarHiddenGlobally = editorState.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
-                        onToolbarVisibility = { onToolbarVisibility(target, it) },
-                        onToolbarPreset = { onToolbarPreset(target, it) },
                         onCollapse = closeOptions,
                     )
                 }
@@ -772,10 +771,6 @@ private fun EditorFieldOptions(
     onDirection: (Boolean) -> Unit,
     onHtmlByDefault: (Boolean) -> Unit,
     onCollapseByDefault: (Boolean) -> Unit,
-    presets: List<EditorToolbarPreset>,
-    toolbarHiddenGlobally: Boolean,
-    onToolbarVisibility: (Boolean) -> Unit,
-    onToolbarPreset: (String) -> Unit,
     onCollapse: () -> Unit,
 ) {
     val controlColor = editorControlColor()
@@ -908,25 +903,6 @@ private fun EditorFieldOptions(
                 enabled = enabled,
                 onCheckedChange = onCollapseByDefault,
             )
-        }
-        Spacer(Modifier.height(12.dp))
-        EditorFieldOptionsGroup {
-            EditorFieldOptionSwitch(
-                label = stringResource(R.string.compose_editor_show_field_toolbar),
-                checked = field.toolbar.showToolbar,
-                enabled = enabled,
-                onCheckedChange = onToolbarVisibility,
-            )
-            if (toolbarHiddenGlobally) {
-                Text(
-                    stringResource(R.string.compose_editor_toolbar_hidden_globally),
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (field.toolbar.showToolbar) {
-                EditorFieldToolbarPresetSelector(presets, field.toolbarPresetId, enabled, onToolbarPreset)
-            }
         }
     }
 }
@@ -1145,7 +1121,7 @@ internal fun EditorToggleButton(
 }
 
 @Composable
-private fun EditorFieldOptionSwitch(
+internal fun EditorFieldOptionSwitch(
     label: String,
     checked: Boolean,
     enabled: Boolean,

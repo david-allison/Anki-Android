@@ -64,6 +64,8 @@ internal fun EditorToolbarPresetsDialog(
     noteTypeName: String = "",
     enabled: Boolean = true,
     onSelect: (String) -> Unit = {},
+    toolbarHiddenGlobally: Boolean = false,
+    onToolbarVisibility: (Boolean) -> Unit = {},
 ) {
     val controlColor = editorControlColor()
     var editing by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
@@ -120,6 +122,26 @@ internal fun EditorToolbarPresetsDialog(
                             Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                             style = MaterialTheme.typography.bodyMedium,
                         )
+                    }
+                }
+                if (field != null) {
+                    item {
+                        Box(Modifier.padding(horizontal = 12.dp)) {
+                            EditorFieldOptionSwitch(
+                                label = stringResource(R.string.compose_editor_show_field_toolbar),
+                                checked = field.toolbar.showToolbar,
+                                enabled = enabled,
+                                onCheckedChange = onToolbarVisibility,
+                            )
+                        }
+                        if (toolbarHiddenGlobally) {
+                            Text(
+                                stringResource(R.string.compose_editor_toolbar_hidden_globally),
+                                Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 item {
