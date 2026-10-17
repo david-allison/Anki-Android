@@ -293,6 +293,9 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
+            onFieldCollapseByDefault = { target, collapsed ->
+                updateMetadata { model.setFieldCollapsedByDefault(target, collapsed) }
+            },
             onFieldTypography = { target, font, size ->
                 updateMetadata {
                     webSession.awaitReady()
@@ -505,7 +508,9 @@ class ComposeNoteEditorActivity :
                         webSession.synchronize()
                         model.consumeSaveResult()
                         setBusy(false)
-                        webSession.view?.focusField()
+                        model.state.value
+                            ?.initialFocusField
+                            ?.let { webSession.view?.focusField(it) }
                         lifecycleScope.launch { snackbar.showSnackbar(getString(R.string.compose_editor_added)) }
                     }
                 }

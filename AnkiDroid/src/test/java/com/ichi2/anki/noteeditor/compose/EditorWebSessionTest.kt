@@ -33,6 +33,54 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorWebSessionTest : JvmTest() {
     @Test
+    fun `initial focus skips collapsed fields and stays closed when all fields are collapsed`() =
+        runTest {
+            val originalDispatcher = ioDispatcher
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+            try {
+                for (collapsedFields in listOf(setOf(0), setOf(0, 1))) {
+                    val type = col.notetypes.basic.deepClone()
+                    type.fields.forEachIndexed { index, field -> field.jsonObject.put("collapsed", index in collapsedFields) }
+                    col.notetypes.save(type)
+                    val model = EditorViewModel(SavedStateHandle())
+                    val store = ViewModelStore().apply { put("editor", model) }
+                    val errors = mutableListOf<String>()
+                    val session = EditorWebSession(model, backgroundScope, errors::add)
+                    val web = mockk<WebEditorView>(relaxed = true)
+                    every { web.context } returns ApplicationProvider.getApplicationContext()
+                    try {
+                        model.load(NoteEditorFragment.addNoteArgs())
+                        session.attach(web)
+                        runCurrent()
+                        assertTrue(session.ready.value)
+                        val state = checkNotNull(model.state.value)
+                        assertEquals(if (1 in collapsedFields) null else 1, state.initialFocusField)
+                        // Updating the saved default must not reload the current fields or move focus.
+                        model.setFieldCollapsedByDefault(EditorFieldTarget(state.sessionId, state.generation, 0), false)
+                        runCurrent()
+                        assertFalse(checkNotNull(model.state.value).fields[0].collapsed)
+                        coVerify(exactly = 0) { web.focusField(0, any()) }
+                        coVerify(exactly = if (1 in collapsedFields) 0 else 1) { web.focusField(1, any()) }
+                        coVerify(exactly = 1) {
+                            web.loadDocumentAndCreateDraft(
+                                match { document -> document.fields.map { it.collapsed } == listOf(true, 1 in collapsedFields) },
+                                any(),
+                                any(),
+                                any(),
+                            )
+                        }
+                        assertTrue(errors.isEmpty(), errors.joinToString())
+                    } finally {
+                        session.detach()
+                        store.clear()
+                    }
+                }
+            } finally {
+                ioDispatcher = originalDispatcher
+            }
+        }
+
+    @Test
     fun `field typography updates in place with no extra first-load request`() =
         runTest {
             val originalDispatcher = ioDispatcher

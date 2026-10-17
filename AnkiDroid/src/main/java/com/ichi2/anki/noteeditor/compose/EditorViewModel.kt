@@ -414,6 +414,12 @@ class EditorViewModel(
         rtl: Boolean,
     ) = updateFieldSettings(target) { jsonObject.put("rtl", rtl) }
 
+    /** Save the note type's default without changing the WebView's current expanded/collapsed state. */
+    suspend fun setFieldCollapsedByDefault(
+        target: EditorFieldTarget,
+        collapsed: Boolean,
+    ) = updateFieldSettings(target) { jsonObject.put("collapsed", collapsed) }
+
     suspend fun setFieldQuickActions(
         target: EditorFieldTarget,
         actions: List<String>,
@@ -573,6 +579,7 @@ class EditorViewModel(
                                         font = saved.font,
                                         fontSize = saved.fontSize,
                                         rtl = saved.jsonObject.optBoolean("rtl"),
+                                        collapsed = saved.jsonObject.optBoolean("collapsed"),
                                     )
                                 } else {
                                     f

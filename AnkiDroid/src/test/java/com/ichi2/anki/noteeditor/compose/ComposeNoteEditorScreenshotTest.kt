@@ -168,6 +168,28 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun collapseByDefaultFieldOptions() {
+        val collapsed = mutableStateOf(false)
+        val requested = mutableListOf<Pair<EditorFieldTarget, Boolean>>()
+        showEditor(
+            collapsedState = collapsed,
+            onCollapseByDefault = { target, value ->
+                requested.add(target to value)
+                collapsed.value = value
+            },
+        )
+        fieldOptionsButton().performClick()
+        val toggle = composeRule.onNodeWithText(TR.fieldsCollapseByDefault())
+        toggle.performScrollTo().assertIsOff()
+        captureScreen("field_options_collapse_default_off")
+        toggle.performClick().assertIsOn()
+        captureScreen("field_options_collapse_default_on")
+        toggle.performClick().assertIsOff()
+        assertEquals(listOf(true, false), requested.map { it.second })
+        assertTrue(requested.all { it.first == EditorFieldTarget("screenshot", 0, 1) })
+    }
+
+    @Test
     fun fieldFontSettings() {
         // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
@@ -1509,6 +1531,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pinned: Boolean = true,
         rtl: Boolean = false,
         onDirection: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
+        collapsedState: State<Boolean>? = null,
+        onCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         presets: List<EditorToolbarPreset>? = null,
         fieldToolbarState: State<EditorFieldToolbar>? = null,
         presetSelection: State<String>? = null,
@@ -1539,6 +1563,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                                 toolbar = fieldToolbarState?.value ?: toolbar,
                                                 sticky = pinned,
                                                 rtl = rtl,
+                                                collapsed = collapsedState?.value ?: false,
                                                 toolbarPresetId =
                                                     presetSelection?.value ?: EditorToolbarPreset.DEFAULT_ID,
                                             )
@@ -1569,6 +1594,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onPinned = { _, _ -> },
                     onLanguageHint = {},
                     onFieldDirection = onDirection,
+                    onFieldCollapseByDefault = onCollapseByDefault,
                     onFieldToolbarVisibility = onToolbarVisibility,
                     onToolbarPreset = onPreset,
                     onAction = onAction,
