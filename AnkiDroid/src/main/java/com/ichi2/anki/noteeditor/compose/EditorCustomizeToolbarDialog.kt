@@ -30,6 +30,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -272,7 +275,7 @@ private fun ToolbarPresetSelector(
             onExpandedChange = { if (enabled) choosing = it },
             modifier = Modifier.weight(1f),
         ) {
-            OutlinedTextField(
+            TextField(
                 value = selected.displayName(),
                 onValueChange = {},
                 readOnly = true,
@@ -280,6 +283,23 @@ private fun ToolbarPresetSelector(
                 label = { Text(stringResource(R.string.compose_editor_preset)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = choosing) },
                 singleLine = true,
+                textStyle = MaterialTheme.typography.titleMedium,
+                shape = MaterialTheme.shapes.large,
+                colors =
+                    TextFieldDefaults.colors(
+                        focusedContainerColor =
+                            MaterialTheme.colorScheme.surfaceContainerHigh.compositeOver(
+                                MaterialTheme.colorScheme.surface,
+                            ),
+                        unfocusedContainerColor = menuColor,
+                        disabledContainerColor = menuColor,
+                        focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTrailingIconColor = controlColor,
+                        unfocusedTrailingIconColor = controlColor,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
                 modifier =
                     Modifier.fillMaxWidth().menuAnchor(
                         ExposedDropdownMenuAnchorType.PrimaryNotEditable,
@@ -290,6 +310,7 @@ private fun ToolbarPresetSelector(
                 expanded = choosing,
                 onDismissRequest = { choosing = false },
                 containerColor = menuColor,
+                shape = MaterialTheme.shapes.large,
             ) {
                 presets.forEach { preset ->
                     DropdownMenuItem(
