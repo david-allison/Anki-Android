@@ -6,6 +6,14 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import java.util.UUID
 
+/** One explicit save of shared presets and the current field's toolbar choice. */
+@Parcelize
+data class EditorToolbarConfiguration(
+    val presets: List<EditorToolbarPreset>,
+    val presetId: String,
+    val showToolbar: Boolean,
+) : Parcelable
+
 /** Shared button choices; field quick actions and device layout are deliberately independent. */
 @Parcelize
 data class EditorToolbarPreset(

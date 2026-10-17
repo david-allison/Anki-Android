@@ -17,6 +17,45 @@ class EditorToolbarPresetTest {
     private val default get() = store.loadPresets().first { it.id == EditorToolbarPreset.DEFAULT_ID }
 
     @Test
+    fun `configuration saves new preset binding and visibility without changing quick actions`() {
+        val copy = default.copy(id = "reading", name = "Reading", hiddenButtons = setOf("BOLD"))
+        store.saveQuickActions("collection", 1, "front", listOf("gallery"))
+        store.saveConfiguration("collection", 1, "front", EditorToolbarConfiguration(listOf(default, copy), copy.id, false))
+        val reopened = EditorToolbarPreferences(preferences)
+        assertEquals(copy.id, reopened.presetId("collection", 1, "front"))
+        assertEquals(false, reopened.load("collection", 1, "front").showToolbar)
+        assertEquals(setOf("BOLD"), reopened.load("collection", 1, "front").hiddenButtons)
+        assertEquals(listOf("gallery"), reopened.load("collection", 1, "front").quickActions)
+        assertEquals(true, reopened.load("collection", 1, "back").showToolbar)
+        assertEquals(emptySet(), reopened.load("collection", 1, "back").hiddenButtons)
+    }
+
+    @Test
+    fun `configuration applies shared edits and deleted preset fallback across note types`() {
+        val removed = EditorToolbarPreset(name = "Reading")
+        store.savePresets(listOf(default, removed))
+        store.selectPreset("collection", 2, "back", removed.id)
+        val updated = default.copy(hiddenButtons = setOf("ITALIC"))
+        store.saveConfiguration("collection", 1, "front", EditorToolbarConfiguration(listOf(updated), updated.id, false))
+        assertEquals(updated.id, store.presetId("collection", 2, "back"))
+        assertEquals(setOf("ITALIC"), store.load("collection", 2, "back").hiddenButtons)
+        assertEquals(true, store.load("collection", 2, "back").showToolbar)
+    }
+
+    @Test
+    fun `invalid configuration changes neither the presets nor the field`() {
+        val initial = store.loadPresets()
+        val before = preferences.all.toMap()
+        for (invalid in listOf(
+            EditorToolbarConfiguration(initial, "missing", false),
+            EditorToolbarConfiguration(emptyList(), EditorToolbarPreset.DEFAULT_ID, false),
+        )) {
+            assertFailsWith<IllegalArgumentException> { store.saveConfiguration("collection", 1, "front", invalid) }
+            assertEquals(before, preferences.all)
+        }
+    }
+
+    @Test
     fun `legacy field customization becomes a reusable preset without changing its appearance`() {
         val old =
             EditorFieldToolbar(

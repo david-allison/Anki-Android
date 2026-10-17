@@ -135,12 +135,38 @@ internal class EditorToolbarPreferences(
 
     /** Replacing the library atomically also makes deleted assignments inherit Default. */
     fun savePresets(presets: List<EditorToolbarPreset>) {
+        validatePresets(presets)
+        check(preferences.edit().putString(PRESETS_KEY, presets.presetJson().toString()).commit()) { "Unable to save toolbar presets." }
+    }
+
+    /** Save the library and field binding together, including a newly created preset. */
+    fun saveConfiguration(
+        collection: String,
+        noteType: Long,
+        field: String,
+        configuration: EditorToolbarConfiguration,
+    ) {
+        validatePresets(configuration.presets)
+        require(configuration.presets.any { it.id == configuration.presetId })
+        val json =
+            fieldSettings(collection, noteType, field)
+                .put("preset", configuration.presetId)
+                .put("showToolbar", configuration.showToolbar)
+        check(
+            preferences
+                .edit()
+                .putString(PRESETS_KEY, configuration.presets.presetJson().toString())
+                .putString(key(collection, noteType, field), json.toString())
+                .commit(),
+        ) { "Unable to save toolbar configuration." }
+    }
+
+    private fun validatePresets(presets: List<EditorToolbarPreset>) {
         require(presets.count { it.id == EditorToolbarPreset.DEFAULT_ID } == 1)
         require(presets.map { it.id }.distinct().size == presets.size)
         require(presets.all { it.id.isNotBlank() && (it.id == EditorToolbarPreset.DEFAULT_ID || it.name.isNotBlank()) })
         val named = presets.filter { it.id != EditorToolbarPreset.DEFAULT_ID }.map { it.name.trim().lowercase(java.util.Locale.ROOT) }
         require(named.distinct().size == named.size)
-        check(preferences.edit().putString(PRESETS_KEY, presets.presetJson().toString()).commit()) { "Unable to save toolbar presets." }
     }
 
     private fun List<EditorToolbarPreset>.presetJson(): JSONArray =
