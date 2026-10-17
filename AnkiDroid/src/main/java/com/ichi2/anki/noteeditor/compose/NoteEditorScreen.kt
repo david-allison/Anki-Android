@@ -185,7 +185,6 @@ fun NoteEditorScreen(
         val current = requireNotNull(state)
         EditorFieldDescriptionDialog(
             field = current.fields[target.field],
-            noteTypeName = current.noteTypeName,
             onDismiss = { descriptionTarget = null },
             onSave = { description ->
                 onFieldDescription(target, description)

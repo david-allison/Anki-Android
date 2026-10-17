@@ -18,17 +18,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.unit.dp
-import androidx.core.text.htmlEncode
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
 @Composable
 internal fun EditorFieldDescriptionDialog(
     field: EditorFieldState,
-    noteTypeName: String,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -39,15 +35,7 @@ internal fun EditorFieldDescriptionDialog(
         title = { Text(stringResource(R.string.compose_editor_field_description)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    AnnotatedString.fromHtml(
-                        stringResource(
-                            R.string.compose_editor_field_options_help_scope,
-                            "<b>${field.name.htmlEncode()}</b>",
-                            "<b>${noteTypeName.htmlEncode()}</b>",
-                        ),
-                    ),
-                )
+                Text(stringResource(R.string.compose_editor_field_description_help))
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -56,7 +44,6 @@ internal fun EditorFieldDescriptionDialog(
                     minLines = 3,
                     maxLines = 6,
                 )
-                Text(stringResource(R.string.compose_editor_field_description_help))
             }
         },
         confirmButton = {

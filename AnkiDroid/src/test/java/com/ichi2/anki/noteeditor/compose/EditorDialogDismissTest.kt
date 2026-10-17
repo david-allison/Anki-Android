@@ -170,7 +170,7 @@ class EditorDialogDismissTest : RobolectricTest() {
 
     private fun showDescription() =
         show {
-            EditorFieldDescriptionDialog(field, "Basic", { dismissed = true }, { saved = it })
+            EditorFieldDescriptionDialog(field, { dismissed = true }, { saved = it })
         }
 
     private fun show(content: @Composable () -> Unit) {
