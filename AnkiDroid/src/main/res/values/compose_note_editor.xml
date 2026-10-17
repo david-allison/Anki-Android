@@ -98,9 +98,9 @@
     <string name="compose_editor_field_description_help">Shown in the field when it is empty.</string>
     <string name="compose_editor_field_description_empty">Add a hint for this field</string>
     <string name="compose_editor_field_font">Font</string>
-    <string name="compose_editor_field_font_summary">%1$s · %2$d</string>
+    <string name="compose_editor_field_font_summary">%1$d pixels</string>
     <string name="compose_editor_field_font_size_range">5–300 pixels</string>
-    <string name="compose_editor_field_font_help">Used when editing and typing answers. Card styling is unchanged. If a font is unavailable on this device, a fallback font is used.</string>
+    <string name="compose_editor_field_font_help">Used when editing and typing answers. Card styling is unchanged.</string>
     <string name="compose_editor_right_to_left">Right-to-left text</string>
     <string name="compose_editor_right_to_left_help">Display this field’s text from right to left.</string>
     <string name="compose_editor_start_in_html_mode">Start in HTML mode</string>

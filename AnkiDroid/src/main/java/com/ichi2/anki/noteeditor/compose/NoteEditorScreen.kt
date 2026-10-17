@@ -806,7 +806,6 @@ private fun EditorFieldOptions(
                                         EditorFieldOption.FONT ->
                                             stringResource(
                                                 R.string.compose_editor_field_font_summary,
-                                                field.font,
                                                 field.fontSize,
                                             )
                                         else -> null

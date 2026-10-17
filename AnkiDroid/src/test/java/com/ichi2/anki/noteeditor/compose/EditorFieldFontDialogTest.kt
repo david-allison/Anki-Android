@@ -33,14 +33,14 @@ class EditorFieldFontDialogTest : RobolectricTest() {
     private var dismissed = false
 
     @Test
-    fun `font names and size are validated and saved together`() {
-        showFont()
-        val font = composeRule.onNodeWithText(TR.fieldsFont())
+    fun `changing size preserves the existing font name`() {
+        showFont(fontName = "Custom Imported Font")
+        composeRule.onNodeWithText(TR.fieldsFont()).assertDoesNotExist()
+        composeRule.onNodeWithText("Custom Imported Font").assertDoesNotExist()
         val size = composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size))
         val save = composeRule.onNodeWithText(getResourceString(CommonString.save))
-        font.performTextReplacement("")
+        size.performTextReplacement("")
         save.assertIsNotEnabled()
-        font.performTextReplacement(" Custom Imported Font ")
         size.performTextReplacement("301")
         save.assertIsNotEnabled()
         size.performTextReplacement("4")
@@ -83,12 +83,12 @@ class EditorFieldFontDialogTest : RobolectricTest() {
         composeRule.onNodeWithText("Editor text size").assertDoesNotExist()
     }
 
-    private fun showFont() {
+    private fun showFont(fontName: String = "Arial") {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         activity.setContent {
             AnkiDroidTheme {
                 EditorFieldFontDialog(
-                    field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false),
+                    field = EditorFieldState("Front", "", fontName, 20, false, null, false, false, false),
                     onDismiss = { dismissed = true },
                     onSave = { font, size -> saved = font to size },
                 )

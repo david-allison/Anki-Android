@@ -412,51 +412,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
             .assertIsDisplayed()
         captureScreen("field_font_settings")
-        val font = composeRule.onNode(hasSetTextAction() and hasText("Arial"))
-        val unfocused = font.captureToImage().toPixelMap()
-        font.performClick()
-        composeRule.onNode(isPopup()).assertIsDisplayed()
-        captureScreen("field_font_choices")
-        val focused = font.captureToImage().toPixelMap()
-        assertEquals(
-            unfocused[unfocused.width / 2, 2],
-            focused[focused.width / 2, 2],
-            "Opening the font selector should not change its surface color",
-        )
-        composeRule.onNode(hasText("serif") and hasAnyAncestor(isPopup())).performClick()
-        composeRule.onNode(isPopup()).assertDoesNotExist()
-        composeRule.onNode(hasSetTextAction() and hasText("serif")).assertIsDisplayed()
-    }
-
-    @Test
-    fun fieldFontSettingsWithLongFontName() {
-        // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
-        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
-        val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
-        activity.setContent {
-            AnkiDroidTheme {
-                EditorFieldFontDialog(
-                    field =
-                        EditorFieldState(
-                            "Front",
-                            "",
-                            "A custom imported font with a long name",
-                            24,
-                            false,
-                            null,
-                            false,
-                            false,
-                            false,
-                        ),
-                    onDismiss = {},
-                    onSave = { _, _ -> },
-                )
-            }
-        }
-        composeRule
-            .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
-            .assertIsDisplayed()
-        captureScreen("field_font_settings_long_font_name")
     }
 
     @Test
