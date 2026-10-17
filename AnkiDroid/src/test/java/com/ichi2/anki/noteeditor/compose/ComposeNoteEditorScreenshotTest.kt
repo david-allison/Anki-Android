@@ -781,7 +781,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             val viewport = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
             val availableBottom = height - maxOf(48, imeHeight) * density
             assertTrue(viewport.bottom <= availableBottom + 1, "Options extend below the usable viewport: $viewport / $availableBottom")
-            val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed))
+            val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left))
             lastOption.performScrollTo().assertIsDisplayed()
             assertTrue(lastOption.fetchSemanticsNode().boundsInRoot.bottom <= availableBottom + 1)
         }
@@ -834,7 +834,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("Japanese").performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_controls")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_start_collapsed)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left)).performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         captureScreen("options_large_text_bottom")
     }
