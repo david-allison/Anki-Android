@@ -645,6 +645,35 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun globalOptionsKeepIconAndLabelColumnsAligned() {
+        showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
+        val labels =
+            listOf(
+                R.string.compose_editor_toolbar,
+                CommonString.menu_font_size,
+                R.string.compose_editor_toolbar_layout,
+                R.string.compose_editor_custom_buttons,
+                R.string.compose_editor_field_options,
+                R.string.compose_editor_quick_actions,
+                R.string.compose_editor_fields,
+                R.string.compose_editor_cards,
+            )
+        val leftEdges =
+            labels.map { label ->
+                composeRule
+                    .onNodeWithText(getResourceString(label), useUnmergedTree = true)
+                    .assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot.left
+            }
+        leftEdges.forEach { left ->
+            assertEquals(leftEdges.first(), left, 1f, "Every menu label must align after its leading icon")
+        }
+        captureScreen("global_options_with_icons")
+    }
+
+    @Test
     fun toolbarOverflowOpensMenuBeforeFieldOptions() {
         showEditor()
         toolbarOverflowButton().performClick()

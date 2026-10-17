@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -109,61 +110,71 @@ internal fun EditorOptionsMenu(
             // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
             // These niche options are intended for future user-defined JS; keep their implementation.
             // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
-            DropdownMenuItem(text = { Text(stringResource(CommonString.menu_font_size)) }, onClick = {
+            EditorSettingsMenuItem(CommonString.menu_font_size, R.drawable.ic_format_font_size_24dp) {
                 expanded = false
                 fontSize = (settings.fontSize ?: 20).toString()
-            })
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.compose_editor_toolbar)) },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_toolbar), null, tint = controlColor) },
+            }
+            EditorSettingsMenuItem(
+                label = R.string.compose_editor_toolbar,
+                icon = R.drawable.ic_toolbar,
                 enabled = fieldOptionsEnabled,
-                onClick = {
-                    expanded = false
-                    onToolbar()
-                },
-            )
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_toolbar_layout)) }, onClick = {
+            ) {
+                expanded = false
+                onToolbar()
+            }
+            EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_list_white_24dp) {
                 expanded = false
                 showToolbarDisplay = true
-            })
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.compose_editor_custom_buttons)) },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_widgets), null, tint = controlColor) },
-                onClick = {
-                    expanded = false
-                    onCustomButtons()
-                },
-            )
+            }
+            EditorSettingsMenuItem(R.string.compose_editor_custom_buttons, R.drawable.ic_widgets) {
+                expanded = false
+                onCustomButtons()
+            }
             if (toolbarDisplay != EditorToolbarDisplay.SCROLL || !fieldToolbarVisible) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.compose_editor_field_options)) },
+                EditorSettingsMenuItem(
+                    label = R.string.compose_editor_field_options,
+                    icon = R.drawable.ic_tune_white,
                     enabled = fieldOptionsEnabled,
-                    onClick = {
-                        expanded = false
-                        onFieldOptions()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.compose_editor_quick_actions)) },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_touch), null, tint = controlColor) },
+                ) {
+                    expanded = false
+                    onFieldOptions()
+                }
+                EditorSettingsMenuItem(
+                    label = R.string.compose_editor_quick_actions,
+                    icon = R.drawable.ic_touch,
                     enabled = fieldOptionsEnabled,
-                    onClick = {
-                        expanded = false
-                        onQuickActions()
-                    },
-                )
+                ) {
+                    expanded = false
+                    onQuickActions()
+                }
             }
             HorizontalDivider()
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_fields)) }, onClick = {
+            EditorSettingsMenuItem(R.string.compose_editor_fields, R.drawable.ic_list_black) {
                 expanded = false
                 onFields()
-            })
-            DropdownMenuItem(text = { Text(stringResource(R.string.compose_editor_cards)) }, onClick = {
+            }
+            EditorSettingsMenuItem(R.string.compose_editor_cards, R.drawable.ic_flashcard_black) {
                 expanded = false
                 onCards()
-            })
+            }
         }
     }
+}
+
+@Composable
+private fun EditorSettingsMenuItem(
+    label: Int,
+    icon: Int,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(label)) },
+        leadingIcon = { Icon(painterResource(icon), null) },
+        colors = MenuDefaults.itemColors(leadingIconColor = editorControlColor()),
+        enabled = enabled,
+        onClick = onClick,
+    )
 }
 
 @Composable
