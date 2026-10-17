@@ -196,7 +196,6 @@ fun NoteEditorScreen(
         val current = requireNotNull(state)
         EditorFieldFontDialog(
             field = current.fields[target.field],
-            noteTypeName = current.noteTypeName,
             onDismiss = { fontTarget = null },
             onSave = { font, size ->
                 onFieldTypography(target, font, size)

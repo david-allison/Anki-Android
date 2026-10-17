@@ -422,7 +422,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldFontSettingsWithLongNames() {
+    fun fieldFontSettingsWithLongFontName() {
         // Match EquationDialogScreenshotTest: wider text-field dialogs hit Robolectric issue 8460.
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
@@ -431,9 +431,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 EditorFieldFontDialog(
                     field =
                         EditorFieldState(
-                            "A long field name with additional details",
+                            "Front",
                             "",
-                            "Custom imported font",
+                            "A custom imported font with a long name",
                             24,
                             false,
                             null,
@@ -441,7 +441,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                             false,
                             false,
                         ),
-                    noteTypeName = "A long note type name with more details",
                     onDismiss = {},
                     onSave = { _, _ -> },
                 )
@@ -450,7 +449,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule
             .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
             .assertIsDisplayed()
-        captureScreen("field_font_settings_long_names")
+        captureScreen("field_font_settings_long_font_name")
     }
 
     @Test

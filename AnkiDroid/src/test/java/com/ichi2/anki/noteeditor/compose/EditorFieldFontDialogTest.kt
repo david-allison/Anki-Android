@@ -89,7 +89,6 @@ class EditorFieldFontDialogTest : RobolectricTest() {
             AnkiDroidTheme {
                 EditorFieldFontDialog(
                     field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false),
-                    noteTypeName = "Basic",
                     onDismiss = { dismissed = true },
                     onSave = { font, size -> saved = font to size },
                 )
