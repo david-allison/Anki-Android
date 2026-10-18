@@ -53,6 +53,7 @@ undoActionUndone()
     <string name="sentence_back_template">Back template</string>
     <string name="sentence_rename_deck">Rename deck</string>
     <string name="sentence_deck_options">Deck options</string>
+    <string name="sentence_clone_preset">Clone preset</string>
     <string name="sentence_delete_deck">Delete deck</string>
     <string name="sentence_log_in">Log in</string>
     <string name="sentence_log_out">Log out</string>

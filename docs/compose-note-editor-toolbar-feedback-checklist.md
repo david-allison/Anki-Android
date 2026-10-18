@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 5 resolved.**
+Recorded 2026-10-18. **12 action items; 6 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -145,14 +145,18 @@ separate.
   three fullscreen screens. Settled Pixel screenshots confirm visible icons;
   optional screenshot capture waits for SystemUI's separate icon transition.
 
-- [ ] **11. Replace “Duplicate” with the existing “Clone preset” string.**
+- [x] **11. Replace “Duplicate” with the existing “Clone preset” string.**
 
   **Assessment: agree for consistency.** “Duplicate” is slightly clearer in
   isolation, but reusing AnkiDroid's established **Clone preset** wording and
   translations is preferable here.
 
-  **Proposed action:** reuse the existing translated string for the preset menu
-  action. Preserve the cloning behavior and pending preset selection.
+  **Implemented 2026-10-18:** the preset menu reuses Anki's translated clone
+  action with the app's sentence-case treatment: **Clone preset** in English.
+  Removed the redundant Duplicate string.
+
+  **Verification:** all 13 preset-dialog tests pass, including cloning an
+  independent preset. The isolated probe APK builds successfully.
 
 - [ ] **12. Make interaction above the open bottom panel predictable.**
 

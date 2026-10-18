@@ -94,7 +94,6 @@
     <string name="compose_editor_preset_name">Preset name</string>
     <string name="compose_editor_preset_name_error">Choose a different name.</string>
     <string name="compose_editor_preset_options">Options for %s</string>
-    <string name="compose_editor_duplicate_preset">Duplicate</string>
     <string name="compose_editor_delete_preset">Delete preset</string>
     <string name="compose_editor_delete_preset_message">Fields using %s will use Default instead.</string>
     <string name="compose_editor_field_description">Description</string>

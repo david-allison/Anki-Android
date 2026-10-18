@@ -123,6 +123,9 @@ object SentenceCaseExtension {
     fun deckOptions() = resourceCase(tr().deckConfigTitle(), R.string.sentence_deck_options)
 
     @Composable
+    fun clonePreset() = resourceCase(tr().deckConfigCloneGroup(), R.string.sentence_clone_preset)
+
+    @Composable
     fun deleteDeck() = resourceCase(tr().decksDeleteDeck(), R.string.sentence_delete_deck)
 
     @Composable

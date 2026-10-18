@@ -217,7 +217,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         showPresets()
         choose("Minimal")
         options("Minimal")
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_duplicate_preset)).performClick()
+        composeRule.onNodeWithText(getResourceString(com.ichi2.anki.ankicommon.R.string.sentence_clone_preset)).performClick()
         namePreset("Reading")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
         save()

@@ -58,6 +58,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.ui.internationalization.trCase
 import java.util.UUID
 
 @Composable
@@ -395,7 +396,7 @@ private fun ToolbarPresetSelector(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.compose_editor_duplicate_preset)) },
+                    text = { Text(trCase().clonePreset()) },
                     leadingIcon = { Icon(painterResource(R.drawable.baseline_content_copy_24), null, tint = controlColor) },
                     enabled = enabled,
                     onClick = {

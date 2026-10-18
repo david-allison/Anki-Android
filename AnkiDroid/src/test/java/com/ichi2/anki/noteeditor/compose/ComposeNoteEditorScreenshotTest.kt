@@ -1583,7 +1583,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             .onNodeWithContentDescription(
                 targetContext.getString(R.string.compose_editor_preset_options, "Language learning"),
             ).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_duplicate_preset)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(com.ichi2.anki.ankicommon.R.string.sentence_clone_preset)).assertIsDisplayed()
         settleMenuTransition(activity)
         val pixels = composeRule.onNode(isPopup()).captureToImage().toPixelMap()
         val colors = activity.toMaterial3ColorScheme()
