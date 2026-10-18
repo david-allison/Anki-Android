@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 2 resolved.**
+Recorded 2026-10-18. **12 action items; 3 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -69,14 +69,19 @@ separate.
   200% text with a long field name, and pending shared-preset edits. Reviewed the
   generated normal and large-text screenshots; the isolated probe APK builds.
 
-- [ ] **05. Apply the same title treatment to Quick actions.**
+- [x] **05. Apply the same title treatment to Quick actions.**
 
   **Assessment: agree.** These two configuration screens should clearly belong
   together.
 
-  **Proposed action:** make **Quick actions** the primary title and the field
-  name a smaller subtitle, using the same spacing and typography as item 04.
-  Preserve field switching only on the main panel.
+  **Implemented 2026-10-18:** **Quick actions** is the primary heading and the
+  field name is a smaller subtitle, sharing item 04's spacing and typography.
+  Field switching remains on the main panel and quick-action edits still save
+  immediately.
+
+  **Verification:** six existing light/dark checks pass for configuration,
+  immediate saving across fields, and reordering without changing the selected
+  field. Reviewed the generated screenshot; the isolated probe APK builds.
 
 - [ ] **06. Replace save ticks with “Save”, except in the note editor itself.**
 
