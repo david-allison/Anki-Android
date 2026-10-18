@@ -129,7 +129,7 @@ internal fun EditorFieldPanel(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (state.fields.size > 1) {
+                if (!pending && state.fields.size > 1) {
                     IconButton(
                         onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
                         enabled = pager.currentPage > 0 && !pager.isScrollInProgress && draggingPage == null,
@@ -141,7 +141,7 @@ internal fun EditorFieldPanel(
                         )
                     }
                 }
-                if (state.fields.size > 1) {
+                if (!pending && state.fields.size > 1) {
                     Text(
                         stringResource(R.string.compose_editor_field_position, pager.currentPage + 1, state.fields.size),
                         style = MaterialTheme.typography.labelMedium,
@@ -158,7 +158,7 @@ internal fun EditorFieldPanel(
             HorizontalPager(
                 state = pager,
                 modifier = Modifier.weight(1f, fill = pending).testTag("editor_field_pages"),
-                userScrollEnabled = draggingPage == null,
+                userScrollEnabled = !pending && draggingPage == null,
                 verticalAlignment = Alignment.Top,
             ) { index ->
                 val pageField = state.fields[index]

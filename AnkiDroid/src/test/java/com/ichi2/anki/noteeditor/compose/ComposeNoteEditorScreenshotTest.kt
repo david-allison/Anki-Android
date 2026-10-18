@@ -180,10 +180,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val gallery = getResourceString(CommonString.multimedia_editor_image_field_editing_galery)
         val pin = getResourceString(R.string.compose_editor_pin_field)
         composeRule.onNodeWithText(gallery).performClick().assertIsNotSelected()
-        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeRight() }
+        assertSubscreenStaysOnField("Back")
+        returnToFieldOptions()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
         composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        openFieldSection(R.string.compose_editor_quick_actions)
         composeRule.onNodeWithText(pin).performClick().assertIsNotSelected()
+        returnToFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).performClick()
+        openFieldSection(R.string.compose_editor_quick_actions)
         composeRule.onNodeWithText(gallery).assertIsNotSelected()
         assertEquals(null, saved)
         captureScreen("field_panel_quick_actions_pending")
@@ -194,7 +199,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertEquals(null, saved)
         openFieldCustomization(R.string.compose_editor_quick_actions)
         composeRule.onNodeWithText(gallery).assertIsSelected().performClick()
+        returnToFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        openFieldSection(R.string.compose_editor_quick_actions)
         composeRule.onNodeWithText(pin).performClick()
         saveToolbarConfiguration()
         assertEquals(setOf(0, 1), saved?.changedFields()?.keys)
@@ -214,7 +221,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         openFieldCustomization(R.string.compose_editor_quick_actions)
         val pin = getResourceString(R.string.compose_editor_pin_field)
         composeRule.moveToolbarButton(pin, targetContext.getString(R.string.compose_editor_move_button_up, pin))
-        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_field_options_title, "Back"))
+            .assertIsDisplayed()
         saveToolbarConfiguration()
         assertEquals(listOf("pin", "gallery"), saved?.changedFields()?.get(1)?.quickActions)
     }
@@ -246,14 +255,35 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val bold = getResourceString(R.string.compose_editor_bold)
         val italic = getResourceString(R.string.compose_editor_italic)
         composeRule.onNodeWithText(bold).performClick()
+        assertSubscreenStaysOnField("Back")
+        returnToFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        openFieldSection(R.string.compose_editor_toolbar)
         composeRule.onNodeWithText(italic).performClick()
+        returnToFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).performClick()
+        openFieldSection(R.string.compose_editor_toolbar)
         assertEquals(null, saved)
         settleMenuTransition(activity)
         captureScreen("field_panel_shared_toolbar_pending")
         saveToolbarConfiguration()
         assertEquals(setOf("BOLD", "ITALIC"), saved?.presets?.single()?.hiddenButtons)
+    }
+
+    private fun returnToFieldOptions() {
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options)).performClick()
+    }
+
+    private fun assertSubscreenStaysOnField(field: String) {
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertDoesNotExist()
+        composeRule.onNodeWithText("1 of 2").assertDoesNotExist()
+        composeRule.onNodeWithText("2 of 2").assertDoesNotExist()
+        val heading = composeRule.onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_field_options_title, field))
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeRight() }
+        heading.assertIsDisplayed()
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeLeft() }
+        heading.assertIsDisplayed()
     }
 
     @Test
@@ -1121,14 +1151,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().id
         openFieldSection(R.string.compose_editor_toolbar)
-        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        assertSubscreenStaysOnField("Front")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
         assertPanelAboveKeyboard(keyboard)
         captureScreen("field_options_toolbar_section")
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options)).performClick()
         composeRule.onNodeWithTag("editor_field_options").assertExists()
         openFieldSection(R.string.compose_editor_quick_actions)
-        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        assertSubscreenStaysOnField("Front")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).performClick()
         assertPanelAboveKeyboard(keyboard)
         captureScreen("field_options_quick_actions_section")
