@@ -112,7 +112,7 @@ class EditorDialogDismissTest : RobolectricTest() {
     }
 
     @Test
-    fun `quick action changes remain pending until discard is confirmed`() {
+    fun `quick action changes apply immediately and Back closes without a discard prompt`() {
         show {
             EditorQuickActionsDialog(
                 EditorFieldTarget("test", 0, 0),
@@ -122,10 +122,10 @@ class EditorDialogDismissTest : RobolectricTest() {
             )
         }
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertDoesNotExist()
         composeRule.dismissEditorDialog()
-        assertFalse(dismissed)
-        keepEditing()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+        assertTrue(dismissed)
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertDoesNotExist()
         assertEquals(
             field.toolbar.quickActions
                 .filterNot { it == "pin" }

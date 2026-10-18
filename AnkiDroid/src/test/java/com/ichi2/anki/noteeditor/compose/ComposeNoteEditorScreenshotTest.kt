@@ -16,6 +16,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
@@ -224,55 +225,50 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldPanelQuickActionsRetainPendingEditsAcrossFields() {
-        var saved: EditorFieldPanelDraft? = null
+    fun fieldPanelQuickActionsSaveImmediatelyAcrossFields() {
+        var toolbarSaved = false
+        val saved = mutableMapOf<Int, List<String>>()
         val (activity, keyboard) =
-            showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")), onPanelSaved = {
-                saved =
-                    it
-            })
+            showEditor(
+                toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")),
+                onPanelSaved = { toolbarSaved = true },
+                onQuickActions = { target, actions -> saved[target.field] = actions },
+            )
         hideKeyboard(activity, keyboard)
         openFieldCustomization(R.string.compose_editor_quick_actions)
         val gallery = getResourceString(CommonString.multimedia_editor_image_field_editing_galery)
         val pin = getResourceString(R.string.compose_editor_pin_field)
         composeRule.onNodeWithText(gallery).performClick().assertIsNotSelected()
+        assertEquals(listOf("pin"), saved[1])
         assertSubscreenStaysOnField("Back")
+        assertNoPanelSave()
         returnToFieldOptions()
+        assertNoPanelSave()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
-        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
         openFieldSection(R.string.compose_editor_quick_actions)
         composeRule.onNodeWithText(pin).performClick().assertIsNotSelected()
-        returnToFieldOptions()
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).performClick()
-        openFieldSection(R.string.compose_editor_quick_actions)
-        composeRule.onNodeWithText(gallery).assertIsNotSelected()
-        assertEquals(null, saved)
-        captureScreen("field_panel_quick_actions_pending")
+        assertTrue("pin" !in requireNotNull(saved[0]))
+        captureScreen("field_panel_quick_actions_saved")
         dismissFieldOptions()
-        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertIsDisplayed()
-        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertDoesNotExist()
         composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
-        assertEquals(null, saved)
+        assertTrue(!toolbarSaved)
         openFieldCustomization(R.string.compose_editor_quick_actions)
-        composeRule.onNodeWithText(gallery).assertIsSelected().performClick()
+        composeRule.onNodeWithText(gallery).assertIsNotSelected()
         returnToFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
         openFieldSection(R.string.compose_editor_quick_actions)
-        composeRule.onNodeWithText(pin).performClick()
-        saveToolbarConfiguration()
-        assertEquals(setOf(0, 1), saved?.changedFields()?.keys)
-        assertTrue("pin" !in requireNotNull(saved).changedFields().getValue(0).quickActions)
-        assertTrue("gallery" !in requireNotNull(saved).changedFields().getValue(1).quickActions)
+        composeRule.onNodeWithText(pin).assertIsNotSelected()
     }
 
     @Test
     fun fieldPanelQuickActionReorderDoesNotChangeField() {
-        var saved: EditorFieldPanelDraft? = null
+        var saved: Pair<Int, List<String>>? = null
         val (activity, keyboard) =
-            showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")), onPanelSaved = {
-                saved =
-                    it
-            })
+            showEditor(
+                toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")),
+                onQuickActions = { target, actions -> saved = target.field to actions },
+            )
         hideKeyboard(activity, keyboard)
         openFieldCustomization(R.string.compose_editor_quick_actions)
         val pin = getResourceString(R.string.compose_editor_pin_field)
@@ -280,8 +276,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule
             .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_field_options_title, "Back"))
             .assertIsDisplayed()
-        saveToolbarConfiguration()
-        assertEquals(listOf("pin", "gallery"), saved?.changedFields()?.get(1)?.quickActions)
+        assertNoPanelSave()
+        assertEquals(1 to listOf("pin", "gallery"), saved)
+    }
+
+    private fun assertNoPanelSave() {
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
+            ).assertDoesNotExist()
     }
 
     @Test
@@ -1229,7 +1232,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun fieldOptionsCustomizationKeepsTheDisplayedFieldAndPendingEdits() {
         val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1))
         var saved: EditorFieldPanelDraft? = null
-        val (activity, keyboard) = showEditor(focusState = focus, onPanelSaved = { saved = it })
+        val actions = mutableMapOf<Int, List<String>>()
+        val (activity, keyboard) =
+            showEditor(
+                focusState = focus,
+                onPanelSaved = { saved = it },
+                onQuickActions = { target, selected -> actions[target.field] = selected },
+            )
         val editor = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
         openFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
@@ -1253,10 +1262,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertEquals(1, focus.value.activeField, "Browsing settings must not move the caret")
         assertEquals(null, saved, "Returning to Field options must not save or discard pending edits")
         captureScreen("field_options_with_pending_customization")
+        assertNoPanelSave()
+        openFieldSection(R.string.compose_editor_toolbar)
         saveToolbarConfiguration()
         assertEquals(setOf("BOLD"), saved?.presets?.single()?.hiddenButtons)
-        assertEquals(setOf(0), saved?.changedFields()?.keys)
-        assertTrue("pin" !in requireNotNull(saved).changedFields().getValue(0).quickActions)
+        assertTrue("pin" !in requireNotNull(actions[0]))
     }
 
     @Test
@@ -1683,9 +1693,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         drawing.performClick().assertIsNotSelected()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).assertIsDisplayed()
         captureScreen("quick_actions_configuration")
-        composeRule
-            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_field_panel")))
-            .performClick()
+        assertNoPanelSave()
+        returnToFieldOptions()
         drawing.assertDoesNotExist()
     }
 
@@ -2575,6 +2584,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     private fun showEditor(
         fieldCount: Int = 2,
         onPanelSaved: (EditorFieldPanelDraft) -> Unit = {},
+        onQuickActions: (EditorFieldTarget, List<String>) -> Unit = { _, _ -> },
         fieldName: String = "Back",
         noteTypeName: String = "Basic",
         deckName: String = "Default",
@@ -2625,6 +2635,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                         )
                     }
                 val currentToolbar = remember { mutableStateOf(toolbar) }
+                val currentActions = remember { mutableStateMapOf<Int, List<String>>() }
                 val currentPreset = remember { mutableStateOf(EditorToolbarPreset.DEFAULT_ID) }
                 NoteEditorScreen(
                     state =
@@ -2665,6 +2676,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                         } else {
                                             field
                                         }
+                                    }.mapIndexed { index, field ->
+                                        field.copy(
+                                            toolbar =
+                                                field.toolbar.copy(
+                                                    quickActions =
+                                                        currentActions[index] ?: field.toolbar.quickActions,
+                                                ),
+                                        )
                                     },
                             )
                         },
@@ -2692,13 +2711,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onFieldDirection = onDirection,
                     onFieldHtmlByDefault = onHtmlByDefault,
                     onFieldCollapseByDefault = onCollapseByDefault,
+                    onFieldQuickActions = { target, actions ->
+                        currentActions[target.field] = actions
+                        onQuickActions(target, actions)
+                    },
                     onFieldPanelSave = { draft, done ->
                         onPanelSaved(draft)
                         currentPresets.value = draft.presets
                         draft.changedFields()[1]?.let { settings ->
                             currentPreset.value = settings.presetId
                             currentToolbar.value =
-                                currentToolbar.value.copy(showToolbar = settings.showToolbar, quickActions = settings.quickActions)
+                                currentToolbar.value.copy(showToolbar = settings.showToolbar)
                             val target = draft.target.copy(field = 1)
                             onToolbarVisibility(target, settings.showToolbar)
                             onPreset(target, settings.presetId)

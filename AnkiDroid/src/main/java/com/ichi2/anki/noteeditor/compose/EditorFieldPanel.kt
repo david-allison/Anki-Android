@@ -64,6 +64,7 @@ internal fun EditorFieldPanel(
     onChange: (EditorFieldPanelDraft) -> Unit,
     onSectionChange: (EditorFieldPanelSection) -> Unit,
     onFieldSelected: (EditorFieldTarget) -> Unit,
+    onQuickActions: (EditorFieldTarget, List<String>) -> Unit,
     onSave: () -> Unit,
     onCustomButtons: () -> Unit,
     options: @Composable (EditorFieldTarget) -> Unit,
@@ -136,7 +137,9 @@ internal fun EditorFieldPanel(
                     )
                 }
                 if (!pending) FieldOptionsHelp(field.name, state.noteTypeName, editorControlColor())
-                if (pending || draft.hasChanges) EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
+                if (section == EditorFieldPanelSection.TOOLBAR) {
+                    EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
+                }
             }
             Row(
                 Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp),
@@ -220,8 +223,8 @@ internal fun EditorFieldPanel(
                                 )
                             EditorFieldPanelSection.QUICK_ACTIONS ->
                                 EditorQuickActionsContent(
-                                    toolbar = pageField.toolbar.copy(quickActions = draft.settings(index, pageField).quickActions),
-                                    onChange = { onChange(draft.withQuickActions(index, pageField, it.quickActions)) },
+                                    toolbar = pageField.toolbar,
+                                    onChange = { onQuickActions(draft.target.copy(field = index), it.quickActions) },
                                     modifier =
                                         Modifier
                                             .fillMaxSize()

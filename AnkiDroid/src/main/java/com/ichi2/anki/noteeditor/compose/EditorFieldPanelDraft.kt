@@ -20,7 +20,7 @@ data class EditorFieldPanelDraft(
         index: Int,
         field: EditorFieldState,
     ): EditorPanelFieldSettings =
-        (fields[index] ?: EditorPanelFieldSettings(field.toolbarPresetId, field.toolbar.showToolbar, field.toolbar.quickActions))
+        (fields[index] ?: EditorPanelFieldSettings(field.toolbarPresetId, field.toolbar.showToolbar))
             .let { if (presets.any { preset -> preset.id == it.presetId }) it else it.copy(presetId = EditorToolbarPreset.DEFAULT_ID) }
 
     fun toolbar(
@@ -35,12 +35,6 @@ data class EditorFieldPanelDraft(
     ): EditorFieldPanelDraft =
         withField(index, field, settings(index, field).copy(presetId = configuration.presetId, showToolbar = configuration.showToolbar))
             .copy(presets = configuration.presets)
-
-    fun withQuickActions(
-        index: Int,
-        field: EditorFieldState,
-        actions: List<String>,
-    ): EditorFieldPanelDraft = withField(index, field, settings(index, field).copy(quickActions = actions))
 
     private fun withField(
         index: Int,
@@ -65,5 +59,4 @@ data class EditorFieldPanelDraft(
 data class EditorPanelFieldSettings(
     val presetId: String,
     val showToolbar: Boolean,
-    val quickActions: List<String>,
 ) : Parcelable

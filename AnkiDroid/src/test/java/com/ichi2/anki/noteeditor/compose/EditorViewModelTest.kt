@@ -64,8 +64,7 @@ class EditorViewModelTest : JvmTest() {
                         draft.toolbar(1, back).copy(
                             presets = draft.presets.map { it.copy(hiddenButtons = it.hiddenButtons + "ITALIC") },
                         ),
-                    ).withQuickActions(0, front, listOf("gallery"))
-                    .withQuickActions(1, back, emptyList())
+                    )
             val parcel = android.os.Parcel.obtain()
             val restored =
                 try {
@@ -78,6 +77,17 @@ class EditorViewModelTest : JvmTest() {
                 }
             assertEquals(draft, restored)
             assertEquals(before, vm.state.value, "Changes remain pending until Save")
+            // Quick actions save immediately, even while the shared toolbar has a pending draft.
+            vm.setFieldQuickActions(target, listOf("gallery"))
+            vm.setFieldQuickActions(target.copy(field = 1), emptyList())
+            assertEquals(
+                listOf("gallery"),
+                vm.state.value
+                    ?.fields
+                    ?.get(0)
+                    ?.toolbar
+                    ?.quickActions,
+            )
             vm.saveFieldPanel(restored)
             val after = assertNotNull(vm.state.value)
             assertEquals(listOf("gallery"), after.fields[0].toolbar.quickActions)

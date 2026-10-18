@@ -164,6 +164,7 @@ fun NoteEditorScreen(
     onFieldCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
+    onFieldQuickActions: (EditorFieldTarget, List<String>) -> Unit = { _, _ -> },
     onFieldPanelSave: (EditorFieldPanelDraft, () -> Unit) -> Unit = { _, done -> done() },
     onCustomButtonTemplates: (List<EditorCustomToolbarButton>) -> Unit = {},
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
@@ -403,6 +404,7 @@ fun NoteEditorScreen(
                                     }
                                 }
                             },
+                            onQuickActions = onFieldQuickActions,
                             onCustomButtons = { showCustomButtons = true },
                             onFieldOptionsBounds = { fieldOptionsBounds.value = it },
                             onAction = onAction,
@@ -585,6 +587,7 @@ private fun EditorPane(
     onPanelChange: (EditorFieldPanelDraft) -> Unit,
     onPanelSectionChange: (EditorFieldPanelSection) -> Unit,
     onPanelSave: () -> Unit,
+    onQuickActions: (EditorFieldTarget, List<String>) -> Unit,
     onCustomButtons: () -> Unit,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
@@ -743,6 +746,7 @@ private fun EditorPane(
                                 onChange = onPanelChange,
                                 onSectionChange = onPanelSectionChange,
                                 onFieldSelected = onFieldSelected,
+                                onQuickActions = onQuickActions,
                                 onSave = onPanelSave,
                                 onCustomButtons = onCustomButtons,
                                 options = {},
@@ -789,6 +793,7 @@ private fun EditorPane(
                                         onChange = onPanelChange,
                                         onSectionChange = onPanelSectionChange,
                                         onFieldSelected = onFieldSelected,
+                                        onQuickActions = onQuickActions,
                                         onSave = onPanelSave,
                                         onCustomButtons = onCustomButtons,
                                     ) { fieldTarget ->

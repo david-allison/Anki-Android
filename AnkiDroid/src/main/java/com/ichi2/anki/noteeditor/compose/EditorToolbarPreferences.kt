@@ -186,7 +186,6 @@ internal class EditorToolbarPreferences(
                 fieldSettings(collection, noteType, field)
                     .put("preset", settings.presetId)
                     .put("showToolbar", settings.showToolbar)
-                    .put("quickActions", JSONArray(settings.quickActions.distinct()))
             edit.putString(key(collection, noteType, field), json.toString())
         }
         check(edit.commit()) { "Unable to save field configuration." }

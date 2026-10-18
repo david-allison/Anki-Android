@@ -1722,6 +1722,57 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun quickActionsSaveImmediatelyAndRemainSavedAfterBack() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Keep this note unchanged.")
+            runBlocking { web.focusField(0) }
+            val original = runBlocking { web.snapshot().fields }
+            val model = AtomicReference<EditorViewModel>()
+            scenario.onActivity { model.set(ViewModelProvider(it)[EditorViewModel::class.java]) }
+            val before = assertNotNull(model.get().state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 0)
+            runBlocking { model.get().setFieldQuickActions(target, listOf("pin", "gallery")) }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            device.openFieldOptions()
+            val section = By.text(testContext.getString(R.string.compose_editor_quick_actions))
+            repeat(5) {
+                if (!device.hasObject(section)) {
+                    device.swipe(
+                        device.displayWidth / 2,
+                        device.displayHeight * 3 / 5,
+                        device.displayWidth / 2,
+                        device.displayHeight / 3,
+                        20,
+                    )
+                }
+            }
+            checkNotNull(device.wait(Until.findObject(section), 5_000)).click()
+            val pin = By.text(testContext.getString(R.string.compose_editor_pin_field))
+            val gallery = By.text(testContext.getString(CommonString.multimedia_editor_image_field_editing_galery))
+            checkNotNull(device.wait(Until.findObject(pin), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(gallery), 5_000)).click()
+            waitUntil(message = { "Both Quick Actions changes must save without a tick" }) {
+                model
+                    .get()
+                    .state.value
+                    ?.fields
+                    ?.get(0)
+                    ?.toolbar
+                    ?.quickActions == emptyList<String>()
+            }
+            assertFalse(device.hasObject(By.desc(testContext.getString(CommonString.save))))
+            device.pressBack()
+            assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(R.string.compose_editor_choose_field))), 5_000))
+            assertFalse(device.hasObject(By.text(testContext.getString(CommonString.discard))))
+            checkNotNull(device.findObject(section)).click()
+            assertFalse(checkNotNull(device.wait(Until.findObject(pin), 5_000)).isSelected)
+            assertFalse(checkNotNull(device.findObject(gallery)).isSelected)
+            assertEquals(original, runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun mainMenuPreservesKeyboardAndCaret() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

@@ -64,6 +64,8 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
@@ -76,6 +78,7 @@ class ComposeNoteEditorActivity :
     private val model: EditorViewModel by viewModels()
     private val snackbar = SnackbarHostState()
     private var busy = false
+    private val metadataUpdates = Mutex()
     private var showBusyState by mutableStateOf(false)
     private var error by mutableStateOf<String?>(null)
     private var discardDialog by mutableStateOf(false)
@@ -314,6 +317,7 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
+            onFieldQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
             onFieldPanelSave = { draft, onSaved ->
                 updateMetadata {
                     model.saveFieldPanel(draft)
@@ -638,12 +642,15 @@ class ComposeNoteEditorActivity :
 
     private fun updateMetadata(block: suspend () -> Unit) =
         launchEditorTask {
-            if (busy || model.state.value?.isSaving == true) return@launchEditorTask
-            busy = true
-            try {
-                block()
-            } finally {
-                busy = false
+            // Immediate settings can arrive faster than a preferences write. Preserve their order.
+            metadataUpdates.withLock {
+                if (busy || model.state.value?.isSaving == true) return@withLock
+                busy = true
+                try {
+                    block()
+                } finally {
+                    busy = false
+                }
             }
         }
 

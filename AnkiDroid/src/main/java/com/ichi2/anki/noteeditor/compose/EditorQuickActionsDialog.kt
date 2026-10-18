@@ -11,7 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,12 +29,10 @@ internal fun EditorQuickActionsDialog(
     target: EditorFieldTarget,
     field: EditorFieldState,
     onDismiss: () -> Unit,
-    onSave: (EditorFieldToolbar) -> Unit,
+    onChange: (EditorFieldToolbar) -> Unit,
 ) {
-    var toolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
-    val dismiss = rememberEditorDismiss(toolbar != field.toolbar, onDismiss)
     Dialog(
-        onDismissRequest = dismiss,
+        onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         Scaffold(
@@ -40,13 +40,12 @@ internal fun EditorQuickActionsDialog(
             topBar = {
                 TopAppBar(
                     title = { Text(stringResource(R.string.compose_editor_quick_actions)) },
-                    actions = {
-                        EditorSaveButton(onClick = { onSave(toolbar) }, modifier = Modifier.padding(end = 8.dp))
-                    },
                 )
             },
         ) { insets ->
-            EditorQuickActionsContent(toolbar, { toolbar = it }, Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp))
+            key(target) {
+                EditorQuickActionsContent(field.toolbar, onChange, Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp))
+            }
         }
     }
 }
@@ -58,25 +57,38 @@ internal fun EditorQuickActionsContent(
     modifier: Modifier = Modifier,
     onDraggingChange: (Boolean) -> Unit = {},
 ) {
+    // Keep touch feedback local while persistence catches up. A drag writes once, on release.
+    var quickActions by rememberSaveable { mutableStateOf(toolbar.quickActions) }
+    var dragging by remember { mutableStateOf(false) }
+
+    fun change(actions: List<String>) {
+        quickActions = actions
+        if (!dragging) onChange(toolbar.copy(quickActions = actions))
+    }
     var order by rememberSaveable {
         mutableStateOf(
-            (toolbar.quickActions + EditorQuickAction.entries.map { it.id }).distinct().filter {
+            (quickActions + EditorQuickAction.entries.map { it.id }).distinct().filter {
                 EditorQuickAction.fromId(it) !=
                     null
             },
         )
     }
-    val items = order.sortedBy { it !in toolbar.quickActions }
+    val items = order.sortedBy { it !in quickActions }
     EditorToolbarList(
         items = items,
-        activeCount = items.count { it in toolbar.quickActions },
-        canMove = { from, to -> (from in toolbar.quickActions) == (to in toolbar.quickActions) },
+        activeCount = items.count { it in quickActions },
+        canMove = { from, to -> (from in quickActions) == (to in quickActions) },
         onMove = { from, to ->
             order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
-            onChange(toolbar.copy(quickActions = order.filter { it in toolbar.quickActions }))
+            change(order.filter { it in quickActions })
         },
         modifier = modifier,
-        onDraggingChange = onDraggingChange,
+        onDraggingChange = { active ->
+            val wasDragging = dragging
+            dragging = active
+            if (wasDragging && !active) onChange(toolbar.copy(quickActions = quickActions))
+            onDraggingChange(active)
+        },
         header = {
             Text(
                 stringResource(R.string.compose_editor_quick_actions_help),
@@ -87,23 +99,23 @@ internal fun EditorQuickActionsContent(
         },
     ) { key, index, dragging, startDrag, move ->
         val item = requireNotNull(EditorQuickAction.fromId(key))
-        val checked = key in toolbar.quickActions
+        val checked = key in quickActions
         EditorToolbarRow(
             item.icon,
             stringResource(item.label),
             checked,
             dragging,
             onCheckedChange = { shown ->
-                val (selected, available) = items.filterNot { it == key }.partition { it in toolbar.quickActions }
+                val (selected, available) = items.filterNot { it == key }.partition { it in quickActions }
                 order = selected + key + available
-                val enabled = if (shown) toolbar.quickActions + key else toolbar.quickActions - key
-                onChange(toolbar.copy(quickActions = order.filter { it in enabled }))
+                val enabled = if (shown) quickActions + key else quickActions - key
+                change(order.filter { it in enabled })
             },
             startDrag = startDrag,
-            moveUp = if (index > 0 && (items[index - 1] in toolbar.quickActions) == checked) ({ move(-1) }) else null,
+            moveUp = if (index > 0 && (items[index - 1] in quickActions) == checked) ({ move(-1) }) else null,
             moveDown =
                 if (index < items.lastIndex &&
-                    (items[index + 1] in toolbar.quickActions) == checked
+                    (items[index + 1] in quickActions) == checked
                 ) {
                     ({ move(1) })
                 } else {

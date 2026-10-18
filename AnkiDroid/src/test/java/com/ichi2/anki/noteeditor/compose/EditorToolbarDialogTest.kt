@@ -94,7 +94,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(pin).performClick()
         assertAbove(attach, pin)
         assertAbove(pin, gallery)
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertDoesNotExist()
         assertEquals(listOf("attachMedia", "pin"), saved?.quickActions)
     }
 
@@ -137,7 +137,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
         )
         composeRule.moveToolbarButton(attach, targetContext.getString(R.string.compose_editor_move_button_up, attach))
         assertAbove(attach, pin)
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertDoesNotExist()
         assertEquals(listOf("attachMedia", "pin"), saved?.quickActions)
     }
 
@@ -285,7 +285,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
                         target = EditorFieldTarget("dialog", 0, 1),
                         field = EditorFieldState("Back", "", "Arial", 20, false, null, false, false, false, toolbar),
                         onDismiss = {},
-                        onSave = { saved = it },
+                        onChange = { saved = it },
                     )
                 } else {
                     EditorToolbarDialog(
