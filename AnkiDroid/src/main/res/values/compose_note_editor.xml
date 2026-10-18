@@ -82,7 +82,7 @@
     <string name="compose_editor_move_button_down">Move %s down</string>
     <string name="compose_editor_reorder_button">Reorder %s</string>
     <string name="compose_editor_quick_actions">Quick actions</string>
-    <string name="compose_editor_quick_actions_help">Use these actions with one tap, without selecting the field first.</string>
+    <string name="compose_editor_quick_actions_help">Use these actions with one tap, without needing to select the field.</string>
     <string name="compose_editor_toolbar_help">Choose a preset, show or hide buttons, reorder them, or add custom buttons.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>
     <string name="compose_editor_preset">Preset</string>
