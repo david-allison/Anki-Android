@@ -65,7 +65,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.core.graphics.ColorUtils
-import androidx.core.graphics.Insets
 import androidx.core.graphics.get
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -1400,6 +1399,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         scrollToolbarHeaderTo(activity, R.string.compose_editor_preset)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
         captureScreen("customize_toolbar_large_text_hidden")
+        scrollToolbarHeaderTo(activity, R.string.compose_editor_custom_buttons)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed().assertIsNotEnabled()
+        assertPanelAboveKeyboard(keyboard)
+        captureScreen("customize_toolbar_large_text_custom_buttons")
     }
 
     @Test
@@ -2502,20 +2505,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             }
         }
         composeRule.waitForIdle()
-        val keyboard = activity.simulateKeyboard()
-        // Newly attached RecyclerViews/ComposeViews request real insets. Robolectric reports
-        // no IME on that dispatch, although our simulated keyboard still covers the window.
+        // Newly attached native lists request real insets, which Robolectric reports as zero.
+        // Retain the latest injected keyboard AND system bars when navigating between sections.
+        var simulatedInsets: WindowInsetsCompat? = null
         ViewCompat.setOnApplyWindowInsetsListener(activity.window.decorView) { _, insets ->
-            if (keyboard.parent != null && !insets.isVisible(WindowInsetsCompat.Type.ime())) {
-                WindowInsetsCompat
-                    .Builder(insets)
-                    .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, keyboard.height))
-                    .setVisible(WindowInsetsCompat.Type.ime(), true)
-                    .build()
-            } else {
+            if (insets.getInsets(WindowInsetsCompat.Type.statusBars()).top > 0) {
+                simulatedInsets = insets
                 insets
+            } else {
+                simulatedInsets ?: insets
             }
         }
+        val keyboard = activity.simulateKeyboard()
         composeRule.waitForIdle()
         return activity to keyboard
     }

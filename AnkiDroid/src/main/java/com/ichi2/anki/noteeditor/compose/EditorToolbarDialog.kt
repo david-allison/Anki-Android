@@ -104,6 +104,7 @@ internal fun EditorToolbarContent(
     header: @Composable () -> Unit = {},
     topBar: (@Composable () -> Unit)? = null,
     embedded: Boolean = false,
+    scrollCustomButtons: Boolean = false,
     onDraggingChange: (Boolean) -> Unit = {},
 ) {
     // The shared library can change while this dialog stays open. Resolve its latest
@@ -113,6 +114,20 @@ internal fun EditorToolbarContent(
     val allItems = toolbar.orderedItems(templates)
     val items = allItems.filter { it.appliesTo(isCloze) }.sortedBy { !toolbar.isEnabled(it) }
     val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
+    val customButtons: @Composable () -> Unit = {
+        Surface(
+            Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+        ) {
+            Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
+                TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
+                    Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(R.string.compose_editor_custom_buttons))
+                }
+            }
+        }
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = if (embedded) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
@@ -140,18 +155,7 @@ internal fun EditorToolbarContent(
             }
         },
         bottomBar = {
-            Surface(
-                Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
-            ) {
-                Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
-                    TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
-                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.compose_editor_custom_buttons))
-                    }
-                }
-            }
+            if (!scrollCustomButtons) customButtons()
         },
     ) { insets ->
         EditorToolbarList(
@@ -170,6 +174,8 @@ internal fun EditorToolbarContent(
                 Column {
                     header()
                     subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
+                    // At large text sizes above the IME, a fixed footer can leave less than one control visible.
+                    if (scrollCustomButtons) customButtons()
                 }
             },
         ) { key, index, dragging, startDrag, move ->

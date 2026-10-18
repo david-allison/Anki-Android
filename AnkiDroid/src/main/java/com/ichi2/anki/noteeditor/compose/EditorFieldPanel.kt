@@ -175,6 +175,7 @@ internal fun EditorFieldPanel(
                                     toolbarHiddenGlobally = state.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
                                     topBar = {},
                                     embedded = true,
+                                    scrollCustomButtons = compact,
                                     onDraggingChange = { dragging ->
                                         if (dragging) {
                                             draggingPage = index
