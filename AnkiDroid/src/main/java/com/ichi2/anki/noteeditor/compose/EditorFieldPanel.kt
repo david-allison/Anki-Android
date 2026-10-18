@@ -55,6 +55,7 @@ internal fun EditorFieldPanel(
     section: EditorFieldPanelSection,
     enabled: Boolean,
     onChange: (EditorFieldPanelDraft) -> Unit,
+    onSectionChange: (EditorFieldPanelSection) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
     onCustomButtons: () -> Unit,
@@ -69,9 +70,14 @@ internal fun EditorFieldPanel(
         val compact = maxHeight / LocalDensity.current.fontScale < 300.dp
         Column(Modifier.fillMaxWidth()) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = if (compact) 4.dp else 8.dp),
+                Modifier.fillMaxWidth().padding(start = if (pending) 8.dp else 24.dp, end = 8.dp, top = if (compact) 4.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (pending) {
+                    IconButton(onClick = { onSectionChange(EditorFieldPanelSection.OPTIONS) }, colors = editorIconButtonColors()) {
+                        Icon(painterResource(R.drawable.ic_baseline_arrow_back_24), stringResource(R.string.compose_editor_field_options))
+                    }
+                }
                 Column(Modifier.weight(1f)) {
                     // At large text sizes, preserve room for a complete control above the IME.
                     if (pending && !compact) {
@@ -105,7 +111,7 @@ internal fun EditorFieldPanel(
                     )
                 }
                 if (!pending) FieldOptionsHelp(field.name, state.noteTypeName, editorControlColor())
-                if (pending) EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
+                if (pending || draft.hasChanges) EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
                 IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
                     Icon(painterResource(R.drawable.ic_clear_white), stringResource(R.string.compose_editor_close_field_options))
                 }

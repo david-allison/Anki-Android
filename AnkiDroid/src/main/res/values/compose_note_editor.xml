@@ -81,6 +81,7 @@
     <string name="compose_editor_reorder_button">Reorder %s</string>
     <string name="compose_editor_quick_actions">Quick actions</string>
     <string name="compose_editor_quick_actions_help">Buttons beside the field. Tap once to activate.</string>
+    <string name="compose_editor_toolbar_help">Choose a preset, show or hide buttons, reorder them, or add custom buttons.</string>
     <string name="compose_editor_unpin_field">Unpin field</string>
     <string name="compose_editor_preset">Preset</string>
     <string name="compose_editor_default_toolbar">Default</string>

@@ -48,4 +48,14 @@ internal enum class EditorFieldOption(
         R.drawable.ic_editor_text_direction_rtl,
         R.string.compose_editor_right_to_left_help,
     ),
+    TOOLBAR(
+        R.string.compose_editor_toolbar,
+        R.drawable.ic_toolbar,
+        R.string.compose_editor_toolbar_help,
+    ),
+    QUICK_ACTIONS(
+        R.string.compose_editor_quick_actions,
+        R.drawable.ic_touch,
+        R.string.compose_editor_quick_actions_help,
+    ),
 }

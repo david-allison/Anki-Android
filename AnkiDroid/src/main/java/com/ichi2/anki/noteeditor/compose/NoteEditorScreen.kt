@@ -178,11 +178,11 @@ fun NoteEditorScreen(
                 false
         }
 
-    fun openFieldPanel(section: EditorFieldPanelSection) {
+    fun openFieldPanel() {
         val current = state ?: return
         val index = toolbarState.value.activeField?.takeIf { it in current.fields.indices } ?: return
         panelDraft = EditorFieldPanelDraft(EditorFieldTarget(current.sessionId, current.generation, index), current.toolbarPresets)
-        panelSection = section
+        panelSection = EditorFieldPanelSection.OPTIONS
         panelInstance++
         fieldOptionsRequested.value = true
     }
@@ -281,7 +281,15 @@ fun NoteEditorScreen(
                             },
                             navigationIcon = {
                                 IconButton(onClick = {
-                                    if (fieldOptionsRequested.value) dismissFieldPanel() else onBack()
+                                    if (fieldOptionsRequested.value) {
+                                        if (panelSection != EditorFieldPanelSection.OPTIONS) {
+                                            panelSection = EditorFieldPanelSection.OPTIONS
+                                        } else {
+                                            dismissFieldPanel()
+                                        }
+                                    } else {
+                                        onBack()
+                                    }
                                 }, enabled = !busy, colors = editorIconButtonColors()) {
                                     Icon(
                                         painterResource(R.drawable.ic_baseline_arrow_back_24),
@@ -301,9 +309,7 @@ fun NoteEditorScreen(
                                             toolbarState.value.activeField?.takeIf { field -> field in it.fields.indices }?.let { field ->
                                                 EditorFieldTarget(it.sessionId, it.generation, field)
                                             },
-                                        onFieldOptions = { openFieldPanel(EditorFieldPanelSection.OPTIONS) },
-                                        onQuickActions = { openFieldPanel(EditorFieldPanelSection.QUICK_ACTIONS) },
-                                        onToolbar = { openFieldPanel(EditorFieldPanelSection.TOOLBAR) },
+                                        onFieldOptions = { openFieldPanel() },
                                     )
                                 }
                                 EditorActionButton(
@@ -370,6 +376,7 @@ fun NoteEditorScreen(
                             panelSection = panelSection,
                             panelInstance = panelInstance,
                             onPanelChange = { panelDraft = it },
+                            onPanelSectionChange = { panelSection = it },
                             onPanelSave = {
                                 panelDraft?.let { pending ->
                                     val normalized =
@@ -565,6 +572,7 @@ private fun EditorPane(
     panelSection: EditorFieldPanelSection,
     panelInstance: Int,
     onPanelChange: (EditorFieldPanelDraft) -> Unit,
+    onPanelSectionChange: (EditorFieldPanelSection) -> Unit,
     onPanelSave: () -> Unit,
     onCustomButtons: () -> Unit,
     onAction: (WebEditorAction) -> Unit,
@@ -618,7 +626,13 @@ private fun EditorPane(
         }
     }
     val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
-    BackHandler(enabled = showFieldOptions, onBack = closeOptions)
+    BackHandler(enabled = showFieldOptions) {
+        if (panelSection != EditorFieldPanelSection.OPTIONS) {
+            onPanelSectionChange(EditorFieldPanelSection.OPTIONS)
+        } else {
+            closeOptions()
+        }
+    }
     val toolbarBackground = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface)
     Box(modifier) {
         Column(Modifier.fillMaxSize()) {
@@ -727,6 +741,7 @@ private fun EditorPane(
                                         section = panelSection,
                                         enabled = enabled,
                                         onChange = onPanelChange,
+                                        onSectionChange = onPanelSectionChange,
                                         onDismiss = closeOptions,
                                         onSave = onPanelSave,
                                         onCustomButtons = onCustomButtons,
@@ -741,6 +756,8 @@ private fun EditorPane(
                                             onDirection = { onDirection(fieldTarget, it) },
                                             onHtmlByDefault = { onHtmlByDefault(fieldTarget, it) },
                                             onCollapseByDefault = { onCollapseByDefault(fieldTarget, it) },
+                                            onToolbar = { onPanelSectionChange(EditorFieldPanelSection.TOOLBAR) },
+                                            onQuickActions = { onPanelSectionChange(EditorFieldPanelSection.QUICK_ACTIONS) },
                                         )
                                     }
                                 }
@@ -792,6 +809,8 @@ private fun EditorFieldOptions(
     onDirection: (Boolean) -> Unit,
     onHtmlByDefault: (Boolean) -> Unit,
     onCollapseByDefault: (Boolean) -> Unit,
+    onToolbar: () -> Unit,
+    onQuickActions: () -> Unit,
 ) {
     val controlColor = editorControlColor()
     Column(
@@ -854,6 +873,8 @@ private fun EditorFieldOptions(
                                         EditorFieldOption.COLLAPSED -> onCollapseByDefault(!field.collapsed)
                                         EditorFieldOption.RIGHT_TO_LEFT -> onDirection(!field.rtl)
                                         EditorFieldOption.DESCRIPTION -> onDescription()
+                                        EditorFieldOption.TOOLBAR -> onToolbar()
+                                        EditorFieldOption.QUICK_ACTIONS -> onQuickActions()
                                     }
                                 },
                             )
@@ -871,6 +892,20 @@ private fun EditorFieldOptions(
             enabled = enabled,
             onClick = onDescription,
         )
+        EditorFieldOptionsLink(
+            icon = EditorFieldOption.TOOLBAR.icon,
+            title = EditorFieldOption.TOOLBAR.label,
+            iconTint = controlColor,
+            enabled = enabled,
+            onClick = onToolbar,
+        )
+        EditorFieldOptionsLink(
+            icon = EditorFieldOption.QUICK_ACTIONS.icon,
+            title = EditorFieldOption.QUICK_ACTIONS.label,
+            iconTint = controlColor,
+            enabled = enabled,
+            onClick = onQuickActions,
+        )
     }
 }
 
@@ -878,7 +913,7 @@ private fun EditorFieldOptions(
 private fun EditorFieldOptionsLink(
     icon: Int,
     title: Int,
-    summary: String,
+    summary: String? = null,
     iconTint: Color,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -890,7 +925,7 @@ private fun EditorFieldOptionsLink(
             Modifier
                 .padding(horizontal = 8.dp)
                 .clip(MaterialTheme.shapes.medium),
-        supportingContent = { Text(summary, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        supportingContent = summary?.let { { Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis) } },
         leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp), tint = iconTint) },
         trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp), tint = iconTint) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),

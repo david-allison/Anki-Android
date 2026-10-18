@@ -74,8 +74,6 @@ class EditorFieldFontDialogTest : RobolectricTest() {
                     onToolbarDisplay = {},
                     fieldTarget = EditorFieldTarget("test", 1, 0),
                     onFieldOptions = {},
-                    onQuickActions = {},
-                    onToolbar = {},
                 )
             }
         }

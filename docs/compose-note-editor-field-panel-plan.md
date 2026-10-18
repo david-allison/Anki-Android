@@ -13,9 +13,12 @@ share the editor’s bottom panel, with independent field navigation.
 - [x] Give the panel its own selected field. Navigating settings must not move
   the WebView caret, focus another input, open the keyboard, or initialize an
   offscreen rich-text editor. Opening a panel starts on the active field.
-- [x] Preserve each main-menu entry as a shortcut into the corresponding section
-  of the same panel. Avoid swipeable category tabs: horizontal swipes change
-  fields, not categories.
+- [x] Keep a single Field options entry in the wrench menu. Customize toolbar
+  and Quick actions belong inside that panel. Avoid swipeable category tabs:
+  horizontal swipes change fields, not categories.
+- [x] Make Customize toolbar and Quick actions accessible from Field options
+  itself. Open them within the same panel; the back arrow and Android Back
+  return to Field options, retaining the displayed field and pending changes.
 
 ## Panel content
 
@@ -40,6 +43,8 @@ tick is pressed. Preserve that behavior when adding field navigation:
   offers the existing discard confirmation.
 - [x] The tick applies the pending changes for the fields visited in that panel;
   do not require repeated saves simply to move between fields.
+- [x] Keep the tick available after returning to Field options with pending
+  toolbar or quick-action edits. The close button still offers discard confirmation.
 - [x] Hold shared preset edits once, separately from each field's preset
   assignment and toolbar visibility. Separate full copies of the preset list
   per field could overwrite another field's newer edits when saved.
@@ -73,15 +78,25 @@ tick is pressed. Preserve that behavior when adding field navigation:
 - Screenshot tests cover each panel, navigation boundaries, RTL, a 400-field
   note type, long names, tablets, the keyboard, pending edits, discard and Save.
   They also check that the editor retains its dimensions and focused field.
+- A scrolled Customize toolbar screenshot matches the Pixel with the keyboard
+  closed, preset controls offscreen, and Custom buttons fixed at the bottom.
+- A regression test opens both customization sections from Field options for
+  a field other than the focused field, returns using both back controls, and
+  saves the accumulated changes together.
 - Native emulator testing verified horizontal swipes through the lists, a
   diagonal reorder drag without paging, pending order retained after navigation,
   and Save restoring the original caret with the keyboard still open.
 - Native list rows have separate accessibility roots. Offscreen pages suppress
   their controls and section headings so TalkBack sees only the current field.
 - At 200% text size on a small screen, the redundant section label is omitted
-  to leave room for a complete preset selector above the keyboard.
+  and Custom buttons scrolls with the controls, leaving room for a complete
+  preset selector above the keyboard.
 
-Robolectric returns empty IME insets when newly attached native lists request
-insets. The screenshot fixture keeps its simulated keyboard insets present while
-the keyboard overlay exists; otherwise it shows controls under a keyboard that
-Android has told Compose is absent. This is test-only behavior.
+Robolectric returns empty insets when newly attached native lists request them.
+The screenshot fixture retains its latest injected keyboard and system-bar
+insets across these requests; otherwise it shows controls under the simulated
+keyboard and shifts the editor into the status bar. This is test-only behavior.
+
+Robolectric also needs an explicit draw after a section transition: its native
+RecyclerView header otherwise retains a pending Compose layout, preventing the
+screenshot runner from becoming idle. This draw is confined to the test helper.

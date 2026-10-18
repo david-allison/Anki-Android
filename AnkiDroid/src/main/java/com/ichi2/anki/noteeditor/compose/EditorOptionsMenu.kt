@@ -42,8 +42,6 @@ internal fun EditorOptionsMenu(
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit,
     fieldTarget: EditorFieldTarget?,
     onFieldOptions: () -> Unit,
-    onQuickActions: () -> Unit,
-    onToolbar: () -> Unit,
 ) {
     // Never let a menu opened for one field silently target another field or document.
     var expanded by remember(fieldTarget, enabled) { mutableStateOf(false) }
@@ -93,22 +91,6 @@ internal fun EditorOptionsMenu(
             ) {
                 expanded = false
                 onFieldOptions()
-            }
-            EditorSettingsMenuItem(
-                label = R.string.compose_editor_toolbar,
-                icon = R.drawable.ic_toolbar,
-                enabled = fieldTarget != null,
-            ) {
-                expanded = false
-                onToolbar()
-            }
-            EditorSettingsMenuItem(
-                label = R.string.compose_editor_quick_actions,
-                icon = R.drawable.ic_touch,
-                enabled = fieldTarget != null,
-            ) {
-                expanded = false
-                onQuickActions()
             }
             HorizontalDivider()
             // Device-wide presentation settings, separate from shared field and preset properties.
