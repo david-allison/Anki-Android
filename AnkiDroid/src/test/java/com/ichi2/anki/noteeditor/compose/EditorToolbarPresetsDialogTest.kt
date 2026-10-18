@@ -146,7 +146,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @Test
     fun `unfinished preset names require their own discard confirmation`() {
         showPresets()
-        openChoices()
+        options(getResourceString(R.string.compose_editor_default_toolbar))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).performTextReplacement("Reading")
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
@@ -162,7 +162,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @Test
     fun `new preset names receive focus when the dialog opens`() {
         showPresets()
-        openChoices()
+        options(getResourceString(R.string.compose_editor_default_toolbar))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).assertIsFocused()
     }
@@ -170,7 +170,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @Test
     fun `blank new preset names are neutral until a duplicate is entered`() {
         showPresets()
-        openChoices()
+        options(getResourceString(R.string.compose_editor_default_toolbar))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
         val name = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name))
         val error = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name_error))
@@ -195,7 +195,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
     @Test
     fun `adding validates names and cancellation does not create a preset`() {
         showPresets()
-        openChoices()
+        options(getResourceString(R.string.compose_editor_default_toolbar))
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_preset)).performClick()
         val ok = composeRule.onNodeWithText(getResourceString(CommonString.dialog_ok))
         ok.assertIsNotEnabled()

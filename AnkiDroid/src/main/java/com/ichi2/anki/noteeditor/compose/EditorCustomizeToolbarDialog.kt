@@ -364,15 +364,6 @@ private fun ToolbarPresetSelector(
                         },
                     )
                 }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.compose_editor_add_preset)) },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_add), null, tint = controlColor) },
-                    onClick = {
-                        choosing = false
-                        onAdd()
-                    },
-                )
             }
         }
         Spacer(Modifier.width(4.dp))
@@ -384,6 +375,15 @@ private fun ToolbarPresetSelector(
                 )
             }
             DropdownMenu(expanded = options, onDismissRequest = { options = false }, containerColor = menuColor) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.compose_editor_add_preset)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_add), null, tint = controlColor) },
+                    onClick = {
+                        options = false
+                        onAdd()
+                    },
+                )
+                HorizontalDivider()
                 if (selected.id != EditorToolbarPreset.DEFAULT_ID) {
                     DropdownMenuItem(
                         text = { Text(stringResource(CommonString.rename)) },

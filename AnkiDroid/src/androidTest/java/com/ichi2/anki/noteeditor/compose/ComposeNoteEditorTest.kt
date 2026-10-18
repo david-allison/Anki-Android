@@ -1139,14 +1139,20 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     fun addingToolbarPresetOpensTheKeyboardForItsName() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            )
             runBlocking { web.focusField(1) }
             waitUntil(message = { "The field keyboard did not open" }) { scenario.keyboardVisible() }
-            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            device.pressBack()
-            waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
-            device.openEditorOptions()
+            device.openFieldOptions()
+            waitUntil(message = { "Field options did not close the field keyboard" }) { !scenario.keyboardVisible() }
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
-            checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).click()
+            val presetName = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_preset_options, presetName))), 5_000),
+            ).click()
+            captureScreenshot("toolbar-preset-options", web)
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_add_preset))), 5_000)).click()
             val name =
                 checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)) {
@@ -1172,7 +1178,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertEquals("p", checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)).text)
             checkNotNull(device.findObject(By.text(testContext.getString(CommonString.dialog_cancel)))).click()
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.discard))), 5_000)).click()
-            checkNotNull(device.findObject(By.desc(testContext.getString(CommonString.dialog_cancel)))).click()
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options)))).click()
+            assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(R.string.compose_editor_choose_field))), 5_000))
             assertEquals(listOf("", ""), runBlocking { web.snapshot().fields })
         }
     }
