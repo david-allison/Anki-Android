@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -194,7 +195,11 @@ internal fun EditorFieldPanel(
                                 EditorQuickActionsContent(
                                     toolbar = pageField.toolbar.copy(quickActions = draft.settings(index, pageField).quickActions),
                                     onChange = { onChange(draft.withQuickActions(index, pageField, it.quickActions)) },
-                                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(horizontal = 16.dp),
                                     onDraggingChange = { dragging ->
                                         if (dragging) {
                                             draggingPage = index
