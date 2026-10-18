@@ -110,19 +110,29 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     private lateinit var editorActivity: AnkiActivity
 
     @Test
-    fun fieldPanelSwipesKeepEditorFocusAndTargetTheDisplayedField() {
+    fun fieldPanelNavigationFocusesAndTargetsTheDisplayedField() {
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1))
         var descriptionTarget: EditorFieldTarget? = null
-        val (activity, keyboard) = showEditor(focusState = focus, onDescription = { target, _ -> descriptionTarget = target })
+        val selected = mutableListOf<Int>()
+        val (activity, keyboard) =
+            showEditor(
+                focusState = focus,
+                onDescription = { target, _ -> descriptionTarget = target },
+                onFieldSelected = { target ->
+                    selected += target.field
+                    focus.value = focus.value.copy(activeField = target.field)
+                },
+            )
         hideKeyboard(activity, keyboard)
         val fields = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
         openFieldOptions()
+        assertTrue(selected.isEmpty(), "Opening options must not reset the existing caret")
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertIsNotEnabled()
         composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeRight() }
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).assertIsNotEnabled()
         composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
-        assertEquals(1, focus.value.activeField)
+        assertEquals(0, focus.value.activeField)
         assertEquals(fields, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
         captureScreen("field_panel_previous_field")
         composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeLeft() }
@@ -132,7 +142,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextInput("First field hint")
         composeRule.onNode(hasText(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
         assertEquals(0, descriptionTarget?.field)
-        assertEquals(1, focus.value.activeField)
+        assertEquals(0, focus.value.activeField)
+        assertEquals(listOf(0, 1, 0), selected)
     }
 
     @Test
@@ -2500,6 +2511,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
         onFieldOptionsVisibility: (Boolean) -> Unit = {},
+        onFieldSelected: (EditorFieldTarget) -> Unit = {},
         focusState: State<EditorToolbarState>? = null,
         description: String = "",
         onDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
@@ -2618,6 +2630,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onCustomButtonTemplates = { currentTemplates.value = it },
                     headerVisibility = headerVisibility,
                     onFieldOptionsVisibility = onFieldOptionsVisibility,
+                    onFieldSelected = onFieldSelected,
                     editor = { Box(it.testTag("editor_fields")) },
                     preview = { Box(it) },
                 )

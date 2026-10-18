@@ -306,6 +306,7 @@ class WebEditorView(
     suspend fun focusField(
         index: Int = 0,
         highlightError: Boolean = false,
+        showKeyboard: Boolean = true,
     ) {
         withContext(Dispatchers.Main.immediate) {
             requestFocus()
@@ -313,8 +314,12 @@ class WebEditorView(
             // The JS focus acknowledgement can arrive before Chromium supplies the native
             // input connection. Opening Gboard with the dummy connection changes its height
             // mid-animation, making the toolbar jump when the real field becomes available.
-            firstEditorInputConnection.await()
-            SoftwareKeyboardControllerCompat(this@WebEditorView).show()
+            if (showKeyboard) {
+                firstEditorInputConnection.await()
+                SoftwareKeyboardControllerCompat(this@WebEditorView).show()
+            } else {
+                SoftwareKeyboardControllerCompat(this@WebEditorView).hide()
+            }
         }
     }
 

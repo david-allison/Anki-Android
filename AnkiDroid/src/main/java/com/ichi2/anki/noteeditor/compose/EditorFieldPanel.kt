@@ -20,11 +20,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,13 +44,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.R
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 internal val LocalEditorFieldPageActive = staticCompositionLocalOf { true }
 
 internal enum class EditorFieldPanelSection { OPTIONS, TOOLBAR, QUICK_ACTIONS }
 
-/** Paging only changes the settings target. It never focuses or initializes a web field. */
+/** Keep settings and editor focus on the same field, without resetting focus when opening the panel. */
 @Composable
 internal fun EditorFieldPanel(
     state: EditorState,
@@ -57,6 +61,7 @@ internal fun EditorFieldPanel(
     enabled: Boolean,
     onChange: (EditorFieldPanelDraft) -> Unit,
     onSectionChange: (EditorFieldPanelSection) -> Unit,
+    onFieldSelected: (EditorFieldTarget) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
     onCustomButtons: () -> Unit,
@@ -64,9 +69,15 @@ internal fun EditorFieldPanel(
 ) {
     val pager = rememberPagerState(initialPage = draft.target.field) { state.fields.size }
     val scope = rememberCoroutineScope()
+    val selectField by rememberUpdatedState(onFieldSelected)
     var draggingPage by remember { mutableStateOf<Int?>(null) }
+    val canNavigate = enabled && !pager.isScrollInProgress && draggingPage == null
     val field = state.fields[pager.currentPage]
     val pending = section != EditorFieldPanelSection.OPTIONS
+    LaunchedEffect(pager) {
+        // Wait for swipes to settle; passing through a page must not focus its web field.
+        snapshotFlow { pager.settledPage }.drop(1).collect { selectField(draft.target.copy(field = it)) }
+    }
     BoxWithConstraints(Modifier.fillMaxWidth().heightIn(max = minOf(availableHeight, if (pending) 680.dp else 560.dp))) {
         val compact = maxHeight / LocalDensity.current.fontScale < 300.dp
         Column(Modifier.fillMaxWidth()) {
@@ -133,7 +144,7 @@ internal fun EditorFieldPanel(
                 if (!pending && state.fields.size > 1) {
                     IconButton(
                         onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
-                        enabled = pager.currentPage > 0 && !pager.isScrollInProgress && draggingPage == null,
+                        enabled = canNavigate && pager.currentPage > 0,
                         colors = editorIconButtonColors(),
                     ) {
                         Icon(
@@ -149,7 +160,7 @@ internal fun EditorFieldPanel(
                     )
                     IconButton(
                         onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
-                        enabled = pager.currentPage < state.fields.lastIndex && !pager.isScrollInProgress && draggingPage == null,
+                        enabled = canNavigate && pager.currentPage < state.fields.lastIndex,
                         colors = editorIconButtonColors(),
                     ) {
                         Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), stringResource(R.string.compose_editor_next_field))
@@ -159,7 +170,7 @@ internal fun EditorFieldPanel(
             HorizontalPager(
                 state = pager,
                 modifier = Modifier.weight(1f, fill = pending).testTag("editor_field_pages"),
-                userScrollEnabled = !pending && draggingPage == null,
+                userScrollEnabled = enabled && !pending && draggingPage == null,
                 verticalAlignment = Alignment.Top,
             ) { index ->
                 val pageField = state.fields[index]

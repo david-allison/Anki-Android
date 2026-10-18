@@ -254,6 +254,14 @@ class ComposeNoteEditorActivity :
             fieldTaps = webSession.fieldTaps,
             onFieldOptionsVisibility = { webSession.view?.setFieldOptionsVisible(it) },
             onFieldOptionsTop = { webSession.view?.setFieldOptionsTop(it) },
+            onFieldSelected = { target ->
+                launchEditorTask {
+                    if (busy || !target.matches(model.state.value)) return@launchEditorTask
+                    webSession.view?.let { editor ->
+                        editor.focusField(target.field, showKeyboard = editor.keyboardVisible)
+                    }
+                }
+            },
             headerVisibility = webSession.headerVisibility,
             ready = ready,
             busy = showBusyState || state?.isSaving == true,

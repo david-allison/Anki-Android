@@ -150,6 +150,7 @@ fun NoteEditorScreen(
     headerVisibility: Flow<Boolean> = emptyFlow(),
     onFieldOptionsVisibility: (Boolean) -> Unit = {},
     onFieldOptionsTop: (Float) -> Unit = {},
+    onFieldSelected: (EditorFieldTarget) -> Unit = {},
     onToolbarDisplay: (EditorToolbarDisplay) -> Unit = {},
     onFieldDescription: (EditorFieldTarget, String) -> Unit = { _, _ -> },
     onFieldTypography: (EditorFieldTarget, String, Int) -> Unit = { _, _, _ -> },
@@ -365,6 +366,7 @@ fun NoteEditorScreen(
                             fieldOptionsRequested = fieldOptionsRequested,
                             onFieldOptionsVisibility = onFieldOptionsVisibility,
                             onFieldOptionsTop = onFieldOptionsTop,
+                            onFieldSelected = onFieldSelected,
                             onFieldOptionsRequested = {
                                 if (it) {
                                     fieldOptionsRequested.value = true
@@ -566,6 +568,7 @@ private fun EditorPane(
     fieldOptionsRequested: State<Boolean>,
     onFieldOptionsVisibility: (Boolean) -> Unit,
     onFieldOptionsTop: (Float) -> Unit,
+    onFieldSelected: (EditorFieldTarget) -> Unit,
     onFieldOptionsRequested: (Boolean) -> Unit,
     onFieldOptionsBounds: (Rect) -> Unit,
     panelDraft: EditorFieldPanelDraft?,
@@ -742,6 +745,7 @@ private fun EditorPane(
                                         enabled = enabled,
                                         onChange = onPanelChange,
                                         onSectionChange = onPanelSectionChange,
+                                        onFieldSelected = onFieldSelected,
                                         onDismiss = closeOptions,
                                         onSave = onPanelSave,
                                         onCustomButtons = onCustomButtons,
