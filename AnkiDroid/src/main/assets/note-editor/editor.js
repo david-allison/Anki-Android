@@ -585,6 +585,19 @@
             await checkpoint();
             return {};
         },
+        async setFieldSourceMode({ index, sourceMode }) {
+            await reconcile();
+            if (!fields[index] || fields[index].spec.sourceMode === sourceMode) return {};
+            const focused = activeField;
+            await api().toggleSource(index);
+            // A settings write can finish after the user has selected a different field.
+            if (focused !== null && focused !== index) await api().focusField(focused);
+            await captureTarget();
+            revealFieldAboveOptions();
+            status();
+            await checkpoint();
+            return {};
+        },
         async setFieldTypography({ fonts }) {
             await reconcile();
             await api().setFieldTypography(fonts);

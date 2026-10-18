@@ -306,7 +306,17 @@ class ComposeNoteEditorActivity :
                 }
             },
             onFieldDescription = { target, description -> updateMetadata { model.setFieldDescription(target, description) } },
-            onFieldHtmlByDefault = { target, html -> updateMetadata { model.setFieldHtmlByDefault(target, html) } },
+            onFieldHtmlByDefault = { target, html ->
+                updateMetadata {
+                    webSession.awaitReady()
+                    model.setFieldHtmlByDefault(target, html)
+                    webSession.synchronize()
+                    val current = model.state.value
+                    if (target.matches(current) && current?.fields?.get(target.field)?.sourceMode == html) {
+                        webSession.view?.setFieldSourceMode(target.field, html)
+                    }
+                }
+            },
             onFieldCollapseByDefault = { target, collapsed ->
                 updateMetadata { model.setFieldCollapsedByDefault(target, collapsed) }
             },

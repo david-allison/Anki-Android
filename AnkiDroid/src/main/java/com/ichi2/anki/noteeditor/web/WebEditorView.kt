@@ -406,6 +406,15 @@ class WebEditorView(
             JSONObject().put("action", action.name).put("target", target?.toJson()).put("value", value),
         ).getBoolean("applied")
 
+    /** Apply the field option to the open input without rebuilding its document or opening the IME. */
+    suspend fun setFieldSourceMode(
+        index: Int,
+        sourceMode: Boolean,
+    ) = withContext(Dispatchers.Main.immediate) {
+        request("setFieldSourceMode", JSONObject().put("index", index).put("sourceMode", sourceMode))
+        SoftwareKeyboardControllerCompat(this@WebEditorView).hide()
+    }
+
     suspend fun updateFieldTypography(fonts: List<WebEditorFieldTypography>) {
         request(
             "setFieldTypography",

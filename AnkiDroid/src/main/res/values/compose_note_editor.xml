@@ -107,7 +107,7 @@
     <string name="compose_editor_right_to_left">Right-to-left text</string>
     <string name="compose_editor_right_to_left_help">Display this field’s text from right to left.</string>
     <string name="compose_editor_start_in_html_mode">Start in HTML mode</string>
-    <string name="compose_editor_start_in_html_mode_help">Edit the field’s HTML source instead of formatted text when opening the editor.</string>
+    <string name="compose_editor_start_in_html_mode_help">Use HTML source instead of formatted text for this field now and when opening the editor.</string>
     <string name="compose_editor_start_collapsed">Start collapsed</string>
     <string name="compose_editor_start_collapsed_help">Start with this field collapsed. Tap its arrow to expand it.</string>
     <string name="compose_editor_show_field_toolbar">Show toolbar</string>

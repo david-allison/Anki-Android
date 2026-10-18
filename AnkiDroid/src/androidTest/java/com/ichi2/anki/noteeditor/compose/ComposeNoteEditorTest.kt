@@ -88,6 +88,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -2090,6 +2091,54 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun htmlFieldOptionAppliesToTheOpenFieldWithoutLosingText() {
+        withEditor { scenario ->
+            var web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            assertNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            )
+            web.setField(0, "Unchanged front.")
+            web.setField(1, "<b>Unsaved back.</b>")
+            runBlocking { web.focusField(1, showKeyboard = false) }
+            val original = runBlocking { web.snapshot().fields }
+            web.evaluate("window.originalFrontInput = ${richField(0)}")
+            device.openFieldOptions()
+            val toggle =
+                By
+                    .checkable(
+                        true,
+                    ).hasDescendant(By.desc(testContext.getString(R.string.compose_editor_start_in_html_mode)))
+                    .enabled(true)
+            for (sourceMode in listOf(true, false)) {
+                checkNotNull(device.wait(Until.findObject(toggle), 5_000)).click()
+                waitUntil(message = { "HTML default did not update" }) { scenario.editorState().fields[1].sourceMode == sourceMode }
+                waitUntil(message = { "HTML mode did not update the open field" }) {
+                    web.snapshotFieldState().getJSONObject(1).getBoolean("sourceMode") == sourceMode
+                }
+                assertFalse(web.snapshotFieldState().getJSONObject(0).getBoolean("sourceMode"))
+                assertEquals(original, runBlocking { web.snapshot().fields })
+                web.awaitJavascript("window.originalFrontInput === ${richField(0)}")
+                waitUntil(message = { "Changing HTML mode must keep the keyboard hidden" }) { !scenario.keyboardVisible() }
+                assertNotNull(device.findObject(By.text("2 of 2")), "Field options must stay open")
+                // Reapplying the desired state must not toggle back or change the contents.
+                runBlocking { web.setFieldSourceMode(1, sourceMode) }
+                assertEquals(sourceMode, web.snapshotFieldState().getJSONObject(1).getBoolean("sourceMode"))
+                if (sourceMode) {
+                    scenario.recreate()
+                    web = scenario.awaitEditor()
+                    assertTrue(
+                        web.snapshotFieldState().getJSONObject(1).getBoolean("sourceMode"),
+                        "Draft restoration must retain HTML mode",
+                    )
+                    assertEquals(original, runBlocking { web.snapshot().fields })
+                    web.evaluate("window.originalFrontInput = ${richField(0)}")
+                }
+            }
+        }
+    }
+
+    @Test
     fun fieldOptionsKeepTheirTargetAndApplyWithoutReloadingFields() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
@@ -3037,6 +3086,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             })();
             """.trimIndent(),
         )
+    }
+
+    private fun WebEditorView.snapshotFieldState(): JSONArray {
+        evaluate("window.fieldOptionSnapshot = null; AnkiEditorFields.snapshotDocument().then(value => window.fieldOptionSnapshot = value)")
+        awaitJavascript("Array.isArray(window.fieldOptionSnapshot)")
+        return JSONArray(evaluate("window.fieldOptionSnapshot"))
     }
 
     /** Upstream RichTextInput mounts the real contenteditable inside an open shadow root. */
