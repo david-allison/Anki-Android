@@ -1591,6 +1591,68 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldPanelNavigationMovesEditorFocusWithoutChangingKeyboardVisibility() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            // End with punctuation so Gboard does not resume composing an existing word.
+            web.setField(0, "Front text.")
+            web.setField(1, "Back text.")
+            val original = runBlocking { web.snapshot().fields }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val picker = By.desc(testContext.getString(R.string.compose_editor_choose_field))
+
+            fun openPicker() {
+                checkNotNull(device.wait(Until.findObject(picker), 5_000)).click()
+                assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_choose_field))), 5_000))
+                // The editor behind the dialog also has a Front label; wait for the dialog window.
+                device.waitForIdle()
+            }
+            for (showKeyboard in listOf(true, false)) {
+                runBlocking { web.focusField(1) }
+                waitUntil(message = { "The keyboard did not open" }) { scenario.keyboardVisible() }
+                if (!showKeyboard) {
+                    scenario.onActivity {
+                        WindowCompat.getInsetsController(it.window, it.window.decorView).hide(WindowInsetsCompat.Type.ime())
+                    }
+                    waitUntil(message = { "The keyboard did not hide" }) { !scenario.keyboardVisible() }
+                }
+                val caret = assertNotNull(runBlocking { web.captureTarget() })
+                captureScreenshot("field-picker-before-options-$showKeyboard", web)
+                device.openFieldOptions()
+                openPicker()
+                checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.dialog_cancel))), 5_000)).click()
+                device.waitForIdle()
+                assertEquals(caret, runBlocking { web.captureTarget() }, "Cancelling the picker must preserve the caret")
+                assertEquals(showKeyboard, scenario.keyboardVisible())
+
+                openPicker()
+                captureScreenshot("field-picker-open-keyboard-$showKeyboard", web)
+                checkNotNull(device.wait(Until.findObject(By.text("Front")), 5_000)).click()
+                waitUntil(message = { "Choosing Front did not move the editor caret" }) {
+                    runBlocking { web.captureTarget() }?.field == 0
+                }
+                web.awaitJavascript("${richField(0)}.matches(':focus')")
+                assertNotNull(device.wait(Until.findObject(By.text("1 of 2")), 5_000))
+                device.waitForIdle()
+                assertEquals(showKeyboard, scenario.keyboardVisible(), "Choosing a field must preserve keyboard visibility")
+                captureScreenshot("field-picker-front-keyboard-$showKeyboard", web)
+
+                checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field)))).click()
+                waitUntil(message = { "The next arrow did not move the editor caret to Back" }) {
+                    runBlocking { web.captureTarget() }?.field == 1
+                }
+                web.awaitJavascript("${richField(1)}.matches(':focus')")
+                device.waitForIdle()
+                assertEquals(showKeyboard, scenario.keyboardVisible())
+                checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+                device.waitForIdle()
+                assertEquals(1, runBlocking { web.captureTarget() }?.field)
+            }
+            assertEquals(original, runBlocking { web.snapshot().fields }, "Switching fields must not edit their contents")
+        }
+    }
+
+    @Test
     fun mainMenuPreservesKeyboardAndCaret() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

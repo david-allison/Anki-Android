@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -70,6 +72,7 @@ internal fun EditorFieldPanel(
     val pager = rememberPagerState(initialPage = draft.target.field) { state.fields.size }
     val scope = rememberCoroutineScope()
     val selectField by rememberUpdatedState(onFieldSelected)
+    var showFieldPicker by rememberSaveable { mutableStateOf(false) }
     var draggingPage by remember { mutableStateOf<Int?>(null) }
     val canNavigate = enabled && !pager.isScrollInProgress && draggingPage == null
     val field = state.fields[pager.currentPage]
@@ -77,6 +80,17 @@ internal fun EditorFieldPanel(
     LaunchedEffect(pager) {
         // Wait for swipes to settle; passing through a page must not focus its web field.
         snapshotFlow { pager.settledPage }.drop(1).collect { selectField(draft.target.copy(field = it)) }
+    }
+    if (showFieldPicker && !pending) {
+        EditorFieldPickerDialog(
+            fields = state.fields,
+            selected = pager.currentPage,
+            onSelect = { index ->
+                showFieldPicker = false
+                scope.launch { pager.scrollToPage(index) }
+            },
+            onDismiss = { showFieldPicker = false },
+        )
     }
     BoxWithConstraints(Modifier.fillMaxWidth().heightIn(max = minOf(availableHeight, if (pending) 680.dp else 560.dp))) {
         val compact = maxHeight / LocalDensity.current.fontScale < 300.dp
@@ -154,10 +168,17 @@ internal fun EditorFieldPanel(
                     }
                 }
                 if (!pending && state.fields.size > 1) {
-                    Text(
-                        stringResource(R.string.compose_editor_field_position, pager.currentPage + 1, state.fields.size),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
+                    val chooseField = stringResource(R.string.compose_editor_choose_field)
+                    TextButton(
+                        onClick = { showFieldPicker = true },
+                        enabled = canNavigate,
+                        modifier = Modifier.semantics { contentDescription = chooseField },
+                    ) {
+                        Text(
+                            stringResource(R.string.compose_editor_field_position, pager.currentPage + 1, state.fields.size),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
                     IconButton(
                         onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
                         enabled = canNavigate && pager.currentPage < state.fields.lastIndex,

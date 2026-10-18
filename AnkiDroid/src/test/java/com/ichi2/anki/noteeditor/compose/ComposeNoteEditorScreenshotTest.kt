@@ -147,6 +147,49 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldPanelPickerSelectsByNameAndKeepsFocusWhenCancelled() {
+        val selected = mutableListOf<Int>()
+        showEditor(onFieldSelected = { selected += it.field })
+        openFieldOptions()
+        composeRule.onNodeWithText("2 of 2").performClick()
+        composeRule.onNode(hasText("Back") and hasAnyAncestor(isDialog())).assertIsSelected()
+        composeRule.onNode(hasText("Front") and hasAnyAncestor(isDialog())).assertIsNotSelected()
+        captureScreen("field_picker")
+        composeRule.onNode(hasText(getResourceString(CommonString.dialog_cancel)) and hasAnyAncestor(isDialog())).performClick()
+        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+        assertTrue(selected.isEmpty())
+        composeRule.onNodeWithText("2 of 2").performClick()
+        composeRule.onNode(hasText("Back") and hasAnyAncestor(isDialog())).performClick()
+        assertTrue(selected.isEmpty(), "Choosing the current field must preserve its caret")
+        composeRule.onNodeWithText("2 of 2").performClick()
+        composeRule.onNode(hasText("Front") and hasAnyAncestor(isDialog())).performClick()
+        composeRule.onNode(isDialog()).assertDoesNotExist()
+        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        assertEquals(listOf(0), selected)
+    }
+
+    @Test
+    fun fieldPanelPickerWith400FieldsJumpsDirectlyAndScrollsToTheCurrentField() {
+        RuntimeEnvironment.setFontScale(2f)
+        val selected = mutableListOf<Int>()
+        val (activity, keyboard) =
+            showEditor(
+                fieldCount = 400,
+                focusState = mutableStateOf(EditorToolbarState(activeField = 399)),
+                onFieldSelected = { selected += it.field },
+            )
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText("400 of 400").performClick()
+        composeRule.onNode(hasText("Field 400") and hasAnyAncestor(isDialog())).assertIsDisplayed().assertIsSelected()
+        captureScreen("field_picker_400_fields_large_text")
+        composeRule.onNodeWithTag("editor_field_picker").performScrollToNode(hasText("Front"))
+        composeRule.onNode(hasText("Front") and hasAnyAncestor(isDialog())).performClick()
+        composeRule.onNodeWithText("1 of 400").assertIsDisplayed()
+        assertEquals(listOf(0), selected, "Jumping must not focus intermediate fields")
+    }
+
+    @Test
     fun fieldPanelSwipesFollowRtlReadingOrder() {
         RuntimeEnvironment.setQualifiers("+ldrtl")
         showEditor()
@@ -286,6 +329,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     private fun assertSubscreenStaysOnField(field: String) {
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_choose_field)).assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).assertDoesNotExist()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertDoesNotExist()
         composeRule.onNodeWithText("1 of 2").assertDoesNotExist()
