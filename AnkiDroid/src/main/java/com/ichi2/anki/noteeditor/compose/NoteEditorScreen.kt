@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -254,6 +255,7 @@ fun NoteEditorScreen(
             fieldOptionsBounds,
             MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
             BottomSheetDefaults.ExpandedShape,
+            MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
             dismissFieldPanel,
         ),
     ) {
@@ -523,9 +525,11 @@ private fun Modifier.dismissFieldOptionsOnOutsideTap(
     sheetBounds: State<Rect?>,
     scrim: Color,
     sheetShape: Shape,
+    sheetColor: Color,
     onDismiss: () -> Unit,
 ): Modifier {
     val dismiss by rememberUpdatedState(onDismiss)
+    val navigationBars = WindowInsets.navigationBars
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
     return onGloballyPositioned { rootOffset = it.positionInRoot() }
         .drawWithContent {
@@ -538,6 +542,15 @@ private fun Modifier.dismissFieldOptionsOnOutsideTap(
                             addOutline(outline)
                             translate(sheet.topLeft)
                         }
+                    // The scaffold reserves system insets outside the sheet. Continue its
+                    // surface behind the navigation bar only when the sheet reaches it;
+                    // a sheet above the keyboard must not recolor the keyboard's inset.
+                    val navigationBarTop = size.height - navigationBars.getBottom(this)
+                    if (sheet.bottom >= navigationBarTop - 1f && sheet.bottom < size.height) {
+                        val navigationBackground = Rect(sheet.left, sheet.bottom, sheet.right, size.height)
+                        drawRect(sheetColor, navigationBackground.topLeft, navigationBackground.size)
+                        path.addRect(navigationBackground)
+                    }
                     clipPath(path, ClipOp.Difference) {
                         drawRect(scrim)
                     }

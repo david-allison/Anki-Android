@@ -1431,6 +1431,52 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldOptionsNavigationBarMatchesThePanel() = checkFieldOptionsNavigationBar()
+
+    @Test
+    fun hiddenToolbarFieldOptionsNavigationBarMatchesThePanel() = checkFieldOptionsNavigationBar(EditorToolbarDisplay.HIDDEN)
+
+    @Test
+    fun tabletFieldOptionsNavigationBarMatchesThePanel() {
+        RuntimeEnvironment.setQualifiers("+sw800dp-w1000dp-h800dp")
+        checkFieldOptionsNavigationBar()
+    }
+
+    private fun checkFieldOptionsNavigationBar(display: EditorToolbarDisplay = EditorToolbarDisplay.SCROLL) {
+        val (activity, keyboard) = showEditor(toolbarDisplay = display)
+        activity.enableEdgeToEdge()
+        hideKeyboard(activity, keyboard)
+        val content = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
+        val before = content.drawToBitmap()
+        val navigationY = before.height - 24.dp.toPx(activity)
+
+        openFieldOptions()
+        val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
+        val x = panel.left.toInt() + 16.dp.toPx(activity)
+        val image = content.drawToBitmap()
+        val colors = activity.toMaterial3ColorScheme()
+        assertEquals(
+            colors.surfaceContainer.compositeOver(colors.surface).toArgb(),
+            image[x, navigationY],
+            "The navigation-bar background below the panel must match the panel without a dimming scrim",
+        )
+        val abovePanel = panel.top.toInt() - 8.dp.toPx(activity)
+        assertNotEquals(before[x, abovePanel], image[x, abovePanel], "The editor above the panel must remain dimmed")
+        if (panel.right < image.width) {
+            assertNotEquals(
+                before[image.width - x, navigationY],
+                image[image.width - x, navigationY],
+                "The navigation-bar area below the covered tablet preview must remain dimmed",
+            )
+        }
+        captureScreen("field_options_navigation_bar_${display.name.lowercase()}_${image.width}")
+
+        dismissFieldOptions()
+        val after = content.drawToBitmap()
+        assertEquals(before[x, navigationY], after[x, navigationY], "Dismissal must restore the editor's navigation background")
+    }
+
+    @Test
     fun fieldOptionsFinishSlidingOutBeforeRemovingContent() {
         var optionsVisible = false
         showEditor(onFieldOptionsVisibility = { optionsVisible = it })

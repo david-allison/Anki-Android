@@ -959,6 +959,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
             assertBars("editor", fullscreen = false)
             device.openFieldOptions()
+            assertBars("field-options", fullscreen = false)
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
             assertBars("toolbar", fullscreen = true)
             checkNotNull(

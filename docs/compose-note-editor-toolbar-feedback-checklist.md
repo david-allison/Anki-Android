@@ -187,4 +187,12 @@ separate.
   Pixel checks pass for first-tap dismissal followed by second-tap editing,
   caret/keyboard preservation, accessibility restoration, and Android Back.
 
+  **Navigation-bar correction, 2026-10-19:** continue the panel background into
+  the bottom system inset, excluding that area from the scrim. The editor above
+  the panel and the tablet preview remain dimmed. Reviewed the corrected Pixel
+  screenshot. New light/dark screenshot checks assert the navigation-bar color
+  with visible and hidden toolbars, on tablets, and after dismissal; all ten
+  focused screenshot/interaction checks pass. The Pixel system-bar check also
+  passes, now including the main Field options panel.
+
 [material-buttons]: https://github.com/material-components/material-web/blob/main/docs/components/button.md#usage
