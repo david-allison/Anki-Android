@@ -415,6 +415,14 @@ class WebEditorView(
         SoftwareKeyboardControllerCompat(this@WebEditorView).hide()
     }
 
+    suspend fun setFieldCollapsed(
+        index: Int,
+        collapsed: Boolean,
+    ) = withContext(Dispatchers.Main.immediate) {
+        request("setFieldCollapsed", JSONObject().put("index", index).put("collapsed", collapsed))
+        SoftwareKeyboardControllerCompat(this@WebEditorView).hide()
+    }
+
     suspend fun updateFieldTypography(fonts: List<WebEditorFieldTypography>) {
         request(
             "setFieldTypography",

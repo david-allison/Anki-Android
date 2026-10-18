@@ -598,6 +598,19 @@
             await checkpoint();
             return {};
         },
+        async setFieldCollapsed({ index, collapsed }) {
+            await reconcile();
+            if (!fields[index] || fields[index].spec.collapsed === collapsed) return {};
+            // Use the field's own control to retain its mounted input, selection and undo history.
+            document
+                .querySelector(`.field-container[data-index="${index}"] .collapse-toggle`)
+                .click();
+            await captureTarget();
+            revealFieldAboveOptions();
+            status();
+            await checkpoint();
+            return {};
+        },
         async setFieldTypography({ fonts }) {
             await reconcile();
             await api().setFieldTypography(fonts);

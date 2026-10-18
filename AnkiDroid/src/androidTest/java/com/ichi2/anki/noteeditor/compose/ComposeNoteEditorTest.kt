@@ -2139,6 +2139,55 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun collapseFieldOptionAppliesToTheOpenFieldWithoutLosingText() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            assertNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            )
+            web.setField(0, "Unchanged front.")
+            web.setField(1, "<b>Unsaved back.</b>")
+            runBlocking { web.focusField(1, showKeyboard = false) }
+            val original = runBlocking { web.snapshot().fields }
+            web.evaluate("window.originalBackInput = ${richField(1)}")
+            device.openFieldOptions()
+            val toggle =
+                By
+                    .checkable(
+                        true,
+                    ).hasDescendant(By.desc(testContext.getString(R.string.compose_editor_start_collapsed)))
+                    .enabled(true)
+            for (collapsed in listOf(true, false)) {
+                checkNotNull(device.wait(Until.findObject(toggle), 5_000)).click()
+                waitUntil(message = { "Collapse default did not update" }) { scenario.editorState().fields[1].collapsed == collapsed }
+                waitUntil(message = { "Collapse did not update the open field" }) {
+                    web.snapshotFieldState().getJSONObject(1).getBoolean("collapsed") == collapsed
+                }
+                assertFalse(web.snapshotFieldState().getJSONObject(0).getBoolean("collapsed"))
+                assertEquals(original, runBlocking { web.snapshot().fields })
+                web.awaitJavascript("window.originalBackInput === ${richField(1)}")
+                waitUntil(message = { "Collapsing or expanding must keep the keyboard hidden" }) { !scenario.keyboardVisible() }
+                assertNotNull(device.findObject(By.text("2 of 2")), "Field options must stay open")
+                runBlocking { web.setFieldCollapsed(1, collapsed) }
+                assertEquals(collapsed, web.snapshotFieldState().getJSONObject(1).getBoolean("collapsed"))
+            }
+            checkNotNull(device.wait(Until.findObject(toggle), 5_000)).click()
+            waitUntil(message = { "The field did not collapse before recreating the editor" }) {
+                web.snapshotFieldState().getJSONObject(1).getBoolean("collapsed")
+            }
+            assertEquals(original, runBlocking { web.snapshot().fields })
+            scenario.recreate()
+            val restored = scenario.awaitEditor()
+            assertTrue(
+                restored.snapshotFieldState().getJSONObject(1).getBoolean("collapsed"),
+                "Draft restoration must keep the field collapsed",
+            )
+            assertEquals(original, runBlocking { restored.snapshot().fields })
+        }
+    }
+
+    @Test
     fun fieldOptionsKeepTheirTargetAndApplyWithoutReloadingFields() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

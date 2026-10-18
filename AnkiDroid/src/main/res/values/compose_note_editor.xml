@@ -109,7 +109,7 @@
     <string name="compose_editor_start_in_html_mode">Start in HTML mode</string>
     <string name="compose_editor_start_in_html_mode_help">Use HTML source instead of formatted text for this field now and when opening the editor.</string>
     <string name="compose_editor_start_collapsed">Start collapsed</string>
-    <string name="compose_editor_start_collapsed_help">Start with this field collapsed. Tap its arrow to expand it.</string>
+    <string name="compose_editor_start_collapsed_help">Collapse this field now and when opening the editor. Tap its arrow to expand it.</string>
     <string name="compose_editor_show_field_toolbar">Show toolbar</string>
     <string name="compose_editor_toolbar_hidden_globally">The toolbar layout is set to Hidden.</string>
     <string name="compose_editor_previous_field">Previous field</string>

@@ -318,7 +318,15 @@ class ComposeNoteEditorActivity :
                 }
             },
             onFieldCollapseByDefault = { target, collapsed ->
-                updateMetadata { model.setFieldCollapsedByDefault(target, collapsed) }
+                updateMetadata {
+                    webSession.awaitReady()
+                    model.setFieldCollapsedByDefault(target, collapsed)
+                    webSession.synchronize()
+                    val current = model.state.value
+                    if (target.matches(current) && current?.fields?.get(target.field)?.collapsed == collapsed) {
+                        webSession.view?.setFieldCollapsed(target.field, collapsed)
+                    }
+                }
             },
             onFieldTypography = { target, font, size ->
                 updateMetadata {
