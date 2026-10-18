@@ -95,7 +95,6 @@ internal fun EditorCustomizeToolbarDialog(
             noteTypeName = noteTypeName,
             onSave = onSave,
             onCustomButtons = onCustomButtons,
-            onDismiss = dismiss,
             enabled = enabled,
             toolbarHiddenGlobally = toolbarHiddenGlobally,
         )
@@ -112,7 +111,6 @@ internal fun EditorCustomizeToolbarContent(
     noteTypeName: String,
     onSave: (EditorToolbarConfiguration) -> Unit,
     onCustomButtons: () -> Unit,
-    onDismiss: () -> Unit,
     enabled: Boolean = true,
     toolbarHiddenGlobally: Boolean = false,
     topBar: (@Composable () -> Unit)? = null,
@@ -135,7 +133,6 @@ internal fun EditorCustomizeToolbarContent(
         isCloze = true,
         templates = templates,
         onCustomButtons = onCustomButtons,
-        onDismiss = onDismiss,
         onSave = {
             // Template definitions may have changed while their library was open.
             onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))

@@ -41,6 +41,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -49,6 +50,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -246,7 +248,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(gallery).assertIsNotSelected()
         assertEquals(null, saved)
         captureScreen("field_panel_quick_actions_pending")
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        dismissFieldOptions()
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertIsDisplayed()
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
@@ -288,13 +290,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
         openFieldOptions()
         captureScreen("field_panel_tablet_options")
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        dismissFieldOptions()
         openFieldCustomization(R.string.compose_editor_toolbar)
         settleMenuTransition(activity)
         captureScreen("field_panel_tablet_toolbar_keyboard")
         hideKeyboard(activity, keyboard)
         captureScreen("field_panel_tablet_toolbar")
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        dismissFieldOptions()
         openFieldCustomization(R.string.compose_editor_quick_actions)
         settleMenuTransition(activity)
         captureScreen("field_panel_tablet_quick_actions")
@@ -1170,8 +1172,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).assertIsDisplayed()
         composeRule.onNode(isPopup()).assertDoesNotExist()
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).assertDoesNotExist()
+        dismissFieldOptions()
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
         toolbarOverflowButton().assertDoesNotExist()
     }
 
@@ -1263,7 +1265,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         pin.assertDoesNotExist()
         openFieldOptions()
         pin.assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        dismissFieldOptions()
         pin.assertDoesNotExist()
         openFieldOptions()
         pin.assertIsDisplayed()
@@ -1293,26 +1295,26 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .boundsInRoot.bottom
         openFieldOptions()
         composeRule.waitForIdle()
-        val close = hasContentDescription(getResourceString(R.string.compose_editor_close_field_options))
+        val panel = hasTestTag("editor_field_panel")
         var lastTop =
             composeRule
-                .onNode(close)
+                .onNode(panel)
                 .fetchSemanticsNode()
                 .positionInRoot.y
         var removed = false
         composeRule.mainClock.autoAdvance = false
         try {
-            composeRule.onNode(close).performClick()
+            dismissFieldOptions()
             for (frame in 1..90) {
                 composeRule.mainClock.advanceTimeByFrame()
-                val button = composeRule.onAllNodes(close).fetchSemanticsNodes().singleOrNull()
-                if (button == null) {
+                val sheet = composeRule.onAllNodes(panel).fetchSemanticsNodes().singleOrNull()
+                if (sheet == null) {
                     assertTrue(lastTop >= editorBottom - 1, "Sheet content vanished at $lastTop before sliding below $editorBottom")
                     removed = true
                     break
                 }
                 assertTrue(optionsVisible, "Keep native cursor handles hidden throughout the closing animation")
-                lastTop = button.positionInRoot.y
+                lastTop = sheet.positionInRoot.y
             }
             assertTrue(removed, "The sheet must finish closing")
             assertEquals(false, optionsVisible, "Restore native cursor handling after the sheet leaves")
@@ -1370,7 +1372,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText("Japanese").assertIsDisplayed()
             assertEquals(before, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
-            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+            dismissFieldOptions()
             assertEquals(before, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         }
@@ -1525,11 +1527,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val panelBounds = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
         assertTrue(shortcut.bottom <= panelBounds.bottom, "The library action must remain inside the panel viewport")
         captureScreen("shared_toolbar_preset_editing")
-        composeRule
-            .onNode(
-                hasContentDescription(getResourceString(R.string.compose_editor_close_field_options)) and
-                    hasAnyAncestor(hasTestTag("editor_field_panel")),
-            ).performClick()
+        dismissFieldOptions()
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
     }
@@ -2156,8 +2154,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule
                 .onAllNodes(
                     hasClickAction() and hasAnyAncestor(hasTestTag("editor_field_options")) and
-                        !hasContentDescription(getResourceString(R.string.compose_editor_field_options_help)) and
-                        !hasContentDescription(getResourceString(R.string.compose_editor_close_field_options)),
+                        !hasContentDescription(getResourceString(R.string.compose_editor_field_options_help)),
                 ).fetchSemanticsNodes()
         val labels = controls.map { it.config[SemanticsProperties.Text].first().text }
         assertEquals(EditorFieldOption.entries.size, labels.size)
@@ -2506,6 +2503,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.runOnUiThread {
             ShadowLooper.idleMainLooper()
             editorActivity.window.decorView.drawToBitmap()
+        }
+    }
+
+    private fun dismissFieldOptions() {
+        val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
+        composeRule.onNode(isRoot() and hasAnyDescendant(hasTestTag("editor_field_panel"))).performTouchInput {
+            click(Offset(1f, panel.top - 1f))
         }
     }
 

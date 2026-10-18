@@ -19,7 +19,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
@@ -54,7 +53,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +80,6 @@ internal fun EditorToolbarDialog(
             isCloze,
             templates,
             onCustomButtons,
-            dismiss,
             onSave,
             title,
             subtitle,
@@ -98,7 +95,6 @@ internal fun EditorToolbarContent(
     isCloze: Boolean,
     templates: List<EditorCustomToolbarButton>,
     onCustomButtons: () -> Unit,
-    onDismiss: () -> Unit,
     onSave: (EditorFieldToolbar) -> Unit,
     title: String? = null,
     subtitle: String? = null,
@@ -157,11 +153,6 @@ internal fun EditorToolbarContent(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
-                            Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
-                        }
                     },
                     actions = {
                         EditorSaveButton(onClick = { onSave(toolbar) }, enabled = enabled, modifier = Modifier.padding(end = 8.dp))

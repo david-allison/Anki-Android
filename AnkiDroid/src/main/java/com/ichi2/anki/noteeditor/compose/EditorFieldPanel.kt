@@ -64,7 +64,6 @@ internal fun EditorFieldPanel(
     onChange: (EditorFieldPanelDraft) -> Unit,
     onSectionChange: (EditorFieldPanelSection) -> Unit,
     onFieldSelected: (EditorFieldTarget) -> Unit,
-    onDismiss: () -> Unit,
     onSave: () -> Unit,
     onCustomButtons: () -> Unit,
     options: @Composable (EditorFieldTarget) -> Unit,
@@ -138,9 +137,6 @@ internal fun EditorFieldPanel(
                 }
                 if (!pending) FieldOptionsHelp(field.name, state.noteTypeName, editorControlColor())
                 if (pending || draft.hasChanges) EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
-                IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
-                    Icon(painterResource(R.drawable.ic_clear_white), stringResource(R.string.compose_editor_close_field_options))
-                }
             }
             Row(
                 Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp),
@@ -209,7 +205,6 @@ internal fun EditorFieldPanel(
                                     noteTypeName = state.noteTypeName,
                                     onSave = { onSave() },
                                     onCustomButtons = onCustomButtons,
-                                    onDismiss = onDismiss,
                                     enabled = enabled,
                                     toolbarHiddenGlobally = state.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
                                     topBar = {},

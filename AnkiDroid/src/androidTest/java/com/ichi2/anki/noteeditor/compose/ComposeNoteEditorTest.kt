@@ -1669,7 +1669,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     web.awaitJavascript("document.querySelector('.scroll-area').scrollTop > 0")
                 }
                 captureScreenshot("field-picker-back-keyboard-$showKeyboard", web)
-                checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+                device.dismissFieldOptions()
                 device.waitForIdle()
                 assertEquals(1, runBlocking { web.captureTarget() }?.field)
                 web.awaitJavascript("document.documentElement.style.getPropertyValue('--editor-sheet-scroll-space') === ''")
@@ -1834,7 +1834,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             // Put the caret near the footer so the sheet covers it on taller screens too.
-            web.setField(1, (1..40).joinToString("<br>") { "Keep insertion point $it" })
+            // Punctuation lets a real tap move the caret without Gboard resuming a word.
+            web.setField(1, (1..40).joinToString("<br>") { "........................................" })
             val original = runBlocking { web.snapshot().fields }
             runBlocking { web.focusField(1) }
             waitUntil(message = { "The keyboard did not open" }) { scenario.keyboardVisible() }
@@ -1871,7 +1872,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             captureScreenshot("field-options-native-cursor", web)
             assertTrue(scenario.keyboardVisible(), "Keep the keyboard connected while options are open")
             assertEquals(target, runBlocking { web.captureTarget() })
-            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+            device.dismissFieldOptions()
             device.waitForIdle()
             assertTrue(scenario.keyboardVisible())
             assertEquals(target, runBlocking { web.captureTarget() }, "Closing options must preserve the insertion point")
@@ -1884,7 +1885,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     fun outsideTapClosesFieldOptionsWithoutChangingFocusOrKeyboard() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
-            web.setField(1, "Keep the caret here")
+            web.setField(1, "Keep the caret here.")
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             val heading = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             val pin = By.desc(testContext.getString(R.string.compose_editor_pin_field))
@@ -2027,7 +2028,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
             fun toggleOptions() {
                 if (device.hasObject(backOptions)) {
-                    checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
+                    device.dismissFieldOptions()
                 } else {
                     device.openFieldOptions()
                 }
@@ -2895,6 +2896,12 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     private fun UiDevice.openEditorOptions() {
         val overflow = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
         checkNotNull(wait(Until.findObject(overflow), 5_000)).click()
+    }
+
+    private fun UiDevice.dismissFieldOptions() {
+        val heading = checkNotNull(findObject(By.descEndsWith(testContext.getString(R.string.compose_editor_field_options_title, ""))))
+        val density = testContext.resources.displayMetrics.density
+        click((2 * density).toInt(), heading.visibleBounds.top - (24 * density).toInt())
     }
 
     private fun UiDevice.openFieldOptions() {

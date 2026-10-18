@@ -122,7 +122,7 @@ class EditorDialogDismissTest : RobolectricTest() {
             )
         }
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.dismissEditorDialog()
         assertFalse(dismissed)
         keepEditing()
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()

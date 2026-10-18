@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.core.view.drawToBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.CommonString
@@ -26,11 +27,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowLooper
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class EditorToolbarDialogTest : RobolectricTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
@@ -157,9 +162,23 @@ class EditorToolbarDialogTest : RobolectricTest() {
         first: String,
         second: String,
     ) {
+        settleRows()
         val firstBounds = composeRule.onNodeWithText(first).fetchSemanticsNode().boundsInWindow
         val secondBounds = composeRule.onNodeWithText(second).fetchSemanticsNode().boundsInWindow
         assertTrue(firstBounds.bottom <= secondBounds.top, "$first must appear above $second")
+    }
+
+    private fun settleRows() {
+        // RecyclerView item animations use Android's clock; Robolectric needs an explicit draw.
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.runOnUiThread {
+            ShadowLooper.idleMainLooper()
+            ShadowDialog
+                .getLatestDialog()
+                .window!!
+                .decorView
+                .drawToBitmap()
+        }
     }
 
     @Test
@@ -191,11 +210,12 @@ class EditorToolbarDialogTest : RobolectricTest() {
 
     @Test
     fun `cancelling does not save changed visibility`() {
-        showDialog(EditorFieldToolbar(customButtons = listOf(ruby)))
+        showDialog(shortToolbar.copy(customButtons = listOf(ruby)))
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         composeRule.onNodeWithText("Ruby").performClick()
+        settleRows()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.dismissEditorDialog()
         assertNull(saved)
     }
 

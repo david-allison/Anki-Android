@@ -102,7 +102,9 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
             .assertIsNotEnabled()
         visibility.assertIsEnabled()
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertIsEnabled()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).assertIsEnabled()
+        composeRule.dismissEditorDialog()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertExists()
+        composeRule.dismissEditorDialog()
         assertNull(saved)
         save()
         assertEquals(EditorToolbarConfiguration(presets, minimal.id, false), saved)
@@ -134,7 +136,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         choose("Minimal")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.dismissEditorDialog()
         assertFalse(dismissed)
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         assertTrue(dismissed)
@@ -153,7 +155,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_name)).assertDoesNotExist()
         assertNull(saved)
         // Discarding the child leaves the unchanged parent free to close immediately.
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.dismissEditorDialog()
         assertTrue(dismissed)
     }
 
@@ -206,7 +208,7 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         ok.performClick()
         composeRule.onNodeWithText("Reading").assertExists()
         assertNull(saved)
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.dismissEditorDialog()
         assertNull(saved)
     }
 

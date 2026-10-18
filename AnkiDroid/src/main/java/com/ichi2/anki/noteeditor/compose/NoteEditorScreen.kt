@@ -746,7 +746,6 @@ private fun EditorPane(
                                         onChange = onPanelChange,
                                         onSectionChange = onPanelSectionChange,
                                         onFieldSelected = onFieldSelected,
-                                        onDismiss = closeOptions,
                                         onSave = onPanelSave,
                                         onCustomButtons = onCustomButtons,
                                     ) { fieldTarget ->
