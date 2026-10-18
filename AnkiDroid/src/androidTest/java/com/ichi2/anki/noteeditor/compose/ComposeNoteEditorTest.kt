@@ -21,8 +21,11 @@ import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.WindowInsetsAnimation
 import android.view.inputmethod.EditorInfo
+import android.view.inspector.WindowInspector
 import android.webkit.WebView
 import android.widget.TextView
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.content.getSystemService
@@ -30,6 +33,7 @@ import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.descendants
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -82,6 +86,7 @@ import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.anki.testutil.waitUntil
 import com.ichi2.anki.testutil.withTestKeyboard
 import com.ichi2.anki.ui.internationalization.sentenceCase
+import com.ichi2.compose.theme.toMaterial3ColorScheme
 import com.ichi2.utils.LanguageUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -910,6 +915,62 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .toolbar.quickActions,
             )
             assertEquals(before, runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
+    fun configurationSystemBarsMatchTheEditorSurface() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            runBlocking { web.focusField(0, showKeyboard = false) }
+
+            fun assertBars(
+                name: String,
+                fullscreen: Boolean,
+            ) {
+                device.waitForIdle()
+                // SystemUI's icon transition can outlast the app's accessibility idle state.
+                if (InstrumentationRegistry.getArguments().getString("artifactDir") != null) SystemClock.sleep(1_000)
+                captureScreenshot("system-bars-$name", web)
+                scenario.onActivity { activity ->
+                    val window =
+                        if (fullscreen) {
+                            assertNotNull(
+                                WindowInspector
+                                    .getGlobalWindowViews()
+                                    .asSequence()
+                                    .filterIsInstance<ViewGroup>()
+                                    .flatMap { it.descendants }
+                                    .filterIsInstance<DialogWindowProvider>()
+                                    .lastOrNull(),
+                                "$name must have its own dialog window",
+                            ).window
+                        } else {
+                            activity.window
+                        }
+                    val lightBars = activity.toMaterial3ColorScheme().surface.luminance() > 0.5f
+                    val controller = WindowCompat.getInsetsController(window, window.decorView)
+                    assertEquals(lightBars, controller.isAppearanceLightStatusBars, "$name status-bar contrast")
+                    assertEquals(lightBars, controller.isAppearanceLightNavigationBars, "$name navigation-bar contrast")
+                }
+            }
+
+            assertBars("editor", fullscreen = false)
+            device.openFieldOptions()
+            checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_toolbar))), 5_000)).click()
+            assertBars("toolbar", fullscreen = true)
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
+            ).click()
+            assertBars("custom-buttons", fullscreen = true)
+            device.pressBack()
+            device.pressBack()
+            checkNotNull(
+                device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_quick_actions))), 5_000),
+            ).click()
+            assertBars("quick-actions", fullscreen = true)
         }
     }
 

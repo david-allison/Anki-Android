@@ -73,6 +73,7 @@ internal fun EditorCustomButtonsDialog(
         onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
+        EditorDialogSystemBars()
         Surface(Modifier.fillMaxSize().testTag("editor_custom_button_library")) {
             Scaffold(
                 modifier = Modifier.fillMaxSize().systemBarsPadding().imePadding(),

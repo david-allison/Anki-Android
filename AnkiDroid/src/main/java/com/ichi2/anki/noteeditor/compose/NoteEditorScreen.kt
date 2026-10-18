@@ -733,6 +733,7 @@ private fun EditorPane(
                 onDismissRequest = { onPanelSectionChange(EditorFieldPanelSection.OPTIONS) },
                 properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
             ) {
+                EditorDialogSystemBars()
                 Surface(Modifier.fillMaxSize().testTag("editor_field_configuration")) {
                     BoxWithConstraints(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
                         val configurationHeight = maxHeight

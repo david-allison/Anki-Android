@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 4 resolved.**
+Recorded 2026-10-18. **12 action items; 5 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -132,15 +132,18 @@ separate.
   and interaction conventions. Treat broader alignment as a separate task;
   record justified differences before deciding whether to share components.
 
-- [ ] **10. Investigate inconsistent status bars.**
+- [x] **10. Investigate inconsistent status bars.**
 
-  **Assessment: agree this deserves investigation.** Background color and icon
-  contrast should look intentional across the affected screens. The tester's
-  comment does not establish which screens or conditions cause the problem.
+  **Finding and fix, 2026-10-18:** the fullscreen configuration dialogs did not
+  explicitly match system-bar icon contrast to their surface. The Pixel capture
+  showed the clock and ordinary icons disappearing against Custom buttons'
+  white background. Customize toolbar, Quick actions, and Custom buttons now
+  select status/navigation icon appearance from their own surface brightness.
 
-  **Proposed action:** identify the affected screens, capture their appearance,
-  and check status-bar background, icon contrast, and top spacing in light and
-  dark themes before choosing a fix.
+  **Verification:** six existing light/dark layout checks pass. A Pixel
+  regression checks both system-bar appearance flags on the main editor and all
+  three fullscreen screens. Settled Pixel screenshots confirm visible icons;
+  optional screenshot capture waits for SystemUI's separate icon transition.
 
 - [ ] **11. Replace “Duplicate” with the existing “Clone preset” string.**
 
