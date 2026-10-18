@@ -177,6 +177,70 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldPanelNavigationCanInterruptSwipeSettling() = assertNavigationCanInterruptSwipe(rtl = false)
+
+    @Test
+    fun fieldPanelNavigationCanInterruptSwipeSettlingInRtl() = assertNavigationCanInterruptSwipe(rtl = true)
+
+    private fun assertNavigationCanInterruptSwipe(rtl: Boolean) {
+        if (rtl) RuntimeEnvironment.setQualifiers("+ldrtl")
+        val selected = mutableListOf<Int>()
+        val (activity, keyboard) = showEditor(fieldCount = 4, onFieldSelected = { selected += it.field })
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText("2 of 4").assertIsDisplayed()
+        val pages = composeRule.onNodeWithTag("editor_field_pages")
+        val previous = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field))
+        val next = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field))
+        val picker = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_choose_field))
+        composeRule.mainClock.autoAdvance = false
+        try {
+            fun swipe(forward: Boolean) {
+                pages.performTouchInput {
+                    val leftward = forward != rtl
+                    val start = width * if (leftward) 0.85f else 0.15f
+                    val end = width * if (leftward) 0.15f else 0.85f
+                    down(Offset(start, centerY))
+                    moveTo(Offset((start + end) / 2, centerY), delayMillis = 100)
+                    moveTo(Offset(end, centerY), delayMillis = 100)
+                    up()
+                }
+                repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+                val node = pages.fetchSemanticsNode()
+                val offset = node.config[SemanticsProperties.HorizontalScrollAxisRange].value() / node.boundsInRoot.width
+                assertTrue(kotlin.math.abs(offset - offset.roundToInt()) > 0.01f, "The swipe must still be settling: $offset")
+                previous.assertIsEnabled()
+                next.assertIsEnabled()
+                picker.assertIsEnabled()
+            }
+            swipe(forward = true)
+            composeRule.onNodeWithText("3 of 4").assertIsDisplayed()
+            next.performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            composeRule.onNodeWithText("4 of 4").assertIsDisplayed()
+            assertEquals(3, selected.last(), "The arrow must focus its destination immediately")
+            composeRule.mainClock.advanceTimeBy(500)
+            assertEquals(3, selected.last(), "The interrupted swipe must not pull focus back")
+            swipe(forward = false)
+            composeRule.onNodeWithText("3 of 4").assertIsDisplayed()
+            previous.performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            composeRule.onNodeWithText("2 of 4").assertIsDisplayed()
+            assertEquals(1, selected.last())
+            swipe(forward = true)
+            picker.performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            composeRule.onNode(hasText("Field 3") and hasAnyAncestor(isDialog())).assertIsSelected()
+            composeRule.onNode(hasText("Front") and hasAnyAncestor(isDialog())).performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            composeRule.onNodeWithText("1 of 4").assertIsDisplayed()
+            assertEquals(0, selected.last())
+        } finally {
+            composeRule.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
     fun fieldPanelPickerSelectsByNameAndKeepsFocusWhenCancelled() {
         val selected = mutableListOf<Int>()
         showEditor(onFieldSelected = { selected += it.field })

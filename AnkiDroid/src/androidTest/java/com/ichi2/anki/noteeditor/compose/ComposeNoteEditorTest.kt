@@ -1672,6 +1672,51 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldArrowsCanInterruptNativeSwipesInBothDirections() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            assertNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            )
+            web.setField(0, "Unchanged front.")
+            web.setField(1, "Unchanged back.")
+            runBlocking { web.focusField(1, showKeyboard = false) }
+            val original = runBlocking { web.snapshot().fields }
+            device.openFieldOptions()
+            val previous =
+                checkNotNull(
+                    device.findObject(By.desc(testContext.getString(R.string.compose_editor_previous_field))),
+                ).visibleCenter
+            val next = checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field)))).visibleCenter
+            val y =
+                checkNotNull(
+                    device.findObject(By.desc(testContext.getString(R.string.compose_editor_start_in_html_mode))),
+                ).visibleCenter.y
+            val left = device.displayWidth / 5
+            val right = device.displayWidth * 4 / 5
+            // Use cached coordinates: querying accessibility between the swipe and tap waits for idle,
+            // which would conceal the settling-animation delay this test exercises.
+            assertTrue(device.swipe(left, y, right, y, 40))
+            assertTrue(device.click(next.x, next.y))
+            device.waitForIdle()
+            assertNotNull(device.findObject(By.text("2 of 2")))
+            web.awaitJavascript("${richField(1)}.matches(':focus')")
+
+            assertTrue(device.swipe(left, y, right, y, 40))
+            assertNotNull(device.wait(Until.findObject(By.text("1 of 2")), 5_000))
+            web.awaitJavascript("${richField(0)}.matches(':focus')")
+            assertTrue(device.swipe(right, y, left, y, 40))
+            assertTrue(device.click(previous.x, previous.y))
+            device.waitForIdle()
+            assertNotNull(device.findObject(By.text("1 of 2")))
+            web.awaitJavascript("${richField(0)}.matches(':focus')")
+            assertFalse(scenario.keyboardVisible())
+            assertEquals(original, runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun fieldNavigationDoesNotWaitForASettingsWriteOrLoseFocusWhenItCompletes() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()

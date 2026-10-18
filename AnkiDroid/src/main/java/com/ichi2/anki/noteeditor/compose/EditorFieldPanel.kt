@@ -74,7 +74,8 @@ internal fun EditorFieldPanel(
     val selectField by rememberUpdatedState(onFieldSelected)
     var showFieldPicker by rememberSaveable { mutableStateOf(false) }
     var draggingPage by remember { mutableStateOf<Int?>(null) }
-    val canNavigate = enabled && !pager.isScrollInProgress && draggingPage == null
+    // A swipe's settling animation must not lock navigation; explicit selection cancels it.
+    val canNavigate = enabled && draggingPage == null
     val field = state.fields[pager.currentPage]
     val pending = section != EditorFieldPanelSection.OPTIONS
     LaunchedEffect(pager) {
@@ -169,7 +170,14 @@ internal fun EditorFieldPanel(
                 if (!pending && state.fields.size > 1) {
                     val chooseField = stringResource(R.string.compose_editor_choose_field)
                     TextButton(
-                        onClick = { showFieldPicker = true },
+                        onClick = {
+                            val page = pager.currentPage
+                            scope.launch {
+                                // Keep the displayed field selected while opening the picker mid-swipe.
+                                pager.scrollToPage(page)
+                                showFieldPicker = true
+                            }
+                        },
                         enabled = canNavigate,
                         modifier = Modifier.semantics { contentDescription = chooseField },
                     ) {
