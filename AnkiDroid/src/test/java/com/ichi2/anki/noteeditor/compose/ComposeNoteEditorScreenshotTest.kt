@@ -1511,6 +1511,20 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot,
         )
         settleMenuTransition(activity)
+        val footerColor =
+            composeRule
+                .onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons))
+                .captureToImage()
+                .toPixelMap()[0, 0]
+                .toArgb()
+        val commandColor =
+            composeRule
+                .onNodeWithText(getResourceString(R.string.compose_editor_media))
+                .captureToImage()
+                .toPixelMap()[0, 0]
+                .toArgb()
+        assertEquals(activity.toMaterial3ColorScheme().surface.toArgb(), footerColor, "The library shortcut uses a neutral footer")
+        assertNotEquals(commandColor, footerColor, "The footer must be distinct from active toolbar commands")
         captureScreen("customize_toolbar_scrolled_down")
     }
 

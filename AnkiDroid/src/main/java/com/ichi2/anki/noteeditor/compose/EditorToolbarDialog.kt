@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -117,13 +118,17 @@ internal fun EditorToolbarContent(
     val customButtons: @Composable () -> Unit = {
         Surface(
             Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+            color = MaterialTheme.colorScheme.surface,
         ) {
-            Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
-                TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
-                    Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.compose_editor_custom_buttons))
+            Column {
+                // Separate the library shortcut from the tinted active commands scrolling behind it.
+                if (!scrollCustomButtons) HorizontalDivider()
+                Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
+                    TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
+                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.compose_editor_custom_buttons))
+                    }
                 }
             }
         }
