@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 8 resolved.**
+Recorded 2026-10-18. **12 action items; 9 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -13,15 +13,19 @@ separate.
 
 ## Feedback and recommendations
 
-- [ ] **01. Improve the Toolbar layout icon.**
+- [x] **01. Improve the Toolbar layout icon.**
 
   **Assessment: agree.** The current icon and the adjacent Fields icon both
   resemble lists. Of the suggested Material icons, prefer **View Column**.
   **View Week** risks suggesting a calendar; **Width Normal** suggests resizing.
 
-  **Proposed action:** compare View Column with its neighboring menu icons at
-  their actual display size, then replace the current icon if the distinction
-  is clear. Preserve the visible label and accessible meaning.
+  **Implemented 2026-10-19:** replaced the Toolbar layout menu icon with Google's
+  outlined **View Column** icon, as requested. Its vertical columns distinguish
+  it from the horizontal Fields list icon below. The label, accessibility,
+  sizing, tint, and menu behavior are preserved.
+
+  **Verification:** all four existing light/dark menu checks pass. Reviewed the
+  new icon beside the Fields icon in both themes; the isolated probe APK builds.
 
 - [x] **02. Remove the note-type name below the field name in the main panel.**
 

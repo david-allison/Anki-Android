@@ -94,7 +94,7 @@ internal fun EditorOptionsMenu(
             }
             HorizontalDivider()
             // Device-wide presentation settings, separate from shared field and preset properties.
-            EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_list_white_24dp) {
+            EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_column) {
                 expanded = false
                 showToolbarDisplay = true
             }
