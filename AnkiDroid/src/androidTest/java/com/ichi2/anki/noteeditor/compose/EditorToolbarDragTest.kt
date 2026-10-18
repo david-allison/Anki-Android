@@ -77,9 +77,9 @@ class EditorToolbarDragTest : InstrumentedTest() {
                     device.takeScreenshot(File(directory, "toolbar-expanded.png"))
                     device.dumpWindowHierarchy(File(directory, "toolbar-expanded.xml"))
                 }
-                val expandedBounds = checkNotNull(device.findObject(library)).visibleBounds
-                val expandedWidth = expandedBounds.width()
-                assertTrue(expandedWidth > expandedBounds.height(), "The action must show its label at the top: $expandedBounds")
+                val libraryBounds = checkNotNull(device.findObject(library)).visibleBounds
+                val listBounds = device.findObject(By.clazz("androidx.recyclerview.widget.RecyclerView")).visibleBounds
+                assertTrue(listBounds.bottom <= libraryBounds.top, "The list must end above the library row")
                 val downTime = SystemClock.uptimeMillis()
 
                 fun touch(action: Int) {
@@ -95,11 +95,11 @@ class EditorToolbarDragTest : InstrumentedTest() {
                 }
                 try {
                     touch(MotionEvent.ACTION_DOWN)
-                    assertTrue(device.wait(Until.gone(library), 5_000), "The library action must leave the drag area")
+                    assertEquals(libraryBounds, checkNotNull(device.findObject(library)).visibleBounds, "Dragging must not move the row")
                 } finally {
                     touch(MotionEvent.ACTION_CANCEL)
                 }
-                assertTrue(device.wait(Until.hasObject(library), 5_000), "The library action must return after dragging")
+                assertEquals(0, libraryOpened.get(), "Starting a drag must not open the library")
                 val italic = handle(testContext.getString(R.string.compose_editor_italic)).visibleBounds
                 assertTrue(device.swipe(start.x, start.y, start.x, italic.centerY() + italic.height() / 4, 40))
                 assertEquals(listOf("BOLD", "ITALIC", "custom:wrap"), save().buttonOrder.take(3))
@@ -123,19 +123,19 @@ class EditorToolbarDragTest : InstrumentedTest() {
                 list.scroll(Direction.DOWN, 1f)
                 val action = checkNotNull(device.findObject(library))
                 val actionBounds = action.visibleBounds
-                assertTrue(actionBounds.width() < expandedWidth, "Scrolling must collapse the library action")
+                assertEquals(libraryBounds, actionBounds, "Scrolling must leave the library row fixed")
                 action.click()
-                assertEquals(1, libraryOpened.get(), "The collapsed icon must still open the library")
+                assertEquals(1, libraryOpened.get(), "The fixed row must open the library")
                 val lastHandle = handle(testContext.getString(EditorToolbarButton.BOLD.label)).visibleBounds
-                assertTrue(lastHandle.bottom < actionBounds.top, "The last handle must remain above the floating action")
+                assertTrue(lastHandle.bottom <= actionBounds.top, "The last handle must remain above the library row")
                 dragBoldToEdge(bottom = false)
                 val result = save()
                 assertEquals("BOLD", result.buttonOrder.first())
                 device.waitForIdle()
                 assertEquals(
-                    expandedWidth,
-                    checkNotNull(device.findObject(library)).visibleBounds.width(),
-                    "The label must return at the top",
+                    libraryBounds,
+                    checkNotNull(device.findObject(library)).visibleBounds,
+                    "The row must stay fixed when returning to the top",
                 )
                 assertEquals(initial.hiddenButtons, result.hiddenButtons)
                 assertEquals(initial.customButtons, result.customButtons)

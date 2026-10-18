@@ -116,7 +116,6 @@ internal fun EditorCustomizeToolbarContent(
     toolbarHiddenGlobally: Boolean = false,
     topBar: (@Composable () -> Unit)? = null,
     embedded: Boolean = false,
-    scrollCustomButtons: Boolean = false,
     onDraggingChange: (Boolean) -> Unit = {},
 ) {
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
@@ -140,7 +139,6 @@ internal fun EditorCustomizeToolbarContent(
         },
         topBar = topBar,
         embedded = embedded,
-        scrollCustomButtons = scrollCustomButtons,
         onDraggingChange = onDraggingChange,
         enabled = enabled,
         buttonsEnabled = enabled && pending.showToolbar,

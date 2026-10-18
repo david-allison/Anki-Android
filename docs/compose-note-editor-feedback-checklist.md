@@ -132,6 +132,16 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   library without discarding pending toolbar changes. The duplicate shortcut in
   the main options menu has been removed.
 
+  **Updated 2026-10-19:** replaced the floating library launcher with a fixed
+  **Custom buttons ›** bottom row. The scrolling list ends above it, including
+  during dragging, and its label stays visible. The library's separate
+  **＋ Create button** action retains its existing FAB behavior.
+
+  **Verification:** 12 light/dark checks pass, including RTL, 200% text,
+  scrolling to the last drag handle, and pending preset changes. Both Pixel
+  drag tests pass, including scrolling at both list edges and moving between
+  Active and Available.
+
 - [ ] **14. Give custom items an edit button, with deletion available through editing.**
 
   **Assessment: agree.** Editing a definition must be separate from enabling or

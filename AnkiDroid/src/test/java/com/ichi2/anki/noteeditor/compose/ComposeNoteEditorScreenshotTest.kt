@@ -1740,15 +1740,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun customizeToolbarScrolledDown() = captureFloatingCustomButtons()
+    fun customizeToolbarScrolledDown() = captureFixedCustomButtons()
 
     @Test
-    fun floatingCustomButtonsInRtl() = captureFloatingCustomButtons(rtl = true)
+    fun fixedCustomButtonsInRtl() = captureFixedCustomButtons(rtl = true)
 
     @Test
-    fun floatingCustomButtonsWithLargeText() = captureFloatingCustomButtons(largeText = true)
+    fun fixedCustomButtonsWithLargeText() = captureFixedCustomButtons(largeText = true)
 
-    private fun captureFloatingCustomButtons(
+    private fun captureFixedCustomButtons(
         rtl: Boolean = false,
         largeText: Boolean = false,
     ) {
@@ -1766,7 +1766,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val action = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_custom_buttons))
         val shortcut = action.fetchSemanticsNode().boundsInRoot
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
-        if (!largeText) assertEquals(rtl, shortcut.center.x < panel.center.x, "The action follows the layout's trailing edge")
+        assertEquals(panel.left, shortcut.left)
+        assertEquals(panel.right, shortcut.right, "The library row spans the panel")
+        val viewport = composeRule.onNodeWithTag("editor_toolbar_list").fetchSemanticsNode().boundsInRoot
+        assertTrue(viewport.bottom <= shortcut.top, "The list must end above the fixed library row")
         composeRule.runOnIdle {
             val list = configurationList()
             // Match the Pixel: header controls and the Active heading have scrolled out of view.
@@ -1774,18 +1777,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         }
         settleMenuTransition(activity)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsNotDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
         action.assertIsDisplayed()
-        val collapsed = action.fetchSemanticsNode().boundsInRoot
-        assertTrue(collapsed.width < shortcut.width, "Scrolling must collapse the action to its icon")
-        assertEquals(shortcut.bottom, collapsed.bottom)
-        assertEquals(if (rtl) shortcut.left else shortcut.right, if (rtl) collapsed.left else collapsed.right)
-        val pixels = action.captureToImage().toPixelMap()
-        assertEquals(
-            activity.toMaterial3ColorScheme().primaryContainer.toArgb(),
-            pixels[pixels.width / 2, 2].toArgb(),
-            "The floating library action uses the filled tonal colour",
-        )
+        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Scrolling must leave the library row fixed")
         val suffix =
             when {
                 rtl -> "_rtl"
@@ -1804,15 +1798,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .assertIsDisplayed()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        assertTrue(lastHandle.bottom < collapsed.top, "The last drag handle must clear the entire floating action")
-        assertEquals(collapsed, action.fetchSemanticsNode().boundsInRoot, "Scrolling to the end must not move the action")
+        assertTrue(lastHandle.bottom <= shortcut.top, "The last drag handle must remain above the library row")
+        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Scrolling to the end must not move the row")
         captureScreen("customize_toolbar_scrolled_to_end$suffix")
         composeRule.runOnIdle {
             (configurationList().layoutManager as LinearLayoutManager).scrollToPositionWithOffset(0, 0)
         }
         settleMenuTransition(activity)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
-        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Returning to the top must expand the action")
+        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Returning to the top must not move the row")
     }
 
     @Test

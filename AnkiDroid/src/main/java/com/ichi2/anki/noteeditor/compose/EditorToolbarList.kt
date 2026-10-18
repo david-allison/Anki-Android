@@ -25,13 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.recyclerview.widget.DiffUtil
@@ -50,8 +48,6 @@ internal fun EditorToolbarList(
     canMove: (String) -> Boolean = { true },
     modifier: Modifier = Modifier,
     onDraggingChange: (Boolean) -> Unit = {},
-    onAtTopChange: (Boolean) -> Unit = {},
-    bottomContentPadding: Dp = 0.dp,
     header: @Composable () -> Unit,
     row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) {
@@ -68,13 +64,11 @@ internal fun EditorToolbarList(
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
     val currentDragging by rememberUpdatedState(onDraggingChange)
-    val currentAtTop by rememberUpdatedState(onAtTopChange)
     val currentMove by rememberUpdatedState(onMove)
     val currentCanMove by rememberUpdatedState(canMove)
     val currentActiveCount by rememberUpdatedState(activeCount)
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
     var firstOffset by rememberSaveable { mutableIntStateOf(0) }
-    val bottomPadding = with(LocalDensity.current) { bottomContentPadding.roundToPx() }
     AndroidView(
         modifier = modifier.testTag("editor_toolbar_list"),
         factory = { context ->
@@ -119,7 +113,6 @@ internal fun EditorToolbarList(
                         ) {
                             // Scrollbar estimates count a zero-height header as scrolled past. Use its actual bounds.
                             val atTop = manager.findViewByPosition(0)?.let { it.top >= recyclerView.paddingTop } == true
-                            currentAtTop(atTop)
                             val first = if (atTop) 0 else manager.findFirstVisibleItemPosition()
                             if (first != RecyclerView.NO_POSITION) {
                                 firstVisible = first
@@ -131,7 +124,6 @@ internal fun EditorToolbarList(
             }
         },
         update = { list ->
-            if (list.paddingBottom != bottomPadding) list.setPadding(0, 0, 0, bottomPadding)
             list.importantForAccessibility =
                 if (pageActive) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             (list.adapter as EditorToolbarAdapter).updateItems(entries)
