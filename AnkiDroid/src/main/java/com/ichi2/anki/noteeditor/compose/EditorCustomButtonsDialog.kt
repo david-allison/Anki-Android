@@ -100,7 +100,7 @@ internal fun EditorCustomButtonsDialog(
                         colors = ButtonDefaults.filledTonalButtonColors(),
                         contentPadding = ButtonDefaults.contentPaddingFor(height, hasStartIcon = true),
                     ) {
-                        Icon(painterResource(R.drawable.ic_add_toolbar_icon), null, Modifier.size(ButtonDefaults.iconSizeFor(height)))
+                        Icon(painterResource(R.drawable.ic_add), null, Modifier.size(ButtonDefaults.iconSizeFor(height)))
                         Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
                         Text(stringResource(R.string.compose_editor_add_custom_button), style = ButtonDefaults.textStyleFor(height))
                     }
