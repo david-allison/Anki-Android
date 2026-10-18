@@ -222,7 +222,7 @@ class EditorToolbarDialogTest : RobolectricTest() {
     @Test
     fun `library validates new templates and saves only when confirmed`() {
         showLibrary()
-        composeRule.onNodeWithText(getResourceString(CommonString.add_toolbar_item)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_custom_button)).performClick()
         val save = getResourceString(CommonString.save)
         composeRule.onNodeWithText(save).assertIsNotEnabled()
         composeRule.onNodeWithText(getResourceString(CommonString.note_editor_toolbar_icon)).performTextInput("Ruby")
@@ -230,8 +230,9 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText(getResourceString(CommonString.before_text)).performTextInput("<ruby>")
         composeRule.onNodeWithText(getResourceString(CommonString.after_text)).performTextInput("</ruby>")
         composeRule.onNodeWithText(save).assertIsEnabled().performClick()
+        composeRule.onNodeWithText(save).assertDoesNotExist()
         assertNull(savedTemplates)
-        composeRule.onNodeWithText(save).performClick()
+        composeRule.onNodeWithContentDescription(save).performClick()
         val button = requireNotNull(savedTemplates).single()
         assertEquals("Ruby", button.label)
         assertEquals("<ruby>", button.prefix)
@@ -244,7 +245,8 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText("Ruby").performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.note_editor_toolbar_icon)).performTextReplacement("Ruby2")
         composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        assertNull(savedTemplates)
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals(ruby.id, savedTemplates?.single()?.id)
         val changed = requireNotNull(savedTemplates).single()
         assertEquals("Ruby2", changed.label)
@@ -255,6 +257,15 @@ class EditorToolbarDialogTest : RobolectricTest() {
             ).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
         assertNull(savedTemplates)
+        composeRule.onNodeWithText("Ruby2").assertExists()
+        composeRule
+            .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_remove_custom_button, changed.label))
+            .performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.dialog_remove)).performClick()
+        assertNull(savedTemplates)
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
+        assertEquals(emptyList(), savedTemplates)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_no_custom_buttons)).assertExists()
     }
 
     private fun reorderActions(label: String) =

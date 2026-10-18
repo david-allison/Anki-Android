@@ -946,16 +946,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 }
             }
             runBlocking { web.focusField(0) }
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options))), 5_000),
-            ).click()
+            device.openFieldOptions()
             val toolbarEntry = By.text(testContext.getString(R.string.compose_editor_toolbar))
             checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
             checkNotNull(
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
             ).click()
             checkNotNull(
-                device.wait(Until.findObject(By.text(testContext.getString(com.ichi2.anki.CommonString.add_toolbar_item))), 5_000),
+                device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_add_custom_button))), 5_000),
             ).click()
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
             val inputs = device.findObjects(By.clazz("android.widget.EditText"))
@@ -966,17 +964,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val save = By.text(testContext.getString(com.ichi2.anki.CommonString.save))
             device.findObjects(save).last().click()
             assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
-            device.findObjects(save).last().click()
+            assertTrue(scenario.editorState().customButtonTemplates.isEmpty(), "Library changes must wait for Save")
+            captureScreenshot("custom-button-library", web)
+            device.findObject(By.desc(testContext.getString(CommonString.save))).click()
             waitUntil(message = { "The global template did not save" }) {
                 scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
             assertTrue(scenario.editorState().fields.all { it.toolbar.customButtons.isEmpty() })
-            // Templates are already saved; dismiss the unchanged toolbar configuration.
-            checkNotNull(
-                device.wait(Until.findObject(By.desc(testContext.getString(com.ichi2.anki.CommonString.dialog_cancel))), 5_000),
-            ).click()
-            device.openEditorOptions()
-            checkNotNull(device.wait(Until.findObject(toolbarEntry), 5_000)).click()
+            // Saving the library returns to the pending toolbar configuration.
             checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_bold))), 5_000)).click()
             // Manage shared definitions without committing the pending removal of Bold.
             checkNotNull(
@@ -986,7 +981,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             buttonLabel = "Wrap updated"
             device.findObjects(By.clazz("android.widget.EditText"))[0].text = buttonLabel
             device.findObjects(save).last().click()
-            device.findObjects(save).last().click()
+            assertTrue(scenario.editorState().customButtonTemplates.none { it.label == buttonLabel })
+            device.findObject(By.desc(testContext.getString(CommonString.save))).click()
             waitUntil(message = { "The template change did not reach the open toolbar configuration" }) {
                 scenario.editorState().customButtonTemplates.any { it.label == buttonLabel }
             }
@@ -1012,8 +1008,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                     .toolbar.customButtons
                     .any { it.label == buttonLabel }
             }
-            // Saving returns to the preset list in the same dialog window.
-            device.pressBack()
             assertTrue(device.wait(Until.hasObject(By.text(buttonLabel)), 5_000))
             assertFalse(device.hasObject(bold))
             assertTrue(

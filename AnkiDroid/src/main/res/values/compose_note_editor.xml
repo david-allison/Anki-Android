@@ -74,7 +74,10 @@
     <string name="compose_editor_removed_fields">Text from removed fields</string>
     <string name="compose_editor_removed_fields_explanation">These fields were removed from the note type. Copy any text you want to keep before discarding it, or close the editor to keep it in your draft.</string>
     <string name="compose_editor_keep_draft_close">Keep draft and close</string>
-    <string name="compose_editor_custom_buttons_scope">Create buttons to use in any field. Editing or deleting a button affects every field using it. Enable buttons in Customize toolbar.</string>
+    <string name="compose_editor_add_custom_button">Add button</string>
+    <string name="compose_editor_no_custom_buttons">No custom buttons yet</string>
+    <string name="compose_editor_remove_custom_button_scope">This button will be removed from every toolbar that uses it.</string>
+    <string name="compose_editor_custom_buttons_scope">Reusable buttons for every toolbar. Changes apply everywhere a button is used.</string>
     <string name="compose_editor_move_button_up">Move %s up</string>
     <string name="compose_editor_move_button_down">Move %s down</string>
     <string name="compose_editor_reorder_button">Reorder %s</string>

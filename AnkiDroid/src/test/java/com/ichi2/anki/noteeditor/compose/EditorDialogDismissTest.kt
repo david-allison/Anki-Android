@@ -161,10 +161,12 @@ class EditorDialogDismissTest : RobolectricTest() {
         assertFalse(dismissed)
         keepEditing()
         composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
-        cancel()
+        assertNull(saved)
+        composeRule.onNodeWithText("Ruby").assertExists()
+        composeRule.dismissEditorDialog()
         assertFalse(dismissed)
         keepEditing()
-        composeRule.onNodeWithText(getResourceString(CommonString.save)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).performClick()
         assertEquals("<ruby class='reading'>", saved)
     }
 

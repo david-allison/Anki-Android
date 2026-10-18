@@ -1718,21 +1718,70 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun customButtonLibraryOpen() {
+    fun customButtonLibraryOpen() = captureCustomButtonLibrary()
+
+    @Test
+    fun customButtonLibraryWithLargeText() = captureCustomButtonLibrary(largeText = true)
+
+    @Test
+    fun customButtonLibraryEmpty() = captureCustomButtonLibrary(empty = true)
+
+    private fun captureCustomButtonLibrary(
+        largeText: Boolean = false,
+        empty: Boolean = false,
+    ) {
+        if (largeText) RuntimeEnvironment.setFontScale(2f)
+        val label = if (largeText) "Ruby annotation with a longer button label" else "Ruby"
         val (activity, _) =
             showEditor(
-                templates = listOf(EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
+                templates =
+                    if (empty) {
+                        emptyList()
+                    } else {
+                        listOf(
+                            EditorCustomToolbarButton(label = label, prefix = "<ruby>", suffix = "</ruby>"),
+                        )
+                    },
             )
-        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_options)).performClick()
-        openFieldSection(R.string.compose_editor_toolbar)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
-        captureScreen("customize_toolbar_custom_buttons")
+        openFieldCustomization(R.string.compose_editor_toolbar)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
-        composeRule.onNodeWithText("Ruby").assertIsDisplayed()
+        val library = composeRule.onNodeWithTag("editor_custom_button_library").fetchSemanticsNode().boundsInRoot
+        assertEquals(
+            activity.window.decorView.width
+                .toFloat(),
+            library.width,
+            absoluteTolerance = 1f,
+        )
+        assertEquals(
+            activity.window.decorView.height
+                .toFloat(),
+            library.height,
+            absoluteTolerance = 1f,
+        )
+        composeRule
+            .onNodeWithText(if (empty) getResourceString(R.string.compose_editor_no_custom_buttons) else label)
+            .assertIsDisplayed()
+        val add = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_custom_button))
+        add.assertIsDisplayed()
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_custom_button_library")),
+            ).assertIsDisplayed()
+        assertTrue(add.fetchSemanticsNode().boundsInRoot.top > library.center.y)
         settleMenuTransition(activity)
-        captureScreen("custom_button_library")
+        captureScreen(
+            "custom_button_library" +
+                if (largeText) {
+                    "_large_text"
+                } else if (empty) {
+                    "_empty"
+                } else {
+                    ""
+                },
+        )
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.onNodeWithTag("editor_custom_button_library").assertDoesNotExist()
+        assertFullScreenConfiguration()
     }
 
     @Test
