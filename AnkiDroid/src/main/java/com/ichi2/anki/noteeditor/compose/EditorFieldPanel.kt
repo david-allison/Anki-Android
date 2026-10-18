@@ -91,9 +91,9 @@ internal fun EditorFieldPanel(
             onDismiss = { showFieldPicker = false },
         )
     }
-    BoxWithConstraints(Modifier.fillMaxWidth().heightIn(max = minOf(availableHeight, if (pending) 680.dp else 560.dp))) {
+    BoxWithConstraints(Modifier.fillMaxWidth().heightIn(max = minOf(availableHeight, if (pending) availableHeight else 560.dp))) {
         val compact = maxHeight / LocalDensity.current.fontScale < 300.dp
-        Column(Modifier.fillMaxWidth()) {
+        Column(if (pending) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
             Row(
                 Modifier.fillMaxWidth().padding(start = if (pending) 8.dp else 24.dp, end = 8.dp, top = if (compact) 4.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

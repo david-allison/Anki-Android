@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -51,6 +52,7 @@ import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -69,6 +71,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -108,6 +111,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.multimedia.MultimediaActionHandler
@@ -366,7 +371,10 @@ fun NoteEditorScreen(
                             fieldOptionsRequested = fieldOptionsRequested,
                             onFieldOptionsVisibility = onFieldOptionsVisibility,
                             onFieldOptionsTop = onFieldOptionsTop,
-                            onFieldSelected = onFieldSelected,
+                            onFieldSelected = { target ->
+                                panelDraft = panelDraft?.copy(target = target)
+                                onFieldSelected(target)
+                            },
                             onFieldOptionsRequested = {
                                 if (it) {
                                     fieldOptionsRequested.value = true
@@ -628,6 +636,12 @@ private fun EditorPane(
             if (expand) sheetState.expand() else sheetState.hide()
         }
     }
+    val fullscreen = showFieldOptions && panelSection != EditorFieldPanelSection.OPTIONS
+    var sheetTop by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(fullscreen, showFieldOptions) {
+        // The native cursor must remain clipped behind a full-screen configuration window.
+        if (showFieldOptions) onFieldOptionsTop(if (fullscreen) 0f else sheetTop)
+    }
     val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
     BackHandler(enabled = showFieldOptions) {
         if (panelSection != EditorFieldPanelSection.OPTIONS) {
@@ -711,6 +725,33 @@ private fun EditorPane(
                 }
             }
         }
+        if (fullscreen && panelDraft != null && panelDraft.target.matches(editorState)) {
+            Dialog(
+                onDismissRequest = { onPanelSectionChange(EditorFieldPanelSection.OPTIONS) },
+                properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+            ) {
+                Surface(Modifier.fillMaxSize().testTag("editor_field_configuration")) {
+                    BoxWithConstraints(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                        val configurationHeight = maxHeight
+                        Box(Modifier.fillMaxSize().testTag("editor_field_panel")) {
+                            EditorFieldPanel(
+                                state = editorState,
+                                availableHeight = configurationHeight,
+                                draft = panelDraft,
+                                section = panelSection,
+                                enabled = enabled,
+                                onChange = onPanelChange,
+                                onSectionChange = onPanelSectionChange,
+                                onFieldSelected = onFieldSelected,
+                                onSave = onPanelSave,
+                                onCustomButtons = onCustomButtons,
+                                options = {},
+                            )
+                        }
+                    }
+                }
+            }
+        }
         // The sheet may cover the selectors when space above the keyboard is limited.
         // Keep it separate from the editor layout so fields and toolbar never resize on opening.
         if (showFieldOptions) {
@@ -731,17 +772,19 @@ private fun EditorPane(
                         // Retain the controls through dismissal, then remove their layout and semantics work.
                         if (panelDraft != null && panelDraft.target.matches(editorState)) {
                             Box(
-                                Modifier.testTag("editor_field_panel").onGloballyPositioned {
-                                    onFieldOptionsBounds(it.boundsInRoot())
-                                    onFieldOptionsTop(it.boundsInWindow().top)
-                                },
+                                (if (fullscreen) Modifier.clearAndSetSemantics {} else Modifier.testTag("editor_field_panel"))
+                                    .onGloballyPositioned {
+                                        onFieldOptionsBounds(it.boundsInRoot())
+                                        sheetTop = it.boundsInWindow().top
+                                        if (!fullscreen) onFieldOptionsTop(sheetTop)
+                                    },
                             ) {
                                 key(panelInstance) {
                                     EditorFieldPanel(
                                         state = editorState,
                                         availableHeight = panelMaxHeight,
                                         draft = panelDraft,
-                                        section = panelSection,
+                                        section = EditorFieldPanelSection.OPTIONS,
                                         enabled = enabled,
                                         onChange = onPanelChange,
                                         onSectionChange = onPanelSectionChange,

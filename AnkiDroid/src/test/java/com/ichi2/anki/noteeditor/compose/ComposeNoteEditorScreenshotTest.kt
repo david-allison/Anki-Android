@@ -326,6 +326,24 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertEquals(setOf("BOLD", "ITALIC"), saved?.presets?.single()?.hiddenButtons)
     }
 
+    private fun assertFullScreenConfiguration() {
+        composeRule.onNode(isDialog()).assertExists()
+        val bounds = composeRule.onNodeWithTag("editor_field_configuration").fetchSemanticsNode().boundsInRoot
+        // Separate windows may round a fractional dp height to adjacent physical pixels.
+        assertEquals(
+            editorActivity.window.decorView.width
+                .toFloat(),
+            bounds.width,
+            absoluteTolerance = 1f,
+        )
+        assertEquals(
+            editorActivity.window.decorView.height
+                .toFloat(),
+            bounds.height,
+            absoluteTolerance = 1f,
+        )
+    }
+
     private fun returnToFieldOptions() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options)).performClick()
     }
@@ -382,6 +400,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     private fun assertPanelAboveKeyboard(keyboard: View) {
+        if (composeRule.onAllNodes(hasTestTag("editor_field_configuration")).fetchSemanticsNodes().isNotEmpty()) {
+            assertFullScreenConfiguration()
+            return
+        }
         val keyboardLocation = IntArray(2)
         keyboard.getLocationInWindow(keyboardLocation)
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInWindow
@@ -391,14 +413,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         )
     }
 
-    private fun scrollToolbarHeaderTo(
-        activity: AnkiActivity,
-        label: Int,
-    ) {
+    private fun configurationList(): RecyclerView =
+        (requireNotNull(ShadowDialog.getLatestDialog().window).decorView as ViewGroup)
+            .descendants
+            .filterIsInstance<RecyclerView>()
+            .first { it.isShown }
+
+    private fun scrollToolbarHeaderTo(label: Int) {
         val bounds = composeRule.onNodeWithTag("editor_toolbar_list").fetchSemanticsNode().boundsInWindow
         val target = composeRule.onNodeWithText(getResourceString(label)).fetchSemanticsNode().boundsInWindow
         composeRule.runOnIdle {
-            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            val list = configurationList()
             list.scrollBy(0, (target.top - bounds.top).roundToInt())
         }
         composeRule.waitForIdle()
@@ -1167,6 +1192,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun fieldOptionsOpenQuickActions() {
         showEditor()
         openFieldCustomization(R.string.compose_editor_quick_actions)
+        assertFullScreenConfiguration()
         composeRule
             .onNode(
                 hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
@@ -1181,6 +1207,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun fieldOptionsOpenToolbarPresets() {
         showEditor()
         openFieldCustomization(R.string.compose_editor_toolbar)
+        assertFullScreenConfiguration()
         composeRule
             .onNode(
                 hasText(getResourceString(R.string.compose_editor_toolbar)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
@@ -1479,7 +1506,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setFontScale(2f)
         val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
         openFieldCustomization(R.string.compose_editor_toolbar)
-        scrollToolbarHeaderTo(activity, R.string.compose_editor_preset)
+        scrollToolbarHeaderTo(R.string.compose_editor_preset)
         assertPanelAboveKeyboard(keyboard)
         captureScreen("customize_toolbar_large_text")
         val presetBounds =
@@ -1494,12 +1521,12 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             presetBounds.bottom <= viewport.bottom,
             "The complete preset selector must fit in the scrolling viewport: $presetBounds inside $viewport",
         )
-        scrollToolbarHeaderTo(activity, R.string.compose_editor_show_field_toolbar)
+        scrollToolbarHeaderTo(R.string.compose_editor_show_field_toolbar)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick().assertIsOff()
-        scrollToolbarHeaderTo(activity, R.string.compose_editor_preset)
+        scrollToolbarHeaderTo(R.string.compose_editor_preset)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
         captureScreen("customize_toolbar_large_text_hidden")
-        scrollToolbarHeaderTo(activity, R.string.compose_editor_custom_buttons)
+        scrollToolbarHeaderTo(R.string.compose_editor_custom_buttons)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed().assertIsNotEnabled()
         assertPanelAboveKeyboard(keyboard)
         captureScreen("customize_toolbar_large_text_custom_buttons")
@@ -1546,7 +1573,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         hideKeyboard(activity, keyboard)
         openFieldCustomization(R.string.compose_editor_toolbar)
         composeRule.runOnIdle {
-            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            val list = configurationList()
             (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(1, 0)
         }
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
@@ -1597,7 +1624,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
         if (!largeText) assertEquals(rtl, shortcut.center.x < panel.center.x, "The action follows the layout's trailing edge")
         composeRule.runOnIdle {
-            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            val list = configurationList()
             // Match the Pixel: header controls and the Active heading have scrolled out of view.
             (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(10, 0)
         }
@@ -1622,7 +1649,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             }
         captureScreen("customize_toolbar_scrolled_down$suffix")
         composeRule.runOnIdle {
-            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            val list = configurationList()
             list.scrollBy(0, list.computeVerticalScrollRange())
         }
         val lastHandle =
@@ -2503,10 +2530,19 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.runOnUiThread {
             ShadowLooper.idleMainLooper()
             editorActivity.window.decorView.drawToBitmap()
+            ShadowDialog
+                .getLatestDialog()
+                ?.takeIf { it.isShowing }
+                ?.window
+                ?.decorView
+                ?.drawToBitmap()
         }
     }
 
     private fun dismissFieldOptions() {
+        if (composeRule.onAllNodes(hasTestTag("editor_field_configuration")).fetchSemanticsNodes().isNotEmpty()) {
+            returnToFieldOptions()
+        }
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
         composeRule.onNode(isRoot() and hasAnyDescendant(hasTestTag("editor_field_panel"))).performTouchInput {
             click(Offset(1f, panel.top - 1f))

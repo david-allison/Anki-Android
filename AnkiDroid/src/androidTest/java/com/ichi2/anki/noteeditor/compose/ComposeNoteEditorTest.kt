@@ -1679,6 +1679,49 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldConfigurationUsesTheFullScreenAndReturnsToTheSelectedField() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            web.setField(0, "Keep the selected field.")
+            web.setField(1, "Keep the other field.")
+            runBlocking { web.focusField(0) }
+            val original = runBlocking { web.snapshot().fields }
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            device.openFieldOptions()
+            checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field))), 5_000)).click()
+            waitUntil(message = { "Selecting Back did not focus its field" }) { runBlocking { web.captureTarget() }?.field == 1 }
+            for (section in listOf(R.string.compose_editor_toolbar, R.string.compose_editor_quick_actions)) {
+                val link = By.text(testContext.getString(section))
+                // The main sheet's links can start below its visible controls above the IME.
+                repeat(5) {
+                    if (!device.hasObject(link)) {
+                        device.swipe(
+                            device.displayWidth / 2,
+                            device.displayHeight * 3 / 5,
+                            device.displayWidth / 2,
+                            device.displayHeight / 3,
+                            20,
+                        )
+                    }
+                }
+                checkNotNull(device.wait(Until.findObject(link), 5_000)).click()
+                val list = checkNotNull(device.wait(Until.findObject(By.clazz("androidx.recyclerview.widget.RecyclerView")), 5_000))
+                device.waitForIdle()
+                val heading =
+                    checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options_title, "Back"))))
+                assertTrue(heading.visibleBounds.top < device.displayHeight / 5, "Configuration must start near the top of the display")
+                assertTrue(list.visibleBounds.bottom > device.displayHeight * 9 / 10, "The list must extend to the bottom of the display")
+                assertFalse(device.hasObject(By.desc(testContext.getString(R.string.compose_editor_choose_field))))
+                captureScreenshot("fullscreen-field-configuration-$section", web)
+                device.pressBack()
+                assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(R.string.compose_editor_choose_field))), 5_000))
+                assertEquals(1, runBlocking { web.captureTarget() }?.field)
+            }
+            assertEquals(original, runBlocking { web.snapshot().fields })
+        }
+    }
+
+    @Test
     fun mainMenuPreservesKeyboardAndCaret() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
