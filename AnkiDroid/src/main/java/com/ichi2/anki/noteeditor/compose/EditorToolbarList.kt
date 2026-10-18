@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +71,7 @@ internal fun EditorToolbarList(
     val currentAtTop by rememberUpdatedState(onAtTopChange)
     val currentMove by rememberUpdatedState(onMove)
     val currentCanMove by rememberUpdatedState(canMove)
+    val currentActiveCount by rememberUpdatedState(activeCount)
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
     var firstOffset by rememberSaveable { mutableIntStateOf(0) }
     val bottomPadding = with(LocalDensity.current) { bottomContentPadding.roundToPx() }
@@ -88,8 +91,19 @@ internal fun EditorToolbarList(
                         canMove = { currentCanMove(it) },
                         header = { Box(if (pageActive) Modifier else Modifier.clearAndSetSemantics {}) { currentHeader() } },
                         row = { item, index, dragging, startDrag, move ->
+                            // Only the outside corners round off: the active rows remain one connected group.
+                            val rowShape =
+                                if (index in 0 until currentActiveCount) {
+                                    val top = if (index == 0) 8.dp else 0.dp
+                                    val bottom = if (index == currentActiveCount - 1) 8.dp else 0.dp
+                                    Modifier.clip(
+                                        RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom),
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             Box(
-                                if (pageActive) Modifier else Modifier.clearAndSetSemantics {},
+                                if (pageActive) rowShape else rowShape.clearAndSetSemantics {},
                             ) { currentRow(item, index, dragging, startDrag, move) }
                         },
                     )

@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 3 resolved.**
+Recorded 2026-10-18. **12 action items; 4 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -106,15 +106,20 @@ separate.
   discard handling together with the button. Do not add a cosmetic Save button
   that merely closes a screen whose changes have already been saved.
 
-- [ ] **08. Give the Active area slightly rounded corners.**
+- [x] **08. Give the Active area slightly rounded corners.**
 
   **Assessment: agree, subtly.** Round the outer group while keeping its rows
   visually connected. Preserve the darker active background and clear drag
   handles requested earlier.
 
-  **Proposed action:** apply consistent group corners in Customize toolbar and
-  Quick actions. Check empty and populated groups, dragging between Available
-  and Active, and clearance for the last row while scrolled to the bottom.
+  **Implemented 2026-10-18:** the shared configuration list rounds only the
+  Active group's outer corners by 8 dp. Middle rows remain connected; the
+  corners update as items move between groups. Colors and drag targets are
+  preserved.
+
+  **Verification:** 10 light/dark checks pass for populated and empty groups,
+  reordering, and scrolling to the last row. Both Pixel drag tests pass,
+  including movement between empty groups and scrolling at both list edges.
 
 - [ ] **09. Align the design of the related configuration screens.**
 
