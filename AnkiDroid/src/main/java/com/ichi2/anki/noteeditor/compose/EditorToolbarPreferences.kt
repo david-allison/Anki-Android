@@ -169,6 +169,27 @@ internal class EditorToolbarPreferences(
         require(named.distinct().size == named.size)
     }
 
+    /** Commit all visited fields and the shared library in a single preferences transaction. */
+    fun savePanel(
+        collection: String,
+        noteType: Long,
+        presets: List<EditorToolbarPreset>,
+        fields: Map<String, EditorPanelFieldSettings>,
+    ) {
+        validatePresets(presets)
+        require(fields.values.all { field -> presets.any { it.id == field.presetId } })
+        val edit = preferences.edit().putString(PRESETS_KEY, presets.presetJson().toString())
+        fields.forEach { (field, settings) ->
+            val json =
+                fieldSettings(collection, noteType, field)
+                    .put("preset", settings.presetId)
+                    .put("showToolbar", settings.showToolbar)
+                    .put("quickActions", JSONArray(settings.quickActions.distinct()))
+            edit.putString(key(collection, noteType, field), json.toString())
+        }
+        check(edit.commit()) { "Unable to save field configuration." }
+    }
+
     private fun List<EditorToolbarPreset>.presetJson(): JSONArray =
         JSONArray(
             map {

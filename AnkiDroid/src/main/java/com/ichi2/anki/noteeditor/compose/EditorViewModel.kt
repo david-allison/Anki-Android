@@ -438,6 +438,26 @@ class EditorViewModel(
         toolbarPreferences.saveToolbarVisibility(collection, noteType, field, visible)
     }
 
+    suspend fun saveFieldPanel(draft: EditorFieldPanelDraft) {
+        val current = state.value?.takeIf { draft.target.matches(it) && !it.isSaving } ?: return
+        val changes = draft.changedFields()
+        val schema = NotetypeJson(current.notetypeJson).fields
+        require(changes.keys.all { it in current.fields.indices })
+        val fieldKeys = changes.mapKeys { (index, _) -> schema[index].editorKey() }
+        withCol {
+            requireCurrentCollection()
+            val type = requireNotNull(notetypes.get(current.noteTypeId))
+            check(type.fields.map { it.editorKey() } == schema.map { it.editorKey() }) {
+                "The fields changed; reopen their options."
+            }
+        }
+        if (!draft.target.matches(state.value)) return
+        withContext(ioDispatcher) {
+            toolbarPreferences.savePanel(requireNotNull(collectionKey), current.noteTypeId, draft.presets, fieldKeys)
+        }
+        refreshToolbars()
+    }
+
     suspend fun setFieldToolbarPreset(
         target: EditorFieldTarget,
         presetId: String,

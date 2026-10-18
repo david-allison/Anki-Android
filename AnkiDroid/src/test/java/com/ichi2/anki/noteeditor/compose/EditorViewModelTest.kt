@@ -37,6 +37,78 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class EditorViewModelTest : JvmTest() {
     @Test
+    fun `field panel saves multiple fields with one shared preset and survives recreation`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val target = EditorFieldTarget(before.sessionId, before.generation, 0)
+            var draft = EditorFieldPanelDraft(target, before.toolbarPresets)
+            val front = before.fields[0]
+            val back = before.fields[1]
+            val presets = draft.presets.map { it.copy(hiddenButtons = setOf("BOLD")) }
+            draft = draft.withToolbar(0, front, draft.toolbar(0, front).copy(presets = presets, showToolbar = false))
+            // The next field starts with the pending shared preset, rather than the saved library.
+            assertEquals(
+                setOf("BOLD"),
+                draft
+                    .toolbar(1, back)
+                    .presets
+                    .single()
+                    .hiddenButtons,
+            )
+            draft =
+                draft
+                    .withToolbar(
+                        1,
+                        back,
+                        draft.toolbar(1, back).copy(
+                            presets = draft.presets.map { it.copy(hiddenButtons = it.hiddenButtons + "ITALIC") },
+                        ),
+                    ).withQuickActions(0, front, listOf("gallery"))
+                    .withQuickActions(1, back, emptyList())
+            val parcel = android.os.Parcel.obtain()
+            val restored =
+                try {
+                    parcel.writeParcelable(draft, 0)
+                    parcel.setDataPosition(0)
+                    @Suppress("DEPRECATION")
+                    assertNotNull(parcel.readParcelable<EditorFieldPanelDraft>(EditorFieldPanelDraft::class.java.classLoader))
+                } finally {
+                    parcel.recycle()
+                }
+            assertEquals(draft, restored)
+            assertEquals(before, vm.state.value, "Changes remain pending until Save")
+            vm.saveFieldPanel(restored)
+            val after = assertNotNull(vm.state.value)
+            assertEquals(listOf("gallery"), after.fields[0].toolbar.quickActions)
+            assertEquals(emptyList(), after.fields[1].toolbar.quickActions)
+            assertFalse(after.fields[0].toolbar.showToolbar)
+            assertTrue(after.fields[1].toolbar.showToolbar)
+            assertTrue(after.fields.all { it.toolbar.hiddenButtons == setOf("BOLD", "ITALIC") })
+            assertEquals(before.generation, after.generation)
+            assertEquals(before.fields.map { it.html }, after.fields.map { it.html })
+            assertEquals(after.fields, loadAdd().state.value?.fields)
+            vm.saveFieldPanel(draft.copy(target = target.copy(generation = target.generation + 1), presets = before.toolbarPresets))
+            assertEquals(after, vm.state.value, "A stale panel must not change the library or any field")
+        }
+
+    @Test
+    fun `deleting a pending preset also resolves assignments on other field pages`() =
+        runTest {
+            val vm = loadAdd()
+            val before = assertNotNull(vm.state.value)
+            val front = before.fields[0]
+            val back = before.fields[1]
+            val copy = EditorToolbarPreset(name = "Reading")
+            var draft = EditorFieldPanelDraft(EditorFieldTarget(before.sessionId, before.generation, 0), before.toolbarPresets)
+            draft = draft.withToolbar(0, front, draft.toolbar(0, front).copy(presets = draft.presets + copy, presetId = copy.id))
+            draft = draft.withToolbar(1, back, draft.toolbar(1, back).copy(presets = before.toolbarPresets))
+            assertEquals(EditorToolbarPreset.DEFAULT_ID, draft.toolbar(0, front).presetId)
+            vm.saveFieldPanel(draft)
+            assertTrue(assertNotNull(vm.state.value).fields.all { it.toolbarPresetId == EditorToolbarPreset.DEFAULT_ID })
+        }
+
+    @Test
     fun `toolbar customization saves shared edits and field selection without reloading the document`() =
         runTest {
             val vm = loadAdd()
