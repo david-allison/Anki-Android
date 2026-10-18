@@ -400,6 +400,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setQualifiers("+sw600dp-w900dp-h1000dp")
         val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
         openFieldOptions()
+        composeRule.onNodeWithTag("editor_field_panel").assertIsDisplayed()
+        settleMenuTransition(activity)
         captureScreen("field_panel_tablet_options")
         dismissFieldOptions()
         openFieldCustomization(R.string.compose_editor_toolbar)
@@ -1505,6 +1507,28 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         }
         composeRule.runOnIdle { activity.simulateKeyboard() }
         captureScreen("field_options_after_keyboard_reopens")
+    }
+
+    @Test
+    fun outsideTapDismissesOptionsWithoutActivatingSave() {
+        var saves = 0
+        val (activity, keyboard) = showEditor(onSave = { saves++ })
+        hideKeyboard(activity, keyboard)
+        val save = composeRule.onNodeWithContentDescription(getResourceString(CommonString.save))
+        val saveBounds = save.fetchSemanticsNode().boundsInRoot
+        openFieldOptions()
+        save.assertDoesNotExist()
+        mainMenuButton().assertDoesNotExist()
+        composeRule.onNodeWithText("Default").assertDoesNotExist()
+        captureScreen("field_options_dimmed_editor")
+        composeRule.onRoot().performTouchInput { click(saveBounds.center) }
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
+        assertEquals(0, saves, "The outside tap must not activate Save beneath the scrim")
+        save.assertIsDisplayed().assertIsEnabled()
+        mainMenuButton().assertIsDisplayed()
+        composeRule.onNodeWithText("Default").assertIsDisplayed()
+        composeRule.onRoot().performTouchInput { click(saveBounds.center) }
+        assertEquals(1, saves)
     }
 
     @Test

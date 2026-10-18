@@ -280,6 +280,7 @@ class WebEditorView(
     /** A blank tap dismisses native field options without blurring the editable field. */
     fun setFieldOptionsVisible(visible: Boolean) {
         if (destroyed) return
+        importantForAccessibility = if (visible) IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS else IMPORTANT_FOR_ACCESSIBILITY_AUTO
         if (visible) SoftwareKeyboardControllerCompat(this).hide()
         evaluateJavascript("AnkiEditor.setFieldOptionsVisible($visible)", null)
     }

@@ -2018,13 +2018,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun tappingCurrentOrDifferentFieldClosesOptions() {
+    fun firstFieldTapOnlyClosesOptionsAndSecondTapEdits() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             runBlocking { web.focusField(1) }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             val bold = By.desc(testContext.getString(R.string.compose_editor_bold))
             for (index in listOf(1, 0)) {
+                // Restore the header hidden below before reopening its options menu.
+                scenario.onActivity { web.onHeaderVisibility?.invoke(true) }
                 device.openFieldOptions()
                 assertTrue(device.wait(Until.hasObject(By.text("Pin field")), 5_000))
                 // Restoring focus for a native control must not count as a field tap.
@@ -2050,6 +2052,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_deck))), 5_000))
                 device.waitForIdle()
                 assertFalse(device.hasObject(bold), "Hiding the keyboard must leave field options open")
+                val target = assertNotNull(runBlocking { web.captureTarget() })
+                scenario.onActivity { assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, web.importantForAccessibility) }
 
                 val point =
                     JSONObject(
@@ -2071,13 +2075,16 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                         device.findObject(By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))),
                     ).visibleBounds.top
                 assertTrue(tapY < sheetTop, "The target input must be visible above the sheet")
-                assertTrue(
-                    device.click(
-                        location[0] + (point.getDouble("x") * point.getDouble("scale")).toInt(),
-                        tapY,
-                    ),
-                )
+                val tapX = location[0] + (point.getDouble("x") * point.getDouble("scale")).toInt()
+                captureScreenshot("field-options-dimmed-before-tap-$index", web)
+                assertTrue(device.click(tapX, tapY))
                 assertTrue(device.wait(Until.hasObject(bold), 5_000), "Tapping field $index must restore formatting controls")
+                device.waitForIdle()
+                assertEquals(target, runBlocking { web.captureTarget() }, "The first tap must preserve the field and caret")
+                assertFalse(scenario.keyboardVisible(), "The first tap must only dismiss the panel")
+                scenario.onActivity { assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO, web.importantForAccessibility) }
+                assertTrue(device.click(tapX, tapY))
+                waitUntil(message = { "The second tap must open the keyboard" }) { scenario.keyboardVisible() }
                 assertEquals(index, runBlocking { web.captureTarget() }?.field)
             }
         }

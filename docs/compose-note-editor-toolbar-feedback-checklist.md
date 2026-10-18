@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 6 resolved.**
+Recorded 2026-10-18. **12 action items; 7 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -158,22 +158,26 @@ separate.
   **Verification:** all 13 preset-dialog tests pass, including cloning an
   independent preset. The isolated probe APK builds successfully.
 
-- [ ] **12. Make interaction above the open bottom panel predictable.**
+- [x] **12. Make interaction above the open bottom panel predictable.**
 
-  **Assessment: valid criticism; an interaction decision is needed.** The
-  current implementation disables Save, preview, and the deck/note-type
-  selectors while field taps can dismiss the panel and pass through. This can
-  make the area above the panel feel inconsistently available.
+  **Decision, revised 2026-10-18:** fade all editor content outside the panel.
+  One outside tap closes the panel without activating anything underneath;
+  a subsequent tap interacts normally. This supersedes the earlier request
+  to remove the fade and leave background elements interactive.
 
-  **Proposed direction:** an outside tap dismisses the panel; the next tap
-  interacts with the editor. A light dimming layer would communicate that
-  boundary. Field switching within the main panel would continue to update
-  focus and scroll position without opening the keyboard.
+  Preserve the field and caret when dismissing, keep the keyboard closed, and
+  retain discard confirmation for unsaved toolbar changes. Field switching
+  inside the panel continues to update focus and scroll position. Covered
+  controls must also be unavailable to accessibility navigation.
 
-  **Tradeoff:** returning to editing takes an extra tap. This is a proposal,
-  not an approved change to the current pass-through behavior. Preserve discard
-  confirmation for unsaved changes. If adopted, verify touch behavior, Android
-  Back, keyboard handling, and accessibility so covered controls cannot still
-  be activated through another input method.
+  **Implemented 2026-10-19:** one uniform scrim covers the editor outside the
+  panel, following its rounded corners and covering the tablet preview too.
+  Outside gestures are consumed; a tap dismisses or requests confirmation for
+  pending changes. Covered controls are hidden from accessibility navigation.
+
+  **Verification:** light/dark checks cover outside taps over Save, unchanged
+  field geometry, pending edits, discard confirmation, and tablet layout.
+  Pixel checks pass for first-tap dismissal followed by second-tap editing,
+  caret/keyboard preservation, accessibility restoration, and Android Back.
 
 [material-buttons]: https://github.com/material-components/material-web/blob/main/docs/components/button.md#usage

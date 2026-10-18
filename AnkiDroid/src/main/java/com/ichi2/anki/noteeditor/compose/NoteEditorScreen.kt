@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -83,10 +84,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
@@ -244,7 +252,8 @@ fun NoteEditorScreen(
         Modifier.fillMaxSize().dismissFieldOptionsOnOutsideTap(
             fieldOptionsRequested,
             fieldOptionsBounds,
-            panelDraft?.hasChanges == true,
+            MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
+            BottomSheetDefaults.ExpandedShape,
             dismissFieldPanel,
         ),
     ) {
@@ -266,6 +275,7 @@ fun NoteEditorScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
+                        .coveredByFieldOptions(fieldOptionsRequested.value)
                         .background(
                             MaterialTheme.colorScheme.surface,
                         ).windowInsetsPadding(TopAppBarDefaults.windowInsets),
@@ -307,7 +317,7 @@ fun NoteEditorScreen(
                             actions = {
                                 state?.let {
                                     EditorOptionsMenu(
-                                        enabled = enabled && !toolbarState.value.composing && !fieldOptionsRequested.value,
+                                        enabled = enabled && !toolbarState.value.composing,
                                         onFields = onFields,
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,
@@ -327,7 +337,7 @@ fun NoteEditorScreen(
                                             tablet -> CommonString.note_editor_show_previewer
                                             else -> CommonString.card_editor_preview_card
                                         },
-                                    enabled = enabled && !fieldOptionsRequested.value,
+                                    enabled = enabled,
                                 ) {
                                     if (tablet) {
                                         showPreview = !showPreview
@@ -422,16 +432,18 @@ fun NoteEditorScreen(
                             onRemoveTag = onRemoveTag,
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             header = {
-                                EditorCollapsingHeader(headerVisible) {
-                                    EditorMetadata(
-                                        deckName = state.deckName,
-                                        noteTypeName = state.noteTypeName,
-                                        enabled = enabled && !fieldOptionsRequested.value,
-                                        onDeck = onDeck,
-                                        onType = {
-                                            if (state.isAdding) dialog = "type" else onEditType()
-                                        },
-                                    )
+                                Box(Modifier.coveredByFieldOptions(fieldOptionsRequested.value)) {
+                                    EditorCollapsingHeader(headerVisible) {
+                                        EditorMetadata(
+                                            deckName = state.deckName,
+                                            noteTypeName = state.noteTypeName,
+                                            enabled = enabled,
+                                            onDeck = onDeck,
+                                            onType = {
+                                                if (state.isAdding) dialog = "type" else onEditType()
+                                            },
+                                        )
+                                    }
                                 }
                             },
                         ) { modifier ->
@@ -447,14 +459,22 @@ fun NoteEditorScreen(
                     }
                     if (tablet && showPreview) {
                         VerticalDivider()
-                        preview(Modifier.weight(1f).fillMaxSize().imePadding())
+                        Box(Modifier.weight(1f).fillMaxSize().coveredByFieldOptions(fieldOptionsRequested.value)) {
+                            preview(Modifier.fillMaxSize().imePadding())
+                        }
                     }
                 }
             }
         }
         // The 40dp circle has another 4dp inside its touch target: align its visible edge at 16dp.
-        Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 12.dp)) {
-            EditorSaveButton(onClick = onSave, enabled = enabled && !fieldOptionsRequested.value && state.removedFields.isEmpty())
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(TopAppBarDefaults.windowInsets)
+                .padding(top = 8.dp, end = 12.dp)
+                .coveredByFieldOptions(fieldOptionsRequested.value),
+        ) {
+            EditorSaveButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty())
         }
     }
     if (state != null && enabled) {
@@ -492,43 +512,65 @@ private fun ObserveFieldOptionsVisibility(
     }
 }
 
-/** Pass taps through to the field, unless pending panel edits need a discard decision first. */
+/** Covered controls remain visible, but cannot receive accessibility or keyboard focus. */
+private fun Modifier.coveredByFieldOptions(covered: Boolean): Modifier =
+    if (covered) clearAndSetSemantics {}.focusProperties { canFocus = false } else this
+
+/** Dim everything outside the sheet and consume the entire gesture before dismissing it. */
 @Composable
 private fun Modifier.dismissFieldOptionsOnOutsideTap(
     enabled: State<Boolean>,
     sheetBounds: State<Rect?>,
-    consumeOutside: Boolean,
+    scrim: Color,
+    sheetShape: Shape,
     onDismiss: () -> Unit,
 ): Modifier {
     val dismiss by rememberUpdatedState(onDismiss)
-    val consume by rememberUpdatedState(consumeOutside)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
-    return onGloballyPositioned { rootOffset = it.positionInRoot() }.pointerInput(sheetBounds) {
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            if (!enabled.value) return@awaitEachGesture
-            if (sheetBounds.value?.contains(down.position + rootOffset) != false) return@awaitEachGesture
-            val blockGesture = consume
-            if (blockGesture) down.consume()
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                val change = event.changes.singleOrNull() ?: return@awaitEachGesture
-                if (blockGesture) change.consume()
-                if (change.id != down.id || (change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
-                    return@awaitEachGesture
-                }
-                if (!change.pressed) {
-                    if (change.previousPressed &&
-                        change.uptimeMillis - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis &&
-                        sheetBounds.value?.contains(change.position + rootOffset) == false
-                    ) {
-                        dismiss()
+    return onGloballyPositioned { rootOffset = it.positionInRoot() }
+        .drawWithContent {
+            drawContent()
+            if (enabled.value) {
+                sheetBounds.value?.translate(-rootOffset)?.let { sheet ->
+                    val outline = sheetShape.createOutline(sheet.size, layoutDirection, this)
+                    val path =
+                        Path().apply {
+                            addOutline(outline)
+                            translate(sheet.topLeft)
+                        }
+                    clipPath(path, ClipOp.Difference) {
+                        drawRect(scrim)
                     }
-                    return@awaitEachGesture
+                }
+            }
+        }.pointerInput(sheetBounds) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                if (!enabled.value) return@awaitEachGesture
+                if (sheetBounds.value?.contains(down.position + rootOffset) != false) return@awaitEachGesture
+                down.consume()
+                var isTap = true
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    event.changes.forEach { it.consume() }
+                    val change = event.changes.singleOrNull()
+                    if (change == null || change.id != down.id ||
+                        (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                    ) {
+                        isTap = false
+                    }
+                    if (event.changes.none { it.pressed }) {
+                        if (isTap && change != null && change.previousPressed &&
+                            change.uptimeMillis - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis &&
+                            sheetBounds.value?.contains(change.position + rootOffset) == false
+                        ) {
+                            dismiss()
+                        }
+                        return@awaitEachGesture
+                    }
                 }
             }
         }
-    }
 }
 
 /** Resize only after a deliberate scroll direction change, never for every scroll pixel. */
@@ -770,6 +812,7 @@ private fun EditorPane(
                     snackbarHost = { EditorSnackbarHost(snackbar) },
                     sheetPeekHeight = 0.dp,
                     sheetDragHandle = null,
+                    sheetShape = BottomSheetDefaults.ExpandedShape,
                     sheetSwipeEnabled = false,
                     sheetContainerColor = toolbarBackground,
                     sheetShadowElevation = 4.dp,
