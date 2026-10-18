@@ -6,29 +6,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,13 +33,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +64,10 @@ internal fun EditorCustomButtonsDialog(
     val dismiss = rememberEditorDismiss(buttons != templates, onDismiss)
     var editing by rememberSaveable { mutableStateOf<EditorCustomToolbarButton?>(null) }
     var removing by rememberSaveable { mutableStateOf<EditorCustomToolbarButton?>(null) }
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    var createButtonHeight by remember(density) { mutableStateOf(56.dp) }
+    val createButtonLabel = stringResource(R.string.compose_editor_add_custom_button)
     // Keep the toolbar mounted beneath this page, including its scroll position and pending edits.
     Dialog(
         onDismissRequest = dismiss,
@@ -91,24 +97,26 @@ internal fun EditorCustomButtonsDialog(
                         },
                     )
                 },
-                bottomBar = {
-                    val height = ButtonDefaults.MediumContainerHeight
-                    Button(
+                floatingActionButton = {
+                    SmallExtendedFloatingActionButton(
                         onClick = { editing = EditorCustomToolbarButton(label = "", prefix = "", suffix = "") },
-                        modifier = Modifier.padding(16.dp).fillMaxWidth().heightIn(min = height),
-                        shapes = ButtonDefaults.shapesFor(height),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                        contentPadding = ButtonDefaults.contentPaddingFor(height, hasStartIcon = true),
-                    ) {
-                        Icon(painterResource(R.drawable.ic_add), null, Modifier.size(ButtonDefaults.iconSizeFor(height)))
-                        Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
-                        Text(stringResource(R.string.compose_editor_add_custom_button), style = ButtonDefaults.textStyleFor(height))
-                    }
+                        expanded = !listState.canScrollBackward,
+                        text = { Text(createButtonLabel) },
+                        icon = { Icon(painterResource(R.drawable.ic_add), null, Modifier.size(24.dp)) },
+                        modifier =
+                            Modifier
+                                .semantics { contentDescription = createButtonLabel }
+                                .onSizeChanged {
+                                    // Keep the last row clear without shifting the list as the FAB collapses.
+                                    createButtonHeight = maxOf(createButtonHeight, with(density) { it.height.toDp() })
+                                },
+                    )
                 },
             ) { padding ->
                 LazyColumn(
                     Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
+                    state = listState,
+                    contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = createButtonHeight + 32.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item {

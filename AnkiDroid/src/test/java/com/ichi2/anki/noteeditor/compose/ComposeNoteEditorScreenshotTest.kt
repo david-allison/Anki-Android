@@ -60,6 +60,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
@@ -1838,7 +1839,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun customButtonLibraryOpen() = captureCustomButtonLibrary()
 
     @Test
-    fun customButtonLibraryWithLargeText() = captureCustomButtonLibrary(largeText = true)
+    fun customButtonLibraryWithLargeText() = captureCustomButtonLibrary(largeText = true, scrollable = true)
+
+    @Test
+    fun customButtonLibraryScrolled() = captureCustomButtonLibrary(scrollable = true)
 
     @Test
     fun customButtonLibraryEmpty() = captureCustomButtonLibrary(empty = true)
@@ -1846,20 +1850,24 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     private fun captureCustomButtonLibrary(
         largeText: Boolean = false,
         empty: Boolean = false,
+        scrollable: Boolean = false,
     ) {
         if (largeText) RuntimeEnvironment.setFontScale(2f)
         val label = if (largeText) "Ruby annotation with a longer button label" else "Ruby"
-        val (activity, _) =
-            showEditor(
-                templates =
-                    if (empty) {
-                        emptyList()
-                    } else {
-                        listOf(
-                            EditorCustomToolbarButton(label = label, prefix = "<ruby>", suffix = "</ruby>"),
-                        )
-                    },
-            )
+        val templates =
+            if (empty) {
+                emptyList()
+            } else {
+                List(if (scrollable) 20 else 1) { index ->
+                    EditorCustomToolbarButton(
+                        id = "button-$index",
+                        label = if (index == 0) label else "$label ${index + 1}",
+                        prefix = "<ruby>",
+                        suffix = "</ruby>",
+                    )
+                }
+            }
+        val (activity, _) = showEditor(templates = templates)
         openFieldCustomization(R.string.compose_editor_toolbar)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).performClick()
         val library = composeRule.onNodeWithTag("editor_custom_button_library").fetchSemanticsNode().boundsInRoot
@@ -1878,13 +1886,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule
             .onNodeWithText(if (empty) getResourceString(R.string.compose_editor_no_custom_buttons) else label)
             .assertIsDisplayed()
-        val add = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_custom_button))
+        val add = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_add_custom_button))
         add.assertIsDisplayed()
         composeRule
             .onNode(
                 hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_custom_button_library")),
             ).assertIsDisplayed()
-        assertTrue(add.fetchSemanticsNode().boundsInRoot.top > library.center.y)
+        val expanded = add.fetchSemanticsNode().boundsInRoot
+        assertTrue(expanded.top > library.center.y)
+        assertTrue(expanded.left > library.left, "The creation action must float at the trailing edge")
         settleMenuTransition(activity)
         captureScreen(
             "custom_button_library" +
@@ -1896,6 +1906,28 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     ""
                 },
         )
+        if (scrollable) {
+            val list = composeRule.onNode(hasScrollAction() and hasAnyAncestor(hasTestTag("editor_custom_button_library")))
+            list.performScrollToIndex(templates.size)
+            settleMenuTransition(activity)
+            add.assertIsDisplayed().assertHasClickAction()
+            val collapsed = add.fetchSemanticsNode().boundsInRoot
+            assertTrue(collapsed.width < expanded.width, "Scrolling must collapse the creation action")
+            assertEquals(expanded.right, collapsed.right)
+            assertEquals(expanded.bottom, collapsed.bottom)
+            val lastRemove =
+                composeRule
+                    .onNodeWithContentDescription(
+                        targetContext.getString(R.string.compose_editor_remove_custom_button, templates.last().label),
+                    ).assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+            assertTrue(lastRemove.bottom < collapsed.top, "The last row's delete action must clear the entire FAB")
+            captureScreen("custom_button_library_scrolled" + if (largeText) "_large_text" else "")
+            list.performScrollToIndex(0)
+            settleMenuTransition(activity)
+            assertEquals(expanded, add.fetchSemanticsNode().boundsInRoot, "Returning to the top must expand the creation action")
+        }
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule.onNodeWithTag("editor_custom_button_library").assertDoesNotExist()
         assertFullScreenConfiguration()

@@ -954,7 +954,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
             ).click()
             checkNotNull(
-                device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_add_custom_button))), 5_000),
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_add_custom_button))), 5_000),
             ).click()
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_custom_button))), 5_000))
             val inputs = device.findObjects(By.clazz("android.widget.EditText"))
