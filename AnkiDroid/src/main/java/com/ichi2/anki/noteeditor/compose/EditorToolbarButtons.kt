@@ -142,7 +142,7 @@ private fun EditorColorButton(
             onClick = onClick,
             enabled = enabled,
             modifier = Modifier.semantics { stateDescription = color },
-            colors = editorIconButtonColors(),
+            colors = editorIconButtonColors(editorToolbarIconColor(button.icon)),
         ) {
             Box(Modifier.size(24.dp)) {
                 Icon(painterResource(button.icon), label, Modifier.fillMaxSize())

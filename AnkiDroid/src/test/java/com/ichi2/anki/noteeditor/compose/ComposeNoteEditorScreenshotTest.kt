@@ -686,7 +686,6 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         val controlColor = getColorFromAttr(activity, android.R.attr.colorControlNormal)
         for (label in listOf(
             R.string.compose_editor_options,
-            R.string.compose_editor_italic,
             CommonString.card_editor_preview_card,
             androidx.appcompat.R.string.abc_action_bar_up_description,
         )) {
@@ -698,6 +697,17 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 "$description must use the theme's colorControlNormal",
             )
         }
+        val italic =
+            composeRule
+                .onNodeWithContentDescription(
+                    getResourceString(R.string.compose_editor_italic),
+                ).captureToImage()
+                .toPixelMap()
+        val textColor = activity.toMaterial3ColorScheme().onSurface.toArgb()
+        assertTrue(
+            (0 until italic.width).any { x -> (0 until italic.height).any { y -> italic[x, y].toArgb() == textColor } },
+            "Formatting letterforms use text contrast",
+        )
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsOn()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_italic)).assertIsOff()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_underline)).assertIsOn()

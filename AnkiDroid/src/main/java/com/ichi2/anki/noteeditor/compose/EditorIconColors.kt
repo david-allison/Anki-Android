@@ -22,7 +22,17 @@ internal fun editorControlColor(): Color {
 internal fun editorIconButtonColors(contentColor: Color = editorControlColor()) =
     IconButtonDefaults.iconButtonColors(contentColor = contentColor)
 
-/** The equation symbol's fine strokes need text contrast to avoid looking disabled. */
+/** Letterforms and equations need text contrast; other controls retain the native icon tint. */
 @Composable
 internal fun editorToolbarIconColor(icon: Int): Color =
-    if (icon == R.drawable.ic_add_equation_black_24dp) MaterialTheme.colorScheme.onSurface else editorControlColor()
+    when (icon) {
+        R.drawable.ic_format_bold_black_24dp,
+        R.drawable.ic_format_italic_black_24dp,
+        R.drawable.ic_format_underlined_black_24dp,
+        R.drawable.ic_editor_format_superscript,
+        R.drawable.ic_editor_format_subscript,
+        R.drawable.ic_editor_format_color_text,
+        R.drawable.ic_add_equation_black_24dp,
+        -> MaterialTheme.colorScheme.onSurface
+        else -> editorControlColor()
+    }

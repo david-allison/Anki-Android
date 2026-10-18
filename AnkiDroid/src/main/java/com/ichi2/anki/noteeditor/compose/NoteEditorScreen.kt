@@ -1037,7 +1037,7 @@ internal fun EditorToggleButton(
             enabled = enabled,
             colors =
                 IconButtonDefaults.iconToggleButtonColors(
-                    contentColor = editorControlColor(),
+                    contentColor = editorToolbarIconColor(icon),
                     checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
