@@ -137,6 +137,10 @@ an ongoing editing mode. Scope is a more useful distinction than duration.
   during dragging, and its label stays visible. The library's separate
   **＋ Create button** action retains its existing FAB behavior.
 
+  **Visual refinement:** restored the custom-buttons icon and matched the
+  footer background to the screen. The row is inset to align with the list,
+  with rounded touch feedback and the existing navigation chevron.
+
   **Verification:** 12 light/dark checks pass, including RTL, 200% text,
   scrolling to the last drag handle, and pending preset changes. Both Pixel
   drag tests pass, including scrolling at both list edges and moving between

@@ -1765,10 +1765,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         openFieldCustomization(R.string.compose_editor_toolbar)
         val action = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_custom_buttons))
         val shortcut = action.fetchSemanticsNode().boundsInRoot
-        val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
-        assertEquals(panel.left, shortcut.left)
-        assertEquals(panel.right, shortcut.right, "The library row spans the panel")
         val viewport = composeRule.onNodeWithTag("editor_toolbar_list").fetchSemanticsNode().boundsInRoot
+        assertEquals(viewport.left, shortcut.left)
+        assertEquals(viewport.right, shortcut.right, "The library row aligns with the list")
         assertTrue(viewport.bottom <= shortcut.top, "The list must end above the fixed library row")
         composeRule.runOnIdle {
             val list = configurationList()

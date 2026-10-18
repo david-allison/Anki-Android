@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -132,21 +133,34 @@ internal fun EditorToolbarContent(
             }
         },
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                Row(
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                Box(
                     Modifier
-                        .fillMaxWidth()
                         .windowInsetsPadding(if (embedded) WindowInsets(0) else WindowInsets.navigationBars)
-                        .clickable(enabled = buttonsEnabled, role = Role.Button, onClick = onCustomButtons)
-                        .semantics { contentDescription = libraryLabel }
-                        .heightIn(min = 56.dp)
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
-                        .alpha(if (buttonsEnabled) 1f else 0.38f),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 16.dp),
                 ) {
-                    Text(libraryLabel, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(Modifier.width(16.dp))
-                    Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp))
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.large)
+                            .clickable(enabled = buttonsEnabled, role = Role.Button, onClick = onCustomButtons)
+                            .semantics { contentDescription = libraryLabel }
+                            .heightIn(min = 56.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                            .alpha(if (buttonsEnabled) 1f else 0.38f),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp), tint = editorControlColor())
+                        Spacer(Modifier.width(12.dp))
+                        Text(libraryLabel, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Spacer(Modifier.width(16.dp))
+                        Icon(
+                            painterResource(R.drawable.ic_baseline_chevron_right_24),
+                            null,
+                            Modifier.size(24.dp),
+                            tint = editorControlColor(),
+                        )
+                    }
                 }
             }
         },
