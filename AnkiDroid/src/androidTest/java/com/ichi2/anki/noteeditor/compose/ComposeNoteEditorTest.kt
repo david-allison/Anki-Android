@@ -1585,7 +1585,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun fieldPanelNavigationMovesEditorFocusWithoutChangingKeyboardVisibility() {
+    fun fieldPanelNavigationMovesEditorFocusWithKeyboardHidden() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             // End with punctuation so Gboard does not resume composing an existing word.
@@ -1627,16 +1627,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val caret = assertNotNull(runBlocking { web.captureTarget() })
                 captureScreenshot("field-picker-before-options-$showKeyboard", web)
                 device.openFieldOptions()
-                if (!showKeyboard) {
-                    // Leave enough room to reveal a whole field, including its label.
-                    scenario.onActivity { web.onHeaderVisibility?.invoke(false) }
-                    assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_deck))), 5_000))
-                }
+                waitUntil(message = { "Opening options must hide the keyboard" }) { !scenario.keyboardVisible() }
+                // Leave enough room to reveal a whole field, including its label.
+                scenario.onActivity { web.onHeaderVisibility?.invoke(false) }
+                assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_deck))), 5_000))
                 openPicker()
                 checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.dialog_cancel))), 5_000)).click()
                 device.waitForIdle()
                 assertEquals(caret, runBlocking { web.captureTarget() }, "Cancelling the picker must preserve the caret")
-                assertEquals(showKeyboard, scenario.keyboardVisible())
+                assertFalse(scenario.keyboardVisible())
 
                 openPicker()
                 captureScreenshot("field-picker-open-keyboard-$showKeyboard", web)
@@ -1647,8 +1646,8 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 web.awaitJavascript("${richField(0)}.matches(':focus')")
                 assertNotNull(device.wait(Until.findObject(By.text("1 of 2")), 5_000))
                 device.waitForIdle()
-                assertEquals(showKeyboard, scenario.keyboardVisible(), "Choosing a field must preserve keyboard visibility")
-                if (!showKeyboard) assertRevealed(0)
+                assertFalse(scenario.keyboardVisible(), "Choosing a field must not reopen the keyboard")
+                assertRevealed(0)
                 captureScreenshot("field-picker-front-keyboard-$showKeyboard", web)
 
                 checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field)))).click()
@@ -1657,16 +1656,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 }
                 web.awaitJavascript("${richField(1)}.matches(':focus')")
                 device.waitForIdle()
-                assertEquals(showKeyboard, scenario.keyboardVisible())
-                if (!showKeyboard) {
-                    assertRevealed(1)
-                    web.awaitJavascript("document.querySelector('.scroll-area').scrollTop > 0")
-                }
+                assertFalse(scenario.keyboardVisible())
+                assertRevealed(1)
+                web.awaitJavascript("document.querySelector('.scroll-area').scrollTop > 0")
                 captureScreenshot("field-picker-back-keyboard-$showKeyboard", web)
                 device.dismissFieldOptions()
                 device.waitForIdle()
                 assertEquals(1, runBlocking { web.captureTarget() }?.field)
                 web.awaitJavascript("document.documentElement.style.getPropertyValue('--editor-sheet-scroll-space') === ''")
+                scenario.onActivity { web.onHeaderVisibility?.invoke(true) }
             }
             assertEquals(original, runBlocking { web.snapshot().fields }, "Switching fields must not edit their contents")
         }
@@ -1807,7 +1805,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.openFieldOptions()
             val sheet = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertTrue(device.wait(Until.hasObject(sheet), 5_000))
-            assertTrue(scenario.keyboardVisible(), "Opening field options from the menu must keep the keyboard open")
+            waitUntil(message = { "Opening field options must hide the keyboard" }) { !scenario.keyboardVisible() }
             assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
             assertEquals("Keep the caret here", runBlocking { web.snapshot().fields[1] })
         }
@@ -1918,7 +1916,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
 
     @Test
     @SdkSuppress(minSdkVersion = 29)
-    fun fieldOptionsHideNativeCursorHandlesWithoutChangingTheCaretOrKeyboard() {
+    fun fieldOptionsHideNativeCursorHandlesAndKeyboardWithoutChangingTheCaret() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             // Put the caret near the footer so the sheet covers it on taller screens too.
@@ -1958,11 +1956,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.waitForIdle()
             waitUntil(message = { "Native cursor handles must not draw over Field options" }) { visibleHandles() == 0 }
             captureScreenshot("field-options-native-cursor", web)
-            assertTrue(scenario.keyboardVisible(), "Keep the keyboard connected while options are open")
+            assertFalse(scenario.keyboardVisible())
             assertEquals(target, runBlocking { web.captureTarget() })
             device.dismissFieldOptions()
             device.waitForIdle()
-            assertTrue(scenario.keyboardVisible())
+            assertFalse(scenario.keyboardVisible())
             assertEquals(target, runBlocking { web.captureTarget() }, "Closing options must preserve the insertion point")
             web.awaitJavascript("document.documentElement.style.clipPath === ''")
             assertEquals(original, runBlocking { web.snapshot().fields })
@@ -2004,7 +2002,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val pinBounds = checkNotNull(device.findObject(pin)).visibleBounds
                 device.click(device.displayWidth / 2, pinBounds.centerY())
                 assertTrue(device.hasObject(heading), "Tapping sheet padding must leave it open")
-                assertEquals(showKeyboard, keyboardVisible())
+                assertFalse(keyboardVisible())
 
                 // The outer margin above the sheet is blank in both the native metadata
                 // and WebView, depending on the available height with the IME open/closed.
@@ -2012,7 +2010,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 device.click((2 * density).toInt(), titleBounds.top - (24 * density).toInt())
                 assertTrue(device.wait(Until.gone(heading), 5_000), "Tapping outside must dismiss field options")
                 device.waitForIdle()
-                assertEquals(showKeyboard, keyboardVisible(), "Outside dismissal must preserve the keyboard state")
+                assertFalse(keyboardVisible(), "Outside dismissal must not reopen the keyboard")
                 val restored = assertNotNull(runBlocking { web.captureTarget() })
                 assertEquals(target.field, restored.field)
                 assertEquals(target.bookmark, restored.bookmark, "Outside dismissal must preserve the caret")
@@ -2031,7 +2029,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             device.openFieldOptions()
             val title = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertNotNull(device.wait(Until.findObject(title), 5_000))
-            val lastOption = By.text(testContext.getString(R.string.compose_editor_field_description))
+            val lastOption = By.text(testContext.getString(R.string.compose_editor_quick_actions))
 
             for ((index, visible) in listOf(true, false, true, false, true).withIndex()) {
                 scenario.onActivity {
@@ -2062,7 +2060,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
-    fun fieldOptionsDisappearAfterDismissingKeyboardAndPressingBack() {
+    fun fieldOptionsCloseOnFirstBackWithKeyboardHidden() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -2083,9 +2081,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
             assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
 
-            device.pressBack()
-            waitUntil(message = { "Back did not dismiss the keyboard" }) { !keyboardVisible() }
-            assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
+            waitUntil(message = { "Opening options must hide the keyboard" }) { !keyboardVisible() }
             device.pressBack()
             assertTrue(device.wait(Until.hasObject(By.desc(testContext.getString(R.string.compose_editor_bold))), 5_000))
             captureScreenshot("field-options-closed-after-keyboard-back", web)
@@ -2097,6 +2093,10 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     fun fieldOptionsKeepTheirTargetAndApplyWithoutReloadingFields() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            val options = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
+            // Initial focus completes after fields mount; wait before selecting Back.
+            assertNotNull(device.wait(Until.findObject(options), 5_000))
             web.setField(0, "Unsaved front")
             web.setField(1, "Retained back")
             runBlocking { web.focusField(1) }
@@ -2110,8 +2110,6 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 return visible
             }
             waitUntil(message = { "The keyboard did not open for the field" }) { keyboardVisible() }
-            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            val options = By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)
             val backOptions = By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Back"))
 
             fun toggleOptions() {
@@ -2132,7 +2130,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertTrue(device.wait(Until.gone(bold), 5_000))
             captureScreenshot("field-options", web)
             device.waitForIdle()
-            assertTrue(keyboardVisible(), "Opening field options must keep the keyboard visible")
+            assertFalse(keyboardVisible(), "Opening field options must keep the keyboard hidden")
             choose(R.string.compose_editor_field_options_help)
             val pinExplanation = By.text(testContext.getString(R.string.compose_editor_pin_field_summary))
             val languageExplanation = By.text(testContext.getString(R.string.compose_editor_language_hint_summary))
@@ -2140,7 +2138,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertTrue(device.wait(Until.hasObject(pinExplanation), 5_000))
             assertTrue(device.wait(Until.hasObject(languageExplanation), 5_000))
             assertTrue(device.wait(Until.hasObject(scopeExplanation), 5_000))
-            assertTrue(keyboardVisible(), "Opening help must keep the keyboard visible")
+            assertFalse(keyboardVisible(), "Opening help must keep the keyboard hidden")
             assertFalse(scenario.editorState().fields[1].sticky, "Opening help must not toggle pinning")
             assertEquals(null, scenario.editorState().fields[1].languageTag)
             captureScreenshot("field-options-help", web)
@@ -2150,7 +2148,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             assertTrue(device.wait(Until.hasObject(pinExplanation), 5_000))
             checkNotNull(device.findObject(backOptions)).click()
             assertTrue(device.wait(Until.gone(pinExplanation), 5_000), "Tapping outside must dismiss help")
-            assertTrue(keyboardVisible(), "Dismissing help must keep the keyboard visible")
+            assertFalse(keyboardVisible(), "Dismissing help must keep the keyboard hidden")
             assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
             for ((label, tooltip) in listOf(
                 R.string.compose_editor_language_hint to R.string.compose_editor_language_hint_summary,
@@ -2159,22 +2157,22 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 checkNotNull(device.findObject(By.descContains(testContext.getString(label)))).longClick()
                 val tooltipText = By.text(testContext.getString(tooltip))
                 assertTrue(device.wait(Until.hasObject(tooltipText), 5_000), "Missing tooltip: ${testContext.getString(label)}")
-                assertTrue(keyboardVisible(), "Showing a field tooltip must keep the keyboard visible")
+                assertFalse(keyboardVisible(), "Showing a field tooltip must keep the keyboard hidden")
                 assertTrue(device.wait(Until.gone(tooltipText), 5_000))
             }
             toggleOptions()
             assertTrue(device.wait(Until.gone(backOptions), 5_000))
             assertTrue(device.wait(Until.hasObject(bold), 5_000))
-            assertTrue(keyboardVisible(), "Collapsing field options must keep the keyboard visible")
+            assertFalse(keyboardVisible(), "Collapsing field options must keep the keyboard hidden")
             assertEquals(caret.bookmark, runBlocking { web.captureTarget() }?.bookmark)
 
             toggleOptions()
             choose(R.string.compose_editor_pin_field)
             waitUntil(message = { "Pin did not apply to Back" }) { scenario.editorState().fields[1].sticky }
             assertFalse(scenario.editorState().fields[0].sticky)
-            val pin = By.checkable(true).desc(testContext.getString(R.string.compose_editor_pin_field))
+            val pin = By.checkable(true).hasDescendant(By.desc(testContext.getString(R.string.compose_editor_pin_field)))
             assertTrue(checkNotNull(device.wait(Until.findObject(pin), 5_000)).isChecked)
-            runBlocking { web.focusField(0) }
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_previous_field)))).click()
             assertTrue(
                 device.wait(
                     Until.hasObject(By.descStartsWith(testContext.getString(R.string.compose_editor_field_options_title, "Front"))),
@@ -2182,19 +2180,19 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 ),
             )
             assertFalse(checkNotNull(device.findObject(pin)).isChecked)
-            runBlocking { web.focusField(1) }
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field)))).click()
             assertTrue(device.wait(Until.hasObject(backOptions), 5_000))
             assertTrue(checkNotNull(device.findObject(pin)).isChecked)
-            assertTrue(keyboardVisible(), "Using field options must keep the keyboard visible")
+            assertFalse(keyboardVisible(), "Using field options must keep the keyboard hidden")
             choose(R.string.compose_editor_language_hint)
             assertTrue(device.wait(Until.hasObject(By.res(testContext.packageName, "locale_dialog_selection_list")), 5_000))
 
             scenario.recreate()
             val restored = scenario.awaitEditor()
             // Native dialog focus and a different active field must not retarget its result.
-            runBlocking { restored.focusField(0) }
+            runBlocking { restored.focusField(0, showKeyboard = false) }
             restored.evaluate("window.originalBackInput = ${richField(1)}")
-            checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "locale_dialog_action_search")), 5_000)).click()
+            checkNotNull(device.wait(Until.findObject(By.desc(testContext.getString(CommonString.menu_search))), 5_000)).click()
             checkNotNull(device.wait(Until.findObject(By.res(testContext.packageName, "search_src_text")), 5_000)).text =
                 Locale.JAPANESE.displayName
             checkNotNull(
@@ -2207,7 +2205,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 scenario.editorState().fields[1].languageTag == "ja"
             }
             assertEquals(null, scenario.editorState().fields[0].languageTag)
-            runBlocking { restored.focusField(1) }
+            runBlocking { restored.focusField(1, showKeyboard = false) }
 
             fun inputHint(): String? {
                 var tag: String? = null
@@ -2238,6 +2236,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             waitUntil(message = { "Default did not clear the keyboard language hint" }) {
                 scenario.editorState().fields[1].languageTag == null && inputHint() == null
             }
+            device.dismissFieldOptions()
             clickSave()
             restored.awaitJavascript("${richField(0)}?.textContent === '' && ${richField(1)}?.textContent === 'Retained back'")
             assertEquals(listOf("", "Retained back"), runBlocking { restored.snapshot().fields })

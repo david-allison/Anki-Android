@@ -279,7 +279,9 @@ class WebEditorView(
 
     /** A blank tap dismisses native field options without blurring the editable field. */
     fun setFieldOptionsVisible(visible: Boolean) {
-        if (!destroyed) evaluateJavascript("AnkiEditor.setFieldOptionsVisible($visible)", null)
+        if (destroyed) return
+        if (visible) SoftwareKeyboardControllerCompat(this).hide()
+        evaluateJavascript("AnkiEditor.setFieldOptionsVisible($visible)", null)
     }
 
     /** Clip the covered web content in Chromium too, including its native selection handles. */

@@ -759,7 +759,7 @@ private fun EditorPane(
         // The sheet may cover the selectors when space above the keyboard is limited.
         // Keep it separate from the editor layout so fields and toolbar never resize on opening.
         if (showFieldOptions) {
-            // The standard sheet shares the editor window, so opening it leaves the IME connected.
+            // Keep scrolling available if a text dialog or keyboard shortcut opens the IME again.
             BoxWithConstraints(Modifier.matchParentSize().imePadding().clipToBounds()) {
                 val panelMaxHeight = maxHeight
                 BottomSheetScaffold(

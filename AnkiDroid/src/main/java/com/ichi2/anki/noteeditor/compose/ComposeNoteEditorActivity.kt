@@ -261,7 +261,7 @@ class ComposeNoteEditorActivity :
                 launchEditorTask {
                     if (busy || !target.matches(model.state.value)) return@launchEditorTask
                     webSession.view?.let { editor ->
-                        editor.focusField(target.field, showKeyboard = editor.keyboardVisible, revealAboveOptions = true)
+                        editor.focusField(target.field, showKeyboard = false, revealAboveOptions = true)
                     }
                 }
             },
