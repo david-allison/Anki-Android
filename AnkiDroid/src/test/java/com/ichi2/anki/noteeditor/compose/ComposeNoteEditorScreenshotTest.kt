@@ -1643,8 +1643,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         scrollToolbarHeaderTo(R.string.compose_editor_preset)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
         captureScreen("customize_toolbar_large_text_hidden")
-        scrollToolbarHeaderTo(R.string.compose_editor_custom_buttons)
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed().assertIsNotEnabled()
+        composeRule
+            .onNodeWithContentDescription(getResourceString(R.string.compose_editor_custom_buttons))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
         assertPanelAboveKeyboard(keyboard)
         captureScreen("customize_toolbar_large_text_custom_buttons")
     }

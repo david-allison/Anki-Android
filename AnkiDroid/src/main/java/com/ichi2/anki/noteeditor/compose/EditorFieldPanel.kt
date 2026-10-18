@@ -142,56 +142,61 @@ internal fun EditorFieldPanel(
                     EditorSaveButton(onClick = onSave, enabled = enabled && !pager.isScrollInProgress)
                 }
             }
-            Row(
-                Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    state.noteTypeName,
-                    Modifier.weight(1f).padding(vertical = if (compact) 0.dp else 8.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!pending && state.fields.size > 1) {
-                    IconButton(
-                        onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage - 1) } },
-                        enabled = canNavigate && pager.targetPage > 0,
-                        colors = editorIconButtonColors(),
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_baseline_chevron_left_24),
-                            stringResource(R.string.compose_editor_previous_field),
-                        )
+            if (!pending) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        state.noteTypeName,
+                        Modifier.weight(1f).padding(vertical = if (compact) 0.dp else 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (state.fields.size > 1) {
+                        IconButton(
+                            onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage - 1) } },
+                            enabled = canNavigate && pager.targetPage > 0,
+                            colors = editorIconButtonColors(),
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_baseline_chevron_left_24),
+                                stringResource(R.string.compose_editor_previous_field),
+                            )
+                        }
                     }
-                }
-                if (!pending && state.fields.size > 1) {
-                    val chooseField = stringResource(R.string.compose_editor_choose_field)
-                    TextButton(
-                        onClick = {
-                            val page = pager.currentPage
-                            scope.launch {
-                                // Keep the displayed field selected while opening the picker mid-swipe.
-                                pager.scrollToPage(page)
-                                showFieldPicker = true
-                            }
-                        },
-                        enabled = canNavigate,
-                        modifier = Modifier.semantics { contentDescription = chooseField },
-                    ) {
-                        Text(
-                            stringResource(R.string.compose_editor_field_position, pager.currentPage + 1, state.fields.size),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                    IconButton(
-                        onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage + 1) } },
-                        enabled = canNavigate && pager.targetPage < state.fields.lastIndex,
-                        colors = editorIconButtonColors(),
-                    ) {
-                        Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), stringResource(R.string.compose_editor_next_field))
+                    if (state.fields.size > 1) {
+                        val chooseField = stringResource(R.string.compose_editor_choose_field)
+                        TextButton(
+                            onClick = {
+                                val page = pager.currentPage
+                                scope.launch {
+                                    // Keep the displayed field selected while opening the picker mid-swipe.
+                                    pager.scrollToPage(page)
+                                    showFieldPicker = true
+                                }
+                            },
+                            enabled = canNavigate,
+                            modifier = Modifier.semantics { contentDescription = chooseField },
+                        ) {
+                            Text(
+                                stringResource(R.string.compose_editor_field_position, pager.currentPage + 1, state.fields.size),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                        IconButton(
+                            onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage + 1) } },
+                            enabled = canNavigate && pager.targetPage < state.fields.lastIndex,
+                            colors = editorIconButtonColors(),
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_baseline_chevron_right_24),
+                                stringResource(R.string.compose_editor_next_field),
+                            )
+                        }
                     }
                 }
             }
