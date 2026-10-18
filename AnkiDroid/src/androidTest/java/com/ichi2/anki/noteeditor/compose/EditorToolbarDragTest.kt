@@ -4,10 +4,14 @@ package com.ichi2.anki.noteeditor.compose
 
 import android.content.Intent
 import android.graphics.Point
+import android.os.SystemClock
+import android.view.InputDevice
+import android.view.MotionEvent
 import androidx.activity.compose.setContent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.ichi2.anki.CollectionManager
@@ -27,7 +31,8 @@ class EditorToolbarDragTest : InstrumentedTest() {
     fun handlesMoveCustomAndAnkiButtonsAndScrollAtBothEdges() {
         CollectionManager.setColForTests(emptyCol)
         val custom = EditorCustomToolbarButton(id = "wrap", label = "Wrap", prefix = "<b>", suffix = "</b>")
-        val initial = EditorFieldToolbar(hiddenButtons = setOf("ITALIC"), customButtons = listOf(custom))
+        // Italic is the first drag target; leave Redo in the separate Available group.
+        val initial = EditorFieldToolbar(hiddenButtons = setOf("REDO"), customButtons = listOf(custom))
         val saved = AtomicReference<EditorFieldToolbar>()
         ActivityScenario
             .launch<ComposeNoteEditorActivity>(
@@ -60,6 +65,28 @@ class EditorToolbarDragTest : InstrumentedTest() {
                     return checkNotNull(saved.get())
                 }
                 val start = handle("Wrap").visibleCenter
+                val library = By.text(testContext.getString(R.string.compose_editor_custom_buttons))
+                assertTrue(device.hasObject(library))
+                val downTime = SystemClock.uptimeMillis()
+
+                fun touch(action: Int) {
+                    val event =
+                        MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), action, start.x.toFloat(), start.y.toFloat(), 0).apply {
+                            source = InputDevice.SOURCE_TOUCHSCREEN
+                        }
+                    try {
+                        assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.injectInputEvent(event, true))
+                    } finally {
+                        event.recycle()
+                    }
+                }
+                try {
+                    touch(MotionEvent.ACTION_DOWN)
+                    assertTrue(device.wait(Until.gone(library), 5_000), "The library action must leave the drag area")
+                } finally {
+                    touch(MotionEvent.ACTION_CANCEL)
+                }
+                assertTrue(device.wait(Until.hasObject(library), 5_000), "The library action must return after dragging")
                 val italic = handle(testContext.getString(R.string.compose_editor_italic)).visibleBounds
                 assertTrue(device.swipe(start.x, start.y, start.x, italic.centerY() + italic.height() / 4, 40))
                 assertEquals(listOf("BOLD", "ITALIC", "custom:wrap"), save().buttonOrder.take(3))
@@ -76,6 +103,12 @@ class EditorToolbarDragTest : InstrumentedTest() {
                 }
                 dragBoldToEdge(bottom = true)
                 assertEquals("BOLD", save().buttonOrder.last())
+                // At the end, the last row and every handle above it must be clear of the action.
+                val list = device.findObject(By.clazz("androidx.recyclerview.widget.RecyclerView"))
+                list.scroll(Direction.DOWN, 1f)
+                val actionBounds = checkNotNull(device.findObject(library)).parent.visibleBounds
+                val lastHandle = handle(testContext.getString(EditorToolbarButton.REDO.label)).visibleBounds
+                assertTrue(lastHandle.bottom < actionBounds.top, "The last handle must remain above the floating action")
                 dragBoldToEdge(bottom = false)
                 val result = save()
                 assertEquals("BOLD", result.buttonOrder.first())

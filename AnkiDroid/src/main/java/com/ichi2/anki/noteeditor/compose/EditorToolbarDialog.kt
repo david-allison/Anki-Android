@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,11 +25,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,6 +39,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -115,22 +117,30 @@ internal fun EditorToolbarContent(
     val allItems = toolbar.orderedItems(templates)
     val items = allItems.filter { it.appliesTo(isCloze) }.sortedBy { !toolbar.isEnabled(it) }
     val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
+    val density = LocalDensity.current
+    val buttonHeight = ButtonDefaults.MediumContainerHeight
+    var customButtonsHeight by remember { mutableStateOf(buttonHeight) }
+    var dragging by remember { mutableStateOf(false) }
     val customButtons: @Composable () -> Unit = {
-        Surface(
-            Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
+        Button(
+            onClick = onCustomButtons,
+            enabled = buttonsEnabled,
+            modifier =
+                Modifier.heightIn(min = buttonHeight).onSizeChanged {
+                    customButtonsHeight = with(density) { it.height.toDp() }
+                },
+            shapes = ButtonDefaults.shapesFor(buttonHeight),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+            elevation = if (scrollCustomButtons) null else ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
+            contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight, hasStartIcon = true),
         ) {
-            Column {
-                // Separate the library shortcut from the tinted active commands scrolling behind it.
-                if (!scrollCustomButtons) HorizontalDivider()
-                Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
-                    TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
-                        Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.compose_editor_custom_buttons))
-                    }
-                }
-            }
+            Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(ButtonDefaults.iconSizeFor(buttonHeight)))
+            Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(buttonHeight)))
+            Text(stringResource(R.string.compose_editor_custom_buttons), style = ButtonDefaults.textStyleFor(buttonHeight))
         }
     }
     Scaffold(
@@ -159,14 +169,20 @@ internal fun EditorToolbarContent(
                 )
             }
         },
-        bottomBar = {
-            if (!scrollCustomButtons) customButtons()
+        floatingActionButton = {
+            // Leave the entire viewport available for dragging and edge auto-scroll.
+            if (!scrollCustomButtons && !dragging) customButtons()
         },
     ) { insets ->
         EditorToolbarList(
             items = items.map { it.key },
             activeCount = enabledKeys.size,
-            onDraggingChange = onDraggingChange,
+            onDraggingChange = {
+                dragging = it
+                onDraggingChange(it)
+            },
+            // Keep this clearance while dragging so hiding the button never moves the list.
+            bottomContentPadding = if (scrollCustomButtons) 0.dp else customButtonsHeight + 32.dp,
             onMove = { from, to -> onToolbarChange(toolbar.moveButtonTo(from, to, templates, isCloze)) },
             canMove = { from, to -> buttonsEnabled && (from in enabledKeys) == (to in enabledKeys) },
             modifier =
@@ -179,8 +195,12 @@ internal fun EditorToolbarContent(
                 Column {
                     header()
                     subtitle?.let { Text(it, Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyMedium) }
-                    // At large text sizes above the IME, a fixed footer can leave less than one control visible.
-                    if (scrollCustomButtons) customButtons()
+                    // At large text sizes above the IME, keep the action in the scrolling content.
+                    if (scrollCustomButtons) {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.CenterEnd) {
+                            customButtons()
+                        }
+                    }
                 }
             },
         ) { key, index, dragging, startDrag, move ->

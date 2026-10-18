@@ -1431,17 +1431,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             "Changing presets must retain the panel",
         )
         settleMenuTransition(activity)
-        val footer = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot
+        val shortcut =
+            composeRule
+                .onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons))
+                .fetchSemanticsNode()
+                .boundsInRoot
         assertPanelAboveKeyboard(keyboard)
         val panelBounds = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
-        assertTrue(footer.bottom <= panelBounds.bottom, "The fixed footer must remain inside the panel viewport")
-        val pixels = activity.window.decorView.drawToBitmap()
-        val colors = activity.toMaterial3ColorScheme()
-        assertEquals(
-            colors.surfaceContainer.compositeOver(colors.surface).toArgb(),
-            pixels[pixels.width / 2, footer.center.y.toInt()],
-            "The fixed Custom buttons footer must use the editor toolbar's opaque background",
-        )
+        assertTrue(shortcut.bottom <= panelBounds.bottom, "The library action must remain inside the panel viewport")
         captureScreen("shared_toolbar_preset_editing")
         composeRule
             .onNode(
@@ -1489,16 +1486,33 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun customizeToolbarScrolledDown() {
+    fun customizeToolbarScrolledDown() = captureFloatingCustomButtons()
+
+    @Test
+    fun floatingCustomButtonsInRtl() = captureFloatingCustomButtons(rtl = true)
+
+    @Test
+    fun floatingCustomButtonsWithLargeText() = captureFloatingCustomButtons(largeText = true)
+
+    private fun captureFloatingCustomButtons(
+        rtl: Boolean = false,
+        largeText: Boolean = false,
+    ) {
         RuntimeEnvironment.setQualifiers("+w427dp-h952dp")
+        if (rtl) RuntimeEnvironment.setQualifiers("+ldrtl")
+        if (largeText) RuntimeEnvironment.setFontScale(2f)
         val (activity, keyboard) =
             showEditor(
                 deckName = "parent deck::child deck",
                 focusState = mutableStateOf(EditorToolbarState(activeField = 0)),
+                templates = listOf(EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")),
             )
         hideKeyboard(activity, keyboard)
         openFieldCustomization(R.string.compose_editor_toolbar)
-        val footer = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot
+        val action = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons))
+        val shortcut = action.fetchSemanticsNode().boundsInRoot
+        val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
+        if (!largeText) assertEquals(rtl, shortcut.center.x < panel.center.x, "The action follows the layout's trailing edge")
         composeRule.runOnIdle {
             val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
             // Match the Pixel: header controls and the Active heading have scrolled out of view.
@@ -1507,25 +1521,36 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsNotDisplayed()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
         assertEquals(
-            footer,
+            shortcut,
             composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot,
         )
         settleMenuTransition(activity)
-        val footerColor =
+        val pixels = action.captureToImage().toPixelMap()
+        assertEquals(
+            activity.toMaterial3ColorScheme().primaryContainer.toArgb(),
+            pixels[pixels.width / 2, 2].toArgb(),
+            "The floating library action uses the filled tonal colour",
+        )
+        val suffix =
+            when {
+                rtl -> "_rtl"
+                largeText -> "_large_text"
+                else -> ""
+            }
+        captureScreen("customize_toolbar_scrolled_down$suffix")
+        composeRule.runOnIdle {
+            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            list.scrollBy(0, list.computeVerticalScrollRange())
+        }
+        val lastHandle =
             composeRule
-                .onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons))
-                .captureToImage()
-                .toPixelMap()[0, 0]
-                .toArgb()
-        val commandColor =
-            composeRule
-                .onNodeWithText(getResourceString(R.string.compose_editor_media))
-                .captureToImage()
-                .toPixelMap()[0, 0]
-                .toArgb()
-        assertEquals(activity.toMaterial3ColorScheme().surface.toArgb(), footerColor, "The library shortcut uses a neutral footer")
-        assertNotEquals(commandColor, footerColor, "The footer must be distinct from active toolbar commands")
-        captureScreen("customize_toolbar_scrolled_down")
+                .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_reorder_button, "Ruby"))
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        assertTrue(lastHandle.bottom < shortcut.top, "The last drag handle must clear the entire floating action")
+        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Scrolling to the end must not move the action")
+        captureScreen("customize_toolbar_scrolled_to_end$suffix")
     }
 
     @Test
