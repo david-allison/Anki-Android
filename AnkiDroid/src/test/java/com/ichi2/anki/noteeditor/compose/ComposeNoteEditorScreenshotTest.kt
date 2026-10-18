@@ -150,27 +150,36 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
-    fun fieldPanelArrowsRemainResponsiveWithoutWaitingForFocus() {
+    fun fieldPanelArrowAnimationsRemainInterruptible() {
         val selected = mutableListOf<Int>()
         val (activity, keyboard) = showEditor(fieldCount = 4, onFieldSelected = { selected += it.field })
         hideKeyboard(activity, keyboard)
         openFieldOptions()
         composeRule.onNodeWithText("2 of 4").assertIsDisplayed()
+        val pages = composeRule.onNodeWithTag("editor_field_pages")
+        val previous = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field))
+        val next = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field))
+        val picker = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_choose_field))
         // Leave the host's focus state unchanged: navigation must not wait for its acknowledgement.
         composeRule.mainClock.autoAdvance = false
         try {
-            for (index in listOf(2, 3, 2, 1, 0, 1)) {
-                val previous = selected.lastOrNull() ?: 1
-                val arrow = if (index < previous) R.string.compose_editor_previous_field else R.string.compose_editor_next_field
-                composeRule.onNodeWithContentDescription(getResourceString(arrow)).assertIsEnabled().performClick()
-                // Allow composition/layout, but no time for a page animation to finish.
-                repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
-                composeRule.onNodeWithText("${index + 1} of 4").assertIsDisplayed()
-                assertEquals(index, selected.last())
-                val reverse = if (index < previous) R.string.compose_editor_next_field else R.string.compose_editor_previous_field
-                composeRule.onNodeWithContentDescription(getResourceString(reverse)).assertIsEnabled()
-                composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_choose_field)).assertIsEnabled()
-            }
+            next.performClick()
+            composeRule.mainClock.advanceTimeBy(64)
+            val node = pages.fetchSemanticsNode()
+            val offset = node.config[SemanticsProperties.HorizontalScrollAxisRange].value() / node.boundsInRoot.width
+            assertTrue(offset > 1f && offset < 2f, "An arrow must slide between pages instead of jumping: $offset")
+            previous.assertIsEnabled()
+            next.assertIsEnabled().performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            // The second tap advances the destination again, even before the first animation finishes.
+            next.assertIsNotEnabled()
+            previous.assertIsEnabled().performClick()
+            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            next.assertIsEnabled()
+            picker.assertIsEnabled()
+            composeRule.mainClock.advanceTimeBy(1_500)
+            composeRule.onNodeWithText("3 of 4").assertIsDisplayed()
+            assertEquals(2, selected.last(), "Reversing direction must update the animation's destination")
         } finally {
             composeRule.mainClock.autoAdvance = true
         }
@@ -217,14 +226,21 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             composeRule.onNodeWithText("3 of 4").assertIsDisplayed()
             next.performClick()
             repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            previous.assertIsEnabled()
+            picker.assertIsEnabled()
+            val moving = pages.fetchSemanticsNode()
+            val movingOffset = moving.config[SemanticsProperties.HorizontalScrollAxisRange].value() / moving.boundsInRoot.width
+            assertTrue(movingOffset < 3f, "The arrow must animate from the interrupted swipe")
+            composeRule.mainClock.advanceTimeBy(1_500)
             composeRule.onNodeWithText("4 of 4").assertIsDisplayed()
-            assertEquals(3, selected.last(), "The arrow must focus its destination immediately")
-            composeRule.mainClock.advanceTimeBy(500)
             assertEquals(3, selected.last(), "The interrupted swipe must not pull focus back")
             swipe(forward = false)
             composeRule.onNodeWithText("3 of 4").assertIsDisplayed()
             previous.performClick()
             repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            next.assertIsEnabled()
+            picker.assertIsEnabled()
+            composeRule.mainClock.advanceTimeBy(1_500)
             composeRule.onNodeWithText("2 of 4").assertIsDisplayed()
             assertEquals(1, selected.last())
             swipe(forward = true)

@@ -74,7 +74,7 @@ internal fun EditorFieldPanel(
     val selectField by rememberUpdatedState(onFieldSelected)
     var showFieldPicker by rememberSaveable { mutableStateOf(false) }
     var draggingPage by remember { mutableStateOf<Int?>(null) }
-    // A swipe's settling animation must not lock navigation; explicit selection cancels it.
+    // Page animations must not lock navigation; another selection redirects them.
     val canNavigate = enabled && draggingPage == null
     val field = state.fields[pager.currentPage]
     val pending = section != EditorFieldPanelSection.OPTIONS
@@ -157,8 +157,8 @@ internal fun EditorFieldPanel(
                 )
                 if (!pending && state.fields.size > 1) {
                     IconButton(
-                        onClick = { scope.launch { pager.scrollToPage(pager.currentPage - 1) } },
-                        enabled = canNavigate && pager.currentPage > 0,
+                        onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage - 1) } },
+                        enabled = canNavigate && pager.targetPage > 0,
                         colors = editorIconButtonColors(),
                     ) {
                         Icon(
@@ -187,8 +187,8 @@ internal fun EditorFieldPanel(
                         )
                     }
                     IconButton(
-                        onClick = { scope.launch { pager.scrollToPage(pager.currentPage + 1) } },
-                        enabled = canNavigate && pager.currentPage < state.fields.lastIndex,
+                        onClick = { scope.launch { pager.animateScrollToPage(pager.targetPage + 1) } },
+                        enabled = canNavigate && pager.targetPage < state.fields.lastIndex,
                         colors = editorIconButtonColors(),
                     ) {
                         Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), stringResource(R.string.compose_editor_next_field))
