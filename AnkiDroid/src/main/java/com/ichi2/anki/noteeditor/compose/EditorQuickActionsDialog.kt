@@ -77,10 +77,9 @@ internal fun EditorQuickActionsContent(
     EditorToolbarList(
         items = items,
         activeCount = items.count { it in quickActions },
-        canMove = { from, to -> (from in quickActions) == (to in quickActions) },
-        onMove = { from, to ->
-            order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
-            change(order.filter { it in quickActions })
+        onMove = { moved, activeCount ->
+            order = moved
+            change(moved.take(activeCount))
         },
         modifier = modifier,
         onDraggingChange = { active ->

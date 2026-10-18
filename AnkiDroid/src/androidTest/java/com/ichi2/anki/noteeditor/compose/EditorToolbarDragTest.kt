@@ -23,6 +23,7 @@ import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Exercise native touch dispatch, recycling and edge scrolling, rather than calling the move callback. */
@@ -102,12 +103,14 @@ class EditorToolbarDragTest : InstrumentedTest() {
                     assertTrue(device.swipe(points.toTypedArray(), 10))
                 }
                 dragBoldToEdge(bottom = true)
-                assertEquals("BOLD", save().buttonOrder.last())
+                val available = save()
+                assertEquals("BOLD", available.buttonOrder.last())
+                assertTrue("BOLD" in available.hiddenButtons, "Dragging below Available must disable the button")
                 // At the end, the last row and every handle above it must be clear of the action.
                 val list = device.findObject(By.clazz("androidx.recyclerview.widget.RecyclerView"))
                 list.scroll(Direction.DOWN, 1f)
                 val actionBounds = checkNotNull(device.findObject(library)).parent.visibleBounds
-                val lastHandle = handle(testContext.getString(EditorToolbarButton.REDO.label)).visibleBounds
+                val lastHandle = handle(testContext.getString(EditorToolbarButton.BOLD.label)).visibleBounds
                 assertTrue(lastHandle.bottom < actionBounds.top, "The last handle must remain above the floating action")
                 dragBoldToEdge(bottom = false)
                 val result = save()
@@ -117,5 +120,55 @@ class EditorToolbarDragTest : InstrumentedTest() {
                 assertEquals(initial.orderedItems(listOf(custom)).map { it.key }.toSet(), result.buttonOrder.toSet())
                 assertEquals(result.buttonOrder.size, result.buttonOrder.distinct().size)
             }
+    }
+
+    @Test
+    fun quickActionsMoveBetweenGroupsIncludingEmptyDestinations() {
+        CollectionManager.setColForTests(emptyCol)
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val pin = testContext.getString(R.string.compose_editor_pin_field)
+        for (initialActions in listOf(emptyList(), EditorQuickAction.entries.map { it.id })) {
+            val initial = EditorFieldToolbar(quickActions = initialActions)
+            val saved = AtomicReference(initial)
+            ActivityScenario
+                .launch<ComposeNoteEditorActivity>(
+                    Intent(testContext, ComposeNoteEditorActivity::class.java).putExtras(NoteEditorFragment.addNoteArgs()),
+                ).use { scenario ->
+                    scenario.onActivity { activity ->
+                        activity.setContent {
+                            AnkiDroidTheme {
+                                EditorQuickActionsDialog(
+                                    target = EditorFieldTarget("quick-drag-test", 0, 0),
+                                    field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false, initial),
+                                    onDismiss = {},
+                                    onChange = { saved.set(it) },
+                                )
+                            }
+                        }
+                    }
+
+                    fun dragToSection(label: Int) {
+                        val handle =
+                            checkNotNull(
+                                device.wait(
+                                    Until.findObject(By.desc(testContext.getString(R.string.compose_editor_reorder_button, pin))),
+                                    5_000,
+                                ),
+                            )
+                        val heading = checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(label))), 5_000))
+                        val from = handle.visibleCenter
+                        val to = heading.visibleCenter
+                        assertTrue(device.swipe(from.x, from.y, from.x, to.y, 60))
+                        device.waitForIdle()
+                    }
+                    val startsActive = "pin" in initialActions
+                    dragToSection(if (startsActive) CommonString.user_potential_columns else CommonString.user_active_columns)
+                    assertEquals(!startsActive, "pin" in saved.get().quickActions)
+                    assertEquals(initialActions.filterNot { it == "pin" }, saved.get().quickActions.filterNot { it == "pin" })
+                    dragToSection(if (startsActive) CommonString.user_active_columns else CommonString.user_potential_columns)
+                    assertEquals(initialActions, saved.get().quickActions)
+                    assertFalse(device.hasObject(By.desc(testContext.getString(CommonString.save))))
+                }
+        }
     }
 }

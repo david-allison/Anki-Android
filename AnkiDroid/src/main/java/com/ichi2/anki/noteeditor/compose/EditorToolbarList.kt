@@ -44,8 +44,8 @@ import com.ichi2.anki.common.utils.android.getColorFromAttr
 internal fun EditorToolbarList(
     items: List<String>,
     activeCount: Int,
-    onMove: (String, String) -> Unit,
-    canMove: (String, String) -> Boolean = { _, _ -> true },
+    onMove: (List<String>, Int) -> Unit,
+    canMove: (String) -> Boolean = { true },
     modifier: Modifier = Modifier,
     onDraggingChange: (Boolean) -> Unit = {},
     bottomContentPadding: Dp = 0.dp,
@@ -83,7 +83,7 @@ internal fun EditorToolbarList(
                         composition,
                         onDraggingChange = { currentDragging(it) },
                         onMove = { from, to -> currentMove(from, to) },
-                        canMove = { from, to -> currentCanMove(from, to) },
+                        canMove = { currentCanMove(it) },
                         header = { Box(if (pageActive) Modifier else Modifier.clearAndSetSemantics {}) { currentHeader() } },
                         row = { item, index, dragging, startDrag, move ->
                             Box(
@@ -152,8 +152,8 @@ private class EditorToolbarAdapter(
     initialItems: List<ToolbarListEntry>,
     private val composition: CompositionContext,
     private val onDraggingChange: (Boolean) -> Unit,
-    private val onMove: (String, String) -> Unit,
-    private val canMove: (String, String) -> Boolean,
+    private val onMove: (List<String>, Int) -> Unit,
+    private val canMove: (String) -> Boolean,
     private val header: @Composable () -> Unit,
     private val row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) : RecyclerView.Adapter<EditorToolbarAdapter.Holder>() {
@@ -168,7 +168,7 @@ private class EditorToolbarAdapter(
                 ): Int {
                     val button = items.getOrNull(viewHolder.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return 0
                     // ItemTouchHelper also starts drags on a long press outside the handle.
-                    return if (canMove(button.key, button.key)) {
+                    return if (canMove(button.key)) {
                         super.getDragDirs(recyclerView, viewHolder)
                     } else {
                         0
@@ -181,8 +181,23 @@ private class EditorToolbarAdapter(
                     target: RecyclerView.ViewHolder,
                 ): Boolean {
                     val from = items.getOrNull(current.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return false
-                    val to = items.getOrNull(target.bindingAdapterPosition) as? ToolbarListEntry.Button ?: return false
-                    return canMove(from.key, to.key)
+                    val to = items.getOrNull(target.bindingAdapterPosition) ?: return false
+                    return to != ToolbarListEntry.Header && canMove(from.key)
+                }
+
+                override fun chooseDropTarget(
+                    selected: RecyclerView.ViewHolder,
+                    dropTargets: MutableList<RecyclerView.ViewHolder>,
+                    curX: Int,
+                    curY: Int,
+                ): RecyclerView.ViewHolder? {
+                    // Headings are taller than rows. Accept their centre rather than requiring
+                    // the dragged row to cross the heading's far edge, especially for empty groups.
+                    val centre = curY + selected.itemView.height / 2
+                    return dropTargets.firstOrNull {
+                        items.getOrNull(it.bindingAdapterPosition) is ToolbarListEntry.Section &&
+                            centre in it.itemView.top..it.itemView.bottom
+                    } ?: super.chooseDropTarget(selected, dropTargets, curX, curY)
                 }
 
                 override fun onMove(
@@ -213,12 +228,17 @@ private class EditorToolbarAdapter(
     ): Boolean {
         if (from !in items.indices || to !in items.indices || from == to) return false
         val source = items[from] as? ToolbarListEntry.Button ?: return false
-        val destination = items[to] as? ToolbarListEntry.Button ?: return false
-        if (!canMove(source.key, destination.key)) return false
-        items.add(to, items.removeAt(from))
+        val destination = items[to]
+        if (destination == ToolbarListEntry.Header || !canMove(source.key)) return false
+        // A section heading is also a drop target, so an empty group can accept its first row.
+        val insertion = if (destination is ToolbarListEntry.Section) to + (if (from < to) 0 else 1) else to
+        if (insertion == from) return false
+        items.add(insertion, items.removeAt(from))
         // Rebinding during a drag can end it early. Compose observes the order/selection state directly.
-        notifyItemMoved(from, to)
-        onMove(source.key, destination.key)
+        notifyItemMoved(from, insertion)
+        val available = items.indexOf(ToolbarListEntry.Section(CommonString.user_potential_columns))
+        val activeCount = items.take(available).count { it is ToolbarListEntry.Button }
+        onMove(items.filterIsInstance<ToolbarListEntry.Button>().map { it.key }, activeCount)
         return true
     }
 

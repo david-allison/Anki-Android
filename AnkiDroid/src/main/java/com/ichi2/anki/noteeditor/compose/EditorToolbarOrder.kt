@@ -37,19 +37,24 @@ internal fun EditorFieldToolbar.isEnabled(item: EditorToolbarItem): Boolean =
         is EditorToolbarItem.Custom -> customButtons.any { it.id == item.button.id }
     }
 
-/** Move within the displayed buttons, retaining slots belonging to currently inapplicable commands. */
-internal fun EditorFieldToolbar.moveButtonTo(
-    key: String,
-    destination: String,
+/** Apply the displayed order and groups, retaining slots for currently inapplicable commands. */
+internal fun EditorFieldToolbar.withButtonLayout(
+    order: List<String>,
+    activeCount: Int,
     templates: List<EditorCustomToolbarButton>,
     isCloze: Boolean,
 ): EditorFieldToolbar {
     val items = orderedItems(templates)
-    val displayed = items.filter { it.appliesTo(isCloze) }.map { it.key }.toMutableList()
-    val from = displayed.indexOf(key)
-    val to = displayed.indexOf(destination)
-    if (from == -1 || to == -1 || from == to) return this
-    displayed.add(to, displayed.removeAt(from))
-    val reordered = displayed.iterator()
-    return copy(buttonOrder = items.map { if (it.appliesTo(isCloze)) reordered.next() else it.key })
+    val displayed = items.filter { it.appliesTo(isCloze) }
+    require(order.size == displayed.size && order.toSet() == displayed.map { it.key }.toSet())
+    require(activeCount in 0..order.size)
+    val active = order.take(activeCount).toSet()
+    val builtins = displayed.filterIsInstance<EditorToolbarItem.Builtin>().map { it.key }.toSet()
+    val custom = displayed.filterIsInstance<EditorToolbarItem.Custom>().associateBy { it.key }
+    val reordered = order.iterator()
+    return copy(
+        buttonOrder = items.map { if (it.appliesTo(isCloze)) reordered.next() else it.key },
+        hiddenButtons = (hiddenButtons + builtins) - active,
+        customButtons = order.take(activeCount).mapNotNull { custom[it]?.button },
+    )
 }

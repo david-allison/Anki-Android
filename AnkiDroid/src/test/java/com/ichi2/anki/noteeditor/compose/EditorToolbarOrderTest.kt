@@ -4,7 +4,8 @@ package com.ichi2.anki.noteeditor.compose
 
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertSame
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class EditorToolbarOrderTest {
     private val ruby = EditorCustomToolbarButton(id = "ruby", label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
@@ -26,46 +27,53 @@ class EditorToolbarOrderTest {
     }
 
     @Test
-    fun `moving a disabled template across Anki buttons does not enable it`() {
-        val toolbar =
-            EditorFieldToolbar()
-                .moveButtonTo(rubyKey, "BOLD", listOf(ruby), false)
-                .moveButtonTo("ITALIC", rubyKey, listOf(ruby), false)
-        assertEquals(listOf("BOLD", "ITALIC", rubyKey, "UNDERLINE"), toolbar.buttonOrder.take(4))
-        assertEquals(emptyList(), toolbar.customButtons)
-        assertEquals(listOf("BOLD", "ITALIC", "UNDERLINE"), toolbar.orderedItems().take(3).map { it.key })
-        assertEquals(
-            listOf("BOLD", "ITALIC", rubyKey),
-            toolbar
-                .copy(customButtons = listOf(ruby))
-                .orderedItems()
-                .take(3)
-                .map { it.key },
-        )
+    fun `dropping an available template into Active enables it at its new position`() {
+        val toolbar = EditorFieldToolbar()
+        val visible = toolbar.orderedItems(listOf(ruby)).filter { it.appliesTo(false) }.map { it.key }
+        val order = listOf("BOLD", "ITALIC", rubyKey) + visible.filterNot { it in setOf("BOLD", "ITALIC", rubyKey) }
+        val moved = toolbar.withButtonLayout(order, order.size, listOf(ruby), false)
+        assertEquals(listOf("BOLD", "ITALIC", rubyKey, "UNDERLINE"), moved.buttonOrder.take(4))
+        assertEquals(listOf(ruby), moved.customButtons)
+        assertEquals(emptySet(), moved.hiddenButtons)
     }
 
     @Test
-    fun `moving across inapplicable cloze commands retains their slots`() {
-        val moved = EditorFieldToolbar().moveButtonTo("UNDERLINE", "UNDO", emptyList(), false)
-        assertEquals(listOf("BOLD", "ITALIC", "UNDO", "CLOZE_NEW", "CLOZE_SAME", "UNDERLINE"), moved.buttonOrder.take(6))
-        val cloze = EditorFieldToolbar().moveButtonTo("UNDERLINE", "CLOZE_NEW", emptyList(), true)
-        assertEquals(listOf("BOLD", "ITALIC", "CLOZE_NEW", "UNDERLINE", "CLOZE_SAME", "UNDO"), cloze.buttonOrder.take(6))
+    fun `dropping an active builtin into Available preserves unrelated cloze visibility`() {
+        val toolbar = EditorFieldToolbar(hiddenButtons = setOf("CLOZE_NEW"))
+        val visible = toolbar.orderedItems().filter { it.appliesTo(false) }.map { it.key }
+        val order = visible.filterNot { it == "BOLD" } + "BOLD"
+        val moved = toolbar.withButtonLayout(order, order.lastIndex, emptyList(), false)
+        assertEquals(setOf("CLOZE_NEW", "BOLD"), moved.hiddenButtons)
+        assertEquals("BOLD", moved.buttonOrder.last())
+        assertEquals(listOf("CLOZE_NEW", "CLOZE_SAME"), moved.buttonOrder.subList(3, 5))
+        val restored = moved.withButtonLayout(listOf("BOLD") + order.dropLast(1), order.size, emptyList(), false)
+        assertEquals(toolbar.hiddenButtons, restored.hiddenButtons)
+        assertEquals(toolbar.orderedItems(), restored.orderedItems())
     }
 
     @Test
-    fun `a drag across multiple rows shifts intervening buttons in order`() {
+    fun `moving a template between empty groups changes its membership without losing its definition`() {
+        val toolbar = EditorFieldToolbar(hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet())
+        val order = toolbar.orderedItems(listOf(ruby)).filter { it.appliesTo(false) }.map { it.key }
+        val active = toolbar.withButtonLayout(order, 1, listOf(ruby), false)
+        assertEquals(listOf(ruby), active.customButtons)
+        assertEquals(toolbar.hiddenButtons, active.hiddenButtons)
+        val available = active.withButtonLayout(order, 0, listOf(ruby), false)
+        assertTrue(available.customButtons.isEmpty())
+        assertEquals(active.buttonOrder, available.buttonOrder)
+        assertTrue(available.orderedItems(listOf(ruby)).any { it.key == rubyKey })
+    }
+
+    @Test
+    fun `reordering across inapplicable commands retains their slots and intervening button order`() {
         val toolbar = EditorFieldToolbar(customButtons = listOf(ruby))
-        val moved = toolbar.moveButtonTo(rubyKey, "UNDO", listOf(ruby), false)
+        val visible = toolbar.orderedItems().filter { it.appliesTo(false) }.map { it.key }
+        val leading = listOf("BOLD", "ITALIC", "UNDERLINE", "UNDO", rubyKey)
+        val order = leading + visible.filterNot { it in leading }
+        val moved = toolbar.withButtonLayout(order, order.size, listOf(ruby), false)
         assertEquals(listOf("BOLD", "ITALIC", "UNDERLINE", "UNDO", "CLOZE_NEW", "CLOZE_SAME", rubyKey), moved.buttonOrder.take(7))
         assertEquals(listOf(ruby), moved.customButtons)
-        assertEquals(toolbar.orderedItems(), moved.moveButtonTo(rubyKey, "BOLD", listOf(ruby), false).orderedItems())
-    }
-
-    @Test
-    fun `self moves and absent buttons leave the configuration unchanged`() {
-        val toolbar = EditorFieldToolbar()
-        assertSame(toolbar, toolbar.moveButtonTo("BOLD", "BOLD", emptyList(), false))
-        assertSame(toolbar, toolbar.moveButtonTo("RECORD_AUDIO", "missing", emptyList(), false))
-        assertSame(toolbar, toolbar.moveButtonTo("CLOZE_NEW", "BOLD", emptyList(), false))
+        assertFalse(moved.hiddenButtons.contains("CLOZE_NEW"))
+        assertEquals(toolbar.orderedItems(), moved.withButtonLayout(visible, visible.size, listOf(ruby), false).orderedItems())
     }
 }

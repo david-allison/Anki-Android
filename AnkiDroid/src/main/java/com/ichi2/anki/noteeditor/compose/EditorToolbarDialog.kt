@@ -174,8 +174,8 @@ internal fun EditorToolbarContent(
             },
             // Keep this clearance while dragging so hiding the button never moves the list.
             bottomContentPadding = if (scrollCustomButtons) 0.dp else customButtonsHeight + 32.dp,
-            onMove = { from, to -> onToolbarChange(toolbar.moveButtonTo(from, to, templates, isCloze)) },
-            canMove = { from, to -> buttonsEnabled && (from in enabledKeys) == (to in enabledKeys) },
+            onMove = { order, activeCount -> onToolbarChange(toolbar.withButtonLayout(order, activeCount, templates, isCloze)) },
+            canMove = { buttonsEnabled },
             modifier =
                 Modifier
                     .fillMaxSize()
