@@ -106,36 +106,46 @@ internal fun EditorFieldPanel(
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    // At large text sizes, preserve room for a complete control above the IME.
-                    if (pending && !compact) {
+                    val fieldTitle = stringResource(R.string.compose_editor_field_options_title, field.name)
+                    if (section == EditorFieldPanelSection.TOOLBAR) {
                         Text(
-                            stringResource(
-                                if (section ==
-                                    EditorFieldPanelSection.TOOLBAR
-                                ) {
-                                    R.string.compose_editor_toolbar
-                                } else {
-                                    R.string.compose_editor_quick_actions
-                                },
-                            ),
-                            style = MaterialTheme.typography.labelLarge,
+                            stringResource(R.string.compose_editor_toolbar),
+                            Modifier.semantics { heading() },
+                            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                            maxLines = if (compact) 1 else 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            field.name,
+                            Modifier.semantics { contentDescription = fieldTitle },
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    } else {
+                        // At large text sizes, preserve room for a complete control above the IME.
+                        if (pending && !compact) {
+                            Text(
+                                stringResource(R.string.compose_editor_quick_actions),
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            field.name,
+                            Modifier.semantics {
+                                heading()
+                                contentDescription = fieldTitle
+                            },
+                            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = if (compact) 1 else 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    val title = stringResource(R.string.compose_editor_field_options_title, field.name)
-                    Text(
-                        field.name,
-                        Modifier.semantics {
-                            heading()
-                            contentDescription = title
-                        },
-                        style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = if (compact) 1 else 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
                 if (!pending) FieldOptionsHelp(field.name, state.noteTypeName, editorControlColor())
                 if (section == EditorFieldPanelSection.TOOLBAR) {

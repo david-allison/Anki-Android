@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 1 resolved.**
+Recorded 2026-10-18. **12 action items; 2 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -54,16 +54,20 @@ separate.
   populated settings layouts, description editing, clearing, cancellation, and
   the help catalogue. The isolated probe APK builds successfully.
 
-- [ ] **04. Match the Customize toolbar title hierarchy to the template editor.**
+- [x] **04. Match the Customize toolbar title hierarchy to the template editor.**
 
   **Assessment: strongly agree.** The template editor uses the screen name as
   its title and the note-type name as a subtitle. Customize toolbar currently
   emphasizes the field name over the screen name; a field called “Back” is
   especially ambiguous because it also sounds like navigation.
 
-  **Proposed action:** make **Customize toolbar** the primary title and the
-  field name a smaller subtitle. Check long names, large text, and space for
-  the save action.
+  **Implemented 2026-10-18:** **Customize toolbar** is the primary heading and
+  the field name is a smaller subtitle. Long screen titles can wrap while field
+  names ellipsize; the save action remains accessible.
+
+  **Verification:** six existing light/dark checks pass for the normal layout,
+  200% text with a long field name, and pending shared-preset edits. Reviewed the
+  generated normal and large-text screenshots; the isolated probe APK builds.
 
 - [ ] **05. Apply the same title treatment to Quick actions.**
 
