@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarDuration
@@ -61,10 +62,18 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.Insets
 import androidx.core.graphics.get
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.descendants
 import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -98,6 +107,159 @@ import kotlin.test.assertTrue
 class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Test
+    fun fieldPanelSwipesKeepEditorFocusAndTargetTheDisplayedField() {
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val focus = mutableStateOf(EditorToolbarState(hasSelection = true, activeField = 1))
+        var descriptionTarget: EditorFieldTarget? = null
+        val (activity, keyboard) = showEditor(focusState = focus, onDescription = { target, _ -> descriptionTarget = target })
+        hideKeyboard(activity, keyboard)
+        val fields = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
+        openFieldOptions()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertIsNotEnabled()
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeRight() }
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).assertIsNotEnabled()
+        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        assertEquals(1, focus.value.activeField)
+        assertEquals(fields, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
+        captureScreen("field_panel_previous_field")
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeLeft() }
+        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description)).performScrollTo().performClick()
+        composeRule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextInput("First field hint")
+        composeRule.onNode(hasText(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
+        assertEquals(0, descriptionTarget?.field)
+        assertEquals(1, focus.value.activeField)
+    }
+
+    @Test
+    fun fieldPanelSwipesFollowRtlReadingOrder() {
+        RuntimeEnvironment.setQualifiers("+ldrtl")
+        showEditor()
+        openFieldOptions()
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeLeft() }
+        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        captureScreen("field_panel_rtl_previous_field")
+    }
+
+    @Test
+    fun fieldPanelSingleFieldDoesNotOfferNavigation() {
+        showEditor(fieldCount = 1, focusState = mutableStateOf(EditorToolbarState(activeField = 0)))
+        openFieldOptions()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertDoesNotExist()
+        captureScreen("field_panel_single_field")
+    }
+
+    @Test
+    fun fieldPanelWith400FieldsCreatesOnlyNearbyControls() {
+        showEditor(fieldCount = 400, focusState = mutableStateOf(EditorToolbarState(activeField = 399)))
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
+        openFieldOptions()
+        composeRule.onNodeWithText("400 of 400").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).assertIsNotEnabled()
+        assertTrue(composeRule.onAllNodes(hasTestTag("editor_field_options")).fetchSemanticsNodes().size <= 2)
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        composeRule.onNodeWithText("399 of 400").assertIsDisplayed()
+        captureScreen("field_panel_400_fields")
+    }
+
+    @Test
+    fun fieldPanelQuickActionsRetainPendingEditsAcrossFields() {
+        var saved: EditorFieldPanelDraft? = null
+        val (activity, keyboard) =
+            showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")), onPanelSaved = {
+                saved =
+                    it
+            })
+        hideKeyboard(activity, keyboard)
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        val gallery = getResourceString(CommonString.multimedia_editor_image_field_editing_galery)
+        val pin = getResourceString(R.string.compose_editor_pin_field)
+        composeRule.onNodeWithText(gallery).performClick().assertIsNotSelected()
+        composeRule.onNodeWithTag("editor_field_pages").performTouchInput { swipeRight() }
+        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        composeRule.onNodeWithText(pin).performClick().assertIsNotSelected()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).performClick()
+        composeRule.onNodeWithText(gallery).assertIsNotSelected()
+        assertEquals(null, saved)
+        captureScreen("field_panel_quick_actions_pending")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertIsDisplayed()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
+        assertEquals(null, saved)
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        composeRule.onNodeWithText(gallery).assertIsSelected().performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        composeRule.onNodeWithText(pin).performClick()
+        saveToolbarConfiguration()
+        assertEquals(setOf(0, 1), saved?.changedFields()?.keys)
+        assertTrue("pin" !in requireNotNull(saved).changedFields().getValue(0).quickActions)
+        assertTrue("gallery" !in requireNotNull(saved).changedFields().getValue(1).quickActions)
+    }
+
+    @Test
+    fun fieldPanelQuickActionReorderDoesNotChangeField() {
+        var saved: EditorFieldPanelDraft? = null
+        val (activity, keyboard) =
+            showEditor(toolbar = EditorFieldToolbar(quickActions = listOf("gallery", "pin")), onPanelSaved = {
+                saved =
+                    it
+            })
+        hideKeyboard(activity, keyboard)
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        val pin = getResourceString(R.string.compose_editor_pin_field)
+        composeRule.moveToolbarButton(pin, targetContext.getString(R.string.compose_editor_move_button_up, pin))
+        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+        saveToolbarConfiguration()
+        assertEquals(listOf("pin", "gallery"), saved?.changedFields()?.get(1)?.quickActions)
+    }
+
+    @Test
+    fun fieldPanelOnTabletKeepsThePreviewAndKeyboardSpace() {
+        RuntimeEnvironment.setQualifiers("+sw600dp-w900dp-h1000dp")
+        val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
+        openFieldOptions()
+        captureScreen("field_panel_tablet_options")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        settleMenuTransition(activity)
+        captureScreen("field_panel_tablet_toolbar_keyboard")
+        hideKeyboard(activity, keyboard)
+        captureScreen("field_panel_tablet_toolbar")
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
+        settleMenuTransition(activity)
+        captureScreen("field_panel_tablet_quick_actions")
+    }
+
+    @Test
+    fun fieldPanelToolbarUsesOnePendingSharedPreset() {
+        var saved: EditorFieldPanelDraft? = null
+        val (activity, keyboard) = showEditor(onPanelSaved = { saved = it })
+        hideKeyboard(activity, keyboard)
+        mainMenuButton().performClick()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        val bold = getResourceString(R.string.compose_editor_bold)
+        val italic = getResourceString(R.string.compose_editor_italic)
+        composeRule.onNodeWithText(bold).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_previous_field)).performClick()
+        composeRule.onNodeWithText(italic).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_next_field)).performClick()
+        assertEquals(null, saved)
+        settleMenuTransition(activity)
+        captureScreen("field_panel_shared_toolbar_pending")
+        saveToolbarConfiguration()
+        assertEquals(setOf("BOLD", "ITALIC"), saved?.presets?.single()?.hiddenButtons)
+    }
 
     @Test
     fun fieldToolbarSettingsRetainPresetWhenHidden() {
@@ -140,8 +302,34 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertTextContains(name)
     }
 
+    private fun assertPanelAboveKeyboard(keyboard: View) {
+        val keyboardLocation = IntArray(2)
+        keyboard.getLocationInWindow(keyboardLocation)
+        val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInWindow
+        assertTrue(
+            panel.bottom <= keyboardLocation[1] + 1,
+            "Panel controls must stay above the keyboard: $panel, keyboard y=${keyboardLocation[1]}",
+        )
+    }
+
+    private fun scrollToolbarHeaderTo(
+        activity: AnkiActivity,
+        label: Int,
+    ) {
+        val bounds = composeRule.onNodeWithTag("editor_toolbar_list").fetchSemanticsNode().boundsInWindow
+        val target = composeRule.onNodeWithText(getResourceString(label)).fetchSemanticsNode().boundsInWindow
+        composeRule.runOnIdle {
+            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            list.scrollBy(0, (target.top - bounds.top).roundToInt())
+        }
+        composeRule.waitForIdle()
+    }
+
     private fun saveToolbarConfiguration() {
-        composeRule.onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog())).performClick()
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
+            ).performClick()
     }
 
     @Test
@@ -681,6 +869,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    @RequiresApi(26)
     fun selectedFormatting() {
         val (activity, _) = showEditor(formats = setOf(WebEditorAction.BOLD, WebEditorAction.UNDERLINE))
         val controlColor = getColorFromAttr(activity, android.R.attr.colorControlNormal)
@@ -907,10 +1096,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule
             .onNode(
-                hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(isDialog()),
+                hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).assertIsDisplayed()
         composeRule.onNode(isPopup()).assertDoesNotExist()
-        composeRule.onNodeWithContentDescription(getResourceString(CommonString.dialog_cancel)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).performClick()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_close_field_options)).assertDoesNotExist()
         toolbarOverflowButton().assertDoesNotExist()
     }
@@ -922,7 +1111,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
         composeRule
             .onNode(
-                hasText(getResourceString(R.string.compose_editor_toolbar)) and hasAnyAncestor(isDialog()),
+                hasText(getResourceString(R.string.compose_editor_toolbar)) and hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).assertIsDisplayed()
         composeRule.onNode(isPopup()).assertDoesNotExist()
     }
@@ -961,7 +1150,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureScreen(if (fieldToolbarVisible) "global_options_${display.name.lowercase()}" else "global_options_field_toolbar_hidden")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions)).performClick()
         composeRule
-            .onNode(hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(isDialog()))
+            .onNode(hasText(getResourceString(R.string.compose_editor_quick_actions)) and hasAnyAncestor(hasTestTag("editor_field_panel")))
             .assertIsDisplayed()
     }
 
@@ -1059,7 +1248,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         for (imeHeight in listOf(100, 200, 300, 420, 300, 100, 0, 300)) {
             composeRule.runOnIdle { activity.dispatchInsets(navBarBottom = 48.dp, imeBottom = imeHeight.dp) }
             composeRule.waitForIdle()
-            val viewport = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+            val viewport = composeRule.onNodeWithTag("editor_field_options").fetchSemanticsNode().boundsInRoot
             val availableBottom = height - maxOf(48, imeHeight) * density
             assertTrue(viewport.bottom <= availableBottom + 1, "Options extend below the usable viewport: $viewport / $availableBottom")
             val lastOption = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_description))
@@ -1188,54 +1377,84 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     fun customizeToolbarWithLargeText() {
         RuntimeEnvironment.setQualifiers("+w320dp-h640dp")
         RuntimeEnvironment.setFontScale(2f)
-        showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
+        val (activity, keyboard) = showEditor(fieldName = LONG_FIELD_NAME, noteTypeName = LONG_NOTE_TYPE_NAME)
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsDisplayed()
+        scrollToolbarHeaderTo(activity, R.string.compose_editor_preset)
+        assertPanelAboveKeyboard(keyboard)
         captureScreen("customize_toolbar_large_text")
+        val presetBounds =
+            composeRule
+                .onNodeWithText(
+                    getResourceString(R.string.compose_editor_preset),
+                ).assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInWindow
+        val viewport = composeRule.onNodeWithTag("editor_toolbar_list").fetchSemanticsNode().boundsInWindow
+        assertTrue(
+            presetBounds.bottom <= viewport.bottom,
+            "The complete preset selector must fit in the scrolling viewport: $presetBounds inside $viewport",
+        )
+        scrollToolbarHeaderTo(activity, R.string.compose_editor_show_field_toolbar)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick().assertIsOff()
+        scrollToolbarHeaderTo(activity, R.string.compose_editor_preset)
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset)).assertIsNotEnabled()
         captureScreen("customize_toolbar_large_text_hidden")
     }
 
     @Test
     fun sharedToolbarPresetEditing() {
-        val (activity, _) = showEditor(presets = samplePresets())
+        val (activity, keyboard) = showEditor(presets = samplePresets())
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_options)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
-        val dialog = composeRule.onNode(isDialog()).fetchSemanticsNode().id
+        val dialog = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().id
         chooseToolbarPreset("Language learning")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_preset_scope)).assertIsDisplayed()
-        assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Changing presets must retain the dialog window")
+        assertEquals(
+            dialog,
+            composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().id,
+            "Changing presets must retain the panel",
+        )
+        settleMenuTransition(activity)
         val footer = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot
-        val pixels = composeRule.onNode(isDialog()).captureToImage().toPixelMap()
+        assertPanelAboveKeyboard(keyboard)
+        val panelBounds = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
+        assertTrue(footer.bottom <= panelBounds.bottom, "The fixed footer must remain inside the panel viewport")
+        val pixels = activity.window.decorView.drawToBitmap()
         val colors = activity.toMaterial3ColorScheme()
         assertEquals(
             colors.surfaceContainer.compositeOver(colors.surface).toArgb(),
-            pixels[pixels.width / 2, footer.center.y.toInt()].toArgb(),
+            pixels[pixels.width / 2, footer.center.y.toInt()],
             "The fixed Custom buttons footer must use the editor toolbar's opaque background",
         )
         captureScreen("shared_toolbar_preset_editing")
         composeRule
             .onNode(
-                hasContentDescription(getResourceString(CommonString.dialog_cancel)) and hasAnyAncestor(isDialog()),
+                hasContentDescription(getResourceString(R.string.compose_editor_close_field_options)) and
+                    hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).performClick()
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
-        composeRule.onNode(isDialog()).assertDoesNotExist()
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
     }
 
     @Test
     fun toolbarConfigurationOpen() {
         val ruby = EditorCustomToolbarButton(label = "Ruby", prefix = "<ruby>", suffix = "</ruby>")
-        showEditor(
-            toolbar =
-                EditorFieldToolbar(
-                    customButtons = listOf(ruby),
-                    hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC", "UNDERLINE"),
-                ),
-        )
+        val (activity, keyboard) =
+            showEditor(
+                toolbar =
+                    EditorFieldToolbar(
+                        customButtons = listOf(ruby),
+                        hiddenButtons = EditorToolbarButton.entries.map { it.name }.toSet() - setOf("BOLD", "ITALIC", "UNDERLINE"),
+                    ),
+            )
+        hideKeyboard(activity, keyboard)
         mainMenuButton().performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_toolbar)).performClick()
+        composeRule.runOnIdle {
+            val list = (activity.window.decorView as ViewGroup).descendants.filterIsInstance<RecyclerView>().first { it.isShown }
+            (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(1, 0)
+        }
         composeRule.moveToolbarButton("Ruby", targetContext.getString(R.string.compose_editor_move_button_down, "Ruby"))
         val bold = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold))
         bold.assertIsSelected()
@@ -1250,7 +1469,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_button)).assertIsDisplayed()
         captureScreen("toolbar_configuration_custom_available")
         composeRule
-            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
+            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_field_panel")))
             .performClick()
         bold.assertDoesNotExist()
     }
@@ -1277,7 +1496,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_quick_actions_help)).assertIsDisplayed()
         captureScreen("quick_actions_configuration")
         composeRule
-            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(isDialog()))
+            .onNode(hasContentDescription(getResourceString(CommonString.save)) and hasAnyAncestor(hasTestTag("editor_field_panel")))
             .performClick()
         drawing.assertDoesNotExist()
     }
@@ -2138,6 +2357,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         )
 
     private fun showEditor(
+        fieldCount: Int = 2,
+        onPanelSaved: (EditorFieldPanelDraft) -> Unit = {},
         fieldName: String = "Back",
         noteTypeName: String = "Basic",
         deckName: String = "Default",
@@ -2198,7 +2419,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                                 customButtonTemplates = currentTemplates.value,
                                 toolbarPresets = currentPresets.value,
                                 fields =
-                                    state.fields.mapIndexed { index, field ->
+                                    List(fieldCount) { index ->
+                                        state.fields.getOrNull(index)
+                                            ?: state.fields.first().copy(name = "Field ${index + 1}")
+                                    }.mapIndexed { index, field ->
                                         if (index ==
                                             1
                                         ) {
@@ -2250,12 +2474,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onFieldDirection = onDirection,
                     onFieldHtmlByDefault = onHtmlByDefault,
                     onFieldCollapseByDefault = onCollapseByDefault,
-                    onToolbarConfiguration = { target, configuration ->
-                        currentPresets.value = configuration.presets
-                        currentPreset.value = configuration.presetId
-                        currentToolbar.value = currentToolbar.value.copy(showToolbar = configuration.showToolbar)
-                        onToolbarVisibility(target, configuration.showToolbar)
-                        onPreset(target, configuration.presetId)
+                    onFieldPanelSave = { draft, done ->
+                        onPanelSaved(draft)
+                        currentPresets.value = draft.presets
+                        draft.changedFields()[1]?.let { settings ->
+                            currentPreset.value = settings.presetId
+                            currentToolbar.value =
+                                currentToolbar.value.copy(showToolbar = settings.showToolbar, quickActions = settings.quickActions)
+                            val target = draft.target.copy(field = 1)
+                            onToolbarVisibility(target, settings.showToolbar)
+                            onPreset(target, settings.presetId)
+                        }
+                        done()
                     },
                     onAction = onAction,
                     onMedia = {},
@@ -2273,6 +2503,19 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         }
         composeRule.waitForIdle()
         val keyboard = activity.simulateKeyboard()
+        // Newly attached RecyclerViews/ComposeViews request real insets. Robolectric reports
+        // no IME on that dispatch, although our simulated keyboard still covers the window.
+        ViewCompat.setOnApplyWindowInsetsListener(activity.window.decorView) { _, insets ->
+            if (keyboard.parent != null && !insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                WindowInsetsCompat
+                    .Builder(insets)
+                    .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, keyboard.height))
+                    .setVisible(WindowInsetsCompat.Type.ime(), true)
+                    .build()
+            } else {
+                insets
+            }
+        }
         composeRule.waitForIdle()
         return activity to keyboard
     }

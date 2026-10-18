@@ -109,4 +109,7 @@
     <string name="compose_editor_start_collapsed_help">Start with this field collapsed. Tap its arrow to expand it.</string>
     <string name="compose_editor_show_field_toolbar">Show toolbar</string>
     <string name="compose_editor_toolbar_hidden_globally">The toolbar layout is set to Hidden.</string>
+    <string name="compose_editor_previous_field">Previous field</string>
+    <string name="compose_editor_next_field">Next field</string>
+    <string name="compose_editor_field_position">%1$d of %2$d</string>
 </resources>

@@ -306,8 +306,12 @@ class ComposeNoteEditorActivity :
                     webSession.synchronize()
                 }
             },
-            onQuickActions = { target, actions -> updateMetadata { model.setFieldQuickActions(target, actions) } },
-            onToolbarConfiguration = { target, configuration -> updateMetadata { model.setToolbarConfiguration(target, configuration) } },
+            onFieldPanelSave = { draft, onSaved ->
+                updateMetadata {
+                    model.saveFieldPanel(draft)
+                    onSaved()
+                }
+            },
             onCustomButtonTemplates = { buttons -> updateMetadata { model.setCustomButtonTemplates(buttons) } },
             onCustomAction = { field, button ->
                 launchEditorTask {

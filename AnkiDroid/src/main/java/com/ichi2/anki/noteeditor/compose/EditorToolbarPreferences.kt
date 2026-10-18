@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Parcelable
 import com.ichi2.anki.AnkiDroidApp
@@ -170,6 +171,7 @@ internal class EditorToolbarPreferences(
     }
 
     /** Commit all visited fields and the shared library in a single preferences transaction. */
+    @SuppressLint("UseKtx") // The KTX helper discards commit()'s result; Save must report storage failures.
     fun savePanel(
         collection: String,
         noteType: Long,

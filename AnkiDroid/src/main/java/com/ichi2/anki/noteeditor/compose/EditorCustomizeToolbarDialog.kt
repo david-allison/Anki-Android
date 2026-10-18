@@ -145,14 +145,16 @@ internal fun EditorCustomizeToolbarContent(
         enabled = enabled,
         buttonsEnabled = enabled && pending.showToolbar,
         header = {
-            Column(Modifier.padding(horizontal = 12.dp)) {
-                Text(
-                    stringResource(R.string.compose_editor_preset_field, field.name, noteTypeName),
-                    Modifier.padding(vertical = 12.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Column(Modifier.padding(horizontal = 12.dp).padding(top = if (embedded) 12.dp else 0.dp)) {
+                if (!embedded) {
+                    Text(
+                        stringResource(R.string.compose_editor_preset_field, field.name, noteTypeName),
+                        Modifier.padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 ToolbarVisibilitySwitch(
                     checked = pending.showToolbar,
                     enabled = enabled,

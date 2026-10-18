@@ -103,7 +103,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -159,20 +158,34 @@ fun NoteEditorScreen(
     onFieldCollapseByDefault: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
     onFields: () -> Unit = {},
     onCards: () -> Unit = {},
-    onQuickActions: (EditorFieldTarget, List<String>) -> Unit = { _, _ -> },
-    onToolbarConfiguration: (EditorFieldTarget, EditorToolbarConfiguration) -> Unit = { _, _ -> },
+    onFieldPanelSave: (EditorFieldPanelDraft, () -> Unit) -> Unit = { _, done -> done() },
     onCustomButtonTemplates: (List<EditorCustomToolbarButton>) -> Unit = {},
     onCustomAction: (EditorFieldTarget, EditorCustomToolbarButton) -> Unit = { _, _ -> },
 ) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var descriptionTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var fontTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
-    var quickActionsTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
-    var toolbarTarget by rememberSaveable { mutableStateOf<EditorFieldTarget?>(null) }
     var showCustomButtons by rememberSaveable { mutableStateOf(false) }
     var showPreview by rememberSaveable { mutableStateOf(true) }
     var showPhonePreview by rememberSaveable { mutableStateOf(false) }
     val fieldOptionsRequested = rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf(false) }
+    var panelDraft by rememberSaveable(state?.sessionId, state?.generation) { mutableStateOf<EditorFieldPanelDraft?>(null) }
+    var panelSection by rememberSaveable { mutableStateOf(EditorFieldPanelSection.OPTIONS) }
+    var panelInstance by rememberSaveable { mutableStateOf(0) }
+    val dismissFieldPanel =
+        rememberEditorDismiss(fieldOptionsRequested.value && panelDraft?.hasChanges == true) {
+            fieldOptionsRequested.value =
+                false
+        }
+
+    fun openFieldPanel(section: EditorFieldPanelSection) {
+        val current = state ?: return
+        val index = toolbarState.value.activeField?.takeIf { it in current.fields.indices } ?: return
+        panelDraft = EditorFieldPanelDraft(EditorFieldTarget(current.sessionId, current.generation, index), current.toolbarPresets)
+        panelSection = section
+        panelInstance++
+        fieldOptionsRequested.value = true
+    }
     val fieldOptionsBounds = remember(state?.sessionId, state?.generation) { mutableStateOf<Rect?>(null) }
     var headerVisible by remember(state?.sessionId, state?.generation) { mutableStateOf(true) }
     LaunchedEffect(headerVisibility, state?.sessionId, state?.generation) {
@@ -204,35 +217,6 @@ fun NoteEditorScreen(
             },
         )
     }
-    toolbarTarget?.takeIf { it.matches(state) }?.let { target ->
-        val current = requireNotNull(state)
-        EditorCustomizeToolbarDialog(
-            presets = current.toolbarPresets,
-            enabled = enabled,
-            templates = current.customButtonTemplates,
-            field = current.fields[target.field],
-            noteTypeName = current.noteTypeName,
-            toolbarHiddenGlobally = current.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
-            onCustomButtons = { showCustomButtons = true },
-            onDismiss = { toolbarTarget = null },
-            onSave = {
-                onToolbarConfiguration(target, it)
-                toolbarTarget = null
-            },
-        )
-    }
-    quickActionsTarget?.takeIf { it.matches(state) }?.let { target ->
-        val current = requireNotNull(state)
-        EditorQuickActionsDialog(
-            target = target,
-            field = current.fields[target.field],
-            onDismiss = { quickActionsTarget = null },
-            onSave = {
-                onQuickActions(target, it.quickActions)
-                quickActionsTarget = null
-            },
-        )
-    }
     if (showCustomButtons && state != null) {
         EditorCustomButtonsDialog(
             templates = state.customButtonTemplates,
@@ -250,9 +234,12 @@ fun NoteEditorScreen(
         derivedStateOf { with(density) { windowInfo.containerSize.width.toDp() } >= 600.dp }
     }
     Box(
-        Modifier.fillMaxSize().dismissFieldOptionsOnOutsideTap(fieldOptionsRequested, fieldOptionsBounds) {
-            fieldOptionsRequested.value = false
-        },
+        Modifier.fillMaxSize().dismissFieldOptionsOnOutsideTap(
+            fieldOptionsRequested,
+            fieldOptionsBounds,
+            panelDraft?.hasChanges == true,
+            dismissFieldPanel,
+        ),
     ) {
         val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600 && hasTabletWidth
         LaunchedEffect(tablet, showPreview, showPhonePreview) { onPreviewVisibility(if (tablet) showPreview else showPhonePreview) }
@@ -293,7 +280,9 @@ fun NoteEditorScreen(
                                 )
                             },
                             navigationIcon = {
-                                IconButton(onClick = onBack, enabled = !busy, colors = editorIconButtonColors()) {
+                                IconButton(onClick = {
+                                    if (fieldOptionsRequested.value) dismissFieldPanel() else onBack()
+                                }, enabled = !busy, colors = editorIconButtonColors()) {
                                     Icon(
                                         painterResource(R.drawable.ic_baseline_arrow_back_24),
                                         stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
@@ -303,7 +292,7 @@ fun NoteEditorScreen(
                             actions = {
                                 state?.let {
                                     EditorOptionsMenu(
-                                        enabled = enabled && !toolbarState.value.composing,
+                                        enabled = enabled && !toolbarState.value.composing && !fieldOptionsRequested.value,
                                         onFields = onFields,
                                         onCards = onCards,
                                         toolbarDisplay = it.toolbarDisplay,
@@ -312,17 +301,9 @@ fun NoteEditorScreen(
                                             toolbarState.value.activeField?.takeIf { field -> field in it.fields.indices }?.let { field ->
                                                 EditorFieldTarget(it.sessionId, it.generation, field)
                                             },
-                                        onFieldOptions = { fieldOptionsRequested.value = true },
-                                        onQuickActions = {
-                                            toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->
-                                                quickActionsTarget = EditorFieldTarget(it.sessionId, it.generation, field)
-                                            }
-                                        },
-                                        onToolbar = {
-                                            toolbarState.value.activeField?.takeIf { index -> index in it.fields.indices }?.let { field ->
-                                                toolbarTarget = EditorFieldTarget(it.sessionId, it.generation, field)
-                                            }
-                                        },
+                                        onFieldOptions = { openFieldPanel(EditorFieldPanelSection.OPTIONS) },
+                                        onQuickActions = { openFieldPanel(EditorFieldPanelSection.QUICK_ACTIONS) },
+                                        onToolbar = { openFieldPanel(EditorFieldPanelSection.TOOLBAR) },
                                     )
                                 }
                                 EditorActionButton(
@@ -333,7 +314,7 @@ fun NoteEditorScreen(
                                             tablet -> CommonString.note_editor_show_previewer
                                             else -> CommonString.card_editor_preview_card
                                         },
-                                    enabled = enabled,
+                                    enabled = enabled && !fieldOptionsRequested.value,
                                 ) {
                                     if (tablet) {
                                         showPreview = !showPreview
@@ -378,7 +359,34 @@ fun NoteEditorScreen(
                             fieldOptionsRequested = fieldOptionsRequested,
                             onFieldOptionsVisibility = onFieldOptionsVisibility,
                             onFieldOptionsTop = onFieldOptionsTop,
-                            onFieldOptionsRequested = { fieldOptionsRequested.value = it },
+                            onFieldOptionsRequested = {
+                                if (it) {
+                                    fieldOptionsRequested.value = true
+                                } else if (fieldOptionsRequested.value) {
+                                    dismissFieldPanel()
+                                }
+                            },
+                            panelDraft = panelDraft,
+                            panelSection = panelSection,
+                            panelInstance = panelInstance,
+                            onPanelChange = { panelDraft = it },
+                            onPanelSave = {
+                                panelDraft?.let { pending ->
+                                    val normalized =
+                                        pending.copy(
+                                            presets =
+                                                pending.presets.map {
+                                                    it.withToolbar(it.applyTo(EditorFieldToolbar(), state.customButtonTemplates))
+                                                },
+                                        )
+                                    onFieldPanelSave(normalized) {
+                                        panelDraft =
+                                            normalized.copy(initialPresets = normalized.presets, originalFields = normalized.fields)
+                                        fieldOptionsRequested.value = false
+                                    }
+                                }
+                            },
+                            onCustomButtons = { showCustomButtons = true },
                             onFieldOptionsBounds = { fieldOptionsBounds.value = it },
                             onAction = onAction,
                             onMedia = onAttachMedia,
@@ -399,7 +407,7 @@ fun NoteEditorScreen(
                                     EditorMetadata(
                                         deckName = state.deckName,
                                         noteTypeName = state.noteTypeName,
-                                        enabled = enabled,
+                                        enabled = enabled && !fieldOptionsRequested.value,
                                         onDeck = onDeck,
                                         onType = {
                                             if (state.isAdding) dialog = "type" else onEditType()
@@ -427,7 +435,7 @@ fun NoteEditorScreen(
         }
         // The 40dp circle has another 4dp inside its touch target: align its visible edge at 16dp.
         Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(TopAppBarDefaults.windowInsets).padding(top = 8.dp, end = 12.dp)) {
-            EditorSaveButton(onClick = onSave, enabled = enabled && state.removedFields.isEmpty())
+            EditorSaveButton(onClick = onSave, enabled = enabled && !fieldOptionsRequested.value && state.removedFields.isEmpty())
         }
     }
     if (state != null && enabled) {
@@ -465,23 +473,28 @@ private fun ObserveFieldOptionsVisibility(
     }
 }
 
-/** Observe taps without consuming them: a WebView field must still receive the same gesture. */
+/** Pass taps through to the field, unless pending panel edits need a discard decision first. */
 @Composable
 private fun Modifier.dismissFieldOptionsOnOutsideTap(
     enabled: State<Boolean>,
     sheetBounds: State<Rect?>,
+    consumeOutside: Boolean,
     onDismiss: () -> Unit,
 ): Modifier {
     val dismiss by rememberUpdatedState(onDismiss)
+    val consume by rememberUpdatedState(consumeOutside)
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
     return onGloballyPositioned { rootOffset = it.positionInRoot() }.pointerInput(sheetBounds) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
             if (!enabled.value) return@awaitEachGesture
             if (sheetBounds.value?.contains(down.position + rootOffset) != false) return@awaitEachGesture
+            val blockGesture = consume
+            if (blockGesture) down.consume()
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 val change = event.changes.singleOrNull() ?: return@awaitEachGesture
+                if (blockGesture) change.consume()
                 if (change.id != down.id || (change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
                     return@awaitEachGesture
                 }
@@ -548,6 +561,12 @@ private fun EditorPane(
     onFieldOptionsTop: (Float) -> Unit,
     onFieldOptionsRequested: (Boolean) -> Unit,
     onFieldOptionsBounds: (Rect) -> Unit,
+    panelDraft: EditorFieldPanelDraft?,
+    panelSection: EditorFieldPanelSection,
+    panelInstance: Int,
+    onPanelChange: (EditorFieldPanelDraft) -> Unit,
+    onPanelSave: () -> Unit,
+    onCustomButtons: () -> Unit,
     onAction: (WebEditorAction) -> Unit,
     onMedia: () -> Unit,
     onRecordAudio: () -> Unit,
@@ -679,43 +698,57 @@ private fun EditorPane(
         // Keep it separate from the editor layout so fields and toolbar never resize on opening.
         if (showFieldOptions) {
             // The standard sheet shares the editor window, so opening it leaves the IME connected.
-            BottomSheetScaffold(
-                // A hidden sheet sits below this area; prevent it drawing into the navigation-bar inset.
-                modifier = Modifier.matchParentSize().imePadding().clipToBounds(),
-                containerColor = Color.Transparent,
-                scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
-                snackbarHost = { EditorSnackbarHost(snackbar) },
-                sheetPeekHeight = 0.dp,
-                sheetDragHandle = null,
-                sheetSwipeEnabled = false,
-                sheetContainerColor = toolbarBackground,
-                sheetShadowElevation = 4.dp,
-                sheetContent = {
-                    // Retain the controls through dismissal, then remove their layout and semantics work.
-                    if (target != null) {
-                        Box(
-                            Modifier.onGloballyPositioned {
-                                onFieldOptionsBounds(it.boundsInRoot())
-                                onFieldOptionsTop(it.boundsInWindow().top)
-                            },
-                        ) {
-                            EditorFieldOptions(
-                                field = editorState.fields[target.field],
-                                noteTypeName = editorState.noteTypeName,
-                                enabled = enabled,
-                                onPinned = { onPinned(target, it) },
-                                onLanguageHint = { onLanguageHint(target) },
-                                onFont = { onFont(target) },
-                                onDescription = { onDescription(target) },
-                                onDirection = { onDirection(target, it) },
-                                onHtmlByDefault = { onHtmlByDefault(target, it) },
-                                onCollapseByDefault = { onCollapseByDefault(target, it) },
-                                onCollapse = closeOptions,
-                            )
+            BoxWithConstraints(Modifier.matchParentSize().imePadding().clipToBounds()) {
+                val panelMaxHeight = maxHeight
+                BottomSheetScaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = Color.Transparent,
+                    scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
+                    snackbarHost = { EditorSnackbarHost(snackbar) },
+                    sheetPeekHeight = 0.dp,
+                    sheetDragHandle = null,
+                    sheetSwipeEnabled = false,
+                    sheetContainerColor = toolbarBackground,
+                    sheetShadowElevation = 4.dp,
+                    sheetContent = {
+                        // Retain the controls through dismissal, then remove their layout and semantics work.
+                        if (panelDraft != null && panelDraft.target.matches(editorState)) {
+                            Box(
+                                Modifier.testTag("editor_field_panel").onGloballyPositioned {
+                                    onFieldOptionsBounds(it.boundsInRoot())
+                                    onFieldOptionsTop(it.boundsInWindow().top)
+                                },
+                            ) {
+                                key(panelInstance) {
+                                    EditorFieldPanel(
+                                        state = editorState,
+                                        availableHeight = panelMaxHeight,
+                                        draft = panelDraft,
+                                        section = panelSection,
+                                        enabled = enabled,
+                                        onChange = onPanelChange,
+                                        onDismiss = closeOptions,
+                                        onSave = onPanelSave,
+                                        onCustomButtons = onCustomButtons,
+                                    ) { fieldTarget ->
+                                        EditorFieldOptions(
+                                            field = editorState.fields[fieldTarget.field],
+                                            enabled = enabled,
+                                            onPinned = { onPinned(fieldTarget, it) },
+                                            onLanguageHint = { onLanguageHint(fieldTarget) },
+                                            onFont = { onFont(fieldTarget) },
+                                            onDescription = { onDescription(fieldTarget) },
+                                            onDirection = { onDirection(fieldTarget, it) },
+                                            onHtmlByDefault = { onHtmlByDefault(fieldTarget, it) },
+                                            onCollapseByDefault = { onCollapseByDefault(fieldTarget, it) },
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    }
-                },
-            ) {}
+                    },
+                ) {}
+            }
         }
     }
 }
@@ -751,7 +784,6 @@ private object ToolbarRowsFromBottom : Arrangement.Vertical {
 @Composable
 private fun EditorFieldOptions(
     field: EditorFieldState,
-    noteTypeName: String,
     enabled: Boolean,
     onPinned: (Boolean) -> Unit,
     onLanguageHint: () -> Unit,
@@ -760,10 +792,8 @@ private fun EditorFieldOptions(
     onDirection: (Boolean) -> Unit,
     onHtmlByDefault: (Boolean) -> Unit,
     onCollapseByDefault: (Boolean) -> Unit,
-    onCollapse: () -> Unit,
 ) {
     val controlColor = editorControlColor()
-    val fieldDescription = stringResource(R.string.compose_editor_field_options_title, field.name)
     Column(
         Modifier
             .fillMaxWidth()
@@ -771,31 +801,6 @@ private fun EditorFieldOptions(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 8.dp),
     ) {
-        Row(
-            Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                field.name,
-                modifier =
-                    Modifier.weight(1f).clearAndSetSemantics {
-                        heading()
-                        contentDescription = fieldDescription
-                    },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            FieldOptionsHelp(field.name, noteTypeName, controlColor)
-            IconButton(onClick = onCollapse) {
-                Icon(
-                    painterResource(R.drawable.ic_clear_white),
-                    stringResource(R.string.compose_editor_close_field_options),
-                    tint = controlColor,
-                )
-            }
-        }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
             val columns = if (maxWidth / LocalDensity.current.fontScale < 300.dp) 1 else 2
             // Font and Keyboard share the bottom row: both open their own dialogs and have a trailing chevron.
@@ -894,7 +899,7 @@ private fun EditorFieldOptionsLink(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FieldOptionsHelp(
+internal fun FieldOptionsHelp(
     fieldName: String,
     noteTypeName: String,
     iconTint: Color,

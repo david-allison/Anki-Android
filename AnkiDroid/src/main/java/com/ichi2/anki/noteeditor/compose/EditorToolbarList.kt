@@ -2,7 +2,9 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,7 @@ internal fun EditorToolbarList(
             add(ToolbarListEntry.Section(CommonString.user_potential_columns))
             addAll(items.drop(activeCount).map { ToolbarListEntry.Button(it) })
         }
+    val pageActive by rememberUpdatedState(LocalEditorFieldPageActive.current)
     val composition = rememberCompositionContext()
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
@@ -62,7 +67,7 @@ internal fun EditorToolbarList(
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
     var firstOffset by rememberSaveable { mutableIntStateOf(0) }
     AndroidView(
-        modifier = modifier,
+        modifier = modifier.testTag("editor_toolbar_list"),
         factory = { context ->
             RecyclerView(context).apply {
                 val manager = LinearLayoutManager(context)
@@ -74,8 +79,12 @@ internal fun EditorToolbarList(
                         onDraggingChange = { currentDragging(it) },
                         onMove = { from, to -> currentMove(from, to) },
                         canMove = { from, to -> currentCanMove(from, to) },
-                        header = { currentHeader() },
-                        row = { item, index, dragging, startDrag, move -> currentRow(item, index, dragging, startDrag, move) },
+                        header = { Box(if (pageActive) Modifier else Modifier.clearAndSetSemantics {}) { currentHeader() } },
+                        row = { item, index, dragging, startDrag, move ->
+                            Box(
+                                if (pageActive) Modifier else Modifier.clearAndSetSemantics {},
+                            ) { currentRow(item, index, dragging, startDrag, move) }
+                        },
                     )
                 adapter = buttons
                 buttons.touchHelper.attachToRecyclerView(this)
@@ -97,7 +106,11 @@ internal fun EditorToolbarList(
                 )
             }
         },
-        update = { list -> (list.adapter as EditorToolbarAdapter).updateItems(entries) },
+        update = { list ->
+            list.importantForAccessibility =
+                if (pageActive) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            (list.adapter as EditorToolbarAdapter).updateItems(entries)
+        },
         onRelease = { list ->
             currentDragging(false)
             (list.adapter as EditorToolbarAdapter).touchHelper.attachToRecyclerView(null)
@@ -261,7 +274,11 @@ private class EditorToolbarAdapter(
             view.setContent {
                 when (val entry = item) {
                     ToolbarListEntry.Header -> header()
-                    is ToolbarListEntry.Section -> ToolbarSectionHeading(entry.label)
+                    is ToolbarListEntry.Section -> {
+                        Box(if (LocalEditorFieldPageActive.current) Modifier else Modifier.clearAndSetSemantics {}) {
+                            ToolbarSectionHeading(entry.label)
+                        }
+                    }
                     is ToolbarListEntry.Button -> {
                         val buttons = items.filterIsInstance<ToolbarListEntry.Button>()
                         val index = buttons.indexOf(entry)
