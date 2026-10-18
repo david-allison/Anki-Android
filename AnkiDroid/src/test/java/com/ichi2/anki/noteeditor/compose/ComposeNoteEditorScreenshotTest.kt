@@ -150,6 +150,33 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun fieldPanelArrowsRemainResponsiveWithoutWaitingForFocus() {
+        val selected = mutableListOf<Int>()
+        val (activity, keyboard) = showEditor(fieldCount = 4, onFieldSelected = { selected += it.field })
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithText("2 of 4").assertIsDisplayed()
+        // Leave the host's focus state unchanged: navigation must not wait for its acknowledgement.
+        composeRule.mainClock.autoAdvance = false
+        try {
+            for (index in listOf(2, 3, 2, 1, 0, 1)) {
+                val previous = selected.lastOrNull() ?: 1
+                val arrow = if (index < previous) R.string.compose_editor_previous_field else R.string.compose_editor_next_field
+                composeRule.onNodeWithContentDescription(getResourceString(arrow)).assertIsEnabled().performClick()
+                // Allow composition/layout, but no time for a page animation to finish.
+                repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+                composeRule.onNodeWithText("${index + 1} of 4").assertIsDisplayed()
+                assertEquals(index, selected.last())
+                val reverse = if (index < previous) R.string.compose_editor_next_field else R.string.compose_editor_previous_field
+                composeRule.onNodeWithContentDescription(getResourceString(reverse)).assertIsEnabled()
+                composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_choose_field)).assertIsEnabled()
+            }
+        } finally {
+            composeRule.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test
     fun fieldPanelPickerSelectsByNameAndKeepsFocusWhenCancelled() {
         val selected = mutableListOf<Int>()
         showEditor(onFieldSelected = { selected += it.field })

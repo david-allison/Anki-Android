@@ -156,7 +156,7 @@ internal fun EditorFieldPanel(
                 )
                 if (!pending && state.fields.size > 1) {
                     IconButton(
-                        onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
+                        onClick = { scope.launch { pager.scrollToPage(pager.currentPage - 1) } },
                         enabled = canNavigate && pager.currentPage > 0,
                         colors = editorIconButtonColors(),
                     ) {
@@ -179,7 +179,7 @@ internal fun EditorFieldPanel(
                         )
                     }
                     IconButton(
-                        onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
+                        onClick = { scope.launch { pager.scrollToPage(pager.currentPage + 1) } },
                         enabled = canNavigate && pager.currentPage < state.fields.lastIndex,
                         colors = editorIconButtonColors(),
                     ) {
