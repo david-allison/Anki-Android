@@ -938,7 +938,7 @@ private fun EditorFieldOptions(
         EditorFieldOptionsLink(
             icon = EditorFieldOption.DESCRIPTION.icon,
             title = EditorFieldOption.DESCRIPTION.label,
-            summary = field.description.ifEmpty { stringResource(R.string.compose_editor_field_description_empty) },
+            summary = field.description.takeIf { it.isNotEmpty() },
             iconTint = controlColor,
             enabled = enabled,
             onClick = onDescription,

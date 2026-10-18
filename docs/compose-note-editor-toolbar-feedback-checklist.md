@@ -1,6 +1,6 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 0 resolved.**
+Recorded 2026-10-18. **12 action items; 1 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
@@ -40,14 +40,19 @@ separate.
   accessible arrow targets. Check first/last-field states, long field names,
   large text, RTL, and the single-field case.
 
-- [ ] **03. Remove “Add a hint for this field” from the Description row.**
+- [x] **03. Remove “Add a hint for this field” from the Description row.**
 
   **Assessment: agree.** The visible **Description** label is sufficient, with
   the tooltip explaining its purpose.
 
-  **Proposed action:** remove the empty-state helper from the settings row.
-  Continue displaying an existing description and retain the tooltip. Preserve
-  the actual description hint inside empty editor fields.
+  **Implemented 2026-10-18:** removed the empty-state helper and its unused
+  string. An empty description now shows just the Description label; existing
+  descriptions remain visible. The tooltip and description hints inside empty
+  editor fields are preserved.
+
+  **Verification:** 10 existing light/dark checks pass, covering empty and
+  populated settings layouts, description editing, clearing, cancellation, and
+  the help catalogue. The isolated probe APK builds successfully.
 
 - [ ] **04. Match the Customize toolbar title hierarchy to the template editor.**
 
