@@ -107,6 +107,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
@@ -634,16 +635,37 @@ private fun EditorPane(
                                 onRecordAudio = onRecordAudio,
                             ) { items, button ->
                                 if (editorState.toolbarDisplay == EditorToolbarDisplay.STACK) {
+                                    // The mode switch is wider than an icon. Use one column width for every
+                                    // row so controls after it still align with the rows above.
+                                    val columnWidth =
+                                        if (items.any {
+                                                it is EditorToolbarItem.Builtin &&
+                                                    it.button == EditorToolbarButton.SOURCE_MODE
+                                            }
+                                        ) {
+                                            56.dp
+                                        } else {
+                                            48.dp
+                                        }
                                     FlowRow(
                                         Modifier
                                             .weight(1f)
                                             .heightIn(max = 144.dp)
                                             .verticalScroll(rememberScrollState(), reverseScrolling = true)
                                             .padding(horizontal = 8.dp)
-                                            .centerToolbarColumns(),
+                                            .centerToolbarColumns(columnWidth),
                                         horizontalArrangement = Arrangement.Start,
                                         verticalArrangement = ToolbarRowsFromBottom,
-                                    ) { items.forEach { button(it) } }
+                                    ) {
+                                        items.forEach { item ->
+                                            Box(
+                                                Modifier.width(columnWidth * if (item is EditorToolbarItem.Custom) 2 else 1),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                button(item)
+                                            }
+                                        }
+                                    }
                                 } else {
                                     EditorScrollingToolbar(items, toolbarScrollState, Modifier.weight(1f), button)
                                 }
@@ -698,10 +720,10 @@ private fun EditorPane(
     }
 }
 
-/** Center whole 48dp button columns; partial rows keep the same start edge. */
-private fun Modifier.centerToolbarColumns(): Modifier =
+/** Center whole button columns; partial rows keep the same start edge. */
+private fun Modifier.centerToolbarColumns(columnWidth: Dp): Modifier =
     layout { measurable, constraints ->
-        val buttonWidth = 48.dp.roundToPx()
+        val buttonWidth = columnWidth.roundToPx()
         val columns = (constraints.maxWidth / buttonWidth).coerceAtLeast(1)
         val width = (columns * buttonWidth).coerceAtMost(constraints.maxWidth)
         val content = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))

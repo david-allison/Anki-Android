@@ -1390,6 +1390,22 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun stackedToolbarModeSwitchKeepsFollowingButtonsInColumns() {
+        showEditor(toolbarDisplay = EditorToolbarDisplay.STACK)
+        val bounds =
+            EditorToolbarButton.entries.filterNot { it.clozeOnly || it == EditorToolbarButton.SOURCE_MODE }.map {
+                composeRule.onNodeWithContentDescription(getResourceString(it.label)).fetchSemanticsNode().boundsInRoot
+            }
+        val bottom = bounds.filter { it.top == bounds.first().top }
+        val spacing = bottom[1].center.x - bottom[0].center.x
+        bounds.forEach { item ->
+            val column = (item.center.x - bottom[0].center.x) / spacing
+            assertEquals(column.roundToInt().toFloat(), column, 0.02f, "Every icon must align with a column, including after A/<>")
+        }
+        captureScreen("toolbar_stack_mode_switch_columns")
+    }
+
+    @Test
     fun stackedToolbarSingleRowUsesStartPadding() = captureToolbarRows(EditorToolbarDisplay.STACK, listOf(3), "toolbar_stack_single_row")
 
     @Test
