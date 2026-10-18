@@ -287,7 +287,7 @@ internal fun EditorToolbarRow(
             if (checked) {
                 MaterialTheme.colorScheme.primary
                     .copy(
-                        alpha = 0.06f,
+                        alpha = 0.16f,
                     ).compositeOver(MaterialTheme.colorScheme.surface)
             } else {
                 MaterialTheme.colorScheme.surface
