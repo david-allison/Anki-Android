@@ -1199,10 +1199,11 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertEquals(dialog, composeRule.onNode(isDialog()).fetchSemanticsNode().id, "Changing presets must retain the dialog window")
         val footer = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot
         val pixels = composeRule.onNode(isDialog()).captureToImage().toPixelMap()
+        val colors = activity.toMaterial3ColorScheme()
         assertEquals(
-            activity.toMaterial3ColorScheme().surface.toArgb(),
+            colors.surfaceContainer.compositeOver(colors.surface).toArgb(),
             pixels[pixels.width / 2, footer.center.y.toInt()].toArgb(),
-            "The scrolling list must not draw behind the fixed footer",
+            "The fixed Custom buttons footer must use the editor toolbar's opaque background",
         )
         captureScreen("shared_toolbar_preset_editing")
         composeRule

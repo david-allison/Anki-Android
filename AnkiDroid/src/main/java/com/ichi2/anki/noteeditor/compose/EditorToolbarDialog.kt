@@ -130,7 +130,10 @@ internal fun EditorToolbarContent(
             )
         },
         bottomBar = {
-            Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+            Surface(
+                Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+            ) {
                 Row(Modifier.navigationBarsPadding().padding(horizontal = 16.dp)) {
                     TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
                         Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
