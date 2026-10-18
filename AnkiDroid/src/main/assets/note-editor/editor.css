@@ -10,6 +10,8 @@ html:root .fields-only { padding-inline: 14px; }
 html .fields-only .scroll-area::-webkit-scrollbar:vertical { width: 4px; }
 /* Reserve its space so growing or shrinking a field cannot reflow the editor. */
 html .fields-only .scroll-area { scrollbar-gutter: stable; }
+/* Explicit field selection can reveal the last input above the native sheet. */
+.fields-only .scroll-content { padding-bottom: var(--editor-sheet-scroll-space, 0px); }
 
 /* The native host supplies the surrounding surface and matching label colours. */
 html:root, html body { background: transparent; }

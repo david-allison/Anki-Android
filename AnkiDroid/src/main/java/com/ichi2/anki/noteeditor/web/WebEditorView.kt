@@ -307,10 +307,14 @@ class WebEditorView(
         index: Int = 0,
         highlightError: Boolean = false,
         showKeyboard: Boolean = true,
+        revealAboveOptions: Boolean = false,
     ) {
         withContext(Dispatchers.Main.immediate) {
             requestFocus()
-            request("focusField", JSONObject().put("index", index).put("highlightError", highlightError))
+            request(
+                "focusField",
+                JSONObject().put("index", index).put("highlightError", highlightError).put("revealAboveOptions", revealAboveOptions),
+            )
             // The JS focus acknowledgement can arrive before Chromium supplies the native
             // input connection. Opening Gboard with the dummy connection changes its height
             // mid-animation, making the toolbar jump when the real field becomes available.

@@ -22,6 +22,8 @@
     let fieldsReady = false,
         nextHostRequest = 0,
         checkpointNeeded = false;
+    let fieldOptionsHeight = null,
+        fieldToReveal = null;
     const hostRequests = new Map();
     const api = () => window.AnkiEditorFields;
     const send = message => host.postMessage(JSON.stringify(message));
@@ -614,8 +616,10 @@
             await api().setInputEnabled(enabled);
             return {};
         },
-        async focusField({ index, highlightError = false }) {
+        async focusField({ index, highlightError = false, revealAboveOptions = false }) {
             await api().focusField(index);
+            fieldToReveal = revealAboveOptions ? index : null;
+            revealFieldAboveOptions();
             if (highlightError) {
                 const element = document.querySelector(
                     `.field-container[data-index="${index}"] .editor-field`,
@@ -695,15 +699,42 @@
         if (!interactive) event.preventDefault();
     }
 
+    function revealFieldAboveOptions() {
+        if (fieldOptionsHeight === null || fieldToReveal === null) return;
+        const field = document.querySelector(`.field-container[data-index="${fieldToReveal}"]`);
+        const area = field?.closest(".scroll-area");
+        if (!area) return;
+        const viewport = area.getBoundingClientRect();
+        const bounds = field.getBoundingClientRect();
+        const top = Math.max(0, viewport.top) + 8;
+        const bottom = Math.min(innerHeight, viewport.bottom, fieldOptionsHeight) - 8;
+        // Only move a field when its label and input can fit above the sheet.
+        if (bounds.height > bottom - top) return;
+        // Allow even the last field of a short note to clear the overlaid sheet.
+        // This adds scroll range without resizing the viewport or any field.
+        document.documentElement.style.setProperty(
+            "--editor-sheet-scroll-space",
+            `${Math.max(0, viewport.bottom - bottom)}px`,
+        );
+        area.scrollTop += bounds.top < top ? bounds.top - top : Math.max(0, bounds.bottom - bottom);
+    }
+
     window.AnkiEditor = {
         // Native sheets do not participate in Chromium's selection clipping.
         // Change only paint bounds: keep field layout, focus, typing style and the IME intact.
         clipFieldOptions(visibleHeight) {
-            const bottom = Math.max(0, innerHeight - visibleHeight / devicePixelRatio);
+            fieldOptionsHeight = visibleHeight / devicePixelRatio;
+            const bottom = Math.max(0, innerHeight - fieldOptionsHeight);
             document.documentElement.style.clipPath = `inset(0 0 ${bottom}px 0)`;
+            revealFieldAboveOptions();
         },
         setFieldOptionsVisible(visible) {
-            if (!visible) document.documentElement.style.clipPath = "";
+            if (!visible) {
+                fieldOptionsHeight = null;
+                fieldToReveal = null;
+                document.documentElement.style.clipPath = "";
+                document.documentElement.style.removeProperty("--editor-sheet-scroll-space");
+            }
             if (visible) {
                 document.addEventListener("pointerdown", preserveFieldFocus);
                 // Chromium can reopen the IME before touchend, even if that is canceled.

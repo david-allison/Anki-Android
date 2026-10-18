@@ -1595,8 +1595,9 @@ class ComposeNoteEditorTest : InstrumentedTest() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
             // End with punctuation so Gboard does not resume composing an existing word.
-            web.setField(0, "Front text.")
-            web.setField(1, "Back text.")
+            // Together the fields exceed the space above the sheet; each field fits alone.
+            web.setField(0, (1..6).joinToString("<br>") { "Front line $it." })
+            web.setField(1, (1..6).joinToString("<br>") { "Back line $it." })
             val original = runBlocking { web.snapshot().fields }
             val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             val picker = By.desc(testContext.getString(R.string.compose_editor_choose_field))
@@ -1606,6 +1607,19 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_choose_field))), 5_000))
                 // The editor behind the dialog also has a Front label; wait for the dialog window.
                 device.waitForIdle()
+            }
+
+            fun assertRevealed(index: Int) {
+                web.awaitJavascript(
+                    """
+                    (() => {
+                        const field = document.querySelector('.field-container[data-index="$index"]');
+                        const bounds = field.getBoundingClientRect();
+                        const clip = document.documentElement.style.clipPath.match(/inset\(0px 0px ([\d.]+)px/);
+                        return clip && bounds.top >= 8 && bounds.bottom <= innerHeight - Number(clip[1]) - 7;
+                    })()
+                    """.trimIndent(),
+                )
             }
             for (showKeyboard in listOf(true, false)) {
                 runBlocking { web.focusField(1) }
@@ -1619,6 +1633,11 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 val caret = assertNotNull(runBlocking { web.captureTarget() })
                 captureScreenshot("field-picker-before-options-$showKeyboard", web)
                 device.openFieldOptions()
+                if (!showKeyboard) {
+                    // Leave enough room to reveal a whole field, including its label.
+                    scenario.onActivity { web.onHeaderVisibility?.invoke(false) }
+                    assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_deck))), 5_000))
+                }
                 openPicker()
                 checkNotNull(device.wait(Until.findObject(By.text(testContext.getString(CommonString.dialog_cancel))), 5_000)).click()
                 device.waitForIdle()
@@ -1635,6 +1654,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 assertNotNull(device.wait(Until.findObject(By.text("1 of 2")), 5_000))
                 device.waitForIdle()
                 assertEquals(showKeyboard, scenario.keyboardVisible(), "Choosing a field must preserve keyboard visibility")
+                if (!showKeyboard) assertRevealed(0)
                 captureScreenshot("field-picker-front-keyboard-$showKeyboard", web)
 
                 checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_next_field)))).click()
@@ -1644,9 +1664,15 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 web.awaitJavascript("${richField(1)}.matches(':focus')")
                 device.waitForIdle()
                 assertEquals(showKeyboard, scenario.keyboardVisible())
+                if (!showKeyboard) {
+                    assertRevealed(1)
+                    web.awaitJavascript("document.querySelector('.scroll-area').scrollTop > 0")
+                }
+                captureScreenshot("field-picker-back-keyboard-$showKeyboard", web)
                 checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_close_field_options)))).click()
                 device.waitForIdle()
                 assertEquals(1, runBlocking { web.captureTarget() }?.field)
+                web.awaitJavascript("document.documentElement.style.getPropertyValue('--editor-sheet-scroll-space') === ''")
             }
             assertEquals(original, runBlocking { web.snapshot().fields }, "Switching fields must not edit their contents")
         }
