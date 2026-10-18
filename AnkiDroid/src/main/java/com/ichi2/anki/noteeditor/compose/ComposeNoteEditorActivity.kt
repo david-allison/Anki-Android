@@ -259,7 +259,8 @@ class ComposeNoteEditorActivity :
             onFieldOptionsTop = { webSession.view?.setFieldOptionsTop(it) },
             onFieldSelected = { target ->
                 launchEditorTask {
-                    if (busy || !target.matches(model.state.value)) return@launchEditorTask
+                    // Selection is local: a background settings write must not discard this tap.
+                    if (showBusyState || model.state.value?.isSaving == true || !target.matches(model.state.value)) return@launchEditorTask
                     webSession.view?.let { editor ->
                         editor.focusField(target.field, showKeyboard = false, revealAboveOptions = true)
                     }

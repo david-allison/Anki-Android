@@ -1672,6 +1672,61 @@ class ComposeNoteEditorTest : InstrumentedTest() {
     }
 
     @Test
+    fun fieldNavigationDoesNotWaitForASettingsWriteOrLoseFocusWhenItCompletes() {
+        withEditor { scenario ->
+            val web = scenario.awaitEditor()
+            val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            assertNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_options)).enabled(true)), 5_000),
+            )
+            web.setField(0, "Unchanged front.")
+            web.setField(1, "<b>Unsaved back.</b>")
+            runBlocking { web.focusField(1, showKeyboard = false) }
+            val original = runBlocking { web.snapshot().fields }
+            device.openFieldOptions()
+            val html =
+                By
+                    .checkable(
+                        true,
+                    ).hasDescendant(By.desc(testContext.getString(R.string.compose_editor_start_in_html_mode)))
+                    .enabled(true)
+            runBlocking {
+                val entered = CountDownLatch(1)
+                val release = CountDownLatch(1)
+                // Hold the collection queue to model a slow settings save, without delaying the UI thread.
+                val blocked =
+                    async(Dispatchers.IO) {
+                        withCol {
+                            entered.countDown()
+                            check(release.await(30, TimeUnit.SECONDS))
+                        }
+                    }
+                try {
+                    assertTrue(entered.await(5, TimeUnit.SECONDS))
+                    checkNotNull(device.wait(Until.findObject(html), 5_000)).click()
+                    checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_previous_field)))).click()
+                    assertNotNull(device.wait(Until.findObject(By.text("1 of 2")), 5_000))
+                    web.awaitJavascript("${richField(0)}.matches(':focus')")
+                    assertEquals(0, web.captureTarget()?.field)
+                    assertFalse(scenario.editorState().fields[1].sourceMode, "Navigation must finish while persistence is still blocked")
+                    assertFalse(scenario.keyboardVisible())
+                } finally {
+                    release.countDown()
+                    blocked.await()
+                }
+            }
+            waitUntil(message = { "The delayed HTML setting did not apply" }) {
+                scenario.editorState().fields[1].sourceMode && web.snapshotFieldState().getJSONObject(1).getBoolean("sourceMode")
+            }
+            assertEquals(original, runBlocking { web.snapshot().fields })
+            assertEquals(0, runBlocking { web.captureTarget() }?.field, "Completing the old setting must not steal focus")
+            web.awaitJavascript("${richField(0)}.matches(':focus')")
+            assertNotNull(device.findObject(By.text("1 of 2")))
+            assertFalse(scenario.keyboardVisible())
+        }
+    }
+
+    @Test
     fun fieldConfigurationUsesTheFullScreenAndReturnsToTheSelectedField() {
         withEditor { scenario ->
             val web = scenario.awaitEditor()
