@@ -48,6 +48,7 @@ internal fun EditorToolbarList(
     canMove: (String) -> Boolean = { true },
     modifier: Modifier = Modifier,
     onDraggingChange: (Boolean) -> Unit = {},
+    onAtTopChange: (Boolean) -> Unit = {},
     bottomContentPadding: Dp = 0.dp,
     header: @Composable () -> Unit,
     row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
@@ -65,6 +66,7 @@ internal fun EditorToolbarList(
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
     val currentDragging by rememberUpdatedState(onDraggingChange)
+    val currentAtTop by rememberUpdatedState(onAtTopChange)
     val currentMove by rememberUpdatedState(onMove)
     val currentCanMove by rememberUpdatedState(canMove)
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
@@ -101,7 +103,10 @@ internal fun EditorToolbarList(
                             dx: Int,
                             dy: Int,
                         ) {
-                            val first = manager.findFirstVisibleItemPosition()
+                            // Scrollbar estimates count a zero-height header as scrolled past. Use its actual bounds.
+                            val atTop = manager.findViewByPosition(0)?.let { it.top >= recyclerView.paddingTop } == true
+                            currentAtTop(atTop)
+                            val first = if (atTop) 0 else manager.findFirstVisibleItemPosition()
                             if (first != RecyclerView.NO_POSITION) {
                                 firstVisible = first
                                 firstOffset = manager.findViewByPosition(first)?.top ?: 0

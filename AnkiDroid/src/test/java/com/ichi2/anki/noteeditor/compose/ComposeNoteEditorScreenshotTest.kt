@@ -1629,7 +1629,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             )
         hideKeyboard(activity, keyboard)
         openFieldCustomization(R.string.compose_editor_toolbar)
-        val action = composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons))
+        val action = composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_custom_buttons))
         val shortcut = action.fetchSemanticsNode().boundsInRoot
         val panel = composeRule.onNodeWithTag("editor_field_panel").fetchSemanticsNode().boundsInRoot
         if (!largeText) assertEquals(rtl, shortcut.center.x < panel.center.x, "The action follows the layout's trailing edge")
@@ -1638,13 +1638,14 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             // Match the Pixel: header controls and the Active heading have scrolled out of view.
             (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(10, 0)
         }
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsNotDisplayed()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
-        assertEquals(
-            shortcut,
-            composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).fetchSemanticsNode().boundsInRoot,
-        )
         settleMenuTransition(activity)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).assertIsNotDisplayed()
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertDoesNotExist()
+        action.assertIsDisplayed()
+        val collapsed = action.fetchSemanticsNode().boundsInRoot
+        assertTrue(collapsed.width < shortcut.width, "Scrolling must collapse the action to its icon")
+        assertEquals(shortcut.bottom, collapsed.bottom)
+        assertEquals(if (rtl) shortcut.left else shortcut.right, if (rtl) collapsed.left else collapsed.right)
         val pixels = action.captureToImage().toPixelMap()
         assertEquals(
             activity.toMaterial3ColorScheme().primaryContainer.toArgb(),
@@ -1662,15 +1663,22 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
             val list = configurationList()
             list.scrollBy(0, list.computeVerticalScrollRange())
         }
+        settleMenuTransition(activity)
         val lastHandle =
             composeRule
                 .onNodeWithContentDescription(targetContext.getString(R.string.compose_editor_reorder_button, "Ruby"))
                 .assertIsDisplayed()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        assertTrue(lastHandle.bottom < shortcut.top, "The last drag handle must clear the entire floating action")
-        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Scrolling to the end must not move the action")
+        assertTrue(lastHandle.bottom < collapsed.top, "The last drag handle must clear the entire floating action")
+        assertEquals(collapsed, action.fetchSemanticsNode().boundsInRoot, "Scrolling to the end must not move the action")
         captureScreen("customize_toolbar_scrolled_to_end$suffix")
+        composeRule.runOnIdle {
+            (configurationList().layoutManager as LinearLayoutManager).scrollToPositionWithOffset(0, 0)
+        }
+        settleMenuTransition(activity)
+        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_custom_buttons)).assertIsDisplayed()
+        assertEquals(shortcut, action.fetchSemanticsNode().boundsInRoot, "Returning to the top must expand the action")
     }
 
     @Test

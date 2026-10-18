@@ -21,6 +21,8 @@ import com.ichi2.anki.R
 import com.ichi2.anki.tests.InstrumentedTest
 import com.ichi2.compose.theme.AnkiDroidTheme
 import org.junit.Test
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -35,6 +37,7 @@ class EditorToolbarDragTest : InstrumentedTest() {
         // Italic is the first drag target; leave Redo in the separate Available group.
         val initial = EditorFieldToolbar(hiddenButtons = setOf("REDO"), customButtons = listOf(custom))
         val saved = AtomicReference<EditorFieldToolbar>()
+        val libraryOpened = AtomicInteger()
         ActivityScenario
             .launch<ComposeNoteEditorActivity>(
                 Intent(testContext, ComposeNoteEditorActivity::class.java).putExtras(NoteEditorFragment.addNoteArgs()),
@@ -47,7 +50,7 @@ class EditorToolbarDragTest : InstrumentedTest() {
                                 field = EditorFieldState("Front", "", "Arial", 20, false, null, false, false, false, initial),
                                 isCloze = false,
                                 templates = listOf(custom),
-                                onCustomButtons = {},
+                                onCustomButtons = { libraryOpened.incrementAndGet() },
                                 onDismiss = {},
                                 onSave = { saved.set(it) },
                             )
@@ -66,8 +69,17 @@ class EditorToolbarDragTest : InstrumentedTest() {
                     return checkNotNull(saved.get())
                 }
                 val start = handle("Wrap").visibleCenter
-                val library = By.text(testContext.getString(R.string.compose_editor_custom_buttons))
+                val library = By.desc(testContext.getString(R.string.compose_editor_custom_buttons))
                 assertTrue(device.hasObject(library))
+                InstrumentationRegistry.getArguments().getString("artifactDir")?.let { name ->
+                    val directory = File(testContext.filesDir, name)
+                    check(directory.isDirectory || directory.mkdirs())
+                    device.takeScreenshot(File(directory, "toolbar-expanded.png"))
+                    device.dumpWindowHierarchy(File(directory, "toolbar-expanded.xml"))
+                }
+                val expandedBounds = checkNotNull(device.findObject(library)).visibleBounds
+                val expandedWidth = expandedBounds.width()
+                assertTrue(expandedWidth > expandedBounds.height(), "The action must show its label at the top: $expandedBounds")
                 val downTime = SystemClock.uptimeMillis()
 
                 fun touch(action: Int) {
@@ -109,12 +121,22 @@ class EditorToolbarDragTest : InstrumentedTest() {
                 // At the end, the last row and every handle above it must be clear of the action.
                 val list = device.findObject(By.clazz("androidx.recyclerview.widget.RecyclerView"))
                 list.scroll(Direction.DOWN, 1f)
-                val actionBounds = checkNotNull(device.findObject(library)).parent.visibleBounds
+                val action = checkNotNull(device.findObject(library))
+                val actionBounds = action.visibleBounds
+                assertTrue(actionBounds.width() < expandedWidth, "Scrolling must collapse the library action")
+                action.click()
+                assertEquals(1, libraryOpened.get(), "The collapsed icon must still open the library")
                 val lastHandle = handle(testContext.getString(EditorToolbarButton.BOLD.label)).visibleBounds
                 assertTrue(lastHandle.bottom < actionBounds.top, "The last handle must remain above the floating action")
                 dragBoldToEdge(bottom = false)
                 val result = save()
                 assertEquals("BOLD", result.buttonOrder.first())
+                device.waitForIdle()
+                assertEquals(
+                    expandedWidth,
+                    checkNotNull(device.findObject(library)).visibleBounds.width(),
+                    "The label must return at the top",
+                )
                 assertEquals(initial.hiddenButtons, result.hiddenButtons)
                 assertEquals(initial.customButtons, result.customButtons)
                 assertEquals(initial.orderedItems(listOf(custom)).map { it.key }.toSet(), result.buttonOrder.toSet())

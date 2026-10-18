@@ -3,9 +3,11 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.view.MotionEvent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -117,14 +120,22 @@ internal fun EditorToolbarContent(
     val buttonHeight = ButtonDefaults.MediumContainerHeight
     var customButtonsHeight by remember { mutableStateOf(buttonHeight) }
     var dragging by remember { mutableStateOf(false) }
+    var atTop by remember { mutableStateOf(true) }
+    val expanded = scrollCustomButtons || atTop
+    val libraryLabel = stringResource(R.string.compose_editor_custom_buttons)
     val customButtons: @Composable () -> Unit = {
         Button(
             onClick = onCustomButtons,
             enabled = buttonsEnabled,
             modifier =
-                Modifier.heightIn(min = buttonHeight).onSizeChanged {
-                    customButtonsHeight = with(density) { it.height.toDp() }
-                },
+                Modifier
+                    .heightIn(min = buttonHeight)
+                    .widthIn(min = buttonHeight)
+                    .semantics { contentDescription = libraryLabel }
+                    .onSizeChanged {
+                        // Keep the list clearance stable as the label expands or collapses.
+                        customButtonsHeight = maxOf(customButtonsHeight, with(density) { it.height.toDp() })
+                    },
             shapes = ButtonDefaults.shapesFor(buttonHeight),
             colors =
                 ButtonDefaults.buttonColors(
@@ -132,11 +143,20 @@ internal fun EditorToolbarContent(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
             elevation = if (scrollCustomButtons) null else ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-            contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight, hasStartIcon = true),
+            contentPadding =
+                if (expanded) {
+                    ButtonDefaults.contentPaddingFor(buttonHeight, hasStartIcon = true)
+                } else {
+                    PaddingValues((buttonHeight - ButtonDefaults.iconSizeFor(buttonHeight)) / 2)
+                },
         ) {
             Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(ButtonDefaults.iconSizeFor(buttonHeight)))
-            Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(buttonHeight)))
-            Text(stringResource(R.string.compose_editor_custom_buttons), style = ButtonDefaults.textStyleFor(buttonHeight))
+            AnimatedVisibility(visible = expanded) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(buttonHeight)))
+                    Text(libraryLabel, style = ButtonDefaults.textStyleFor(buttonHeight))
+                }
+            }
         }
     }
     Scaffold(
@@ -168,6 +188,7 @@ internal fun EditorToolbarContent(
         EditorToolbarList(
             items = items.map { it.key },
             activeCount = enabledKeys.size,
+            onAtTopChange = { atTop = it },
             onDraggingChange = {
                 dragging = it
                 onDraggingChange(it)
