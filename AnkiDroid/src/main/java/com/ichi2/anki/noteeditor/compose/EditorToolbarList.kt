@@ -41,6 +41,7 @@ internal fun EditorToolbarList(
     onMove: (String, String) -> Unit,
     canMove: (String, String) -> Boolean = { _, _ -> true },
     modifier: Modifier = Modifier,
+    onDraggingChange: (Boolean) -> Unit = {},
     header: @Composable () -> Unit,
     row: @Composable (String, Int, Boolean, () -> Unit, (Int) -> Boolean) -> Unit,
 ) {
@@ -55,6 +56,7 @@ internal fun EditorToolbarList(
     val composition = rememberCompositionContext()
     val currentHeader by rememberUpdatedState(header)
     val currentRow by rememberUpdatedState(row)
+    val currentDragging by rememberUpdatedState(onDraggingChange)
     val currentMove by rememberUpdatedState(onMove)
     val currentCanMove by rememberUpdatedState(canMove)
     var firstVisible by rememberSaveable { mutableIntStateOf(0) }
@@ -69,6 +71,7 @@ internal fun EditorToolbarList(
                     EditorToolbarAdapter(
                         entries,
                         composition,
+                        onDraggingChange = { currentDragging(it) },
                         onMove = { from, to -> currentMove(from, to) },
                         canMove = { from, to -> currentCanMove(from, to) },
                         header = { currentHeader() },
@@ -96,6 +99,7 @@ internal fun EditorToolbarList(
         },
         update = { list -> (list.adapter as EditorToolbarAdapter).updateItems(entries) },
         onRelease = { list ->
+            currentDragging(false)
             (list.adapter as EditorToolbarAdapter).touchHelper.attachToRecyclerView(null)
             list.adapter = null
         },
@@ -128,6 +132,7 @@ private fun ToolbarSectionHeading(label: Int) {
 private class EditorToolbarAdapter(
     initialItems: List<ToolbarListEntry>,
     private val composition: CompositionContext,
+    private val onDraggingChange: (Boolean) -> Unit,
     private val onMove: (String, String) -> Unit,
     private val canMove: (String, String) -> Boolean,
     private val header: @Composable () -> Unit,
@@ -173,6 +178,7 @@ private class EditorToolbarAdapter(
                 ) {
                     super.onSelectedChanged(viewHolder, actionState)
                     draggingKey = ((viewHolder as? Holder)?.item as? ToolbarListEntry.Button)?.key
+                    onDraggingChange(draggingKey != null)
                 }
 
                 override fun onSwiped(

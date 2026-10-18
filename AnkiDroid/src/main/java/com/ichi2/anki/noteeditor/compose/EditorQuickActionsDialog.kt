@@ -34,16 +34,7 @@ internal fun EditorQuickActionsDialog(
     onSave: (EditorFieldToolbar) -> Unit,
 ) {
     var toolbar by rememberSaveable(target) { mutableStateOf(field.toolbar) }
-    var order by rememberSaveable(target) {
-        mutableStateOf(
-            (field.toolbar.quickActions + EditorQuickAction.entries.map { it.id }).distinct().filter {
-                EditorQuickAction.fromId(it) !=
-                    null
-            },
-        )
-    }
     val dismiss = rememberEditorDismiss(toolbar != field.toolbar, onDismiss)
-    val items = order.sortedBy { it !in toolbar.quickActions }
     Dialog(
         onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -64,49 +55,69 @@ internal fun EditorQuickActionsDialog(
                 )
             },
         ) { insets ->
-            EditorToolbarList(
-                items = items,
-                activeCount = items.count { it in toolbar.quickActions },
-                canMove = { from, to -> (from in toolbar.quickActions) == (to in toolbar.quickActions) },
-                onMove = { from, to ->
-                    order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
-                    toolbar = toolbar.copy(quickActions = order.filter { it in toolbar.quickActions })
-                },
-                modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp),
-                header = {
-                    Text(
-                        stringResource(R.string.compose_editor_quick_actions_help),
-                        Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            ) { key, index, dragging, startDrag, move ->
-                val item = requireNotNull(EditorQuickAction.fromId(key))
-                val checked = key in toolbar.quickActions
-                EditorToolbarRow(
-                    item.icon,
-                    stringResource(item.label),
-                    checked,
-                    dragging,
-                    onCheckedChange = { shown ->
-                        val (selected, available) = items.filterNot { it == key }.partition { it in toolbar.quickActions }
-                        order = selected + key + available
-                        val enabled = if (shown) toolbar.quickActions + key else toolbar.quickActions - key
-                        toolbar = toolbar.copy(quickActions = order.filter { it in enabled })
-                    },
-                    startDrag = startDrag,
-                    moveUp = if (index > 0 && (items[index - 1] in toolbar.quickActions) == checked) ({ move(-1) }) else null,
-                    moveDown =
-                        if (index < items.lastIndex &&
-                            (items[index + 1] in toolbar.quickActions) == checked
-                        ) {
-                            ({ move(1) })
-                        } else {
-                            null
-                        },
-                )
-            }
+            EditorQuickActionsContent(toolbar, { toolbar = it }, Modifier.fillMaxSize().padding(insets).padding(horizontal = 16.dp))
         }
+    }
+}
+
+@Composable
+internal fun EditorQuickActionsContent(
+    toolbar: EditorFieldToolbar,
+    onChange: (EditorFieldToolbar) -> Unit,
+    modifier: Modifier = Modifier,
+    onDraggingChange: (Boolean) -> Unit = {},
+) {
+    var order by rememberSaveable {
+        mutableStateOf(
+            (toolbar.quickActions + EditorQuickAction.entries.map { it.id }).distinct().filter {
+                EditorQuickAction.fromId(it) !=
+                    null
+            },
+        )
+    }
+    val items = order.sortedBy { it !in toolbar.quickActions }
+    EditorToolbarList(
+        items = items,
+        activeCount = items.count { it in toolbar.quickActions },
+        canMove = { from, to -> (from in toolbar.quickActions) == (to in toolbar.quickActions) },
+        onMove = { from, to ->
+            order = order.toMutableList().apply { add(indexOf(to), removeAt(indexOf(from))) }
+            onChange(toolbar.copy(quickActions = order.filter { it in toolbar.quickActions }))
+        },
+        modifier = modifier,
+        onDraggingChange = onDraggingChange,
+        header = {
+            Text(
+                stringResource(R.string.compose_editor_quick_actions_help),
+                Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+    ) { key, index, dragging, startDrag, move ->
+        val item = requireNotNull(EditorQuickAction.fromId(key))
+        val checked = key in toolbar.quickActions
+        EditorToolbarRow(
+            item.icon,
+            stringResource(item.label),
+            checked,
+            dragging,
+            onCheckedChange = { shown ->
+                val (selected, available) = items.filterNot { it == key }.partition { it in toolbar.quickActions }
+                order = selected + key + available
+                val enabled = if (shown) toolbar.quickActions + key else toolbar.quickActions - key
+                onChange(toolbar.copy(quickActions = order.filter { it in enabled }))
+            },
+            startDrag = startDrag,
+            moveUp = if (index > 0 && (items[index - 1] in toolbar.quickActions) == checked) ({ move(-1) }) else null,
+            moveDown =
+                if (index < items.lastIndex &&
+                    (items[index + 1] in toolbar.quickActions) == checked
+                ) {
+                    ({ move(1) })
+                } else {
+                    null
+                },
+        )
     }
 }

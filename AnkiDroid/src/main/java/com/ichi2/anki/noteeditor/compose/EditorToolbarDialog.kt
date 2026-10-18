@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -100,6 +102,9 @@ internal fun EditorToolbarContent(
     enabled: Boolean = true,
     buttonsEnabled: Boolean = enabled,
     header: @Composable () -> Unit = {},
+    topBar: (@Composable () -> Unit)? = null,
+    embedded: Boolean = false,
+    onDraggingChange: (Boolean) -> Unit = {},
 ) {
     // The shared library can change while this dialog stays open. Resolve its latest
     // definitions without discarding pending visibility/order changes for this field.
@@ -110,31 +115,36 @@ internal fun EditorToolbarContent(
     val enabledKeys = items.filter { toolbar.isEnabled(it) }.map { it.key }.toSet()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = if (embedded) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        title ?: stringResource(R.string.compose_editor_toolbar),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
-                        Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
-                    }
-                },
-                actions = {
-                    EditorSaveButton(onClick = { onSave(toolbar) }, enabled = enabled, modifier = Modifier.padding(end = 8.dp))
-                },
-            )
+            if (topBar != null) {
+                topBar()
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            title ?: stringResource(R.string.compose_editor_toolbar),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss, colors = editorIconButtonColors()) {
+                            Icon(painterResource(R.drawable.ic_clear_white), stringResource(CommonString.dialog_cancel))
+                        }
+                    },
+                    actions = {
+                        EditorSaveButton(onClick = { onSave(toolbar) }, enabled = enabled, modifier = Modifier.padding(end = 8.dp))
+                    },
+                )
+            }
         },
         bottomBar = {
             Surface(
                 Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
             ) {
-                Row(Modifier.navigationBarsPadding().padding(horizontal = 16.dp)) {
+                Row((if (embedded) Modifier else Modifier.navigationBarsPadding()).padding(horizontal = 16.dp)) {
                     TextButton(onClick = onCustomButtons, enabled = buttonsEnabled) {
                         Icon(painterResource(R.drawable.ic_widgets), null, Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
@@ -147,6 +157,7 @@ internal fun EditorToolbarContent(
         EditorToolbarList(
             items = items.map { it.key },
             activeCount = enabledKeys.size,
+            onDraggingChange = onDraggingChange,
             onMove = { from, to -> onToolbarChange(toolbar.moveButtonTo(from, to, templates, isCloze)) },
             canMove = { from, to -> buttonsEnabled && (from in enabledKeys) == (to in enabledKeys) },
             modifier =

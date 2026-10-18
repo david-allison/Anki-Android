@@ -83,74 +83,108 @@ internal fun EditorCustomizeToolbarDialog(
     }
     val initial = rememberSaveable { EditorToolbarConfiguration(presets, field.toolbarPresetId, field.toolbar.showToolbar) }
     val dismiss = rememberEditorDismiss(pending != initial, onDismiss)
+    Dialog(
+        onDismissRequest = dismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        EditorCustomizeToolbarContent(
+            pending = pending,
+            onChange = { pending = it },
+            templates = templates,
+            field = field,
+            noteTypeName = noteTypeName,
+            onSave = onSave,
+            onCustomButtons = onCustomButtons,
+            onDismiss = dismiss,
+            enabled = enabled,
+            toolbarHiddenGlobally = toolbarHiddenGlobally,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EditorCustomizeToolbarContent(
+    pending: EditorToolbarConfiguration,
+    onChange: (EditorToolbarConfiguration) -> Unit,
+    templates: List<EditorCustomToolbarButton>,
+    field: EditorFieldState,
+    noteTypeName: String,
+    onSave: (EditorToolbarConfiguration) -> Unit,
+    onCustomButtons: () -> Unit,
+    onDismiss: () -> Unit,
+    enabled: Boolean = true,
+    toolbarHiddenGlobally: Boolean = false,
+    topBar: (@Composable () -> Unit)? = null,
+    embedded: Boolean = false,
+    onDraggingChange: (Boolean) -> Unit = {},
+) {
     var naming by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     var deleting by rememberSaveable { mutableStateOf<EditorToolbarPreset?>(null) }
     val selected = pending.presets.first { it.id == pending.presetId }
     val defaultName = stringResource(R.string.compose_editor_default_toolbar)
 
     fun updatePreset(updated: EditorToolbarPreset) {
-        pending = pending.copy(presets = pending.presets.map { if (it.id == updated.id) updated else it })
+        onChange(pending.copy(presets = pending.presets.map { if (it.id == updated.id) updated else it }))
     }
-    Dialog(
-        onDismissRequest = dismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-    ) {
-        EditorToolbarContent(
-            pendingToolbar = selected.applyTo(EditorFieldToolbar(), templates),
-            onToolbarChange = { updatePreset(selected.withToolbar(it)) },
-            // A shared preset can also be used on cloze note types.
-            isCloze = true,
-            templates = templates,
-            onCustomButtons = onCustomButtons,
-            onDismiss = dismiss,
-            onSave = {
-                // Template definitions may have changed while their library was open.
-                onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))
-            },
-            enabled = enabled,
-            buttonsEnabled = enabled && pending.showToolbar,
-            header = {
-                Column(Modifier.padding(horizontal = 12.dp)) {
+    EditorToolbarContent(
+        pendingToolbar = selected.applyTo(EditorFieldToolbar(), templates),
+        onToolbarChange = { updatePreset(selected.withToolbar(it)) },
+        // A shared preset can also be used on cloze note types.
+        isCloze = true,
+        templates = templates,
+        onCustomButtons = onCustomButtons,
+        onDismiss = onDismiss,
+        onSave = {
+            // Template definitions may have changed while their library was open.
+            onSave(pending.copy(presets = pending.presets.map { it.withToolbar(it.applyTo(EditorFieldToolbar(), templates)) }))
+        },
+        topBar = topBar,
+        embedded = embedded,
+        onDraggingChange = onDraggingChange,
+        enabled = enabled,
+        buttonsEnabled = enabled && pending.showToolbar,
+        header = {
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                Text(
+                    stringResource(R.string.compose_editor_preset_field, field.name, noteTypeName),
+                    Modifier.padding(vertical = 12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                ToolbarVisibilitySwitch(
+                    checked = pending.showToolbar,
+                    enabled = enabled,
+                    onCheckedChange = { onChange(pending.copy(showToolbar = it)) },
+                )
+                if (toolbarHiddenGlobally) {
                     Text(
-                        stringResource(R.string.compose_editor_preset_field, field.name, noteTypeName),
-                        Modifier.padding(vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    ToolbarVisibilitySwitch(
-                        checked = pending.showToolbar,
-                        enabled = enabled,
-                        onCheckedChange = { pending = pending.copy(showToolbar = it) },
-                    )
-                    if (toolbarHiddenGlobally) {
-                        Text(
-                            stringResource(R.string.compose_editor_toolbar_hidden_globally),
-                            Modifier.padding(vertical = 8.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    ToolbarPresetSelector(
-                        presets = pending.presets,
-                        selected = selected,
-                        enabled = enabled && pending.showToolbar,
-                        onSelect = { pending = pending.copy(presetId = it) },
-                        onAdd = { naming = EditorToolbarPreset(name = "") },
-                        onRename = { naming = selected },
-                        onDuplicate = { naming = selected.copy(id = UUID.randomUUID().toString(), name = "") },
-                        onDelete = { deleting = selected },
-                    )
-                    Text(
-                        stringResource(R.string.compose_editor_preset_scope),
-                        Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        stringResource(R.string.compose_editor_toolbar_hidden_globally),
+                        Modifier.padding(vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            },
-        )
-    }
+                ToolbarPresetSelector(
+                    presets = pending.presets,
+                    selected = selected,
+                    enabled = enabled && pending.showToolbar,
+                    onSelect = { onChange(pending.copy(presetId = it)) },
+                    onAdd = { naming = EditorToolbarPreset(name = "") },
+                    onRename = { naming = selected },
+                    onDuplicate = { naming = selected.copy(id = UUID.randomUUID().toString(), name = "") },
+                    onDelete = { deleting = selected },
+                )
+                Text(
+                    stringResource(R.string.compose_editor_preset_scope),
+                    Modifier.padding(top = 12.dp, bottom = 4.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+    )
     naming?.let { preset ->
         var name by rememberSaveable(preset.id) { mutableStateOf(preset.name) }
         val dismissName = rememberEditorDismiss(name != preset.name) { naming = null }
@@ -182,7 +216,7 @@ internal fun EditorCustomizeToolbarDialog(
                     if (exists) {
                         updatePreset(updated)
                     } else {
-                        pending = pending.copy(presets = pending.presets + updated, presetId = updated.id)
+                        onChange(pending.copy(presets = pending.presets + updated, presetId = updated.id))
                     }
                     naming = null
                 }) { Text(stringResource(CommonString.dialog_ok)) }
@@ -201,11 +235,12 @@ internal fun EditorCustomizeToolbarDialog(
             text = { Text(stringResource(R.string.compose_editor_delete_preset_message, preset.name)) },
             confirmButton = {
                 TextButton(enabled = enabled, onClick = {
-                    pending =
+                    onChange(
                         pending.copy(
                             presets = pending.presets.filterNot { it.id == preset.id },
                             presetId = EditorToolbarPreset.DEFAULT_ID,
-                        )
+                        ),
+                    )
                     deleting = null
                 }) { Text(stringResource(R.string.compose_editor_delete_preset)) }
             },
