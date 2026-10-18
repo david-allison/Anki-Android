@@ -1783,6 +1783,26 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun helpOpenWithoutKeyboard() {
+        val (activity, keyboard) = showEditor()
+        hideKeyboard(activity, keyboard)
+        openFieldOptions()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        settleMenuTransition(activity)
+        captureScreen("help_open_without_keyboard")
+    }
+
+    @Test
+    fun helpOpenRtl() {
+        RuntimeEnvironment.setQualifiers("+ldrtl")
+        val (activity, _) = openOptions()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        settleMenuTransition(activity)
+        captureScreen("help_open_rtl")
+    }
+
+    @Test
     fun fieldHelpWithLargeTextOnSmallScreen() {
         RuntimeEnvironment.setQualifiers("+w320dp-h640dp")
         RuntimeEnvironment.setFontScale(1.5f)
@@ -1790,6 +1810,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         hideKeyboard(activity, keyboard)
         openFieldOptions()
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_field_options_help)).performClick()
+        composeRule.onNode(isPopup()).assertIsDisplayed()
+        settleMenuTransition(activity)
         captureScreen("help_open_small_screen_large_text")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_right_to_left_help)).performScrollTo().assertIsDisplayed()
         captureScreen("help_open_field_defaults_small_screen_large_text")

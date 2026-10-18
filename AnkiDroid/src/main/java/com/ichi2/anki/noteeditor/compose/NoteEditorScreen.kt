@@ -879,9 +879,11 @@ private fun FieldOptionsHelp(
 ) {
     val state = rememberTooltipState(isPersistent = true)
     val scope = rememberCoroutineScope()
+    val materialPosition = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above)
+    val position = remember(materialPosition) { EditorHelpTooltipPositionProvider(materialPosition) }
     BackHandler(enabled = state.isVisible) { state.dismiss() }
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+        positionProvider = position,
         state = state,
         focusable = false,
         tooltip = {
