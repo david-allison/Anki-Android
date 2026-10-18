@@ -1,10 +1,9 @@
 # Compose note editor: toolbar and field-panel feedback
 
-Recorded 2026-10-18. **12 action items; 7 resolved.**
+Recorded 2026-10-18. **12 action items; 8 resolved.**
 
 This records the tester's latest feedback and the assessments discussed in chat.
 Recommendations remain proposals unless an explicit decision is recorded.
-Removing the note-type name in item 02 is agreed; implementation is pending.
 
 Check an item when its decision and any agreed implementation or verification
 are complete. A proposal can also be resolved by explicitly declining it; record
@@ -24,21 +23,25 @@ separate.
   their actual display size, then replace the current icon if the distinction
   is clear. Preserve the visible label and accessible meaning.
 
-- [ ] **02. Remove the note-type name below the field name in the main panel.**
+- [x] **02. Remove the note-type name below the field name in the main panel.**
 
-  **Decision: remove the note-type name, agreed 2026-10-18.** Implementation is
-  pending. Repeating the note-type name adds visual competition
-  beside the field-position control. The field name and navigation are the
+  **Decision: remove the note-type name, agreed 2026-10-18.** Repeating it adds
+  visual competition beside the field-position control. The field name and navigation are the
   useful information in this panel. Customize toolbar and Quick actions already
-  omit the note-type name; this proposal concerns the main Field options panel.
+  omit the note-type name; this change concerns the main Field options panel.
 
-  **Proposed layout:** use a full-width navigation row below the field name,
+  **Implemented 2026-10-19:** removed the repeated note-type name and used a
+  full-width navigation row below the field name,
   with the previous arrow on the left, the tappable position (for example,
   **1 of 2**) centered, and the next arrow on the right. This develops the user's
-  suggestion to make the navigation full width; the layout itself remains a
-  proposal. Preserve the field-name picker, swipe/button animations, and
-  accessible arrow targets. Check first/last-field states, long field names,
-  large text, RTL, and the single-field case.
+  suggestion to make the navigation full width. The field-name picker,
+  swipe/button animations, and accessible arrow targets are preserved.
+  A single-field note shows no navigation row.
+
+  **Verification:** 16 light/dark checks pass for first/last fields, picker
+  selection and cancellation, interruptible arrows and swipes, RTL, a single
+  field, and long names at 200% text. Both Pixel navigation checks pass,
+  including focus and scrolling to the selected field with the keyboard hidden.
 
 - [x] **03. Remove “Add a hint for this field” from the Description row.**
 
