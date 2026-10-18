@@ -70,7 +70,7 @@
     <string name="compose_editor_equation_preview_empty">Enter an equation to see a preview</string>
     <string name="compose_editor_equation_preview_unavailable">Unable to preview this formula.</string>
     <string name="compose_editor_fields">Manage fields</string>
-    <string name="compose_editor_cards">Card templates</string>
+    <string name="compose_editor_cards">Card types</string>
     <string name="compose_editor_rich_only">Available in rich text mode</string>
     <string name="compose_editor_removed_fields">Text from removed fields</string>
     <string name="compose_editor_removed_fields_explanation">These fields were removed from the note type. Copy any text you want to keep before discarding it, or close the editor to keep it in your draft.</string>
