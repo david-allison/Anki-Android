@@ -450,7 +450,10 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             gesture(listOf(point, point), 700)
             visible(By.text(Pattern.compile("(?i)copy")))
             hold(1_000)
-            click(By.text("★"))
+            val starButton = visible(By.text("★")).visibleCenter
+            hold(400)
+            // A deliberate press makes the toolbar action and its touch dot easy to follow.
+            gesture(listOf(starButton, starButton), 200)
             await("Custom star wrapped selection") { fieldText(0).contains("★ star") }
             hold(2_000)
             recording.markFrame("custom-button")
