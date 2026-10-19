@@ -9,14 +9,16 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import com.ichi2.anki.R
 
-/** Fullscreen dialogs draw their own surface behind the system bars. */
+/** Fullscreen configuration pages draw behind the system bars and enter without the floating-dialog zoom/fade. */
 @Composable
 internal fun EditorDialogSystemBars() {
     val view = LocalView.current
     val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     SideEffect {
         (view.parent as? DialogWindowProvider)?.window?.let { window ->
+            window.setWindowAnimations(R.style.ComposeEditorConfigurationAnimation)
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = lightBars
                 isAppearanceLightNavigationBars = lightBars

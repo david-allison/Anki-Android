@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<resources>
+    <style name="ComposeEditorConfigurationAnimation">
+        <item name="android:windowEnterAnimation">@anim/editor_configuration_enter</item>
+        <item name="android:windowExitAnimation">@anim/editor_configuration_exit</item>
+    </style>
+</resources>
