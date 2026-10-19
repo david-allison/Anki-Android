@@ -44,6 +44,26 @@ getQuantityString(CommonPlurals.widget_cards_due, n, n)
 
 Files in package `com.ichi2.anki` need no import.
 
+### Preference keys (`CommonPreferenceKey`)
+
+Use `CommonPreferenceKey` for non-translatable preference key resources shared by
+Kotlin code and preference XML:
+
+```kotlin
+import com.ichi2.anki.CommonPreferenceKey
+
+getString(CommonPreferenceKey.pref_new_review_reminders)
+```
+
+The key remains defined once in XML with `translatable="false"` and referenced
+as `@string/pref_new_review_reminders` by the preference UI. `CommonPreferenceKey`
+and `CommonString` alias the same generated `R.string` class. Their intended uses
+are enforced by lint rather than the Kotlin compiler.
+
+Define shared preference keys in `preferences.xml` or `preferences_*.xml`.
+The `CommonPreferenceKeyUsage` lint check uses these resource files to enforce
+the alias convention, including for keys whose names do not start with `pref_`.
+
 ### Other resource types (`CommonR`)
 
 Use `CommonR` as an alias when outside this module. Inside this module, `R` should be used as the alias.
