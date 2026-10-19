@@ -118,6 +118,8 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             Prefs.sharedPrefs
                 .edit()
                 .putString(CollectionHelper.PREF_COLLECTION_PATH, demoDirectory.absolutePath)
+                // Keep the demo on the standard navigation path regardless of probe developer options.
+                .putBoolean(s(R.string.dev_bottom_nav_key), false)
                 .commit()
             CollectionHelper.initializeAnkiDroidDirectory(CollectionHelper.getCurrentAnkiDroidDirectory(testContext))
             CollectionManager.setColForTests(

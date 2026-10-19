@@ -25,6 +25,9 @@ next-note form and return to the Deck Picker before opening the prepared example
 in the card browser. The browser shows note type names so the initially empty
 Logo example can be opened as **App icons**.
 
+Use the standard navigation drawer during the demo. The fixture temporarily
+disables the probe's experimental bottom navigation and restores it afterward.
+
 There is no separate Chinese/Traditional/Japanese section. The opening itself
 demonstrates switching from the user's default keyboard to Japanese.
 
