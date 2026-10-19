@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Local, isolated build for ComposeNoteEditorDemoTest. Does not override the CI guard.
+gradle.beforeProject { project ->
+    if (project.path == ':AnkiDroid') {
+        project.plugins.withId('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { android ->
+                android.defaultConfig.testApplicationId = 'com.ichi2.anki.composefieldsprobe.tests'
+                def debug = android.buildTypes.getByName('debug')
+                debug.applicationIdSuffix = '.composefieldsprobe'
+                debug.testCoverageEnabled = false
+                debug.enableAndroidTestCoverage = false
+                debug.enableUnitTestCoverage = false
+                debug.buildConfigField('Boolean', 'ENABLE_LEAK_CANARY', 'false')
+                debug.resValue('string', 'app_name', 'AnkiDroid Fields Probe')
+            }
+        }
+    }
+}
