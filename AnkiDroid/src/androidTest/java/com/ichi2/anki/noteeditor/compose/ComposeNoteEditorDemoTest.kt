@@ -359,7 +359,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.text(s(R.string.compose_editor_toolbar_layout)))
             listOf(R.string.compose_editor_toolbar_scroll, R.string.compose_editor_toolbar_stack, R.string.compose_editor_toolbar_hidden)
                 .forEach { visible(By.text(s(it))) }
-            hold(1_500)
+            hold(750)
             click(By.text(s(R.string.compose_editor_toolbar_stack)))
             hold(700)
         }
