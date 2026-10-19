@@ -8,10 +8,12 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.os.SystemClock
 import android.view.InputDevice
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityWindowInfo
+import android.view.inspector.WindowInspector
 import android.webkit.WebView
 import androidx.core.text.HtmlCompat
 import androidx.core.view.descendants
@@ -29,6 +31,7 @@ import androidx.test.uiautomator.Until
 import com.ichi2.anki.BuildConfig
 import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.DeckPicker
 import com.ichi2.anki.R
@@ -127,7 +130,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             LanguageUtil.setDefaultBackendLanguages()
             fixture = EditorDemoFixture(col)
             val section = InstrumentationRegistry.getArguments().getString("demoSection") ?: "all"
-            require(section in setOf("all", "introduction", "styles", "drawing"))
+            require(section in setOf("all", "introduction", "styles", "drawing", "formatting"))
             val startsOnDeckPicker = section in setOf("all", "introduction")
             val intent =
                 if (startsOnDeckPicker) {
@@ -154,6 +157,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     }
                     if (section in setOf("all", "styles")) styles()
                     if (section in setOf("all", "drawing")) drawing()
+                    if (section in setOf("all", "formatting")) formatting()
                     take.finish()
                 }
             }
@@ -552,16 +556,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.desc(s(CommonString.card_editor_preview_card)))
             var preview: WebView? = null
             await("Question image loaded") {
-                preview =
-                    onMain {
-                        val root =
-                            (resumed() as ComposeNoteEditorActivity)
-                                .supportFragmentManager.fragments
-                                .filterIsInstance<EditorPreviewFragment>()
-                                .firstOrNull()
-                                ?.view as? ViewGroup
-                        root?.descendants?.filterIsInstance<WebView>()?.firstOrNull()
-                    }
+                preview = cardPreview()
                 preview?.evaluate("document.querySelector('#qa img')?.naturalWidth > 0") == "true"
             }
             assertEquals("false", checkNotNull(preview).evaluate("document.querySelector('#qa').textContent.includes('AnkiDroid')"))
@@ -581,6 +576,124 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
         assertTrue(col.getNote(fixture.drawing.id).fields[0].contains("<img"))
     }
+
+    private fun formatting() {
+        recording.scene("Add a quick toolbar demo") {
+            click(By.res(testContext.packageName, "action_add_note_from_card_browser"))
+            awaitEditorReady()
+            click(By.text(state().noteTypeName))
+            click(By.text("Basic"))
+            await("Basic selected") { state().noteTypeId == col.notetypes.basic.id }
+            awaitEditorReady()
+            tapField(0)
+            typeShortText("Toolbar demo")
+            await("Demo title entered") { fieldText(0) == "Toolbar demo" }
+            hideKeyboard()
+        }
+        recording.scene("Alignment dialog") {
+            click(By.desc(s(R.string.compose_editor_alignment)))
+            visible(By.text(TR.editingCenter()))
+            recording.markFrame("alignment-dialog")
+            hold(750)
+            click(By.text(TR.editingCenter()))
+            await("Demo title centered") {
+                web().evaluate("getComputedStyle(${richField(0)}.querySelector('div') ?? ${richField(0)}).textAlign === 'center'") == "true"
+            }
+            recording.markFrame("centered-title")
+            hold(500)
+            tapField(1)
+            hideKeyboard()
+        }
+        recording.scene("Equations: LaTeX preview") {
+            click(By.desc(s(R.string.compose_editor_equations)))
+            click(By.clazz("android.widget.EditText"))
+            typeShortText("H_2O")
+            hideKeyboard()
+            awaitEquationPreview()
+            recording.markFrame("latex-preview")
+            hold(750)
+        }
+        recording.scene("Equations: Chemistry H2O preview") {
+            click(By.text(s(R.string.compose_editor_math_chemistry)))
+            click(By.clazz("android.widget.EditText"))
+            device.pressKeyCode(KeyEvent.KEYCODE_A, KeyEvent.META_CTRL_ON)
+            typeShortText("H2O")
+            hideKeyboard()
+            awaitEquationPreview()
+            recording.markFrame("chemistry-preview")
+            hold(1_000)
+            click(By.text(s(CommonString.dialog_ok)))
+            await("Chemistry equation inserted") { runBlocking { web().snapshot().fields[1] }.contains("\\ce{H2O}") }
+            await("Equation rendered in the editor") {
+                web().evaluate("${richField(1)}.querySelector('img[data-anki=mathjax]')?.naturalWidth > 0") == "true"
+            }
+            hold(500)
+        }
+        recording.scene("Toolbar demo card preview") {
+            click(By.desc(s(CommonString.card_editor_preview_card)))
+            var preview: WebView? = null
+            await("Demo question loaded") {
+                preview = cardPreview()
+                preview?.evaluate("document.querySelector('#qa')?.textContent.includes('Toolbar demo')") == "true"
+            }
+            hold(500)
+            click(By.text(s(CommonString.show_answer)))
+            await("H2O rendered on the card") {
+                preview?.evaluate("!!document.querySelector('#qa mjx-container') && !document.querySelector('#qa mjx-merror')") == "true"
+            }
+            recording.markFrame("formatting-card")
+            hold(2_000)
+            click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+        }
+        recording.scene("Save the toolbar demo note") {
+            click(By.desc(s(CommonString.save)).enabled(true))
+            await("Demo note saved and Add form reset") { !state().isSaving && fieldText(0).isEmpty() }
+            visible(By.desc(s(CommonString.save)).enabled(true))
+            click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+            visible(By.res(testContext.packageName, "action_add_note_from_card_browser"))
+            val added = col.findNotes("\"Toolbar demo\"").single().let(col::getNote)
+            assertEquals("Toolbar demo", HtmlCompat.fromHtml(added.fields[0], HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim())
+            assertTrue(added.fields[0].contains("text-align: center"))
+            assertTrue(added.fields[1].contains("\\ce{H2O}"))
+            hold(500)
+        }
+    }
+
+    /** Short source strings entered as paced key events into the focused control. */
+    private fun typeShortText(text: String) {
+        text.forEach {
+            instrumentation.sendStringSync(it.toString())
+            hold(35)
+        }
+    }
+
+    private fun awaitEquationPreview() {
+        await("Equation dialog preview rendered") {
+            val preview =
+                onMain {
+                    WindowInspector
+                        .getGlobalWindowViews()
+                        .asSequence()
+                        .filterIsInstance<ViewGroup>()
+                        .flatMap { it.descendants }
+                        .filterIsInstance<WebView>()
+                        .firstOrNull { it.url?.endsWith("/equation-preview.html") == true }
+                }
+            preview?.evaluate("!!document.querySelector('#preview mjx-container') && !document.querySelector('#preview mjx-merror')") ==
+                "true"
+        }
+    }
+
+    private fun cardPreview(): WebView? =
+        onMain {
+            val root =
+                (resumed() as ComposeNoteEditorActivity)
+                    .supportFragmentManager.fragments
+                    .filterIsInstance<EditorPreviewFragment>()
+                    .firstOrNull()
+                    ?.view as? ViewGroup
+            root?.descendants?.filterIsInstance<WebView>()?.firstOrNull()
+        }
 
     private fun openNote(label: String) {
         click(By.text(label))

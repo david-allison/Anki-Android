@@ -4,7 +4,7 @@ Silent, real-time app walkthrough for YouTube and Reddit, with visible touches.
 No narration, music, captions, title cards, zoom effects, or outro. Move decisively,
 pause for dense settings and meaningful results, and do not speed up the footage.
 
-**Length: 1:46.** Timestamps below are measured from the passing full take.
+**Length: 2:23.** Timestamps below are measured from the passing full take.
 
 ## Prepare before recording
 
@@ -17,6 +17,7 @@ presets, custom button, drawing pens, and the available Japanese tag off camera.
 | English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Enter **memorization**, then a real newline and **learning by heart** in English; **暗記** in Japanese. Add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
 | Astronomy | **Question**: Which star is closest to Earth?, description Ask one clear question.; **Answer**: `<b>The Sun</b>`, initially normal mode; **Notes**: Sunlight takes about 8 minutes to reach Earth., initially collapsed; **Arabic answer**: الشمس, RTL, field toolbar disabled. All keyboard hints remain Default. | Toggle the Answer into HTML and back, then show field settings, toolbar layouts, presets, custom buttons, and Quick actions. |
 | App icons | **Logo**: empty, Drawing quick action enabled, field toolbar disabled; **App**: AnkiDroid. Both keyboard hints remain Default. | Draw the question in the first field; reveal the app name from the second field as the answer. |
+| Basic | Existing Front/Back note type, with only Equations and Alignment in its prepared Demo toolbar. Initially no note. | Add a short **Toolbar demo** note at the end to show those two buttons, their dialogs, and the card preview. |
 
 The first frame is the **Deck Picker**. The opening creates a real new note,
 rather than editing a prepared vocabulary card. After saving, leave the empty
@@ -35,6 +36,7 @@ demonstrates switching from the user's default keyboard to Japanese.
 - **Highlight** is a second custom button (`<mark>` / `</mark>`), left inactive
   near the bottom of Available so the scroll has a clear destination.
 - **Source**: only Edit HTML active; assigned to the Answer field, which starts in normal mode.
+- **Demo**: Equations and Alignment, assigned to Basic for the final quick showcase.
 - **★** inserts Before text `<span style="color: #0288d1;">★ ` and After text
   `</span>`. Applying it to the selected word **star** produces blue **★ star**.
 - Question initially has Pin and Attach media quick actions; Drawing is available
@@ -64,14 +66,15 @@ dismiss the keyboard, then add the Japanese tag. Show the completed note for
 
 | Time | Action | What the viewer should see |
 | --- | --- | --- |
-| 00:00–00:11 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
-| 00:11–00:37 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
-| 00:37–00:59 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
-| 00:59–01:12 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
-| 01:12–01:18 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:15. |
-| 01:18–01:22 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
-| 01:22–01:36 | Draw the card and star, Save, confirm Done. | Four separate card strokes with rounded corners and a smoothly rounded star, inserted into Logo; App remains AnkiDroid. |
-| 01:36–01:46 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
+| 00:00–00:14 | Deck Picker → Add → English/Japanese; enter memorization, a newline, learning by heart, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
+| 00:14–00:39 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
+| 00:39–01:05 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
+| 01:05–01:18 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
+| 01:18–01:26 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:22. |
+| 01:26–01:34 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
+| 01:34–01:48 | Draw the card and star, Save, confirm Done. | Four separate card strokes with rounded corners and a smoothly rounded star, inserted into Logo; App remains AnkiDroid. |
+| 01:48–01:58 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
+| 01:58–02:23 | Add a Basic note titled Toolbar demo. Center the title; open Equations in Back, show the LaTeX and Chemistry previews, then insert H₂O. Preview and Save. | A quick showcase of the two remaining toolbar buttons, with a 750 ms alignment-dialog hold and a 2-second view of the finished card. |
 
 Use explicit holds for readable settings and completed results. Do not pad scenes
 to minimum lengths or add uniform delays between keystrokes. Ordinary navigation
@@ -96,10 +99,18 @@ For the custom action, hold the word-selection menu for 1 second, then allow
 indicator and pressed state show exactly which button applies the formatting.
 Hold the blue **★ star** result for 2 seconds.
 
+Finish with a quick new **Basic** note titled **Toolbar demo**. Open **Alignment**,
+pause briefly on the choices, and center the title. In Back, open **Equations**,
+enter `H_2O`, and show the LaTeX preview. Switch to **Chemistry**, replace it with
+`H2O`, and show the rendered H₂O before inserting it. Preview the card,
+hold its rendered answer for 2 seconds, then save and return to the browser.
+Keep this focused on the two remaining toolbar buttons.
+
 The test must assert field names and Default language on English, both saved
-vocabulary values, the Japanese tag, saved toolbar order, the wrapped selection,
+vocabulary values including the newline, the Japanese tag, saved toolbar order, the wrapped selection,
 drawing in Logo, unchanged App, a loaded question image with no app name, and
-AnkiDroid appearing only after Show answer.
+AnkiDroid appearing only after Show answer. For the final note, verify the centered
+title, equation previews, rendered H₂O on the card, and saved formula.
 
 ## Running the instrumented recording
 
@@ -136,7 +147,7 @@ adb -s emulator-5586 pull \
   /tmp/anki-editor-demo
 ```
 
-For a section rehearsal, add `-e demoSection introduction`, `styles`, or `drawing`.
+For a section rehearsal, add `-e demoSection introduction`, `styles`, `drawing`, or `formatting`.
 The default `all` records one continuous path. Each run replaces the emulator's
 artifact directory. Preserve a successful take before running another.
 

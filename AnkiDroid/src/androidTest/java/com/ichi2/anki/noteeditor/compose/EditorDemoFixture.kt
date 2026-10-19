@@ -62,6 +62,12 @@ internal class EditorDemoFixture(
                     buttonOrder = listOf("custom:${star.id}", "BOLD", "ITALIC", "SOURCE_MODE") + all,
                 ),
                 EditorToolbarPreset(id = "demo-source", name = "Source", hiddenButtons = all - "SOURCE_MODE"),
+                EditorToolbarPreset(
+                    id = "demo-formatting",
+                    name = "Demo",
+                    hiddenButtons = all - setOf("EQUATIONS", "ALIGNMENT"),
+                    buttonOrder = listOf("EQUATIONS", "ALIGNMENT"),
+                ),
             ),
         )
         introductionType =
@@ -82,6 +88,9 @@ internal class EditorDemoFixture(
         drawing = note(drawingType, "", "AnkiDroid")
         toolbars.saveQuickActions(collectionKey, drawingType.id, drawingType.fields[0].editorKey(), listOf("drawing"))
         toolbars.saveToolbarVisibility(collectionKey, drawingType.id, drawingType.fields[0].editorKey(), false)
+        checkNotNull(col.notetypes.byName("Basic")).let { basic ->
+            basic.fields.forEach { toolbars.selectPreset(collectionKey, basic.id, it.editorKey(), "demo-formatting") }
+        }
         col.tags.setCollapsed("Japanese", true)
         col.decks.select(deckId)
         // Use the backend's real Add defaults, then remove this off-camera setup note.
