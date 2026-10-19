@@ -4,7 +4,7 @@ Silent, real-time app walkthrough for YouTube and Reddit, with visible touches.
 No narration, music, captions, title cards, zoom effects, or outro. Move decisively,
 pause for dense settings and meaningful results, and do not speed up the footage.
 
-**Length: 1:42.** Timestamps below are measured from the passing full take.
+**Length: 1:41.** Timestamps below are measured from the passing full take.
 
 ## Prepare before recording
 
@@ -15,7 +15,7 @@ presets, custom button, drawing pens, and the available Japanese tag off camera.
 | Note type | Fields and prepared content | Purpose |
 | --- | --- | --- |
 | English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Create **memorization / 暗記** on camera, add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
-| Field styles | **Text**: A star worth remembering., description Write a memorable sentence.; **HTML**: `<b>A memorable example.</b>`, initially source mode; **Details**: One picture can be a useful memory cue., initially collapsed; **Arabic**: الحب, RTL, field toolbar disabled. All keyboard hints remain Default. | Field settings, toolbar layouts, presets, custom buttons, and Quick actions. |
+| Astronomy | **Question**: Which star is closest to Earth?, description Ask one clear question.; **Answer**: `<b>The Sun</b>`, initially normal mode; **Notes**: Sunlight takes about 8 minutes to reach Earth., initially collapsed; **Arabic answer**: الشمس, RTL, field toolbar disabled. All keyboard hints remain Default. | Toggle the Answer into HTML and back, then show field settings, toolbar layouts, presets, custom buttons, and Quick actions. |
 | App icons | **Logo**: empty, Drawing quick action enabled, field toolbar disabled; **App**: AnkiDroid. Both keyboard hints remain Default. | Draw the question in the first field; reveal the app name from the second field as the answer. |
 
 The first frame is the **Deck Picker**. The opening creates a real new note,
@@ -32,10 +32,10 @@ demonstrates switching from the user's default keyboard to Japanese.
 - **Default**: enough familiar buttons for Stack to form two rows.
 - **Writing**: Bold, Italic, and Edit HTML active; the prepared **★** custom button
   is first in Available.
-- **Source**: only Edit HTML active; assigned to the HTML field.
+- **Source**: only Edit HTML active; assigned to the Answer field, which starts in normal mode.
 - **★** inserts Before text `<span style="color: #0288d1;">★ ` and After text
   `</span>`. Applying it to the selected word **star** produces blue **★ star**.
-- Text initially has Pin and Attach media quick actions; Drawing is available
+- Question initially has Pin and Attach media quick actions; Drawing is available
   for the demonstrated cross-group drag.
 - Prepare gray 7 px and blue 12 px drawing pens, with gray selected.
 - Draw a slightly tilted card and an uneven blue five-point star. Use separate
@@ -60,14 +60,14 @@ dismiss the keyboard, then add the Japanese tag. Show the completed note for
 
 | Time | Action | What the viewer should see |
 | --- | --- | --- |
-| 00:00–00:13 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
-| 00:13–00:40 | Open the prepared Field styles note from the browser. | All field options, font setting without changing its default, Description, Pin, source/rich text, collapsed and RTL fields. |
-| 00:40–00:56 | Show toolbar layouts, select Writing, drag ★ into Active and reorder it. | Brisk 350 ms drags with 200 ms after each drop. |
-| 00:56–01:09 | Show the ★ definition and Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
-| 01:09–01:15 | Long-press star, hold the native menu, tap ★, then Save. | One selection menu for 1 second, then blue ★ star for 2 seconds. |
-| 01:15–01:19 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
-| 01:19–01:32 | Draw the card and star, Save, confirm Done. | An imperfect hand-drawn logo inserted into Logo; App remains AnkiDroid. |
-| 01:32–01:42 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
+| 00:00–00:12 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
+| 00:12–00:39 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. |
+| 00:39–00:54 | Show toolbar layouts, select Writing, drag ★ into Active and reorder it. | Brisk 350 ms drags with 200 ms after each drop. |
+| 00:54–01:08 | Show the ★ definition and Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
+| 01:08–01:14 | Long-press star, hold the native menu, tap ★, then Save. | One selection menu for 1 second, then blue ★ star for 2 seconds. |
+| 01:14–01:17 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
+| 01:17–01:31 | Draw the card and star, Save, confirm Done. | An imperfect hand-drawn logo inserted into Logo; App remains AnkiDroid. |
+| 01:31–01:41 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
 
 Use explicit holds for readable settings and completed results. Do not pad scenes
 to minimum lengths or add uniform delays between keystrokes. Ordinary navigation

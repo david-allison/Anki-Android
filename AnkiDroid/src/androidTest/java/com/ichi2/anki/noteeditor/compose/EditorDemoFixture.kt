@@ -66,14 +66,13 @@ internal class EditorDemoFixture(
                 fields[1].languageHint = Locale.JAPANESE
             }
         val styleType =
-            type("Field styles", listOf("Text", "HTML", "Details", "Arabic")) {
-                fields[0].description = "Write a memorable sentence."
-                fields[1].jsonObject.put("plainText", true)
+            type("Astronomy", listOf("Question", "Answer", "Notes", "Arabic answer")) {
+                fields[0].description = "Ask one clear question."
                 fields[2].jsonObject.put("collapsed", true)
                 fields[3].jsonObject.put("rtl", true)
             }
         styles =
-            note(styleType, "A star worth remembering.", "<b>A memorable example.</b>", "One picture can be a useful memory cue.", "الحب")
+            note(styleType, "Which star is closest to Earth?", "<b>The Sun</b>", "Sunlight takes about 8 minutes to reach Earth.", "الشمس")
         toolbars.selectPreset(collectionKey, styleType.id, styleType.fields[1].editorKey(), "demo-source")
         toolbars.saveToolbarVisibility(collectionKey, styleType.id, styleType.fields[3].editorKey(), false)
         val drawingType = type("App icons", listOf("Logo", "App")) {}

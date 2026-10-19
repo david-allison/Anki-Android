@@ -134,7 +134,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     Intent(testContext, CardBrowser::class.java).putExtra(CardBrowserViewModel.EXTRA_DECK_ID, fixture.deckId)
                 }
             ActivityScenario.launch<Activity>(intent).use {
-                if (startsOnDeckPicker) prepareKeyboards() else visible(By.text("A star worth remembering."))
+                if (startsOnDeckPicker) prepareKeyboards() else visible(By.text("Which star is closest to Earth?"))
                 EditorDemoRecording(device).use { take ->
                     recording = take
                     take.start()
@@ -147,7 +147,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                                 click(By.desc(s(CommonString.drawer_open)))
                                 click(By.text(s(CommonString.card_browser)))
                             }
-                            visible(By.text("A star worth remembering."))
+                            visible(By.text("Which star is closest to Earth?"))
                         }
                     }
                     if (section in setOf("all", "styles")) styles()
@@ -292,9 +292,20 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     }
 
     private fun styles() {
-        recording.scene("Prepared field styles") {
-            openNote("A star worth remembering.")
+        recording.scene("Prepared Astronomy note") {
+            openNote("Which star is closest to Earth?")
             hold(1_000)
+        }
+        recording.scene("Answer: normal to HTML and back") {
+            tapField(1)
+            assertTrue(!state().fields[1].sourceMode)
+            hold(500)
+            click(By.desc(s(R.string.compose_editor_source)))
+            await("Answer in HTML mode") { lastStatus.get()?.let { it.activeField == 1 && it.sourceMode } == true }
+            hold(1_000)
+            click(By.desc(s(R.string.compose_editor_rich_text)))
+            await("Answer back in normal mode") { lastStatus.get()?.let { it.activeField == 1 && !it.sourceMode } == true }
+            hold(700)
             tapField(0)
         }
         recording.scene("All field options") {
@@ -316,23 +327,15 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
         recording.scene("Description") {
             click(By.text(s(R.string.compose_editor_field_description)))
-            visible(By.text("Write a memorable sentence."))
+            visible(By.text("Ask one clear question."))
             hold(1_500)
             click(By.text(s(CommonString.dialog_cancel)))
         }
-        recording.scene("Pin and choose HTML") {
+        recording.scene("Pin and choose Answer") {
             click(By.desc(s(R.string.compose_editor_pin_field)))
             await("Text pinned") { state().fields[0].sticky }
-            chooseField("HTML")
-        }
-        recording.scene("HTML to rich text") {
-            assertTrue(state().fields[1].sourceMode)
-            hold(700)
+            chooseField("Answer")
             closeOverview()
-            click(By.desc(s(R.string.compose_editor_rich_text)))
-            await("HTML rendered") { web().evaluate("!!${richField(1)}") == "true" }
-            hold(1_500)
-            hideKeyboard()
         }
         recording.scene("Collapsed and RTL fields") {
             tapElement("document.querySelector('.field-container[data-index=\"2\"] button')")
