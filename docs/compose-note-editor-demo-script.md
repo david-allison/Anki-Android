@@ -14,7 +14,7 @@ presets, custom button, drawing pens, and the available Japanese tag off camera.
 
 | Note type | Fields and prepared content | Purpose |
 | --- | --- | --- |
-| English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Create **memorization / 暗記** on camera, add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
+| English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Enter **memorization**, then a real newline and **learning by heart** in English; **暗記** in Japanese. Add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
 | Astronomy | **Question**: Which star is closest to Earth?, description Ask one clear question.; **Answer**: `<b>The Sun</b>`, initially normal mode; **Notes**: Sunlight takes about 8 minutes to reach Earth., initially collapsed; **Arabic answer**: الشمس, RTL, field toolbar disabled. All keyboard hints remain Default. | Toggle the Answer into HTML and back, then show field settings, toolbar layouts, presets, custom buttons, and Quick actions. |
 | App icons | **Logo**: empty, Drawing quick action enabled, field toolbar disabled; **App**: AnkiDroid. Both keyboard hints remain Default. | Draw the question in the first field; reveal the app name from the second field as the answer. |
 
@@ -51,8 +51,10 @@ with **Flick only** enabled. The English field has no explicit language hint;
 the Japanese field requests `ja`. Do not use Japanese QWERTY.
 
 Cache key and Save/Back button locations before recording. After the Add screen
-is ready, allow 200 ms before selecting the first field. Type **memorization**
-rapidly on the real English keyboard. For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
+is ready, allow 200 ms before selecting the first field. Type **memorization**,
+press Enter, then type **learning by heart** rapidly on the real English keyboard.
+Keep the default field size and let the second line grow naturally.
+For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
 か left for き. Select the real conversion candidate as soon as it appears,
 dismiss the keyboard, then add the Japanese tag. Show the completed note for
 750 ms after confirming the tag, then save. Keep this order:

@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityWindowInfo
 import android.webkit.WebView
+import androidx.core.text.HtmlCompat
 import androidx.core.view.descendants
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -183,7 +184,9 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         addSavePoint = visible(By.desc(s(CommonString.save))).visibleCenter
         addBackPoint = visible(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description))).visibleCenter
         selectDefaultKeyboard()
-        for (letter in "memorization".toSet()) keyboardPoints[letter.toString()] = keyboardKey(letter.toString())
+        for (letter in "memorizationlearningbyheart".toSet()) keyboardPoints[letter.toString()] = keyboardKey(letter.toString())
+        keyboardPoints["Enter"] = keyboardKey("Enter")
+        keyboardPoints["Space"] = keyboardKey("Space")
         tapField(1)
         val kana = visible(By.pkg(GBOARD).desc("アー"))
         keyboardPoints["あ"] = kana.visibleCenter
@@ -216,10 +219,13 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         recording.scene("Deck Picker", 1_000) {}
         recording.scene("Add English/Japanese note") { openAddNote() }
         hold(200)
-        recording.scene("English: memorization") {
+        recording.scene("English: memorization and a new line") {
             tapField(0)
             visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)m")))
             "memorization".forEach { tapKey(it.toString()) }
+            tapKey("Enter")
+            "learning by heart".forEach { tapKey(if (it == ' ') "Space" else it.toString()) }
+            recording.markFrame("multiline-vocabulary")
         }
         recording.scene("Japanese: 暗記") {
             tapField(1)
@@ -247,7 +253,8 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             tap(addBackPoint)
             visible(By.res(testContext.packageName, "fab_main"))
             val added = col.findNotes("note:\"English/Japanese\"").single().let(col::getNote)
-            assertTrue(added.fields[0].equals("memorization", ignoreCase = true))
+            val english = HtmlCompat.fromHtml(added.fields[0], HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim()
+            assertTrue(english.equals("memorization\nlearning by heart", ignoreCase = true), english)
             assertEquals("暗記", added.fields[1])
             assertTrue("Japanese" in added.tags)
             recording.markFrame("deck-picker-after-add")
