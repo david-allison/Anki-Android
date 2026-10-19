@@ -25,6 +25,7 @@ internal class EditorDemoFixture(
 ) {
     val deckId = col.decks.id("Demo")
     val star = EditorCustomToolbarButton("demo-star", "★", "<span style=\"color: #0288d1;\">★ ", "</span>")
+    val highlight = EditorCustomToolbarButton("demo-highlight", "Highlight", "<mark>", "</mark>")
     val introductionType: NotetypeJson
     val styles: Note
     val drawing: Note
@@ -43,7 +44,7 @@ internal class EditorDemoFixture(
                 putBoolean(IntroductionActivity.INTRODUCTION_SLIDES_SHOWN, true)
                 putString("composeEditorToolbarDisplay", "SCROLL")
             }.commit()
-        toolbars.saveCustomButtons(listOf(star))
+        toolbars.saveCustomButtons(listOf(star, highlight))
         val all = EditorToolbarButton.entries.map { it.name }.toSet()
         toolbars.savePresets(
             listOf(
@@ -51,12 +52,14 @@ internal class EditorDemoFixture(
                     id = EditorToolbarPreset.DEFAULT_ID,
                     name = "",
                     hiddenButtons = all - setOf("BOLD", "ITALIC", "UNDERLINE", "UNDO", "REDO", "SOURCE_MODE", "MEDIA", "TEXT_COLOR"),
+                    buttonOrder = listOf("custom:${star.id}") + all,
                 ),
                 EditorToolbarPreset(
                     id = "demo-writing",
                     name = "Writing",
                     hiddenButtons = all - setOf("BOLD", "ITALIC", "SOURCE_MODE"),
-                    buttonOrder = listOf("BOLD", "ITALIC", "SOURCE_MODE", "custom:${star.id}", "UNDERLINE"),
+                    customButtonIds = listOf(star.id),
+                    buttonOrder = listOf("custom:${star.id}", "BOLD", "ITALIC", "SOURCE_MODE") + all,
                 ),
                 EditorToolbarPreset(id = "demo-source", name = "Source", hiddenButtons = all - "SOURCE_MODE"),
             ),

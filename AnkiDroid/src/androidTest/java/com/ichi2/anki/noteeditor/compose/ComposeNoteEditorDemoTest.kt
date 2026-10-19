@@ -363,19 +363,38 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.text(s(R.string.compose_editor_toolbar_stack)))
             hold(700)
         }
-        recording.scene("Toolbar preset") {
+        recording.scene("Customize the current toolbar") {
             openOptions()
+            hold(750)
             click(By.text(s(R.string.compose_editor_toolbar)))
+            visible(By.text(s(R.string.compose_editor_default_toolbar)))
+            hold(1_000)
+        }
+        recording.scene("Available to Active, then reorder") {
+            val boldHandle = By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_bold)))
+            val sourceHandle = By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_source)))
+            val starHandle = By.desc(s(R.string.compose_editor_reorder_button, "★"))
+            dragHandle("★", visible(sourceHandle).visibleCenter.y)
+            visible(By.clickable(true).checked(true).hasDescendant(By.text("★")))
+            dragHandle("★", visible(boldHandle).visibleBounds.top)
+            await("Star reordered above Bold") { visible(starHandle).visibleCenter.y < visible(boldHandle).visibleCenter.y }
+            recording.markFrame("star-reordered")
+            hold(750)
+        }
+        recording.scene("Change toolbar preset") {
             click(By.text(s(R.string.compose_editor_default_toolbar)))
             click(By.text("Writing"))
+            hold(750)
             click(By.desc(s(R.string.compose_editor_preset_options, "Writing")))
             visible(By.text(s(R.string.compose_editor_add_preset)))
             hold(800)
             device.pressBack()
         }
-        recording.scene("Available to Active, then reorder") {
-            dragHandle("★", visible(By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_source)))).visibleCenter.y)
-            dragHandle("★", visible(By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_bold)))).visibleBounds.top)
+        recording.scene("Available custom button") {
+            scrollToolbarTo(fixture.highlight.label)
+            visible(By.clickable(true).checked(false).hasDescendant(By.text(fixture.highlight.label)))
+            recording.markFrame("available-custom-button")
+            hold(1_000)
         }
         recording.scene("Custom button definition") {
             click(By.desc(s(R.string.compose_editor_custom_buttons)))
@@ -399,6 +418,9 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     .toolbar.buttonOrder
                     .first(),
             )
+            val defaultPreset = EditorToolbarPreferences(Prefs.sharedPrefs).loadPresets().first { it.id == EditorToolbarPreset.DEFAULT_ID }
+            assertEquals("custom:${fixture.star.id}", defaultPreset.buttonOrder.first())
+            assertTrue(fixture.star.id in defaultPreset.customButtonIds)
         }
         recording.scene("Quick actions drag") {
             openOptions()
@@ -619,6 +641,21 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         val from = visible(By.desc(s(R.string.compose_editor_reorder_button, label))).visibleCenter
         gesture(listOf(from, Point(from.x, targetY)), 350)
         hold(200)
+    }
+
+    private fun scrollToolbarTo(label: String) {
+        val handle = By.desc(s(R.string.compose_editor_reorder_button, label))
+        repeat(8) {
+            val bounds = visible(By.clazz("androidx.recyclerview.widget.RecyclerView")).visibleBounds
+            val row = device.findObject(handle)?.visibleBounds
+            if (row != null && row.top >= bounds.top && row.bottom <= bounds.bottom && row.height() >= row.width()) return
+            gesture(
+                listOf(Point(bounds.centerX(), bounds.bottom - 80), Point(bounds.centerX(), bounds.top + 80)),
+                250,
+            )
+            hold(150)
+        }
+        error("Unable to expose toolbar button $label")
     }
 
     private fun tapField(index: Int) = tapElement("document.querySelector('.field-container[data-index=\"$index\"] .rich-text-editable')")

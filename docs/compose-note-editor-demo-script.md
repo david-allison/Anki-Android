@@ -29,9 +29,11 @@ demonstrates switching from the user's default keyboard to Japanese.
 
 ### Prepared toolbar and drawing controls
 
-- **Default**: enough familiar buttons for Stack to form two rows.
-- **Writing**: Bold, Italic, and Edit HTML active; the prepared **★** custom button
-  is first in Available.
+- **Default**: enough familiar buttons for Stack to form two rows; the prepared
+  **★** custom button is first in Available.
+- **Writing**: ★, Bold, Italic, and Edit HTML active, with ★ first.
+- **Highlight** is a second custom button (`<mark>` / `</mark>`), left inactive
+  near the bottom of Available so the scroll has a clear destination.
 - **Source**: only Edit HTML active; assigned to the Answer field, which starts in normal mode.
 - **★** inserts Before text `<span style="color: #0288d1;">★ ` and After text
   `</span>`. Applying it to the selected word **star** produces blue **★ star**.
@@ -79,6 +81,13 @@ After closing field options, expand **Notes** and hold its revealed content for
 1.5 seconds. Expansion should only reveal the content; it should neither select
 Notes nor open the keyboard. The RTL answer and its hidden toolbar remain visible
 during this hold. Then select Question to continue with toolbar customization.
+
+Pause briefly before opening **Customize toolbar**, then let the screen settle
+for 1 second. Edit **Default** first: drag ★ from Available into Active, then above
+Bold. Verify the actual row order and show the result for 750 ms before switching
+to **Writing**. Show its overflow menu, then scroll to the inactive **Highlight**
+custom button and hold for 1 second before opening **Custom buttons**. Saving must
+preserve the changes to Default as well as selecting Writing for the field.
 
 The test must assert field names and Default language on English, both saved
 vocabulary values, the Japanese tag, saved toolbar order, the wrapped selection,
