@@ -86,6 +86,49 @@ class WebEditorFormattingTest : InstrumentedTest() {
             }
         }
 
+    @Test
+    fun equationListIndentationPreservesItsCapturedFieldAndHistory() =
+        withEditor {
+            for (formula in listOf("\\(x^2\\)", "\\[x^2\\]", "\\(\\ce{H2O}\\)")) {
+                for (list in listOf("ul", "ol")) {
+                    val html = "<$list><li>first</li><li>$formula</li></$list>"
+                    loadDocument(document().copy(fields = listOf(WebEditorField("Front", html), WebEditorField("Back", "untouched"))))
+                    focusField(0)
+                    evaluate(
+                        """
+                        (() => {
+                            const field = $field;
+                            const handle = field.querySelector('frame-start');
+                            field.getRootNode().getSelection().setPosition(handle.firstChild, 0);
+                        })()
+                        """.trimIndent(),
+                    )
+                    for (action in listOf(WebEditorAction.INDENT, WebEditorAction.OUTDENT)) {
+                        val before = snapshot().fields
+                        val target = assertNotNull(captureTarget())
+                        focusField(1)
+                        assertTrue(execute(action, target))
+                        val after = snapshot().fields
+                        assertEquals(2, after[0].split(formula).size, "$action $list: formula must appear exactly once")
+                        assertEquals("untouched", after[1])
+                        val nested = if (action == WebEditorAction.INDENT) "1" else "0"
+                        assertEquals(nested, evaluate("$field.querySelectorAll('$list $list anki-mathjax').length"))
+                        assertEquals("2", evaluate("$field.querySelectorAll('li').length"))
+                        assertEquals("1", evaluate("$field.querySelectorAll('anki-mathjax').length"))
+                        assertEquals("\"false\"", evaluate("$field.querySelector('anki-mathjax').getAttribute('contenteditable')"))
+                        assertTrue(execute(WebEditorAction.UNDO))
+                        assertEquals(before, snapshot().fields)
+                        assertTrue(execute(WebEditorAction.REDO))
+                        assertEquals(after, snapshot().fields)
+                    }
+                    val after = snapshot().fields
+                    assertTrue(execute(WebEditorAction.SOURCE_MODE))
+                    assertTrue(execute(WebEditorAction.SOURCE_MODE))
+                    assertEquals(after, snapshot().fields)
+                }
+            }
+        }
+
     private fun document() =
         WebEditorDocument("formatting-test", 0, listOf(WebEditorField("Front", ""), WebEditorField("Back", "untouched")))
 
