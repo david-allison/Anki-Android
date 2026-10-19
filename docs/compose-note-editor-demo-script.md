@@ -53,14 +53,14 @@ is ready, allow 200 ms before selecting the first field. Type **memorization**
 rapidly on the real English keyboard. For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
 か left for き. Select the real conversion candidate as soon as it appears,
 dismiss the keyboard, then add the Japanese tag. Show the completed note for
-2 seconds after confirming the tag, then save. Keep this order:
+750 ms after confirming the tag, then save. Keep this order:
 **memorization → 暗記 → Japanese tag → completed note → Save**.
 
 ## Recorded path
 
 | Time | Action | What the viewer should see |
 | --- | --- | --- |
-| 00:00–00:13 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 2-second view of the completed tagged note before saving. |
+| 00:00–00:13 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
 | 00:13–00:40 | Open the prepared Field styles note from the browser. | All field options, font setting without changing its default, Description, Pin, source/rich text, collapsed and RTL fields. |
 | 00:40–00:56 | Show toolbar layouts, select Writing, drag ★ into Active and reorder it. | Brisk 350 ms drags with 200 ms after each drop. |
 | 00:56–01:09 | Show the ★ definition and Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |

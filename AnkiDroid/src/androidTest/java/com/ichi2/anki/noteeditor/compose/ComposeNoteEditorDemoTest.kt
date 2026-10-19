@@ -235,7 +235,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.res(testContext.packageName, "text_view").text("Japanese"))
             click(By.text(s(CommonString.dialog_confirm)))
             await("Japanese tag selected") { "Japanese" in state().tags }
-            hold(2_000)
+            hold(750)
             recording.markFrame("tagged-vocabulary")
             tap(addSavePoint)
         }
