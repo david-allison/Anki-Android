@@ -4,7 +4,7 @@ Silent, real-time app walkthrough for YouTube and Reddit, with visible touches.
 No narration, music, captions, title cards, zoom effects, or outro. Move decisively,
 pause for dense settings and meaningful results, and do not speed up the footage.
 
-**Length: 2:23.** Timestamps below are measured from the passing full take.
+**Length: 2:12.** Timestamps below are measured from the passing full Pixel take.
 
 ## Prepare before recording
 
@@ -14,7 +14,7 @@ presets, custom button, drawing pens, and the available Japanese tag off camera.
 
 | Note type | Fields and prepared content | Purpose |
 | --- | --- | --- |
-| English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Enter **memorization**, then a real newline and **learning by heart** in English; **暗記** in Japanese. Add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
+| English/Japanese | **English**, keyboard language **Default**; **Japanese**, keyboard language **Japanese**. Initially no note. | Enter **memorization** in English and **暗記** in Japanese. Add the **Japanese** tag, show the completed note, save, and return to the Deck Picker. |
 | Astronomy | **Question**: Which star is closest to Earth?, description Ask one clear question.; **Answer**: `<b>The Sun</b>`, initially normal mode; **Notes**: Sunlight takes about 8 minutes to reach Earth., initially collapsed; **Arabic answer**: الشمس, RTL, field toolbar disabled. All keyboard hints remain Default. | Toggle the Answer into HTML and back, then show field settings, toolbar layouts, presets, custom buttons, and Quick actions. |
 | App icons | **Logo**: empty, Drawing quick action enabled, field toolbar disabled; **App**: AnkiDroid. Both keyboard hints remain Default. | Draw the question in the first field; reveal the app name from the second field as the answer. |
 | Basic | Existing Front/Back note type, with only Equations and Alignment in its prepared Demo toolbar. Initially no note. | Add a short **Toolbar demo** note at the end to show those two buttons, their dialogs, and the card preview. |
@@ -56,9 +56,8 @@ with **Flick only** enabled. The English field has no explicit language hint;
 the Japanese field requests `ja`. Do not use Japanese QWERTY.
 
 Cache key and Save/Back button locations before recording. After the Add screen
-is ready, allow 200 ms before selecting the first field. Type **memorization**,
-press Enter, then type **learning by heart** rapidly on the real English keyboard.
-Keep the default field size and let the second line grow naturally.
+is ready, allow 200 ms before selecting the first field. Type **memorization**
+rapidly on the real English keyboard, keeping the default field size.
 For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
 か left for き. Select the real conversion candidate as soon as it appears,
 dismiss the keyboard, then add the Japanese tag. Show the completed note for
@@ -69,15 +68,15 @@ dismiss the keyboard, then add the Japanese tag. Show the completed note for
 
 | Time | Action | What the viewer should see |
 | --- | --- | --- |
-| 00:00–00:14 | Deck Picker → Add → English/Japanese; enter memorization, a newline, learning by heart, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
-| 00:14–00:39 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
-| 00:39–01:05 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
-| 01:05–01:18 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
-| 01:18–01:26 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:22. |
-| 01:26–01:34 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
-| 01:34–01:48 | Draw the card and star, Save, confirm Done. | Four separate card strokes with rounded corners and a smoothly rounded star, inserted into Logo; App remains AnkiDroid. |
-| 01:48–01:58 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
-| 01:58–02:23 | Add a Basic note titled Toolbar demo. Center the title; open Equations in Back, show the LaTeX and Chemistry previews, then insert H₂O. Preview and Save. | A quick showcase of the two remaining toolbar buttons, with a 750 ms alignment-dialog hold and a 2-second view of the finished card. |
+| 00:00–00:13 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
+| 00:13–00:40 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, the Pin tooltip, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
+| 00:40–01:01 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
+| 01:01–01:14 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
+| 01:14–01:21 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:17. |
+| 01:21–01:25 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
+| 01:25–01:40 | Draw the card and star, Save, confirm Done. | Four separate card strokes with rounded corners and a smoothly rounded star, inserted into Logo; App remains AnkiDroid. |
+| 01:40–01:48 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
+| 01:48–02:12 | Add a Basic note titled Toolbar demo. Center the title; open Equations in Back, show the LaTeX and Chemistry previews, then insert H₂O. Preview and Save. | A quick showcase of the two remaining toolbar buttons, with a 750 ms alignment-dialog hold and a 2-second view of the finished card. |
 
 Use explicit holds for readable settings and completed results. Do not pad scenes
 to minimum lengths or add uniform delays between keystrokes. Ordinary navigation
@@ -114,7 +113,7 @@ hold its rendered answer for 2 seconds, then save and return to the browser.
 Keep this focused on the two remaining toolbar buttons.
 
 The test must assert field names and Default language on English, both saved
-vocabulary values including the newline, the Japanese tag, saved toolbar order, the wrapped selection,
+vocabulary values, the Japanese tag, saved toolbar order, the wrapped selection,
 drawing in Logo, unchanged App, a loaded question image with no app name, and
 AnkiDroid appearing only after Show answer. For the final note, verify the centered
 title, equation previews, rendered H₂O on the card, and saved formula.
@@ -133,6 +132,9 @@ Normal instrumented runs skip it unless `-e editorDemo true` is supplied.
 `BuildConfig.CI == true` always skips it, including with explicit opt-in.
 The guard runs before setup. The CI gate has been verified
 locally with a CI-flagged probe returning JUnit skipped status `-4`.
+
+The current take uses a Pixel 9 Pro running Android 17 at 960 × 2142, density 360,
+with its existing English (UK) keyboard and the approved Japanese 12-key kana layout.
 
 The rehearsed emulator runs Android 14 at 720 × 1600, density 280, with hardware
 graphics (`-gpu host -feature -Vulkan`) and 4 GB RAM. The rehearsed Gboard version is
