@@ -195,4 +195,24 @@ separate.
   focused screenshot/interaction checks pass. The Pixel system-bar check also
   passes, now including the main Field options panel.
 
+## Navigation audit, 2026-10-19
+
+- The main editor, Customize toolbar, Quick actions, Custom buttons, Preview,
+  Manage fields, and Card types already provide navigation arrows.
+- Added arrows to the standalone toolbar, preset, and quick-action dialogs
+  used by the drag and configuration tests. Pending toolbar edits still use
+  the existing discard confirmation; quick actions save immediately.
+- Added a back arrow to the field overview, preserving discard confirmation
+  when a toolbar draft has pending changes.
+- Added Cancel to Toolbar layout. Selecting a layout still applies it immediately.
+- Replaced the field keyboard-language picker's X with a back arrow.
+- Description, Font, the field/name pickers, custom-button editing, formatting,
+  and confirmation dialogs provide Cancel or the corresponding explicit exit.
+  Help remains a dismissible popover, with Android Back support.
+- Verification: 46 focused JVM checks pass, including light/dark screenshots,
+  large text, RTL, and draft dismissal. Pixel checks exercise the visible arrows
+  through the customization screens and verify that cancelling the keyboard
+  picker preserves the selected language. The system-bar check passed unchanged
+  on retry after its first screenshot capture encountered a destroyed WebView.
+
 [material-buttons]: https://github.com/material-components/material-web/blob/main/docs/components/button.md#usage

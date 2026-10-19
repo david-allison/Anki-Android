@@ -51,6 +51,12 @@ class LocaleSelectionDialog : AnalyticsDialogFragment() {
         val binding = DialogLocaleSelectionBinding.inflate(layoutInflater)
         binding.localeDialogSelectionList.adapter = localeAdapter
         binding.localeDialogSelectionToolbar.setupMenuWith(localeAdapter)
+        if (arguments?.getBoolean(ARG_ALLOW_DEFAULT) == true) {
+            binding.localeDialogSelectionToolbar.apply {
+                setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+                navigationIcon?.mutate()?.setTint(getColorFromAttr(context, androidx.appcompat.R.attr.colorControlNormal))
+            }
+        }
         return AlertDialog.Builder(requireContext()).show {
             cancelable(true)
             customView(binding.root)

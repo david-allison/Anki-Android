@@ -966,12 +966,22 @@ class ComposeNoteEditorTest : InstrumentedTest() {
                 device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_custom_buttons))), 5_000),
             ).click()
             assertBars("custom-buttons", fullscreen = true)
-            device.pressBack()
-            device.pressBack()
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_toolbar)))).click()
+            checkNotNull(
+                device.wait(Until.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options))), 5_000),
+            ).click()
             checkNotNull(
                 device.wait(Until.findObject(By.text(testContext.getString(R.string.compose_editor_quick_actions))), 5_000),
             ).click()
             assertBars("quick-actions", fullscreen = true)
+            checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options)))).click()
+            checkNotNull(
+                device.wait(
+                    Until.findObject(By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_bar_up_description))),
+                    5_000,
+                ),
+            ).click()
+            assertTrue(device.wait(Until.gone(By.text(testContext.getString(R.string.compose_editor_quick_actions))), 5_000))
         }
     }
 
@@ -2502,7 +2512,14 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             choose(R.string.compose_editor_language_hint)
             val localePicker = By.res(testContext.packageName, "locale_dialog_selection_list")
             assertTrue(device.wait(Until.hasObject(localePicker), 5_000))
-            device.pressBack()
+            captureScreenshot("field-keyboard-picker", restored)
+            checkNotNull(
+                device.findObject(
+                    By
+                        .clazz("android.widget.ImageButton")
+                        .desc(testContext.getString(androidx.appcompat.R.string.abc_action_bar_up_description)),
+                ),
+            ).click()
             assertTrue(device.wait(Until.gone(localePicker), 5_000))
             assertEquals("ja", scenario.editorState().fields[1].languageTag, "Cancel must not reset the language hint")
             choose(R.string.compose_editor_language_hint)

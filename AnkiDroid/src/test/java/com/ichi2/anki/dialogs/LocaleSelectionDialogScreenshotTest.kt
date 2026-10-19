@@ -12,9 +12,10 @@ class LocaleSelectionDialogScreenshotTest : DialogScreenshotTest() {
     @Test
     fun `locale selection and search`(
         @TestParameter landscape: Boolean,
+        @TestParameter fieldOptions: Boolean,
     ) {
-        val name = setOrientation(landscape)
-        withDialog(LocaleSelectionDialog()) { fragment ->
+        val name = (if (fieldOptions) "field_" else "") + setOrientation(landscape)
+        withDialog(if (fieldOptions) LocaleSelectionDialog.withDefaultOption() else LocaleSelectionDialog()) { fragment ->
             captureScreen(name)
 
             val dialog = fragment.requireDialog()
