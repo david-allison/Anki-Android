@@ -232,6 +232,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.res(testContext.packageName, "text_view").text("Japanese"))
             click(By.text(s(CommonString.dialog_confirm)))
             await("Japanese tag selected") { "Japanese" in state().tags }
+            hold(2_000)
             recording.markFrame("tagged-vocabulary")
             tap(savePoint)
         }
@@ -288,12 +289,12 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     }
 
     private fun styles() {
-        recording.scene("Prepared field styles", 3_000) {
+        recording.scene("Prepared field styles") {
             openNote("A star worth remembering.")
             hold(1_000)
             tapField(0)
         }
-        recording.scene("All field options", 4_000) {
+        recording.scene("All field options") {
             openOptions()
             val hierarchy = ByteArrayOutputStream().also(device::dumpWindowHierarchy).toString("UTF-8")
             EditorFieldOption.entries.forEach {
@@ -302,7 +303,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             }
             hold(2_000)
         }
-        recording.scene("Font size", 5_000) {
+        recording.scene("Font size") {
             val defaultSize = state().fields[0].fontSize
             click(By.descContains(s(R.string.compose_editor_field_font)))
             assertEquals(defaultSize.toString(), visible(By.clazz("android.widget.EditText")).text)
@@ -310,18 +311,18 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.text(s(CommonString.dialog_cancel)))
             assertEquals(defaultSize, state().fields[0].fontSize)
         }
-        recording.scene("Description", 4_000) {
+        recording.scene("Description") {
             click(By.text(s(R.string.compose_editor_field_description)))
             visible(By.text("Write a memorable sentence."))
             hold(1_500)
             click(By.text(s(CommonString.dialog_cancel)))
         }
-        recording.scene("Pin and choose HTML", 3_000) {
+        recording.scene("Pin and choose HTML") {
             click(By.desc(s(R.string.compose_editor_pin_field)))
             await("Text pinned") { state().fields[0].sticky }
             chooseField("HTML")
         }
-        recording.scene("HTML to rich text", 6_000) {
+        recording.scene("HTML to rich text") {
             assertTrue(state().fields[1].sourceMode)
             hold(700)
             closeOverview()
@@ -330,7 +331,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(1_500)
             hideKeyboard()
         }
-        recording.scene("Collapsed and RTL fields", 6_000) {
+        recording.scene("Collapsed and RTL fields") {
             tapElement("document.querySelector('.field-container[data-index=\"2\"] button')")
             tapField(3)
             assertTrue(state().fields[3].rtl)
@@ -339,7 +340,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hideKeyboard()
             tapField(0)
         }
-        recording.scene("Toolbar layout", 5_000) {
+        recording.scene("Toolbar layout") {
             hideKeyboard()
             click(By.desc(s(R.string.compose_editor_options)))
             click(By.text(s(R.string.compose_editor_toolbar_layout)))
@@ -349,7 +350,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             click(By.text(s(R.string.compose_editor_toolbar_stack)))
             hold(700)
         }
-        recording.scene("Toolbar preset", 5_000) {
+        recording.scene("Toolbar preset") {
             openOptions()
             click(By.text(s(R.string.compose_editor_toolbar)))
             click(By.text(s(R.string.compose_editor_default_toolbar)))
@@ -363,7 +364,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             dragHandle("★", visible(By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_source)))).visibleCenter.y)
             dragHandle("★", visible(By.desc(s(R.string.compose_editor_reorder_button, s(R.string.compose_editor_bold)))).visibleBounds.top)
         }
-        recording.scene("Custom button definition", 8_000) {
+        recording.scene("Custom button definition") {
             click(By.desc(s(R.string.compose_editor_custom_buttons)))
             click(By.text("★"))
             visible(By.text(fixture.star.prefix))
@@ -386,7 +387,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     .first(),
             )
         }
-        recording.scene("Quick actions drag", 7_000) {
+        recording.scene("Quick actions drag") {
             openOptions()
             click(By.text(s(R.string.compose_editor_quick_actions)))
             dragHandle(s(CommonString.drawing), visible(By.text(s(CommonString.user_active_columns))).visibleCenter.y + 50)
@@ -394,7 +395,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             closeOverview()
             await("Drawing quick action saved") { "drawing" in state().fields[0].toolbar.quickActions }
         }
-        recording.scene("Long-press menu and custom button", 7_000) {
+        recording.scene("Long-press menu and custom button") {
             tapField(0)
             visible(By.pkg(GBOARD).desc("q"))
             val word = """(() => {
@@ -419,22 +420,22 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(2_000)
             recording.markFrame("custom-button")
         }
-        recording.scene("Save field styles", 2_000) { saveNote() }
+        recording.scene("Save field styles") { saveNote() }
         assertTrue(col.getNote(fixture.styles.id).fields[0].contains("★ star"))
     }
 
     private fun drawing() {
-        recording.scene("Open Drawing", 2_000) {
+        recording.scene("Open Drawing") {
             openNote("App icons")
             tapField(1)
             hideKeyboard()
         }
-        recording.scene("Drawing from an unselected field", 3_000) {
+        recording.scene("Drawing from an unselected field") {
             assertEquals(1, runBlocking { web().captureTarget() }?.field)
             click(By.text("${s(CommonString.drawing)}: Logo"))
             visible(By.res(testContext.packageName, "whiteboard_view"))
         }
-        recording.scene("Card outline and blue Anki star", 10_000) {
+        recording.scene("Card outline and blue Anki star") {
             val canvas = visible(By.res(testContext.packageName, "whiteboard_view")).visibleBounds
             val centerX = canvas.exactCenterX()
             val centerY = canvas.top + canvas.height() * 0.43f
@@ -475,7 +476,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(1_500)
             recording.markFrame("star-on-card")
         }
-        recording.scene("Drawing inserted into Logo", 6_000) {
+        recording.scene("Drawing inserted into Logo") {
             click(By.res(testContext.packageName, "action_save"))
             visible(By.text(s(CommonString.multimedia_editor_field_editing_done)))
             hold(600)
@@ -494,7 +495,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hideKeyboard()
             hold(2_000)
         }
-        recording.scene("Finished card preview", 7_000) {
+        recording.scene("Finished card preview") {
             click(By.desc(s(CommonString.card_editor_preview_card)))
             var preview: WebView? = null
             await("Question image loaded") {
@@ -512,16 +513,19 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             }
             assertEquals("false", checkNotNull(preview).evaluate("document.querySelector('#qa').textContent.includes('AnkiDroid')"))
             recording.markFrame("logo-question")
-            hold(1_000)
+            hold(2_000)
             click(By.text(s(CommonString.show_answer)))
             await("App name revealed") {
                 checkNotNull(preview).evaluate("document.querySelector('#qa').textContent.includes('AnkiDroid')") == "true"
             }
-            hold(3_000)
+            hold(4_000)
             recording.markFrame("finished-card")
             click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
         }
-        recording.scene("Save drawing", 3_000) { saveNote() }
+        recording.scene("Save drawing") {
+            saveNote()
+            hold(750)
+        }
         assertTrue(col.getNote(fixture.drawing.id).fields[0].contains("<img"))
     }
 
@@ -576,7 +580,12 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         visible(By.descContains(s(R.string.compose_editor_field_options_title, name)))
     }
 
-    private fun closeOverview() = click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+    private fun closeOverview() {
+        click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+        await("Field panel closed") {
+            onMain { web().importantForAccessibility == View.IMPORTANT_FOR_ACCESSIBILITY_AUTO }
+        }
+    }
 
     private fun keyboardKey(key: String): Point {
         val pattern = Pattern.compile(Pattern.quote(key), Pattern.CASE_INSENSITIVE)
