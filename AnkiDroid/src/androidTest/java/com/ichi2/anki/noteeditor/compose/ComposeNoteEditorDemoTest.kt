@@ -451,16 +451,27 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     (centerY + x * sin(angle) + y * cos(angle)).roundToInt(),
                 )
             }
-            val card = listOf(-0.5 to -0.5, 0.5 to -0.5, 0.5 to 0.5, -0.5 to 0.5, -0.5 to -0.5)
-            gesture(card.map { (x, y) -> point(x * width, y * height) }, 2_500)
+            val firstStroke = listOf(-0.51 to -0.49, 0.48 to -0.51, 0.51 to 0.49)
+            val secondStroke = listOf(0.515 to 0.48, -0.48 to 0.52, -0.505 to -0.50)
+            gesture(handDrawn(firstStroke.map { (x, y) -> point(x * width, y * height) }), 1_300)
+            hold(100)
+            gesture(handDrawn(secondStroke.map { (x, y) -> point(x * width, y * height) }), 1_300)
             click(By.text("12").clazz("android.widget.CompoundButton"))
             val star =
-                (0..10).map { i ->
-                    val angle = -PI / 2 + i * PI / 5
-                    val radius = width * if (i % 2 == 0) 0.37 else 0.16
-                    point(cos(angle) * radius, sin(angle) * radius)
-                }
-            gesture(star, 4_500)
+                listOf(
+                    0.0 to -0.38,
+                    0.10 to -0.13,
+                    0.35 to -0.16,
+                    0.18 to 0.035,
+                    0.23 to 0.30,
+                    -0.015 to 0.16,
+                    -0.28 to 0.32,
+                    -0.20 to 0.035,
+                    -0.39 to -0.09,
+                    -0.14 to -0.13,
+                    0.005 to -0.37,
+                ).map { (x, y) -> point(x * width, y * width) }
+            gesture(handDrawn(star), 4_500)
             hold(1_500)
             recording.markFrame("star-on-card")
         }
@@ -683,6 +694,20 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             throw error
         }
     }
+
+    /** A repeatable freehand trace: slight drift, uneven corners, and slower turns. */
+    private fun handDrawn(vertices: List<Point>): List<Point> =
+        vertices.zipWithNext().flatMapIndexed { index, (a, b) ->
+            (0 until 16).map { step ->
+                val t = step / 16.0
+                val progress = (1 - cos(PI * t)) / 2
+                val drift = sin(PI * t) * (2.4 * sin(5 * PI * t + index) + 1.3 * sin(9 * PI * t))
+                Point(
+                    (a.x + (b.x - a.x) * progress + drift).roundToInt(),
+                    (a.y + (b.y - a.y) * progress + drift * sin(index + 0.8)).roundToInt(),
+                )
+            }
+        } + vertices.last()
 
     private fun richField(index: Int) =
         "document.querySelector('.field-container[data-index=\"$index\"] .rich-text-editable')?.shadowRoot?.querySelector('anki-editable')"
