@@ -89,6 +89,8 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     private val lastStatus = AtomicReference<WebEditorStatus>()
     private val keyboardPoints = mutableMapOf<String, Point>()
     private var kanaFlickDistance = 0
+    private lateinit var addSavePoint: Point
+    private lateinit var addBackPoint: Point
 
     @Test
     fun recordEditorWalkthrough() {
@@ -177,6 +179,8 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     /** Resolve key positions off camera, then return to the Deck Picker with an empty editor. */
     private fun prepareKeyboards() {
         openAddNote()
+        addSavePoint = visible(By.desc(s(CommonString.save))).visibleCenter
+        addBackPoint = visible(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description))).visibleCenter
         selectDefaultKeyboard()
         for (letter in "memorization".toSet()) keyboardPoints[letter.toString()] = keyboardKey(letter.toString())
         tapField(1)
@@ -210,8 +214,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     private fun introduction() {
         recording.scene("Deck Picker", 1_000) {}
         recording.scene("Add English/Japanese note") { openAddNote() }
-        val savePoint = visible(By.desc(s(CommonString.save))).visibleCenter
-        val backPoint = visible(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description))).visibleCenter
+        hold(200)
         recording.scene("English: memorization") {
             tapField(0)
             visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)m")))
@@ -234,11 +237,11 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             await("Japanese tag selected") { "Japanese" in state().tags }
             hold(2_000)
             recording.markFrame("tagged-vocabulary")
-            tap(savePoint)
+            tap(addSavePoint)
         }
         recording.scene("Return to Deck Picker") {
             await("Saved note and next empty Add form") { !state().isSaving && fieldText(0).isEmpty() }
-            tap(backPoint)
+            tap(addBackPoint)
             visible(By.res(testContext.packageName, "fab_main"))
             val added = col.findNotes("note:\"English/Japanese\"").single().let(col::getNote)
             assertTrue(added.fields[0].equals("memorization", ignoreCase = true))

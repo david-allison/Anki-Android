@@ -48,8 +48,9 @@ Use Gboard with English (US) QWERTY as its default and Japanese **12-key kana**
 with **Flick only** enabled. The English field has no explicit language hint;
 the Japanese field requests `ja`. Do not use Japanese QWERTY.
 
-Cache key locations before recording. Type **memorization** rapidly on the real
-English keyboard. For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
+Cache key and Save/Back button locations before recording. After the Add screen
+is ready, allow 200 ms before selecting the first field. Type **memorization**
+rapidly on the real English keyboard. For **あんき → 暗記**, tap あ, flick わ upward for ん, then flick
 か left for き. Select the real conversion candidate as soon as it appears,
 dismiss the keyboard, then add the Japanese tag. Show the completed note for
 2 seconds after confirming the tag, then save. Keep this order:
