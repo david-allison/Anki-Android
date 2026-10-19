@@ -18,7 +18,7 @@ changes to the connected phone.
 
 Start inside a normal **Japanese vocabulary** note: Front **Memorization**, Back
 empty, both 20 px. Enter **あんき → 暗記** in Back using the Japanese kana keypad.
-The large multilingual fields appear later as a deliberate configuration example.
+All demo fields retain the note type's default font size, including the language examples.
 
 The **Demo** deck contains four prepared notes, each generating one card. Show the
 note-type column in the browser and sort by creation order so edits do not reorder
@@ -29,8 +29,8 @@ recorded order is vocabulary, field styles, languages, then drawing.
 | Note type | Prepared note and fields | What it demonstrates |
 | --- | --- | --- |
 | Japanese vocabulary | `Front`: **Memorization**, English keyboard hint; `Back`: empty, Japanese hint. Both fields 20 px. | A familiar Front/Back editor; Japanese kana input **あんき → 暗記**. |
-| Languages | `Topic`: **Love**, collapsed; `Chinese`, `Traditional Chinese`, and `Japanese`: empty, 36 px, no descriptions. Topic is the browser sort field. | Three distinct keyboard languages: Simplified Chinese, Traditional Chinese, and Japanese, switching automatically with the selected field. |
-| Field styles | `Text`: **A star worth remembering.**, 24 px, description **Write a memorable sentence.**; `HTML`: **A memorable example.** stored as `<b>A memorable example.</b>`, starts in HTML mode; `Details`: **One picture can be a useful memory cue.**, starts collapsed; `Arabic`: **الحب**, right-to-left, field toolbar disabled. Text is the browser sort field. | Field settings, different toolbars, source mode, a collapsed field, and RTL text. |
+| Languages | `Topic`: **Love**, collapsed; `Chinese`, `Traditional Chinese`, and `Japanese`: empty, default font size, no descriptions. Topic is the browser sort field. | Three distinct keyboard languages: Simplified Chinese, Traditional Chinese, and Japanese, switching automatically with the selected field. |
+| Field styles | `Text`: **A star worth remembering.**, default font size, description **Write a memorable sentence.**; `HTML`: **A memorable example.** stored as `<b>A memorable example.</b>`, starts in HTML mode; `Details`: **One picture can be a useful memory cue.**, starts collapsed; `Arabic`: **الحب**, right-to-left, field toolbar disabled. Text is the browser sort field. | Field settings, different toolbars, source mode, a collapsed field, and RTL text. |
 | Drawing | `Prompt`: **Draw the Anki star**, pinned; `Sketch`: empty, description **Draw something memorable.**, Drawing already enabled as a quick action. Sketch's field toolbar is disabled. | One-tap drawing on a field that is not selected, followed by the finished card. |
 
 The Drawing card front shows Prompt. Its answer shows Prompt and Sketch. The
@@ -91,7 +91,7 @@ currently represents some Save actions with a tick.
 | **0:05–0:06** | Save and return to the prepared Demo deck. | A normal completed note before customization. |
 | **0:06–0:09** | Open **A star worth remembering.**; tap Text. | Text, HTML source, and collapsed Details are already configured. |
 | **0:09–0:16** | Open **Editor options → Field options**. | Hold all nine options for 2 seconds: Pin, HTML, Collapsed, RTL, Font, Keyboard, Description, Customize toolbar, Quick actions. |
-| **0:16–0:21** | Change Font from **24** to **28**, then Save. | The control and the resulting **28 px** summary. |
+| **0:16–0:21** | Open Font, show the default size, then Cancel. | The size control is visible; the field keeps its default size. |
 | **0:21–0:25** | Open Description, show the prepared sentence, Cancel. | Hold the existing description and explanation for 1.5 seconds. |
 | **0:25–0:28** | Enable Pin field; use the field counter to choose **HTML**. | The pin becomes active and the named picker changes field focus. |
 | **0:28–0:34** | Show Start in HTML mode, close the panel, tap **Edit rich text**. | Source becomes bold text; hold for 1.5 seconds. Its Source toolbar differs from Text's. |
@@ -103,7 +103,7 @@ currently represents some Save actions with a tick.
 | **1:05–1:12** | Open **Quick actions**; drag Drawing from Available to Active; return. | The one-tap explanation and cross-group drag. Changes save immediately. |
 | **1:12–1:19** | Long-press **star**, hold the native menu, tap toolbar **★**. | One selection menu, held for 1 second; then the blue **★ star** result for 2 seconds. |
 | **1:19–1:21** | Save the customized note. | Return to the browser. |
-| **1:21–1:23** | Open **Love**. | The larger fields now clearly belong to a separate prepared example. |
+| **1:21–1:23** | Open **Love**. | A separate prepared example with three language-specific fields at the default size. |
 | **1:23–1:24** | Tap Chinese, type **ai**, choose **爱**. | Simplified Chinese Pinyin; enter the reading in a few hundred milliseconds. |
 | **1:24–1:26** | Tap Traditional Chinese, type **ai**, choose **愛**. | Traditional Chinese Pinyin switches automatically; no artificial candidate delay. |
 | **1:26–1:28** | Tap Japanese, enter **あい**, choose **愛**. | The visibly Japanese 12-key kana layout; tap あ and flick left for い. |

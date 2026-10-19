@@ -62,7 +62,6 @@ internal class EditorDemoFixture(
         )
         val introductionType =
             type("Japanese vocabulary", listOf("Front", "Back")) {
-                fields.forEach { it.fontSize = 20 }
                 fields[0].languageHint = Locale.ENGLISH
                 fields[1].languageHint = Locale.JAPANESE
             }
@@ -71,14 +70,12 @@ internal class EditorDemoFixture(
             type("Languages", listOf("Topic", "Chinese", "Traditional Chinese", "Japanese")) {
                 fields[0].jsonObject.put("collapsed", true)
                 listOf("zh-Hans-CN", "zh-Hant-TW", "ja").forEachIndexed { i, tag ->
-                    fields[i + 1].fontSize = 36
                     fields[i + 1].languageHint = Locale.forLanguageTag(tag)
                 }
             }
         languages = note(languageType, "Love", "", "", "")
         val styleType =
             type("Field styles", listOf("Text", "HTML", "Details", "Arabic")) {
-                fields[0].fontSize = 24
                 fields[0].description = "Write a memorable sentence."
                 fields[1].jsonObject.put("plainText", true)
                 fields[2].jsonObject.put("collapsed", true)
