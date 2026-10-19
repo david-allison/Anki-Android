@@ -11,7 +11,7 @@ gradle.beforeProject { project ->
                 debug.enableAndroidTestCoverage = false
                 debug.enableUnitTestCoverage = false
                 debug.buildConfigField('Boolean', 'ENABLE_LEAK_CANARY', 'false')
-                debug.resValue('string', 'app_name', 'AnkiDroid Fields Probe')
+                debug.resValue('string', 'app_name', 'AnkiDroid')
             }
         }
     }
