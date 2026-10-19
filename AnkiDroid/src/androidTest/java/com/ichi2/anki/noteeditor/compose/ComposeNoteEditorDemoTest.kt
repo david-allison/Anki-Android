@@ -343,6 +343,16 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(1_500)
             click(By.text(s(CommonString.dialog_cancel)))
         }
+        recording.scene("Pin field tooltip") {
+            val pin = visible(By.desc(s(R.string.compose_editor_pin_field))).visibleCenter
+            gesture(listOf(pin, pin), 700)
+            val tooltip = By.text(s(R.string.compose_editor_pin_field_summary))
+            visible(tooltip)
+            recording.markFrame("pin-field-tooltip")
+            hold(1_000)
+            await("Pin tooltip dismissed") { !device.hasObject(tooltip) }
+            assertTrue(!state().fields[0].sticky)
+        }
         recording.scene("Pin and choose Arabic answer") {
             click(By.desc(s(R.string.compose_editor_pin_field)))
             await("Text pinned") { state().fields[0].sticky }
@@ -851,11 +861,35 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             y: Float,
         ) {
             if (this::recording.isInitialized) recording.touch(action, x, y)
+            val pointer =
+                MotionEvent.PointerProperties().apply {
+                    id = 0
+                    toolType = MotionEvent.TOOL_TYPE_FINGER
+                }
+            val coordinates =
+                MotionEvent.PointerCoords().apply {
+                    this.x = x
+                    this.y = y
+                    pressure = if (action == MotionEvent.ACTION_UP) 0f else 1f
+                    size = 1f
+                }
             MotionEvent
-                .obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)
-                .apply {
-                    source = InputDevice.SOURCE_TOUCHSCREEN
-                }.let { event ->
+                .obtain(
+                    down,
+                    SystemClock.uptimeMillis(),
+                    action,
+                    1,
+                    arrayOf(pointer),
+                    arrayOf(coordinates),
+                    0,
+                    0,
+                    1f,
+                    1f,
+                    0,
+                    0,
+                    InputDevice.SOURCE_TOUCHSCREEN,
+                    0,
+                ).let { event ->
                     try {
                         // Stream movement at the requested pace; synchronize only at gesture boundaries.
                         check(instrumentation.uiAutomation.injectInputEvent(event, action != MotionEvent.ACTION_MOVE))

@@ -84,6 +84,10 @@ to minimum lengths or add uniform delays between keystrokes. Ordinary navigation
 continues once ready. Let the completed vocabulary note, source/rich-text result,
 custom button, and finished logo card register before moving on.
 
+Before pinning Question, long-press **Pin field** for 700 ms and show its
+“Keep this field’s contents after adding a note.” tooltip for about 1 second.
+Let the tooltip dismiss, then tap Pin field normally.
+
 Use the field-name picker to select **Arabic answer** with the keyboard closed.
 After closing field options, expand **Notes** and hold its revealed content for
 1.5 seconds. Expansion should only reveal the content; it should neither select
