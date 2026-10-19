@@ -1373,6 +1373,15 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertEquals(null, saved, "Returning to Field options must not save or discard pending edits")
         captureScreen("field_options_with_pending_customization")
         assertNoPanelSave()
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description)) and
+                    hasAnyAncestor(hasTestTag("editor_field_panel")),
+            ).assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertIsDisplayed()
+        composeRule.dismissEditorDialog()
+        composeRule.onNodeWithTag("editor_field_options").assertExists()
         openFieldSection(R.string.compose_editor_toolbar)
         saveToolbarConfiguration()
         assertEquals(setOf("BOLD"), saved?.presets?.single()?.hiddenButtons)
@@ -1428,6 +1437,13 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithText("Japanese").assertIsDisplayed()
         settleMenuTransition(activity)
         captureScreen("options_open_without_keyboard")
+        composeRule
+            .onNode(
+                hasContentDescription(getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description)) and
+                    hasAnyAncestor(hasTestTag("editor_field_panel")),
+            ).assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithTag("editor_field_panel").assertDoesNotExist()
     }
 
     @Test

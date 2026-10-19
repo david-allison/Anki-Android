@@ -63,6 +63,7 @@ internal fun EditorFieldPanel(
     enabled: Boolean,
     onChange: (EditorFieldPanelDraft) -> Unit,
     onSectionChange: (EditorFieldPanelSection) -> Unit,
+    onDismiss: () -> Unit,
     onFieldSelected: (EditorFieldTarget) -> Unit,
     onQuickActions: (EditorFieldTarget, List<String>) -> Unit,
     onSave: () -> Unit,
@@ -97,13 +98,23 @@ internal fun EditorFieldPanel(
         val compact = maxHeight / LocalDensity.current.fontScale < 300.dp
         Column(if (pending) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
             Row(
-                Modifier.fillMaxWidth().padding(start = if (pending) 8.dp else 24.dp, end = 8.dp, top = if (compact) 4.dp else 8.dp),
+                Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = if (compact) 4.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (pending) {
-                    IconButton(onClick = { onSectionChange(EditorFieldPanelSection.OPTIONS) }, colors = editorIconButtonColors()) {
-                        Icon(painterResource(R.drawable.ic_baseline_arrow_back_24), stringResource(R.string.compose_editor_field_options))
-                    }
+                IconButton(
+                    onClick = { if (pending) onSectionChange(EditorFieldPanelSection.OPTIONS) else onDismiss() },
+                    colors = editorIconButtonColors(),
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_baseline_arrow_back_24),
+                        stringResource(
+                            if (pending) {
+                                R.string.compose_editor_field_options
+                            } else {
+                                androidx.appcompat.R.string.abc_action_bar_up_description
+                            },
+                        ),
+                    )
                 }
                 Column(Modifier.weight(1f)) {
                     val fieldTitle = stringResource(R.string.compose_editor_field_options_title, field.name)
