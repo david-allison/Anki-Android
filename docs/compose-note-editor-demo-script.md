@@ -8,7 +8,7 @@ pause for dense settings and meaningful results, and do not speed up the footage
 
 ## Prepare before recording
 
-Use the isolated emulator and disposable Demo collection. All fields retain their
+Use the isolated probe app and disposable Demo collection. All fields retain their
 default font size. Prepare these note types, the two example notes, toolbar
 presets, custom button, drawing pens, and the available Japanese tag off camera.
 
@@ -51,7 +51,7 @@ demonstrates switching from the user's default keyboard to Japanese.
 
 ### Keyboard preparation
 
-Use Gboard with English (US) QWERTY as its default and Japanese **12-key kana**
+Use Gboard with English QWERTY as its default and Japanese **12-key kana**
 with **Flick only** enabled. The English field has no explicit language hint;
 the Japanese field requests `ja`. Do not use Japanese QWERTY.
 
@@ -118,13 +118,16 @@ title, equation previews, rendered H₂O on the card, and saved formula.
 ## Running the instrumented recording
 
 The test is `ComposeNoteEditorDemoTest.recordEditorWalkthrough`. It requires a
-disposable emulator and the isolated `.composefieldsprobe` package. It creates
-fresh synthetic data and restores app preferences afterward. It refuses to record
-on a physical device or a normal AnkiDroid build.
+disposable collection in the isolated `.composefieldsprobe` package. It creates
+fresh synthetic data and restores the probe app's preferences afterward. A physical
+device additionally requires `-e editorDemoPhysicalDevice true`; normal AnkiDroid
+builds are always rejected. Recording does not grant permissions or change system
+settings. Prepare the keyboard separately; on a personal device, only change its
+configuration with the owner's explicit permission.
 
 Normal instrumented runs skip it unless `-e editorDemo true` is supplied.
 `BuildConfig.CI == true` always skips it, including with explicit opt-in.
-The guard runs before setup or settings changes. The CI gate has been verified
+The guard runs before setup. The CI gate has been verified
 locally with a CI-flagged probe returning JUnit skipped status `-4`.
 
 The rehearsed emulator runs Android 14 at 720 × 1600, density 280, with hardware
@@ -151,8 +154,14 @@ adb -s emulator-5586 pull \
 ```
 
 For a section rehearsal, add `-e demoSection introduction`, `styles`, `drawing`, or `formatting`.
-The default `all` records one continuous path. Each run replaces the emulator's
+The default `all` records one continuous path. Each run replaces the device's
 artifact directory. Preserve a successful take before running another.
+
+For an explicitly authorized physical device, replace `emulator-5586` with its
+ADB serial and add `-e editorDemoPhysicalDevice true` to the instrumentation
+command. Use the same isolated app and test APKs. The test accepts the existing
+English keyboard variant, including English (UK), and does not enable keyboard
+languages or change touch/debug settings itself.
 
 The test writes `take.mp4`, scene timings in `timeline.json`, the outcome in
 `result.json`, and timestamped input in `touches.json`. `frames.json` marks useful
@@ -170,4 +179,4 @@ This requires `ffmpeg` and `ffprobe`, with no additional Python packages. Androi
 Winscope metadata aligns input with video. `take.mp4` stays untouched; `demo.mp4`
 is the delivery copy. Its 60 fps container repeats static frames as needed,
 preserving real time without concealing or repairing rendering stalls. Original
-emulator touch/debug settings are restored even after a failed take.
+device touch/debug settings are left unchanged.

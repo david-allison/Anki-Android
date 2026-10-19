@@ -13,14 +13,12 @@ import java.io.InputStreamReader
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
-/** Emulator-only recording; restores the exact touch settings even after a failed take. */
+/** Records the isolated demo without changing device settings; touch dots are added afterward. */
 internal class EditorDemoRecording(
     private val device: UiDevice,
 ) : AutoCloseable {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val directory = File(context.getExternalFilesDir(null), "editor-demo").apply { mkdirs() }
-    private val touches = shell("settings get system show_touches").trim()
-    private val pointer = shell("settings get system pointer_location").trim()
     private val events = JSONArray()
     private val frames = JSONObject()
     private val inputs = JSONArray()
@@ -32,13 +30,10 @@ internal class EditorDemoRecording(
     private var successful = false
 
     init {
-        check(InstrumentedDemoEnvironment.isAllowed()) { "Demo settings and recording require the isolated emulator probe" }
+        check(InstrumentedDemoEnvironment.isAllowed()) { "Recording requires the isolated probe and explicit device opt-in" }
     }
 
     fun start() {
-        shell("settings put system show_touches 1")
-        shell("settings put system pointer_location 0")
-        check(shell("settings get system show_touches").trim() == "1")
         check(shell("pidof screenrecord").isBlank()) { "Another recording is already running" }
         directory.listFiles()?.forEach { check(it.delete()) { "Could not clear previous artifact: $it" } }
         recorderOutput =
@@ -143,19 +138,10 @@ internal class EditorDemoRecording(
             )
         } finally {
             recorderOutput?.close()
-            restore("show_touches", touches)
-            restore("pointer_location", pointer)
         }
     }
 
     private fun writeEvents() = File(directory, "timeline.json").writeText(events.toString(2))
-
-    private fun restore(
-        key: String,
-        value: String,
-    ) {
-        if (value == "null") shell("settings delete system $key") else shell("settings put system $key $value")
-    }
 
     private fun shell(command: String): String =
         ParcelFileDescriptor
@@ -167,11 +153,12 @@ internal class EditorDemoRecording(
 }
 
 internal object InstrumentedDemoEnvironment {
-    fun isAllowed(): Boolean =
-        com.ichi2.anki.tests.InstrumentedTest
-            .isEmulator() &&
-            InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext.packageName
-                .endsWith(".composefieldsprobe")
+    fun isAllowed(): Boolean {
+        val isolated = InstrumentationRegistry.getInstrumentation().targetContext.packageName == "com.ichi2.anki.composefieldsprobe"
+        val deviceOptIn = InstrumentationRegistry.getArguments().getString("editorDemoPhysicalDevice") == "true"
+        return isolated && (
+            com.ichi2.anki.tests.InstrumentedTest
+                .isEmulator() || deviceOptIn
+        )
+    }
 }

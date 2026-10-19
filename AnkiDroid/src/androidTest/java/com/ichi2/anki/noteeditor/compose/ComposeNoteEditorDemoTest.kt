@@ -44,11 +44,8 @@ import com.ichi2.anki.noteeditor.web.WebEditorStatus
 import com.ichi2.anki.noteeditor.web.WebEditorView
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.tests.InstrumentedTest
-import com.ichi2.anki.testutil.GrantStoragePermission.storagePermission
 import com.ichi2.anki.testutil.ensureWebViewIsSupported
 import com.ichi2.anki.testutil.evaluate
-import com.ichi2.anki.testutil.grantPermissions
-import com.ichi2.anki.testutil.notificationPermission
 import com.ichi2.utils.LanguageUtil
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -84,9 +81,6 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             }
         }
 
-    @get:Rule
-    val runtimePermissions = grantPermissions(storagePermission, notificationPermission)
-
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val device = UiDevice.getInstance(instrumentation)
     private lateinit var recording: EditorDemoRecording
@@ -99,7 +93,9 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
 
     @Test
     fun recordEditorWalkthrough() {
-        check(InstrumentedDemoEnvironment.isAllowed()) { "Run on an emulator using the .composefieldsprobe build" }
+        check(
+            InstrumentedDemoEnvironment.isAllowed(),
+        ) { "Use the isolated probe; physical devices also require -e editorDemoPhysicalDevice true" }
         ensureWebViewIsSupported()
         check(device.executeShellCommand("settings get secure default_input_method").contains("com.google.android.inputmethod.latin")) {
             "Prepare Gboard with English QWERTY as its default and Japanese 12-key kana before recording"
@@ -208,7 +204,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     private fun selectDefaultKeyboard() {
         if (!device.hasObject(By.pkg(GBOARD).desc(Pattern.compile("(?i)q")))) {
             click(By.desc("Switch input method"))
-            click(By.textContains("English (US)"))
+            click(By.text(Pattern.compile("English \\(.*\\)")))
             visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)q")))
         }
     }
@@ -484,7 +480,9 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
         recording.scene("Drawing from an unselected field") {
             assertEquals(1, runBlocking { web().captureTarget() }?.field)
-            click(By.text("${s(CommonString.drawing)}: Logo"))
+            val label = "${s(CommonString.drawing)}: Logo"
+            // WebView versions expose aria-label as either text or contentDescription.
+            click(if (device.hasObject(By.desc(label))) By.desc(label) else By.text(label))
             visible(By.res(testContext.packageName, "whiteboard_view"))
         }
         recording.scene("Card outline and blue Anki star") {
