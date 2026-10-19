@@ -425,13 +425,13 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
 
     private fun drawing() {
         recording.scene("Open Drawing", 2_000) {
-            openNote("Draw the Anki star")
-            tapField(0)
+            openNote("App icons")
+            tapField(1)
             hideKeyboard()
         }
         recording.scene("Drawing from an unselected field", 3_000) {
-            assertEquals(0, runBlocking { web().captureTarget() }?.field)
-            click(By.text("${s(CommonString.drawing)}: Sketch"))
+            assertEquals(1, runBlocking { web().captureTarget() }?.field)
+            click(By.text("${s(CommonString.drawing)}: Logo"))
             visible(By.res(testContext.packageName, "whiteboard_view"))
         }
         recording.scene("Card outline and blue Anki star", 10_000) {
@@ -464,7 +464,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(1_500)
             recording.markFrame("star-on-card")
         }
-        recording.scene("Drawing inserted into Sketch", 6_000) {
+        recording.scene("Drawing inserted into Logo", 6_000) {
             click(By.res(testContext.packageName, "action_save"))
             visible(By.text(s(CommonString.multimedia_editor_field_editing_done)))
             hold(600)
@@ -478,17 +478,16 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                         ).singleOrNull() is ComposeNoteEditorActivity
                 }
             }
-            await("Drawing inserted") { runBlocking { web().snapshot().fields[1] }.contains("<img") }
-            assertEquals("Draw the Anki star", fieldText(0))
+            await("Drawing inserted") { runBlocking { web().snapshot().fields[0] }.contains("<img") }
+            assertEquals("AnkiDroid", fieldText(1))
             hideKeyboard()
             hold(2_000)
         }
         recording.scene("Finished card preview", 7_000) {
             click(By.desc(s(CommonString.card_editor_preview_card)))
-            hold(1_000)
-            click(By.text(s(CommonString.show_answer)))
-            await("Preview image loaded") {
-                val preview =
+            var preview: WebView? = null
+            await("Question image loaded") {
+                preview =
                     onMain {
                         val root =
                             (resumed() as ComposeNoteEditorActivity)
@@ -500,12 +499,19 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     }
                 preview?.evaluate("document.querySelector('#qa img')?.naturalWidth > 0") == "true"
             }
+            assertEquals("false", checkNotNull(preview).evaluate("document.querySelector('#qa').textContent.includes('AnkiDroid')"))
+            recording.markFrame("logo-question")
+            hold(1_000)
+            click(By.text(s(CommonString.show_answer)))
+            await("App name revealed") {
+                checkNotNull(preview).evaluate("document.querySelector('#qa').textContent.includes('AnkiDroid')") == "true"
+            }
             hold(3_000)
             recording.markFrame("finished-card")
             click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
         }
         recording.scene("Save drawing", 3_000) { saveNote() }
-        assertTrue(col.getNote(fixture.drawing.id).fields[1].contains("<img"))
+        assertTrue(col.getNote(fixture.drawing.id).fields[0].contains("<img"))
     }
 
     private fun openNote(label: String) {

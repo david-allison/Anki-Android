@@ -76,15 +76,10 @@ internal class EditorDemoFixture(
             note(styleType, "A star worth remembering.", "<b>A memorable example.</b>", "One picture can be a useful memory cue.", "الحب")
         toolbars.selectPreset(collectionKey, styleType.id, styleType.fields[1].editorKey(), "demo-source")
         toolbars.saveToolbarVisibility(collectionKey, styleType.id, styleType.fields[3].editorKey(), false)
-        val drawingType =
-            type("Drawing", listOf("Prompt", "Sketch")) {
-                fields[0].sticky = true
-                fields[1].description = "Draw something memorable."
-                fields.forEach { it.languageHint = Locale.ENGLISH }
-            }
-        drawing = note(drawingType, "Draw the Anki star", "")
-        toolbars.saveQuickActions(collectionKey, drawingType.id, drawingType.fields[1].editorKey(), listOf("drawing"))
-        toolbars.saveToolbarVisibility(collectionKey, drawingType.id, drawingType.fields[1].editorKey(), false)
+        val drawingType = type("App icons", listOf("Logo", "App")) {}
+        drawing = note(drawingType, "", "AnkiDroid")
+        toolbars.saveQuickActions(collectionKey, drawingType.id, drawingType.fields[0].editorKey(), listOf("drawing"))
+        toolbars.saveToolbarVisibility(collectionKey, drawingType.id, drawingType.fields[0].editorKey(), false)
         col.tags.setCollapsed("Japanese", true)
         col.decks.select(deckId)
         // Use the backend's real Add defaults, then remove this off-camera setup note.
