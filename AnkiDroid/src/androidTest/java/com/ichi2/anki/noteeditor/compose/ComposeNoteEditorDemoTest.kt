@@ -241,6 +241,8 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
         recording.scene("Return to Deck Picker") {
             await("Saved note and next empty Add form") { !state().isSaving && fieldText(0).isEmpty() }
+            // Empty fields arrive before the editor finishes resetting and accepts navigation.
+            visible(By.desc(s(CommonString.save)).enabled(true))
             tap(addBackPoint)
             visible(By.res(testContext.packageName, "fab_main"))
             val added = col.findNotes("note:\"English/Japanese\"").single().let(col::getNote)
