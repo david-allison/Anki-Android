@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.test.assertEquals
@@ -490,15 +491,21 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     (centerY + x * sin(angle) + y * cos(angle)).roundToInt(),
                 )
             }
-            val firstStroke = listOf(-0.51 to -0.49, 0.48 to -0.51, 0.51 to 0.49)
-            val secondStroke = listOf(0.515 to 0.48, -0.48 to 0.52, -0.505 to -0.50)
-            gesture(handDrawn(firstStroke.map { (x, y) -> point(x * width, y * height) }), 1_300)
-            hold(100)
-            gesture(handDrawn(secondStroke.map { (x, y) -> point(x * width, y * height) }), 1_300)
+            val cardStrokes =
+                listOf(
+                    listOf(-0.46 to -0.50, 0.49 to -0.51, 0.50 to -0.46),
+                    listOf(0.50 to -0.46, 0.51 to 0.50, 0.46 to 0.51),
+                    listOf(0.46 to 0.51, -0.50 to 0.50, -0.50 to 0.45),
+                    listOf(-0.50 to 0.45, -0.51 to -0.50, -0.46 to -0.50),
+                )
+            cardStrokes.forEachIndexed { index, stroke ->
+                if (index > 0) hold(70)
+                gesture(roundedStroke(stroke.map { (x, y) -> point(x * width, y * height) }, width * 0.05), 650)
+            }
             click(By.text("12").clazz("android.widget.CompoundButton"))
             val star =
                 listOf(
-                    0.0 to -0.38,
+                    0.05 to -0.255,
                     0.10 to -0.13,
                     0.35 to -0.16,
                     0.18 to 0.035,
@@ -508,9 +515,10 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
                     -0.20 to 0.035,
                     -0.39 to -0.09,
                     -0.14 to -0.13,
-                    0.005 to -0.37,
+                    0.0 to -0.38,
+                    0.05 to -0.255,
                 ).map { (x, y) -> point(x * width, y * width) }
-            gesture(handDrawn(star), 4_500)
+            gesture(roundedStroke(star, width * 0.035), 4_500)
             hold(1_500)
             recording.markFrame("star-on-card")
         }
@@ -757,19 +765,50 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
     }
 
-    /** A repeatable freehand trace: slight drift, uneven corners, and slower turns. */
-    private fun handDrawn(vertices: List<Point>): List<Point> =
-        vertices.zipWithNext().flatMapIndexed { index, (a, b) ->
-            (0 until 16).map { step ->
-                val t = step / 16.0
-                val progress = (1 - cos(PI * t)) / 2
-                val drift = sin(PI * t) * (2.4 * sin(5 * PI * t + index) + 1.3 * sin(9 * PI * t))
-                Point(
-                    (a.x + (b.x - a.x) * progress + drift).roundToInt(),
-                    (a.y + (b.y - a.y) * progress + drift * sin(index + 0.8)).roundToInt(),
-                )
+    /** Mostly linear strokes with rounded turns, sampled more densely around each corner. */
+    private fun roundedStroke(
+        vertices: List<Point>,
+        radius: Double,
+    ): List<Point> {
+        val path = mutableListOf(vertices.first())
+
+        fun lineTo(end: Point) {
+            val start = path.last()
+            val steps = (hypot((end.x - start.x).toDouble(), (end.y - start.y).toDouble()) / 8).roundToInt().coerceAtLeast(1)
+            for (step in 1..steps) {
+                val t = step.toDouble() / steps
+                path += Point((start.x + (end.x - start.x) * t).roundToInt(), (start.y + (end.y - start.y) * t).roundToInt())
             }
-        } + vertices.last()
+        }
+
+        fun trimmed(
+            corner: Point,
+            neighbour: Point,
+        ): Point {
+            val dx = (neighbour.x - corner.x).toDouble()
+            val dy = (neighbour.y - corner.y).toDouble()
+            val fraction = (radius / hypot(dx, dy)).coerceAtMost(0.45)
+            return Point((corner.x + dx * fraction).roundToInt(), (corner.y + dy * fraction).roundToInt())
+        }
+
+        for (index in 1 until vertices.lastIndex) {
+            val corner = vertices[index]
+            val start = trimmed(corner, vertices[index - 1])
+            val end = trimmed(corner, vertices[index + 1])
+            lineTo(start)
+            for (step in 1..12) {
+                val t = step / 12.0
+                val u = 1 - t
+                path +=
+                    Point(
+                        (u * u * start.x + 2 * u * t * corner.x + t * t * end.x).roundToInt(),
+                        (u * u * start.y + 2 * u * t * corner.y + t * t * end.y).roundToInt(),
+                    )
+            }
+        }
+        lineTo(vertices.last())
+        return path
+    }
 
     private fun richField(index: Int) =
         "document.querySelector('.field-container[data-index=\"$index\"] .rich-text-editable')?.shadowRoot?.querySelector('anki-editable')"

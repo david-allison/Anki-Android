@@ -4,7 +4,7 @@ Silent, real-time app walkthrough for YouTube and Reddit, with visible touches.
 No narration, music, captions, title cards, zoom effects, or outro. Move decisively,
 pause for dense settings and meaningful results, and do not speed up the footage.
 
-**Length: 1:51.** Timestamps below are measured from the passing full take.
+**Length: 1:46.** Timestamps below are measured from the passing full take.
 
 ## Prepare before recording
 
@@ -40,9 +40,9 @@ demonstrates switching from the user's default keyboard to Japanese.
 - Question initially has Pin and Attach media quick actions; Drawing is available
   for the demonstrated cross-group drag.
 - Prepare gray 7 px and blue 12 px drawing pens, with gray selected.
-- Draw a slightly tilted card and an uneven blue five-point star. Use separate
-  card strokes, small gaps/overlaps, mild wobble, unequal star points, and slower
-  turns. Keep it recognizably hand-drawn.
+- Draw the slightly tilted card in four mostly linear strokes, lifting briefly
+  between sides and rounding each corner. Use smooth, rounded turns for the blue
+  five-point star too, retaining unequal points and slowing through the corners.
 
 ### Keyboard preparation
 
@@ -62,14 +62,14 @@ dismiss the keyboard, then add the Japanese tag. Show the completed note for
 
 | Time | Action | What the viewer should see |
 | --- | --- | --- |
-| 00:00–00:12 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
-| 00:12–00:42 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
-| 00:42–01:04 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
-| 01:04–01:17 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
-| 01:17–01:23 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:19. |
-| 01:23–01:26 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
-| 01:26–01:40 | Draw the card and star, Save, confirm Done. | An imperfect hand-drawn logo inserted into Logo; App remains AnkiDroid. |
-| 01:40–01:51 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
+| 00:00–00:11 | Deck Picker → Add → English/Japanese; enter memorization, then 暗記; add Japanese tag; Save → Deck Picker. | Fast typing, then a 750 ms view of the completed tagged note before saving. |
+| 00:11–00:37 | Open Astronomy. Use the Answer toolbar toggle: normal → HTML → normal. Then show field options. | Real field names and study content; demonstrate HTML once through the toggle. Show Font, Description, Pin, collapsed Notes, and the RTL Arabic answer without changing the HTML field setting. Hold expanded Notes for 1.5 seconds with the keyboard closed. |
+| 00:37–00:59 | Select Stack; open Customize toolbar; add and reorder ★ in Default; switch to Writing; scroll to inactive Highlight. | Choose the layout after 750 ms. Pause on Customize toolbar, use brisk 350 ms drags, and let the reordered ★ and inactive custom button register. |
+| 00:59–01:12 | Open Custom buttons, show the ★ definition, then Quick actions; drag Drawing into Active. | Readable settings and the one-tap explanation. |
+| 01:12–01:18 | Long-press star, hold the native menu, visibly press ★ on the toolbar, then Save. | One selection menu for 1 second, a 400 ms beat before the 200 ms press, then blue ★ star for 2 seconds. The toolbar press occurs around 01:15. |
+| 01:18–01:22 | Open App icons; keep App selected and tap Drawing beside Logo. | A quick action targeting an unselected first field. |
+| 01:22–01:36 | Draw the card and star, Save, confirm Done. | Four separate card strokes with rounded corners and a smoothly rounded star, inserted into Logo; App remains AnkiDroid. |
+| 01:36–01:46 | Preview the drawing as the question; show the answer. Return and Save. | The logo question for 2 seconds, then the AnkiDroid answer for 4 seconds before returning and saving. |
 
 Use explicit holds for readable settings and completed results. Do not pad scenes
 to minimum lengths or add uniform delays between keystrokes. Ordinary navigation
