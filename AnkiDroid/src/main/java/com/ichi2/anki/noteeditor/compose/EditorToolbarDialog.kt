@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
@@ -79,6 +80,7 @@ internal fun EditorToolbarDialog(
             templates,
             onCustomButtons,
             onSave,
+            dismiss,
             title,
             subtitle,
         )
@@ -94,6 +96,7 @@ internal fun EditorToolbarContent(
     templates: List<EditorCustomToolbarButton>,
     onCustomButtons: () -> Unit,
     onSave: (EditorFieldToolbar) -> Unit,
+    onBack: () -> Unit,
     title: String? = null,
     subtitle: String? = null,
     enabled: Boolean = true,
@@ -119,6 +122,14 @@ internal fun EditorToolbarContent(
                 topBar()
             } else {
                 TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = onBack, colors = editorIconButtonColors()) {
+                            Icon(
+                                painterResource(R.drawable.ic_baseline_arrow_back_24),
+                                stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
+                            )
+                        }
+                    },
                     title = {
                         Text(
                             title ?: stringResource(R.string.compose_editor_toolbar),

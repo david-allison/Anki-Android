@@ -215,7 +215,10 @@ class EditorToolbarDialogTest : RobolectricTest() {
         composeRule.onNodeWithText("Ruby").performClick()
         settleRows()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_bold)).performClick()
-        composeRule.dismissEditorDialog()
+        composeRule
+            .onNodeWithContentDescription(
+                getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description),
+            ).performClick()
         assertNull(saved)
     }
 

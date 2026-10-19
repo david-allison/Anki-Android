@@ -215,6 +215,7 @@ internal fun EditorFieldPanel(
                                     noteTypeName = state.noteTypeName,
                                     onSave = { onSave() },
                                     onCustomButtons = onCustomButtons,
+                                    onBack = { onSectionChange(EditorFieldPanelSection.OPTIONS) },
                                     enabled = enabled,
                                     toolbarHiddenGlobally = state.toolbarDisplay == EditorToolbarDisplay.HIDDEN,
                                     topBar = {},

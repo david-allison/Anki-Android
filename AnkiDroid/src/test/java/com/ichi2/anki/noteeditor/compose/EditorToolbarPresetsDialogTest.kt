@@ -136,7 +136,10 @@ class EditorToolbarPresetsDialogTest : RobolectricTest() {
         choose("Minimal")
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_italic)).performClick()
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_show_field_toolbar)).performClick()
-        composeRule.dismissEditorDialog()
+        composeRule
+            .onNodeWithContentDescription(
+                getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description),
+            ).performClick()
         assertFalse(dismissed)
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()
         assertTrue(dismissed)

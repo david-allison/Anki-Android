@@ -123,7 +123,10 @@ class EditorDialogDismissTest : RobolectricTest() {
         }
         composeRule.onNodeWithText(getResourceString(R.string.compose_editor_pin_field)).performClick()
         composeRule.onNodeWithContentDescription(getResourceString(CommonString.save)).assertDoesNotExist()
-        composeRule.dismissEditorDialog()
+        composeRule
+            .onNodeWithContentDescription(
+                getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description),
+            ).performClick()
         assertTrue(dismissed)
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).assertDoesNotExist()
         assertEquals(
