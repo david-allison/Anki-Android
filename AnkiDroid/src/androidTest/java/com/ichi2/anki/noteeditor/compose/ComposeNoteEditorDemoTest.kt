@@ -11,6 +11,7 @@ import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityWindowInfo
 import android.webkit.WebView
 import androidx.core.view.descendants
 import androidx.lifecycle.ViewModelProvider
@@ -28,6 +29,7 @@ import com.ichi2.anki.BuildConfig
 import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CommonString
+import com.ichi2.anki.DeckPicker
 import com.ichi2.anki.R
 import com.ichi2.anki.backend.createDatabaseUsingRustBackend
 import com.ichi2.anki.browser.CardBrowserViewModel
@@ -93,7 +95,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         check(InstrumentedDemoEnvironment.isAllowed()) { "Run on an emulator using the .composefieldsprobe build" }
         ensureWebViewIsSupported()
         check(device.executeShellCommand("settings get secure default_input_method").contains("com.google.android.inputmethod.latin")) {
-            "Prepare Gboard with Simplified Chinese Pinyin, Traditional Chinese Pinyin, and Japanese 12-key kana before recording"
+            "Prepare Gboard with English QWERTY as its default and Japanese 12-key kana before recording"
         }
         val originalPrefs = Prefs.sharedPrefs.all.toMap()
         val oldIdle = Configurator.getInstance().waitForIdleTimeout
@@ -121,18 +123,32 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             LanguageUtil.setDefaultBackendLanguages()
             fixture = EditorDemoFixture(col)
             val section = InstrumentationRegistry.getArguments().getString("demoSection") ?: "all"
-            require(section in setOf("all", "introduction", "languages", "styles", "drawing"))
-            val intent = Intent(testContext, CardBrowser::class.java).putExtra(CardBrowserViewModel.EXTRA_DECK_ID, fixture.deckId)
-            ActivityScenario.launch<CardBrowser>(intent).use {
-                visible(By.text("Love"))
-                if (section in setOf("all", "introduction", "languages")) prepareKeyboards()
-                if (section in setOf("all", "introduction")) openNote("Memorization")
+            require(section in setOf("all", "introduction", "styles", "drawing"))
+            val startsOnDeckPicker = section in setOf("all", "introduction")
+            val intent =
+                if (startsOnDeckPicker) {
+                    Intent(testContext, DeckPicker::class.java)
+                } else {
+                    Intent(testContext, CardBrowser::class.java).putExtra(CardBrowserViewModel.EXTRA_DECK_ID, fixture.deckId)
+                }
+            ActivityScenario.launch<Activity>(intent).use {
+                if (startsOnDeckPicker) prepareKeyboards() else visible(By.text("A star worth remembering."))
                 EditorDemoRecording(device).use { take ->
                     recording = take
                     take.start()
                     if (section in setOf("all", "introduction")) introduction() else take.scene("Prepared note types", 1_000) {}
+                    if (section == "all") {
+                        take.scene("Open prepared examples") {
+                            if (device.hasObject(By.res(testContext.packageName, "nav_browser"))) {
+                                click(By.res(testContext.packageName, "nav_browser"))
+                            } else {
+                                click(By.desc(s(CommonString.drawer_open)))
+                                click(By.text(s(CommonString.card_browser)))
+                            }
+                            visible(By.text("A star worth remembering."))
+                        }
+                    }
                     if (section in setOf("all", "styles")) styles()
-                    if (section in setOf("all", "languages")) languages()
                     if (section in setOf("all", "drawing")) drawing()
                     take.finish()
                 }
@@ -158,39 +174,78 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
     }
 
-    /** Resolve stable key positions before recording, so accessibility lookups cannot interrupt typing. */
+    /** Resolve key positions off camera, then return to the Deck Picker with an empty editor. */
     private fun prepareKeyboards() {
-        openNote("Love")
+        openAddNote()
+        selectDefaultKeyboard()
+        for (letter in "memorization".toSet()) keyboardPoints[letter.toString()] = keyboardKey(letter.toString())
         tapField(1)
-        keyboardPoints["a"] = keyboardKey("a")
-        keyboardPoints["i"] = keyboardKey("i")
-        tapField(2)
-        visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)a")))
-        tapField(3)
         val kana = visible(By.pkg(GBOARD).desc("アー"))
         keyboardPoints["あ"] = kana.visibleCenter
         kanaFlickDistance = kana.visibleBounds.width() / 2
         keyboardPoints["わ"] = keyboardKey("わ")
         keyboardPoints["か"] = keyboardKey("か")
-        saveNote()
+        tapField(0)
+        selectDefaultKeyboard()
+        click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+        visible(By.res(testContext.packageName, "fab_main"))
+    }
+
+    private fun selectDefaultKeyboard() {
+        if (!device.hasObject(By.pkg(GBOARD).desc(Pattern.compile("(?i)q")))) {
+            click(By.desc("Switch input method"))
+            click(By.textContains("English (US)"))
+            visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)q")))
+        }
+    }
+
+    private fun openAddNote() {
+        click(By.res(testContext.packageName, "fab_main"))
+        click(By.text(s(CommonString.menu_add)))
+        awaitEditorReady()
+        assertEquals(listOf("English", "Japanese"), state().fields.map { it.name })
+        assertEquals(null, state().fields[0].languageTag)
     }
 
     private fun introduction() {
-        recording.scene("Normal Front/Back note", 1_000) {}
-        recording.scene("Japanese vocabulary: 暗記") {
+        recording.scene("Deck Picker", 1_000) {}
+        recording.scene("Add English/Japanese note") { openAddNote() }
+        val savePoint = visible(By.desc(s(CommonString.save))).visibleCenter
+        val backPoint = visible(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description))).visibleCenter
+        recording.scene("Japanese tag") {
+            hideKeyboard()
+            click(By.text(s(R.string.compose_editor_no_tags)))
+            click(By.res(testContext.packageName, "text_view").text("Japanese"))
+            click(By.text(s(CommonString.dialog_confirm)))
+            await("Japanese tag selected") { "Japanese" in state().tags }
+        }
+        recording.scene("English: memorization") {
+            tapField(0)
+            visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)m")))
+            "memorization".forEach { tapKey(it.toString()) }
+        }
+        recording.scene("Japanese: 暗記") {
             tapField(1)
             visible(By.pkg(GBOARD).desc("アー"))
             tapKey("あ")
             flickKey("わ", 0, -1)
             flickKey("か", -1, 0)
-            chooseCandidate("暗記", japanese = true, field = 1)
+            chooseCandidate("暗記", field = 1)
+            recording.markFrame("vocabulary")
+            // The visible Save target was resolved before typing; no keyboard-dismissal step.
+            tap(savePoint)
         }
-        recording.scene("Completed vocabulary note", 1_500) {
-            hideKeyboard()
-            recording.markFrame("normal-front-back")
+        recording.scene("Return to Deck Picker") {
+            await("Saved note and next empty Add form") { !state().isSaving && fieldText(0).isEmpty() }
+            tap(backPoint)
+            visible(By.res(testContext.packageName, "fab_main"))
+            val added = col.findNotes("note:\"English/Japanese\"").single().let(col::getNote)
+            assertTrue(added.fields[0].equals("memorization", ignoreCase = true))
+            assertEquals("暗記", added.fields[1])
+            assertTrue("Japanese" in added.tags)
+            recording.markFrame("deck-picker-after-add")
+            hold(500)
         }
-        recording.scene("Save vocabulary note", 1_000) { saveNote() }
-        assertEquals(listOf("Memorization", "暗記"), col.getNote(fixture.introduction.id).fields.toList())
     }
 
     private fun tapKey(label: String) {
@@ -209,59 +264,27 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
 
     private fun chooseCandidate(
         character: String,
-        japanese: Boolean,
         field: Int,
     ) {
-        val candidate = visible(if (japanese) By.pkg(GBOARD).text(character) else By.pkg(GBOARD).desc(character)).visibleCenter
+        var candidate: Point? = null
+        await("Keyboard candidate $character") {
+            candidate =
+                instrumentation.uiAutomation.windows
+                    .filter { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+                    .firstNotNullOfOrNull { window ->
+                        window.root
+                            ?.findAccessibilityNodeInfosByText(character)
+                            ?.firstOrNull {
+                                it.isVisibleToUser && it.text?.toString() == character
+                            }?.let { node ->
+                                Rect().also(node::getBoundsInScreen).let { Point(it.centerX(), it.centerY()) }
+                            }
+                    }
+            candidate != null
+        }
         recording.markFrame("keyboard-$field")
-        tap(candidate)
+        tap(checkNotNull(candidate))
         await("Committed $character") { fieldText(field) == character && lastStatus.get()?.composing == false }
-    }
-
-    private fun languages() {
-        recording.scene("Open Languages", 2_000) { openNote("Love") }
-        val examples = listOf("Chinese" to "爱", "Traditional Chinese" to "愛", "Japanese" to "愛")
-        for ((index, example) in examples.withIndex()) {
-            val (name, character) = example
-            recording.scene("$name: $character") {
-                tapField(index + 1)
-                val japanese = name == "Japanese"
-                if (japanese) {
-                    visible(By.pkg(GBOARD).desc("アー"))
-                    tapKey("あ")
-                    flickKey("あ", -1, 0)
-                } else {
-                    visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)a")))
-                    tapKey("a")
-                    tapKey("i")
-                }
-                chooseCandidate(character, japanese, index + 1)
-            }
-        }
-        recording.scene("Three keyboard variants: 爱, 愛, 愛", 3_000) {
-            hideKeyboard()
-            assertEquals(listOf("Love", "爱", "愛", "愛"), runBlocking { web().snapshot().fields })
-            recording.markFrame("languages")
-            hold(2_000)
-        }
-        recording.scene("Keyboard language setting", 8_000) {
-            openOptions()
-            click(By.desc(s(R.string.compose_editor_language_hint)))
-            visible(By.res(testContext.packageName, "locale_dialog_selection_list"))
-            hold(1_500)
-            click(By.clazz("android.widget.ImageButton").desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
-            visible(By.text("Japanese"))
-        }
-        recording.scene("Named fields and swipe", 5_000) {
-            chooseField("Chinese")
-            val y = visible(By.desc(s(R.string.compose_editor_start_in_html_mode))).visibleCenter.y
-            gesture(listOf(Point(device.displayWidth * 4 / 5, y), Point(device.displayWidth / 5, y)), 100)
-            visible(By.descContains(s(R.string.compose_editor_field_options_title, "Traditional Chinese")))
-            await("Swiping switches field focus") { runBlocking { web().captureTarget() }?.field == 2 }
-            closeOverview()
-        }
-        recording.scene("Save languages", 3_000) { saveNote() }
-        assertEquals(listOf("Love", "爱", "愛", "愛"), col.getNote(fixture.languages.id).fields.toList())
     }
 
     private fun styles() {
@@ -487,6 +510,10 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
 
     private fun openNote(label: String) {
         click(By.text(label))
+        awaitEditorReady()
+    }
+
+    private fun awaitEditorReady() {
         await("Editor ready") { runCatching { web().evaluate("!!window.AnkiEditorFields") == "true" }.getOrDefault(false) }
         visible(By.desc(s(R.string.compose_editor_options)).enabled(true))
         lastStatus.set(null)
@@ -511,7 +538,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     private fun openOptions() {
         hideKeyboard()
         if (!device.hasObject(By.desc(s(R.string.compose_editor_options)))) {
-            // Scrolling through the language fields collapses the native header.
+            // Scrolling through fields collapses the native header.
             // Reveal it with the same downward gesture a viewer would use.
             gesture(
                 listOf(

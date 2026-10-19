@@ -3,6 +3,7 @@
 package com.ichi2.anki.noteeditor.compose
 
 import android.graphics.Color
+import com.ichi2.anki.IntroductionActivity
 import com.ichi2.anki.browser.BrowserColumnCollection
 import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.libanki.BrowserConfig
@@ -24,8 +25,7 @@ internal class EditorDemoFixture(
 ) {
     val deckId = col.decks.id("Demo")
     val star = EditorCustomToolbarButton("demo-star", "★", "<span style=\"color: #0288d1;\">★ ", "</span>")
-    val introduction: Note
-    val languages: Note
+    val introductionType: NotetypeJson
     val styles: Note
     val drawing: Note
     private val toolbars = EditorToolbarPreferences(Prefs.sharedPrefs)
@@ -40,6 +40,7 @@ internal class EditorDemoFixture(
                     .filter { it.startsWith("composeEditor") }
                     .forEach(::remove)
                 remove("note_editor_custom_buttons")
+                putBoolean(IntroductionActivity.INTRODUCTION_SLIDES_SHOWN, true)
                 putString("composeEditorToolbarDisplay", "SCROLL")
             }.commit()
         toolbars.saveCustomButtons(listOf(star))
@@ -60,27 +61,16 @@ internal class EditorDemoFixture(
                 EditorToolbarPreset(id = "demo-source", name = "Source", hiddenButtons = all - "SOURCE_MODE"),
             ),
         )
-        val introductionType =
-            type("Japanese vocabulary", listOf("Front", "Back")) {
-                fields[0].languageHint = Locale.ENGLISH
+        introductionType =
+            type("English/Japanese", listOf("English", "Japanese")) {
                 fields[1].languageHint = Locale.JAPANESE
             }
-        introduction = note(introductionType, "Memorization", "")
-        val languageType =
-            type("Languages", listOf("Topic", "Chinese", "Traditional Chinese", "Japanese")) {
-                fields[0].jsonObject.put("collapsed", true)
-                listOf("zh-Hans-CN", "zh-Hant-TW", "ja").forEachIndexed { i, tag ->
-                    fields[i + 1].languageHint = Locale.forLanguageTag(tag)
-                }
-            }
-        languages = note(languageType, "Love", "", "", "")
         val styleType =
             type("Field styles", listOf("Text", "HTML", "Details", "Arabic")) {
                 fields[0].description = "Write a memorable sentence."
                 fields[1].jsonObject.put("plainText", true)
                 fields[2].jsonObject.put("collapsed", true)
                 fields[3].jsonObject.put("rtl", true)
-                fields.forEach { it.languageHint = Locale.ENGLISH }
             }
         styles =
             note(styleType, "A star worth remembering.", "<b>A memorable example.</b>", "One picture can be a useful memory cue.", "الحب")
@@ -95,6 +85,12 @@ internal class EditorDemoFixture(
         drawing = note(drawingType, "Draw the Anki star", "")
         toolbars.saveQuickActions(collectionKey, drawingType.id, drawingType.fields[1].editorKey(), listOf("drawing"))
         toolbars.saveToolbarVisibility(collectionKey, drawingType.id, drawingType.fields[1].editorKey(), false)
+        col.tags.setCollapsed("Japanese", true)
+        col.decks.select(deckId)
+        // Use the backend's real Add defaults, then remove this off-camera setup note.
+        val setup = note(introductionType, "Preparation", "")
+        col.removeNotes(listOf(setup.id))
+        check(col.defaultsForAdding().notetypeId == introductionType.id)
 
         BrowserColumnCollection.save(
             Prefs.sharedPrefs,
