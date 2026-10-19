@@ -212,13 +212,6 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         recording.scene("Add English/Japanese note") { openAddNote() }
         val savePoint = visible(By.desc(s(CommonString.save))).visibleCenter
         val backPoint = visible(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description))).visibleCenter
-        recording.scene("Japanese tag") {
-            hideKeyboard()
-            click(By.text(s(R.string.compose_editor_no_tags)))
-            click(By.res(testContext.packageName, "text_view").text("Japanese"))
-            click(By.text(s(CommonString.dialog_confirm)))
-            await("Japanese tag selected") { "Japanese" in state().tags }
-        }
         recording.scene("English: memorization") {
             tapField(0)
             visible(By.pkg(GBOARD).desc(Pattern.compile("(?i)m")))
@@ -232,7 +225,14 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             flickKey("か", -1, 0)
             chooseCandidate("暗記", field = 1)
             recording.markFrame("vocabulary")
-            // The visible Save target was resolved before typing; no keyboard-dismissal step.
+        }
+        recording.scene("Japanese tag") {
+            hideKeyboard()
+            click(By.text(s(R.string.compose_editor_no_tags)))
+            click(By.res(testContext.packageName, "text_view").text("Japanese"))
+            click(By.text(s(CommonString.dialog_confirm)))
+            await("Japanese tag selected") { "Japanese" in state().tags }
+            recording.markFrame("tagged-vocabulary")
             tap(savePoint)
         }
         recording.scene("Return to Deck Picker") {
