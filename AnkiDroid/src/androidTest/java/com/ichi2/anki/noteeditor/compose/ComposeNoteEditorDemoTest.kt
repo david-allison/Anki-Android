@@ -333,19 +333,24 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
             hold(1_500)
             click(By.text(s(CommonString.dialog_cancel)))
         }
-        recording.scene("Pin and choose Answer") {
+        recording.scene("Pin and choose Arabic answer") {
             click(By.desc(s(R.string.compose_editor_pin_field)))
             await("Text pinned") { state().fields[0].sticky }
-            chooseField("Answer")
+            chooseField("Arabic answer")
             closeOverview()
         }
         recording.scene("Collapsed and RTL fields") {
-            tapElement("document.querySelector('.field-container[data-index=\"2\"] button')")
-            tapField(3)
+            val notesToggle = "document.querySelector('.field-container[data-index=\"2\"] .collapse-toggle')"
+            assertEquals("false", web().evaluate("$notesToggle.getAttribute('aria-expanded') === 'true'"))
+            tapElement(notesToggle)
+            await("Notes expanded") { web().evaluate("$notesToggle.getAttribute('aria-expanded') === 'true'") == "true" }
+            assertEquals("Sunlight takes about 8 minutes to reach Earth.", fieldText(2))
             assertTrue(state().fields[3].rtl)
             assertTrue(!state().fields[3].toolbar.showToolbar)
-            hold(1_000)
-            hideKeyboard()
+            // Expanding Notes only reveals its content. Let it register without opening an IME.
+            assertTrue(!onMain { web().keyboardVisible })
+            recording.markFrame("notes-expanded")
+            hold(1_500)
             tapField(0)
         }
         recording.scene("Toolbar layout") {

@@ -74,6 +74,12 @@ to minimum lengths or add uniform delays between keystrokes. Ordinary navigation
 continues once ready. Let the completed vocabulary note, source/rich-text result,
 custom button, and finished logo card register before moving on.
 
+Use the field-name picker to select **Arabic answer** with the keyboard closed.
+After closing field options, expand **Notes** and hold its revealed content for
+1.5 seconds. Expansion should only reveal the content; it should neither select
+Notes nor open the keyboard. The RTL answer and its hidden toolbar remain visible
+during this hold. Then select Question to continue with toolbar customization.
+
 The test must assert field names and Default language on English, both saved
 vocabulary values, the Japanese tag, saved toolbar order, the wrapped selection,
 drawing in Logo, unchanged App, a loaded question image with no app name, and
