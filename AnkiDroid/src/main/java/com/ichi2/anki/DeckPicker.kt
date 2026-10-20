@@ -1561,7 +1561,7 @@ open class DeckPicker :
 
     private fun processReviewResults(resultCode: Int) {
         if (resultCode == AbstractFlashcardViewer.RESULT_NO_MORE_CARDS) {
-            CongratsPage.onReviewsCompleted(this, getColUnsafe.sched.totalCount() == 0)
+            launchCatchingTask { CongratsPage.onReviewsCompleted(this@DeckPicker) }
             fragment?.refreshInterface()
         }
     }

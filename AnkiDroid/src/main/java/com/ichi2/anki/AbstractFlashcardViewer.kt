@@ -522,11 +522,11 @@ abstract class AbstractFlashcardViewer :
         updateCurrentCard()
 
         if (currentCard == null) {
-            closeReviewer(RESULT_NO_MORE_CARDS)
             // When launched with a shortcut, we want to display a message when finishing
             if (intent.getBooleanExtra(EXTRA_STARTED_WITH_SHORTCUT, false)) {
-                CongratsPage.display(this)
+                CongratsPage.onReviewsCompleted(this, showToast = true)
             }
+            closeReviewer(RESULT_NO_MORE_CARDS)
             return
         }
 

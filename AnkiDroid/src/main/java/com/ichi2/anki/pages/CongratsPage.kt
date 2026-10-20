@@ -194,34 +194,34 @@ class CongratsPage :
 
         private fun displayNewCongratsScreen(context: Context): Boolean = context.sharedPrefs().getBoolean("new_congrats_screen", false)
 
-        fun display(activity: FragmentActivity) {
-            if (displayNewCongratsScreen(activity)) {
-                activity.startActivity(getIntent(activity))
-            } else {
-                activity.launchCatchingTask {
-                    val message = getDeckFinishedMessage(activity)
-                    showThemedToast(activity, message, false)
-                }
-            }
-        }
-
-        fun onReviewsCompleted(
+        /**
+         * Handle an exhausted review queue, distinguishing an empty regular deck from a finished
+         * deck. Use a toast for external shortcuts, whose reviewer is about to close.
+         */
+        suspend fun onReviewsCompleted(
             activity: FragmentActivity,
-            cardsInDeck: Boolean,
+            showToast: Boolean = false,
         ) {
-            if (displayNewCongratsScreen(activity)) {
+            val isEmptyRegularDeck =
+                withCol {
+                    val deck = decks.current()
+                    !deck.isFiltered && decks.cardCount(deck.id, includeSubdecks = true) == 0
+                }
+            if (!isEmptyRegularDeck && displayNewCongratsScreen(activity)) {
                 activity.startActivity(getIntent(activity))
                 return
             }
 
-            // Show a message when reviewing has finished
-            if (cardsInDeck) {
-                activity.launchCatchingTask {
-                    val message = getDeckFinishedMessage(activity)
-                    activity.showSnackbar(message)
+            val message =
+                if (isEmptyRegularDeck) {
+                    activity.getString(CommonString.empty_deck)
+                } else {
+                    getDeckFinishedMessage(activity)
                 }
+            if (showToast) {
+                showThemedToast(activity, message, false)
             } else {
-                activity.showSnackbar(CommonString.studyoptions_no_cards_due)
+                activity.showSnackbar(message)
             }
         }
 
