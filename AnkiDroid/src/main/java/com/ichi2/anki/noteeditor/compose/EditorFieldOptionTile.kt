@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.R
+import com.ichi2.anki.common.android.R as CommonR
 
 /** A settings link or toggle with the same layout and an accessible checked state. */
 @Composable
@@ -69,7 +70,13 @@ internal fun EditorFieldOptionTile(
             when (checked) {
                 true -> Icon(painterResource(R.drawable.ic_done), null, Modifier.size(16.dp))
                 false -> Spacer(Modifier.size(16.dp))
-                null -> Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(16.dp), tint = controlColor)
+                null ->
+                    Icon(
+                        painterResource(CommonR.drawable.ic_baseline_chevron_right_24),
+                        null,
+                        Modifier.size(16.dp),
+                        tint = controlColor,
+                    )
             }
         }
     }

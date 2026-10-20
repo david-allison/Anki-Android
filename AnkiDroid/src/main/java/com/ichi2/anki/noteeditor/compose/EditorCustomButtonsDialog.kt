@@ -52,6 +52,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.android.R as CommonR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,7 +104,7 @@ internal fun EditorCustomButtonsDialog(
                         onClick = { editing = EditorCustomToolbarButton(label = "", prefix = "", suffix = "") },
                         expanded = !listState.canScrollBackward,
                         text = { Text(createButtonLabel) },
-                        icon = { Icon(painterResource(R.drawable.ic_add), null, Modifier.size(24.dp)) },
+                        icon = { Icon(painterResource(CommonR.drawable.ic_add), null, Modifier.size(24.dp)) },
                         modifier =
                             Modifier
                                 .semantics { contentDescription = createButtonLabel }

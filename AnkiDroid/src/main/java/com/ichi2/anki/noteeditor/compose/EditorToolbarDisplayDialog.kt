@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.android.R as CommonR
 
 @Composable
 internal fun EditorToolbarDisplayDialog(
@@ -143,7 +144,7 @@ private fun ToolbarLayoutPreview(display: EditorToolbarDisplay) {
                     ) {
                         icons.take(3).forEach { PreviewIcon(it.icon, Modifier.weight(1f)) }
                         Icon(
-                            painterResource(R.drawable.ic_baseline_chevron_right_24),
+                            painterResource(CommonR.drawable.ic_baseline_chevron_right_24),
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = colors.primary,

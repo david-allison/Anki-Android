@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import com.ichi2.anki.noteeditor.R as NoteEditorR
 
 /** Names are persisted; keep them stable when changing labels or toolbar order. */
 internal enum class EditorToolbarButton(
@@ -40,9 +41,14 @@ internal enum class EditorToolbarButton(
     val richOnly: Boolean = false,
     val clozeOnly: Boolean = false,
 ) {
-    BOLD(R.drawable.ic_format_bold_black_24dp, R.string.compose_editor_bold, WebEditorAction.BOLD, toggle = true),
-    ITALIC(R.drawable.ic_format_italic_black_24dp, R.string.compose_editor_italic, WebEditorAction.ITALIC, toggle = true),
-    UNDERLINE(R.drawable.ic_format_underlined_black_24dp, R.string.compose_editor_underline, WebEditorAction.UNDERLINE, toggle = true),
+    BOLD(NoteEditorR.drawable.ic_format_bold_black_24dp, R.string.compose_editor_bold, WebEditorAction.BOLD, toggle = true),
+    ITALIC(NoteEditorR.drawable.ic_format_italic_black_24dp, R.string.compose_editor_italic, WebEditorAction.ITALIC, toggle = true),
+    UNDERLINE(
+        NoteEditorR.drawable.ic_format_underlined_black_24dp,
+        R.string.compose_editor_underline,
+        WebEditorAction.UNDERLINE,
+        toggle = true,
+    ),
     CLOZE_NEW(R.drawable.ic_cloze_new_card, R.string.compose_editor_cloze_new, WebEditorAction.CLOZE_NEW, clozeOnly = true),
     CLOZE_SAME(R.drawable.ic_cloze_same_card, R.string.compose_editor_cloze_same, WebEditorAction.CLOZE_SAME, clozeOnly = true),
     UNDO(R.drawable.ic_undo_2, CommonString.undo, WebEditorAction.UNDO),
@@ -69,7 +75,7 @@ internal enum class EditorToolbarButton(
         richOnly = true,
     ),
     ALIGNMENT(R.drawable.ic_editor_format_align_left, R.string.compose_editor_alignment, WebEditorAction.ALIGN_LEFT, richOnly = true),
-    EQUATIONS(R.drawable.ic_add_equation_black_24dp, R.string.compose_editor_equations, WebEditorAction.MATHJAX_INLINE),
+    EQUATIONS(NoteEditorR.drawable.ic_add_equation_black_24dp, R.string.compose_editor_equations, WebEditorAction.MATHJAX_INLINE),
     RECORD_AUDIO(R.drawable.ic_action_mic, CommonString.multimedia_editor_popup_audio),
 }
 

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.ichi2.anki.R
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import com.ichi2.anki.common.android.R as CommonR
 
 internal val LocalEditorFieldPageActive = staticCompositionLocalOf { true }
 
@@ -199,7 +200,7 @@ internal fun EditorFieldPanel(
                         colors = editorIconButtonColors(),
                     ) {
                         Icon(
-                            painterResource(R.drawable.ic_baseline_chevron_right_24),
+                            painterResource(CommonR.drawable.ic_baseline_chevron_right_24),
                             stringResource(R.string.compose_editor_next_field),
                         )
                     }

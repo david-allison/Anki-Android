@@ -132,6 +132,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.ichi2.anki.common.android.R as CommonR
 
 /** Native controls surround one web field editor, with a preview alongside it on tablets. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1037,7 +1038,14 @@ private fun EditorFieldOptionsLink(
                 .clip(MaterialTheme.shapes.medium),
         supportingContent = summary?.let { { Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis) } },
         leadingContent = { Icon(painterResource(icon), null, Modifier.size(24.dp), tint = iconTint) },
-        trailingContent = { Icon(painterResource(R.drawable.ic_baseline_chevron_right_24), null, Modifier.size(24.dp), tint = iconTint) },
+        trailingContent = {
+            Icon(
+                painterResource(CommonR.drawable.ic_baseline_chevron_right_24),
+                null,
+                Modifier.size(24.dp),
+                tint = iconTint,
+            )
+        },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     ) { Text(stringResource(title)) }
 }

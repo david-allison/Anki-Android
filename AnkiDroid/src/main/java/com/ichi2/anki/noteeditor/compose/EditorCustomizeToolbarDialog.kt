@@ -60,6 +60,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.ui.internationalization.trCase
 import java.util.UUID
+import com.ichi2.anki.common.android.R as CommonR
 
 @Composable
 internal fun EditorToolbarPreset.displayName(): String =
@@ -379,7 +380,7 @@ private fun ToolbarPresetSelector(
             DropdownMenu(expanded = options, onDismissRequest = { options = false }, containerColor = menuColor) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.compose_editor_add_preset)) },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_add), null, tint = controlColor) },
+                    leadingIcon = { Icon(painterResource(CommonR.drawable.ic_add), null, tint = controlColor) },
                     onClick = {
                         options = false
                         onAdd()

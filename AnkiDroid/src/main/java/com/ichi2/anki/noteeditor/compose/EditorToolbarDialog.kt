@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.R
+import com.ichi2.anki.common.android.R as CommonR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,7 +167,7 @@ internal fun EditorToolbarContent(
                         Text(libraryLabel, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                         Spacer(Modifier.width(16.dp))
                         Icon(
-                            painterResource(R.drawable.ic_baseline_chevron_right_24),
+                            painterResource(CommonR.drawable.ic_baseline_chevron_right_24),
                             null,
                             Modifier.size(24.dp),
                             tint = editorControlColor(),
@@ -305,7 +306,7 @@ internal fun EditorToolbarRow(
                 }
                 Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                     Icon(
-                        painterResource(if (checked) R.drawable.ic_remove else R.drawable.ic_add),
+                        painterResource(if (checked) R.drawable.ic_remove else CommonR.drawable.ic_add),
                         contentDescription = null,
                         tint = controlColor,
                     )

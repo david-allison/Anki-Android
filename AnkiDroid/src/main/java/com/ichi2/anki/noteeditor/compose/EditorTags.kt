@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.common.android.R as CommonR
 
 /** Native note tags. Collection-wide choices are loaded only when the user opens the dialog. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -123,6 +124,6 @@ internal fun EditorTags(
                 }
             }
         }
-        EditorActionButton(R.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
+        EditorActionButton(CommonR.drawable.ic_add, R.string.compose_editor_no_tags, enabled, onManage)
     }
 }

@@ -6,6 +6,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.noteeditor.R as NoteEditorR
 
 /** Shared labels, icons and help for the controls in Field options. */
 internal enum class EditorFieldOption(
@@ -30,7 +31,7 @@ internal enum class EditorFieldOption(
     ),
     FONT(
         R.string.compose_editor_field_font,
-        R.drawable.ic_format_font_size_24dp,
+        NoteEditorR.drawable.ic_format_font_size_24dp,
         R.string.compose_editor_field_font_help,
     ),
     HTML(

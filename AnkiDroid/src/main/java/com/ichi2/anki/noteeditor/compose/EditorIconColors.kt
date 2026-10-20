@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.android.getColorFromAttr
+import com.ichi2.anki.noteeditor.R as NoteEditorR
 
 /** Match native controls and the WebView's field actions without muting text or selected states. */
 @Composable
@@ -26,13 +27,13 @@ internal fun editorIconButtonColors(contentColor: Color = editorControlColor()) 
 @Composable
 internal fun editorToolbarIconColor(icon: Int): Color =
     when (icon) {
-        R.drawable.ic_format_bold_black_24dp,
-        R.drawable.ic_format_italic_black_24dp,
-        R.drawable.ic_format_underlined_black_24dp,
+        NoteEditorR.drawable.ic_format_bold_black_24dp,
+        NoteEditorR.drawable.ic_format_italic_black_24dp,
+        NoteEditorR.drawable.ic_format_underlined_black_24dp,
         R.drawable.ic_editor_format_superscript,
         R.drawable.ic_editor_format_subscript,
         R.drawable.ic_editor_format_color_text,
-        R.drawable.ic_add_equation_black_24dp,
+        NoteEditorR.drawable.ic_add_equation_black_24dp,
         -> MaterialTheme.colorScheme.onSurface
         else -> editorControlColor()
     }
