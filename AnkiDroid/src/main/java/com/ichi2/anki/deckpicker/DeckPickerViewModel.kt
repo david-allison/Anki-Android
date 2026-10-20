@@ -162,6 +162,13 @@ class DeckPickerViewModel :
 
     val flowOfCollectionHasNoCards = MutableStateFlow(true)
 
+    /** Keep the panel hidden for an empty collection or an unlisted deck, independent of search and collapse. */
+    val flowOfStudyOptionsVisible =
+        combine(flowOfDeckDueTree, flowOfFocusedDeck, flowOfCollectionHasNoCards) { tree, _, hasNoCards ->
+            if (tree == null || hasNoCards) return@combine false
+            withCol { tree.find(decks.selected()) != null }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = false)
+
     val flowOfDeckListInInitialState =
         combine(flowOfDeckDueTree, flowOfCollectionHasNoCards) { tree, noCards ->
             if (tree == null) return@combine null
@@ -179,12 +186,6 @@ class DeckPickerViewModel :
 
     /** "Studied N cards in 0 seconds today */
     val flowOfStudiedTodayStats = MutableStateFlow("")
-
-    /** Flow that determines when the resizing divider should be visible */
-    val flowOfResizingDividerVisible =
-        combine(flowOfDeckListInInitialState, flowOfCollectionHasNoCards) { isInInitialState, hasNoCards ->
-            !(isInInitialState == true || hasNoCards)
-        }
 
     // HACK: dismiss a legacy progress bar
     // TODO: Replace with better progress handling for first load/corrupt collections

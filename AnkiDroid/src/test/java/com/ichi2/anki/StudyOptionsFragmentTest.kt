@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package com.ichi2.anki
 
+import android.view.Menu
 import android.view.View
 import android.view.View.MeasureSpec
 import android.widget.ScrollView
@@ -12,6 +13,7 @@ import androidx.fragment.app.commitNow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import anki.decks.SetDeckCollapsedRequest
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.libanki.Consts.DEFAULT_DECK_ID
 import com.ichi2.anki.observability.undoableOp
@@ -48,7 +50,7 @@ class StudyOptionsFragmentTest : RobolectricTest() {
     /** Issue 22249: backend deletion can leave the tablet showing hidden Default. */
     @Test
     @Config(qualifiers = "xlarge")
-    fun `tablet shows empty Default after backend deletion and Undo restores custom study`() {
+    fun `tablet hides the panel after backend deletion and restores it through Undo`() {
         val keep = addDeck("Keep")
         col.setDeck(listOf(addBasicNote().firstCard().id), keep)
         val deleted = addDeck("Delete me", setAsSelected = true)
@@ -58,7 +60,7 @@ class StudyOptionsFragmentTest : RobolectricTest() {
             advanceRobolectricLooperUntil { fragment?.viewModel?.selectedDeckId == deleted }
             undoableOp { decks.remove(listOf(deleted)) }
             advanceRobolectricLooperUntil { fragment?.viewModel?.state is StudyOptionsState.Empty }
-            advanceRobolectricLooper()
+            advanceRobolectricLooperUntil { !findViewById<View>(R.id.studyoptions_fragment).isShown }
 
             assertEquals(DEFAULT_DECK_ID, col.decks.selected())
             assertEquals(DEFAULT_DECK_ID, fragment!!.viewModel.selectedDeckId)
@@ -68,22 +70,115 @@ class StudyOptionsFragmentTest : RobolectricTest() {
             val menu = menu()
             fragment!!.onPrepareMenu(menu)
             updateMenuFromState(menu)
-            assertFalse(assertNotNull(menu.findItem(R.id.action_custom_study)).isVisible)
-            assertTrue(assertNotNull(menu.findItem(R.id.action_deck_or_study_options)).isVisible)
+            assertStudyOptionsActionsHidden(menu)
+            assertFalse(findViewById<View>(R.id.resizing_divider).isShown)
             assertEquals(undoStatus, col.undoStatus())
 
             undoAndShowSnackbar()
             advanceRobolectricLooperUntil { fragment?.viewModel?.selectedDeckId == deleted }
+            advanceRobolectricLooperUntil { findViewById<View>(R.id.studyoptions_fragment).isShown }
             assertIs<StudyOptionsState.StudyOptions>(fragment!!.viewModel.state)
             fragment!!.onPrepareMenu(menu)
+            updateMenuFromState(menu)
             assertTrue(menu.findItem(R.id.action_custom_study).isVisible)
+            assertTrue(menu.findItem(R.id.action_deck_or_study_options).isVisible)
+            assertTrue(findViewById<View>(R.id.resizing_divider).isShown)
             assertNotNull(col.undoStatus().redo)
 
             redoAndShowSnackbar()
             advanceRobolectricLooperUntil { fragment?.viewModel?.state is StudyOptionsState.Empty }
+            advanceRobolectricLooperUntil { !findViewById<View>(R.id.studyoptions_fragment).isShown }
             fragment!!.onPrepareMenu(menu)
-            assertFalse(menu.findItem(R.id.action_custom_study).isVisible)
+            updateMenuFromState(menu)
+            assertStudyOptionsActionsHidden(menu)
             assertEquals(DEFAULT_DECK_ID, fragment!!.viewModel.selectedDeckId)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "xlarge")
+    fun `tablet keeps the panel hidden for an empty collection`() {
+        col
+        deckPicker {
+            advanceRobolectricLooperUntil { fragment?.viewModel?.state is StudyOptionsState.Empty }
+            assertFalse(findViewById<View>(R.id.studyoptions_fragment).isShown)
+            assertFalse(findViewById<View>(R.id.resizing_divider).isShown)
+            val menu = menu()
+            fragment!!.onPrepareMenu(menu)
+            updateMenuFromState(menu)
+            assertStudyOptionsActionsHidden(menu)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "xlarge")
+    fun `tablet starts without a panel for hidden Default and selecting a listed empty deck restores it`() {
+        val populated = addDeck("Populated")
+        col.setDeck(listOf(addBasicNote().firstCard().id), populated)
+        val empty = addDeck("Empty")
+
+        deckPicker {
+            advanceRobolectricLooperUntil { fragment?.viewModel?.state is StudyOptionsState.Empty }
+            assertEquals(DEFAULT_DECK_ID, col.decks.selected())
+            assertNull(col.sched.deckDueTree().find(DEFAULT_DECK_ID))
+            assertFalse(findViewById<View>(R.id.studyoptions_fragment).isShown)
+            val menu = menu()
+            fragment!!.onPrepareMenu(menu)
+            updateMenuFromState(menu)
+            assertStudyOptionsActionsHidden(menu)
+
+            viewModel.selectDeck(empty).join()
+            advanceRobolectricLooperUntil { fragment?.viewModel?.selectedDeckId == empty }
+            advanceRobolectricLooperUntil { findViewById<View>(R.id.studyoptions_fragment).isShown }
+            assertEquals("Empty", assertIs<StudyOptionsState.Empty>(fragment!!.viewModel.state).deckName)
+            fragment!!.onPrepareMenu(menu)
+            updateMenuFromState(menu)
+            assertTrue(menu.findItem(R.id.action_deck_or_study_options).isVisible)
+            assertFalse(menu.findItem(R.id.action_custom_study).isVisible)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "xlarge")
+    fun `tablet keeps the panel for a selected deck hidden by collapse and search`() {
+        val child = addDeck("Parent::Child", setAsSelected = true)
+        col.setDeck(listOf(addBasicNote().firstCard().id), child)
+        col.decks.setCollapsed(col.decks.id("Parent"), collapsed = true, SetDeckCollapsedRequest.Scope.REVIEWER)
+
+        deckPicker {
+            advanceRobolectricLooperUntil { fragment?.viewModel?.selectedDeckId == child }
+            advanceRobolectricLooperUntil { findViewById<View>(R.id.studyoptions_fragment).isShown }
+            assertTrue(
+                viewModel.flowOfDeckList.value.data
+                    .none { it.did == child },
+            )
+
+            viewModel.updateDeckFilter("No matching decks")
+            advanceRobolectricLooperUntil {
+                viewModel.flowOfDeckList.value.data
+                    .isEmpty()
+            }
+            assertTrue(findViewById<View>(R.id.studyoptions_fragment).isShown)
+            assertEquals(child, col.decks.selected())
+            assertEquals(child, fragment!!.viewModel.selectedDeckId)
+            val menu = menu()
+            fragment!!.onPrepareMenu(menu)
+            updateMenuFromState(menu)
+            assertTrue(menu.findItem(R.id.action_custom_study).isVisible)
+            assertTrue(menu.findItem(R.id.action_deck_or_study_options).isVisible)
+        }
+    }
+
+    private fun assertStudyOptionsActionsHidden(menu: Menu) {
+        for (id in listOf(
+            R.id.action_custom_study,
+            R.id.action_deck_or_study_options,
+            R.id.action_rebuild,
+            R.id.action_empty,
+            R.id.action_unbury,
+            R.id.action_schedule_reminders,
+        )) {
+            assertFalse(assertNotNull(menu.findItem(id)).isVisible)
         }
     }
 

@@ -90,6 +90,9 @@ class StudyOptionsFragment :
 
     private var fragmented = false
 
+    private val isPanelVisible: Boolean
+        get() = (activity as? DeckPicker)?.viewModel?.flowOfStudyOptionsVisible?.value != false
+
     /** Deck whose scroll position is held by the current or saved view. */
     // TODO: Include deckId in StudyOptionsState, and stop resetting scroll based on this
     private var displayedDeckId: DeckId? = null
@@ -254,6 +257,7 @@ class StudyOptionsFragment :
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
+        if (!isPanelVisible) return false
         when (item.itemId) {
             R.id.action_deck_or_study_options -> {
                 Timber.i("StudyOptionsFragment:: Deck or study options button pressed")
@@ -312,6 +316,8 @@ class StudyOptionsFragment :
     override fun onPrepareMenu(menu: Menu) {
         super.onPrepareMenu(menu)
         Timber.i("configureToolbarInternal()")
+        menu.setGroupVisible(R.id.study_options_actions, isPanelVisible)
+        if (!isPanelVisible) return
         val state = viewModel.state
         if (state is StudyOptionsState.Loading) return
 

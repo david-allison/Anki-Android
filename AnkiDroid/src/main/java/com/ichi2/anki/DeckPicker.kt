@@ -882,10 +882,6 @@ open class DeckPicker :
             }
         }
 
-        fun onResizingDividerVisibilityChanged(isVisible: Boolean) {
-            binding.resizingDivider?.isVisible = isVisible
-        }
-
         fun onCardsDueChanged(dueCount: Int?) {
             if (dueCount == null) {
                 supportActionBar?.subtitle = null
@@ -899,9 +895,10 @@ open class DeckPicker :
             }
         }
 
-        fun onStudyOptionsVisibilityChanged(collectionHasNoCards: Boolean) {
+        fun onStudyOptionsVisibilityChanged(isVisible: Boolean) {
             invalidateOptionsMenu()
-            binding.studyoptionsFrame?.isVisible = !collectionHasNoCards
+            binding.studyoptionsFragment?.isVisible = isVisible
+            binding.resizingDivider?.isVisible = isVisible
         }
 
         fun onDeckListChanged(deckList: FlattenedDeckList) {
@@ -1002,10 +999,9 @@ open class DeckPicker :
         viewModel.flowOfStudiedTodayStats.launchCollectionInLifecycleScope(::onStudiedTodayChanged)
         viewModel.flowOfDeckListInInitialState.filterNotNull().launchCollectionInLifecycleScope(::onCollectionStatusChanged)
         viewModel.flowOfCardsDue.launchCollectionInLifecycleScope(::onCardsDueChanged)
-        viewModel.flowOfCollectionHasNoCards.launchCollectionInLifecycleScope(::onStudyOptionsVisibilityChanged)
+        viewModel.flowOfStudyOptionsVisible.launchCollectionInLifecycleScope(::onStudyOptionsVisibilityChanged)
         viewModel.flowOfDeckList.launchCollectionInLifecycleScope(::onDeckListChanged)
         viewModel.flowOfFocusedDeck.launchCollectionInLifecycleScope(::onFocusedDeckChanged)
-        viewModel.flowOfResizingDividerVisible.launchCollectionInLifecycleScope(::onResizingDividerVisibilityChanged)
         viewModel.flowOfDecksReloaded.launchCollectionInLifecycleScope(::onDecksReloaded)
         viewModel.flowOfStartupResponse.filterNotNull().launchCollectionInLifecycleScope(::onStartupResponse)
         viewModel.flowOfShowContextMenu.launchCollectionInLifecycleScope(::showDeckPickerContextMenu)
@@ -1403,7 +1399,7 @@ open class DeckPicker :
             menu.findItem(R.id.action_deck_rename)?.isVisible = showDeckActions
             menu.findItem(R.id.action_deck_delete)?.isVisible = showDeckActions
             // added to the menu by StudyOptionsFragment
-            menu.findItem(R.id.action_deck_or_study_options)?.isVisible = showDeckActions
+            menu.findItem(R.id.action_deck_or_study_options)?.isVisible = showDeckActions && viewModel.flowOfStudyOptionsVisible.value
         }
     }
 
