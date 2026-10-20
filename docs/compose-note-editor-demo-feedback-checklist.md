@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 9 resolved.**
+Recorded 2026-10-20. **15 action items; 10 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -292,9 +292,10 @@ Related checklists:
 
   **Feedback:** The toolbar shown when no field is selected should be hidden.
 
-  **Assessment: agree for a settled unfocused state.** Visibility falls back
-  to the first field, while toolbar contents fall back to a fresh default
-  configuration. This explains the unrelated toolbar.
+  **Assessment: agree for a settled unfocused state.** The toolbar still uses
+  the initial focus target when selection is absent. Item 13 makes its contents
+  and visibility consistent during Add; hiding it for a genuinely unfocused
+  editor remains a separate decision.
 
   **Completion action:** Hide the toolbar when there is no editing target.
   Preserve the target during interactions with editor controls, and distinguish
@@ -302,23 +303,27 @@ Related checklists:
   Verify that toolbar visibility and contents use the same target.
 
   **Evidence:** [EditorState.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorState.kt),
-  `showsToolbar(activeField)` uses `activeField ?: 0`;
+  `showsToolbar(activeField)` uses `toolbarFieldIndex(activeField)`;
   [NoteEditorScreen.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/NoteEditorScreen.kt)
-  falls back to `EditorFieldToolbar()` when `target` is null.
+  displays the initial focus field's toolbar while the active field is null.
 
-- [ ] **13. Eliminate the temporary toolbar during Add transitions.**
+- [x] **13. Eliminate the temporary toolbar during Add transitions.**
 
   **Feedback:** Adding a note switches from the first field's toolbar to a
   temporary toolbar and then back.
 
-  **Assessment: strongly agree.** Document rendering clears the active field,
-  and the activity restores focus after synchronization. This exposes the
-  fallback described in item 12.
+  **Assessment: strongly agree.** Document rendering clears the active field
+  before the activity restores focus. Previously, that interval displayed a
+  fresh default toolbar instead of the intended field's configuration.
 
-  **Completion action:** Publish the next document's toolbar and focus together.
-  Verify that repeated Add operations show neither an unrelated toolbar nor
-  a hide/show layout jump. Include first-field presets, hidden toolbars, and
-  collapsed-field defaults.
+  **Implemented 2026-10-20:** During this interval, toolbar contents, visibility,
+  mode and scroll identity all use the same initial focus field. Collapsed
+  defaults are skipped, hidden toolbars stay hidden, and an all-collapsed note
+  has no fallback toolbar. Formatting stays disabled until selection is ready.
+
+  **Verification:** All 14 light/dark checks pass. Regression checks repeatedly
+  clear and restore selection and verify the custom buttons, HTML mode, hidden
+  toolbar, and unchanged field bounds throughout the transition.
 
   **Evidence:** [editor.js](../AnkiDroid/src/main/assets/note-editor/editor.js),
   `render()` clears `activeField`; [EditorWebSession.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorWebSession.kt),

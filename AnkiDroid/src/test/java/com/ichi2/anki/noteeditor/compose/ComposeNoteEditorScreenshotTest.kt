@@ -2038,6 +2038,76 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     }
 
     @Test
+    fun addTransitionRetainsTheFirstFieldsCustomToolbar() = assertAddToolbarTransition()
+
+    @Test
+    fun addTransitionSkipsCollapsedFieldsAndRetainsHtmlMode() = assertAddToolbarTransition(firstCollapsed = true)
+
+    @Test
+    fun addTransitionRetainsAHiddenToolbar() = assertAddToolbarTransition(hidden = true)
+
+    private fun assertAddToolbarTransition(
+        firstCollapsed: Boolean = false,
+        hidden: Boolean = false,
+    ) {
+        val index = if (firstCollapsed) 1 else 0
+        val focused = EditorToolbarState(activeField = index, hasSelection = true, sourceMode = firstCollapsed)
+        val focus = mutableStateOf(focused)
+        val custom = EditorCustomToolbarButton(label = "★", prefix = "★", suffix = "")
+        showEditor(
+            focusState = focus,
+            transformState = { current ->
+                current.copy(
+                    fields =
+                        current.fields.mapIndexed { ordinal, field ->
+                            field.copy(
+                                collapsed = firstCollapsed && ordinal == 0,
+                                sourceMode = firstCollapsed && ordinal == index,
+                                toolbar =
+                                    if (ordinal == index) {
+                                        EditorFieldToolbar(
+                                            hiddenButtons = setOf("BOLD"),
+                                            customButtons = listOf(custom),
+                                            showToolbar = !hidden,
+                                        )
+                                    } else {
+                                        field.toolbar
+                                    },
+                            )
+                        },
+                )
+            },
+        )
+        val fieldBounds = composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot
+        repeat(3) {
+            // Rendering the next Add clears selection before the host restores initial focus.
+            composeRule.runOnIdle { focus.value = EditorToolbarState() }
+            composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+            if (hidden) {
+                composeRule.onNodeWithText("★").assertDoesNotExist()
+            } else {
+                composeRule.onNodeWithText("★").assertIsDisplayed().assertIsNotEnabled()
+                if (firstCollapsed) {
+                    composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_rich_text)).assertExists()
+                }
+            }
+            assertEquals(fieldBounds, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
+            composeRule.runOnIdle { focus.value = focused }
+            if (!hidden) composeRule.onNodeWithText("★").assertIsDisplayed().assertIsEnabled()
+            assertEquals(fieldBounds, composeRule.onNodeWithTag("editor_fields").fetchSemanticsNode().boundsInRoot)
+        }
+    }
+
+    @Test
+    fun addTransitionWithAllFieldsCollapsedDoesNotInventAToolbar() {
+        showEditor(
+            focusState = mutableStateOf(EditorToolbarState()),
+            transformState = { current -> current.copy(fields = current.fields.map { it.copy(collapsed = true) }) },
+        )
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
+    }
+
+    @Test
     fun compactCustomButtonsInScrollingToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.SCROLL)
 
     @Test
@@ -2954,6 +3024,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         presetSelection: State<String>? = null,
         onToolbarVisibility: (EditorFieldTarget, Boolean) -> Unit = { _, _ -> },
         onPreset: (EditorFieldTarget, String) -> Unit = { _, _ -> },
+        transformState: (EditorState) -> EditorState = { it },
     ): Pair<AnkiActivity, View> {
         val activity = startActivityNormallyOpenCollectionWithIntent(AnkiActivity::class.java, Intent())
         editorActivity = activity
@@ -2972,54 +3043,55 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 val currentPreset = remember { mutableStateOf(EditorToolbarPreset.DEFAULT_ID) }
                 NoteEditorScreen(
                     state =
-                        editorState(fieldName, noteTypeName, deckName).let { state ->
-                            state.copy(
-                                tags = tags,
-                                toolbarDisplay = display.value,
-                                toolbarTextColor = textColor,
-                                toolbarHighlightColor = highlightColor,
-                                customButtonTemplates = currentTemplates.value,
-                                toolbarPresets = currentPresets.value,
-                                fields =
-                                    List(fieldCount) { index ->
-                                        state.fields.getOrNull(index)
-                                            ?: state.fields.first().copy(name = "Field ${index + 1}")
-                                    }.mapIndexed { index, field ->
-                                        if (index ==
-                                            1
-                                        ) {
+                        editorState(fieldName, noteTypeName, deckName)
+                            .let { state ->
+                                state.copy(
+                                    tags = tags,
+                                    toolbarDisplay = display.value,
+                                    toolbarTextColor = textColor,
+                                    toolbarHighlightColor = highlightColor,
+                                    customButtonTemplates = currentTemplates.value,
+                                    toolbarPresets = currentPresets.value,
+                                    fields =
+                                        List(fieldCount) { index ->
+                                            state.fields.getOrNull(index)
+                                                ?: state.fields.first().copy(name = "Field ${index + 1}")
+                                        }.mapIndexed { index, field ->
+                                            if (index ==
+                                                1
+                                            ) {
+                                                field.copy(
+                                                    toolbar =
+                                                        currentPresets.value
+                                                            .first {
+                                                                it.id ==
+                                                                    (presetSelection?.value ?: currentPreset.value)
+                                                            }.applyTo(
+                                                                fieldToolbarState?.value ?: currentToolbar.value,
+                                                                currentTemplates.value,
+                                                            ),
+                                                    description = description,
+                                                    sticky = pinned,
+                                                    rtl = rtl,
+                                                    sourceMode = htmlDefaultState?.value ?: false,
+                                                    collapsed = collapsedState?.value ?: false,
+                                                    toolbarPresetId =
+                                                        presetSelection?.value ?: currentPreset.value,
+                                                )
+                                            } else {
+                                                field
+                                            }
+                                        }.mapIndexed { index, field ->
                                             field.copy(
                                                 toolbar =
-                                                    currentPresets.value
-                                                        .first {
-                                                            it.id ==
-                                                                (presetSelection?.value ?: currentPreset.value)
-                                                        }.applyTo(
-                                                            fieldToolbarState?.value ?: currentToolbar.value,
-                                                            currentTemplates.value,
-                                                        ),
-                                                description = description,
-                                                sticky = pinned,
-                                                rtl = rtl,
-                                                sourceMode = htmlDefaultState?.value ?: false,
-                                                collapsed = collapsedState?.value ?: false,
-                                                toolbarPresetId =
-                                                    presetSelection?.value ?: currentPreset.value,
+                                                    field.toolbar.copy(
+                                                        quickActions =
+                                                            currentActions[index] ?: field.toolbar.quickActions,
+                                                    ),
                                             )
-                                        } else {
-                                            field
-                                        }
-                                    }.mapIndexed { index, field ->
-                                        field.copy(
-                                            toolbar =
-                                                field.toolbar.copy(
-                                                    quickActions =
-                                                        currentActions[index] ?: field.toolbar.quickActions,
-                                                ),
-                                        )
-                                    },
-                            )
-                        },
+                                        },
+                                )
+                            }.let(transformState),
                     toolbarState =
                         focusState ?: remember {
                             mutableStateOf(

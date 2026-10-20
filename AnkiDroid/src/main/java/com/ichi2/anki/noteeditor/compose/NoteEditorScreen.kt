@@ -662,10 +662,11 @@ private fun EditorPane(
     fields: @Composable (Modifier) -> Unit,
 ) {
     val toolbarState by state
+    val toolbarFieldIndex = editorState.toolbarFieldIndex(toolbarState.activeField)
     // A different field has a different button order. Do not retain the previous
     // field's first visible item by key and scroll past the new field's leading buttons.
     val toolbarScrollState =
-        key(editorState.sessionId, editorState.generation, toolbarState.activeField ?: 0) {
+        key(editorState.sessionId, editorState.generation, toolbarFieldIndex) {
             rememberLazyListState()
         }
     val sheetState =
@@ -735,8 +736,13 @@ private fun EditorPane(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             EditorFormattingButtons(
-                                toolbar = target?.let { editorState.fields[it.field].toolbar } ?: EditorFieldToolbar(),
-                                state = toolbarState,
+                                toolbar = editorState.fields[requireNotNull(toolbarFieldIndex)].toolbar,
+                                state =
+                                    if (toolbarState.activeField == null) {
+                                        toolbarState.copy(sourceMode = editorState.fields[toolbarFieldIndex].sourceMode)
+                                    } else {
+                                        toolbarState
+                                    },
                                 enabled = enabled,
                                 isCloze = editorState.isCloze,
                                 textColor = editorState.toolbarTextColor,

@@ -89,7 +89,10 @@ sealed interface EditorSaveResult {
 /** The device layout can hide every toolbar without replacing any field's saved choice. */
 internal fun EditorState.showsToolbar(activeField: Int?): Boolean =
     toolbarDisplay != EditorToolbarDisplay.HIDDEN &&
-        fields.getOrNull(activeField ?: 0)?.toolbar?.showToolbar != false
+        toolbarFieldIndex(activeField)?.let { fields[it].toolbar.showToolbar } == true
+
+/** While Add restores focus, display the same field that will receive it. */
+internal fun EditorState.toolbarFieldIndex(activeField: Int?): Int? = activeField?.takeIf { it in fields.indices } ?: initialFocusField
 
 /** Automatic focus must not expand fields the user has chosen to collapse by default. */
 internal val EditorState.initialFocusField: Int?
