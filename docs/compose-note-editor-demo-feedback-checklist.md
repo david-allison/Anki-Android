@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 7 resolved.**
+Recorded 2026-10-20. **15 action items; 8 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -220,7 +220,7 @@ Related checklists:
   the sheet positioning callback; backend `FieldsOnly.svelte`, `toggleCollapsed()`
   (see backend source locations below).
 
-- [ ] **09. Reduce excess width for single-symbol custom toolbar buttons.**
+- [x] **09. Reduce excess width for single-symbol custom toolbar buttons.**
 
   **Feedback:** The small star occupies too much toolbar space.
 
@@ -232,10 +232,20 @@ Related checklists:
   allocation while retaining an adequate touch target. Keep flexible widths for
   longer labels. Verify scrolling and stacked layouts, including emoji labels.
 
+  **Implemented 2026-10-20:** Custom buttons now have a 48 dp minimum width.
+  Both layouts use the rendered label width, so stars and joined emoji occupy
+  one stacked column while longer labels can use two. Scrolling overflow
+  indicators use the same measurements.
+
+  **Verification:** Eight light/dark layout checks and all three scroll-spacing
+  tests pass. New layout checks cover a star, a joined emoji, a longer label,
+  48 dp touch targets, and single-column spacing in both layouts. Reviewed the
+  stacked-toolbar screenshot.
+
   **Evidence:** [EditorToolbarButtons.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorToolbarButtons.kt),
   custom `TextButton`; [EditorScrollingToolbar.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorScrollingToolbar.kt),
   custom `ToolbarButtonExtent`; [NoteEditorScreen.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/NoteEditorScreen.kt),
-  custom items receive `columnWidth * 2`.
+  stacked items use their measured width to select one or two columns.
 
 - [ ] **10. Make emoji custom-button labels easier to discover and use.**
 

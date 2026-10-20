@@ -29,7 +29,8 @@ class EditorScrollingToolbarTest {
                 defaultButtons,
                 List(18) { icon },
                 List(3) { ToolbarButtonExtent(84, 60) } + defaultButtons,
-                List(3) { ToolbarButtonExtent(58, 9) } + defaultButtons,
+                List(3) { ToolbarButtonExtent(48, 9) } + defaultButtons,
+                List(3) { ToolbarButtonExtent(48, 24) } + defaultButtons,
                 listOf(mode) + defaultButtons,
             )
         for (buttons in configurations) {

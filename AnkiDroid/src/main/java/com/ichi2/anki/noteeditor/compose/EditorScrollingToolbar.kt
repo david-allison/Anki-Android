@@ -23,6 +23,48 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
+/** Match the buttons' measured widths in both scrolling and stacked toolbars. */
+@Composable
+internal fun rememberEditorToolbarButtonExtents(items: List<EditorToolbarItem>): List<ToolbarButtonExtent> {
+    val density = LocalDensity.current
+    // The usual icon-only toolbar does not need text measurement or offscreen button composition.
+    val textMeasurer = if (items.any { it is EditorToolbarItem.Custom }) rememberTextMeasurer() else null
+    val textStyle = MaterialTheme.typography.labelLarge
+    return remember(items, density, textMeasurer, textStyle) {
+        with(density) {
+            items.map { item ->
+                when (item) {
+                    is EditorToolbarItem.Builtin ->
+                        if (item.button == EditorToolbarButton.SOURCE_MODE) {
+                            ToolbarButtonExtent(56.dp.roundToPx(), 52.dp.roundToPx())
+                        } else {
+                            ToolbarButtonExtent(48.dp.roundToPx(), 24.dp.roundToPx())
+                        }
+                    is EditorToolbarItem.Custom -> {
+                        val textWidth =
+                            requireNotNull(textMeasurer)
+                                .measure(
+                                    item.button.label,
+                                    style = textStyle,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    constraints = Constraints(maxWidth = 60.dp.roundToPx()),
+                                ).size.width
+                        val padding = ButtonDefaults.TextButtonContentPadding
+                        val horizontalPadding =
+                            padding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) +
+                                padding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                        ToolbarButtonExtent(
+                            (textWidth + horizontalPadding.roundToPx()).coerceAtLeast(48.dp.roundToPx()),
+                            textWidth,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** Keep a partial button visible as the scroll cue, without changing touch targets or snapping. */
 @Composable
 internal fun EditorScrollingToolbar(
@@ -32,43 +74,7 @@ internal fun EditorScrollingToolbar(
     button: @Composable (EditorToolbarItem) -> Unit,
 ) {
     val density = LocalDensity.current
-    // The usual icon-only toolbar does not need text measurement or offscreen button composition.
-    val textMeasurer = if (items.any { it is EditorToolbarItem.Custom }) rememberTextMeasurer() else null
-    val textStyle = MaterialTheme.typography.labelLarge
-    val metrics =
-        remember(items, density, textMeasurer, textStyle) {
-            with(density) {
-                items.map { item ->
-                    when (item) {
-                        is EditorToolbarItem.Builtin ->
-                            if (item.button == EditorToolbarButton.SOURCE_MODE) {
-                                ToolbarButtonExtent(56.dp.roundToPx(), 52.dp.roundToPx())
-                            } else {
-                                ToolbarButtonExtent(48.dp.roundToPx(), 24.dp.roundToPx())
-                            }
-                        is EditorToolbarItem.Custom -> {
-                            val textWidth =
-                                requireNotNull(textMeasurer)
-                                    .measure(
-                                        item.button.label,
-                                        style = textStyle,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        constraints = Constraints(maxWidth = 60.dp.roundToPx()),
-                                    ).size.width
-                            val padding = ButtonDefaults.TextButtonContentPadding
-                            val horizontalPadding =
-                                padding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) +
-                                    padding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
-                            ToolbarButtonExtent(
-                                (textWidth + horizontalPadding.roundToPx()).coerceAtLeast(ButtonDefaults.MinWidth.roundToPx()),
-                                textWidth,
-                            )
-                        }
-                    }
-                }
-            }
-        }
+    val metrics = rememberEditorToolbarButtonExtents(items)
     BoxWithConstraints(modifier) {
         // Resolve spacing before the first layout: no second-frame correction, or changes while scrolling.
         val gap =

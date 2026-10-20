@@ -759,6 +759,8 @@ private fun EditorPane(
                                         } else {
                                             48.dp
                                         }
+                                    val columnPixels = with(LocalDensity.current) { columnWidth.roundToPx() }
+                                    val buttonExtents = rememberEditorToolbarButtonExtents(items)
                                     FlowRow(
                                         Modifier
                                             .weight(1f)
@@ -769,9 +771,9 @@ private fun EditorPane(
                                         horizontalArrangement = Arrangement.Start,
                                         verticalArrangement = ToolbarRowsFromBottom,
                                     ) {
-                                        items.forEach { item ->
+                                        items.forEachIndexed { index, item ->
                                             Box(
-                                                Modifier.width(columnWidth * if (item is EditorToolbarItem.Custom) 2 else 1),
+                                                Modifier.width(columnWidth * if (buttonExtents[index].width > columnPixels) 2 else 1),
                                                 contentAlignment = Alignment.Center,
                                             ) {
                                                 button(item)

@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -100,7 +101,11 @@ internal fun EditorFormattingButtons(
     content(items) button@{ item ->
         if (item is EditorToolbarItem.Custom) {
             EditorTooltip(item.button.label) {
-                TextButton(onClick = { onCustomAction(item.button) }, enabled = formatEnabled) {
+                TextButton(
+                    onClick = { onCustomAction(item.button) },
+                    enabled = formatEnabled,
+                    modifier = Modifier.defaultMinSize(minWidth = 48.dp),
+                ) {
                     Text(item.button.label, Modifier.widthIn(max = 60.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

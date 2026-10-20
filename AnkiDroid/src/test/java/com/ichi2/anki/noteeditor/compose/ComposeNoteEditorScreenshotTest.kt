@@ -39,6 +39,8 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTouchHeightIsEqualTo
+import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
@@ -102,6 +104,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import androidx.compose.ui.unit.dp as composeDp
 
 /**
  * Native field options above the keyboard; Robolectric does not render the web fields.
@@ -2032,6 +2035,47 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertDoesNotExist()
         composeRule.onNodeWithText("Ruby").assertIsDisplayed()
         captureScreen("customized_toolbar")
+    }
+
+    @Test
+    fun compactCustomButtonsInScrollingToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.SCROLL)
+
+    @Test
+    fun compactCustomButtonsInStackedToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.STACK)
+
+    private fun assertCompactCustomButtons(display: EditorToolbarDisplay) {
+        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+        val labels = listOf("★", "👩🏽‍💻", "Ruby annotation")
+        showEditor(
+            toolbarDisplay = display,
+            toolbar =
+                EditorFieldToolbar(
+                    customButtons = labels.map { EditorCustomToolbarButton(label = it, prefix = "<b>", suffix = "</b>") },
+                    hiddenButtons =
+                        (EditorToolbarButton.entries - setOf(EditorToolbarButton.BOLD, EditorToolbarButton.ITALIC))
+                            .map { it.name }
+                            .toSet(),
+                ),
+        )
+        val (star, emoji, longerLabel) =
+            labels.map {
+                composeRule
+                    .onNodeWithText(it)
+                    .assertIsDisplayed()
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+            }
+        composeRule
+            .onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold))
+            .assertIsDisplayed()
+            .assertTouchWidthIsEqualTo(48.composeDp)
+        assertEquals(48f, star.width, 1f, "Keep an icon-sized touch target")
+        assertEquals(star.width, emoji.width, 1f, "Joined emoji must not be sized by UTF-16 length")
+        assertEquals(48f, emoji.center.x - star.center.x, 1f, "Single symbols must occupy only one column")
+        assertTrue(longerLabel.width > star.width, "Longer labels must keep their flexible width")
+        labels.forEach { composeRule.onNodeWithText(it).assertTouchHeightIsEqualTo(48.composeDp) }
+        labels.take(2).forEach { composeRule.onNodeWithText(it).assertTouchWidthIsEqualTo(48.composeDp) }
+        captureScreen("custom_buttons_${display.name.lowercase()}")
     }
 
     @Test
