@@ -30,7 +30,7 @@ internal enum class EditorFieldOption(
         R.string.compose_editor_field_description_help,
     ),
     FONT(
-        R.string.compose_editor_field_font,
+        CommonString.menu_font_size,
         NoteEditorR.drawable.ic_format_font_size_24dp,
         R.string.compose_editor_field_font_help,
     ),

@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 4 resolved.**
+Recorded 2026-10-20. **15 action items; 5 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -124,7 +124,7 @@ Related checklists:
   **Evidence:** [EditorFieldPanel.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorFieldPanel.kt),
   the navigation button branches on `pending`.
 
-- [ ] **05. Rename the current Font control to Font size.**
+- [x] **05. Rename the current Font control to Font size.**
 
   **Feedback:** Earlier screenshots offered font and font size. If changing
   the font is unavailable, the control should say “Font size”.
@@ -137,6 +137,18 @@ Related checklists:
   to “Font size”, including any relevant help references. Preserve the stored
   font name when changing size. Treat restoring a usable font selector as a
   separate enhancement.
+
+  **Implemented 2026-10-20:** The field option, help catalogue, and dialog title
+  reuse the existing translated “Font size” label. Removed the unused “Font”
+  string and updated the existing test/demo selectors. Added an explicit TODO
+  to introduce font selection in a future enhancement, with verified WebView
+  fonts and a Custom option.
+
+  **Verification:** All three existing font-dialog tests pass, covering size
+  validation, preserving the configured font, and cancellation. All six
+  selected light/dark dialog and field-options layout checks pass, including
+  large text on a small screen. Reviewed the dialog screenshot; the updated
+  device-test sources compile.
 
   **Evidence:** [EditorFieldFontDialog.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorFieldFontDialog.kt),
   `onSave(field.font, size.toInt())`; [EditorFieldOption.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorFieldOption.kt),

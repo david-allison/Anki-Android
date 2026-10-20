@@ -97,7 +97,6 @@
     <string name="compose_editor_delete_preset_message">Fields using %s will use Default instead.</string>
     <string name="compose_editor_field_description">Description</string>
     <string name="compose_editor_field_description_help">Shown in the field when it is empty.</string>
-    <string name="compose_editor_field_font">Font</string>
     <string name="compose_editor_field_font_summary">%1$d px</string>
     <string name="compose_editor_field_font_size_range">5–300 px</string>
     <string name="compose_editor_field_font_help">Used when editing and typing answers. Card styling is unchanged.</string>

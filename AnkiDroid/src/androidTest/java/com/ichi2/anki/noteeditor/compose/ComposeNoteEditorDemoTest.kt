@@ -326,7 +326,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
         }
         recording.scene("Font size") {
             val defaultSize = state().fields[0].fontSize
-            click(By.descContains(s(R.string.compose_editor_field_font)))
+            click(By.descContains(s(CommonString.menu_font_size)))
             assertEquals(defaultSize.toString(), visible(By.clazz("android.widget.EditText")).text)
             hold(1_500)
             click(By.text(s(CommonString.dialog_cancel)))

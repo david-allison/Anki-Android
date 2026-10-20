@@ -5,6 +5,7 @@ package com.ichi2.anki.noteeditor.compose
 import android.content.Intent
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -37,7 +38,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
         showFont(fontName = "Custom Imported Font")
         composeRule.onNodeWithText(TR.fieldsFont()).assertDoesNotExist()
         composeRule.onNodeWithText("Custom Imported Font").assertDoesNotExist()
-        val size = composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size))
+        val size = composeRule.onNode(hasSetTextAction())
         val save = composeRule.onNodeWithText(getResourceString(CommonString.save))
         size.performTextReplacement("")
         save.assertIsNotEnabled()
@@ -53,7 +54,7 @@ class EditorFieldFontDialogTest : RobolectricTest() {
     @Test
     fun `cancelling discards typography edits`() {
         showFont()
-        composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).performTextReplacement("35")
+        composeRule.onNode(hasSetTextAction()).performTextReplacement("35")
         composeRule.onNodeWithText(getResourceString(CommonString.dialog_cancel)).performClick()
         assertFalse(dismissed)
         composeRule.onNodeWithText(getResourceString(CommonString.discard)).performClick()

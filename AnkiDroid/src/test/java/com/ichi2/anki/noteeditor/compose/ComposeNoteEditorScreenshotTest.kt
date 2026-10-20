@@ -810,9 +810,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
         showEditor()
         openFieldOptions()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_field_font)).performScrollTo().performClick()
+        composeRule.onNodeWithText(getResourceString(CommonString.menu_font_size)).performScrollTo().performClick()
         composeRule
-            .onNode(hasText(getResourceString(R.string.compose_editor_field_font)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
+            .onNode(hasText(getResourceString(CommonString.menu_font_size)) and hasAnyAncestor(isDialog()) and !hasSetTextAction())
             .assertIsDisplayed()
         captureScreen("field_font_settings")
     }

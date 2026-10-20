@@ -36,11 +36,12 @@ internal fun EditorFieldFontDialog(
     val valid = size.toIntOrNull() in 5..300
     AlertDialog(
         onDismissRequest = dismiss,
-        title = { Text(stringResource(R.string.compose_editor_field_font)) },
+        title = { Text(stringResource(CommonString.menu_font_size)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.compose_editor_field_font_help))
-                // TODO: Restore font-name selection with verified WebView fonts and an explicit Custom option.
+                // TODO: Add font selection in a future enhancement, using verified WebView fonts
+                // and an explicit Custom option.
                 OutlinedTextField(
                     value = size,
                     onValueChange = { if (it.length <= 3 && it.all(Char::isDigit)) size = it },
