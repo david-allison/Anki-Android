@@ -977,7 +977,7 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             checkNotNull(device.findObject(By.desc(testContext.getString(R.string.compose_editor_field_options)))).click()
             checkNotNull(
                 device.wait(
-                    Until.findObject(By.desc(testContext.getString(androidx.appcompat.R.string.abc_action_bar_up_description))),
+                    Until.findObject(By.desc(testContext.getString(CommonString.close))),
                     5_000,
                 ),
             ).click()

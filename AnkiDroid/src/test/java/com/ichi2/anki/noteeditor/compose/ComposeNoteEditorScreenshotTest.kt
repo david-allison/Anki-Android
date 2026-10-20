@@ -1375,7 +1375,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         assertNoPanelSave()
         composeRule
             .onNode(
-                hasContentDescription(getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description)) and
+                hasContentDescription(getResourceString(CommonString.close)) and
                     hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).assertIsDisplayed()
             .performClick()
@@ -1439,7 +1439,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         captureScreen("options_open_without_keyboard")
         composeRule
             .onNode(
-                hasContentDescription(getResourceString(androidx.appcompat.R.string.abc_action_bar_up_description)) and
+                hasContentDescription(getResourceString(CommonString.close)) and
                     hasAnyAncestor(hasTestTag("editor_field_panel")),
             ).assertIsDisplayed()
             .performClick()

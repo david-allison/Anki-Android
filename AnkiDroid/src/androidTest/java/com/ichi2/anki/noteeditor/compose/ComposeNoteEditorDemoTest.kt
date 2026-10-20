@@ -752,7 +752,7 @@ class ComposeNoteEditorDemoTest : InstrumentedTest() {
     }
 
     private fun closeOverview() {
-        click(By.desc(s(androidx.appcompat.R.string.abc_action_bar_up_description)))
+        click(By.desc(s(CommonString.close)))
         await("Field panel closed") {
             onMain { web().importantForAccessibility == View.IMPORTANT_FOR_ACCESSIBILITY_AUTO }
         }

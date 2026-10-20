@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 3 resolved.**
+Recorded 2026-10-20. **15 action items; 4 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -99,7 +99,7 @@ Related checklists:
 
   **Evidence:** [ic_view_column.xml](../AnkiDroid/src/main/res/drawable/ic_view_column.xml).
 
-- [ ] **04. Use a close button for the main Field options panel.**
+- [x] **04. Use a close button for the main Field options panel.**
 
   **Feedback:** The bottom panel's back button would be clearer as an “×”.
 
@@ -110,6 +110,16 @@ Related checklists:
   **Completion action:** Use “×” with an appropriate accessible label when
   dismissing the main panel. Retain Back when returning from Customize toolbar
   or Quick actions. Preserve existing dismissal and pending-change behavior.
+
+  **Implemented 2026-10-20:** The main panel uses a rounded “×” with the
+  translated accessible label “Close”. Nested sections retain their Back arrow
+  and return-to-Field-options action. Updated the existing screenshot and
+  device/demo selectors to follow the new accessible label.
+
+  **Verification:** All 14 selected light/dark panel checks pass, including
+  closing without the keyboard, pending-edit discard confirmation, nested
+  navigation, RTL, and large text. Reviewed the close-button screenshot; the
+  Android device-test sources also compile.
 
   **Evidence:** [EditorFieldPanel.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorFieldPanel.kt),
   the navigation button branches on `pending`.

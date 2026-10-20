@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -107,12 +108,12 @@ internal fun EditorFieldPanel(
                     colors = editorIconButtonColors(),
                 ) {
                     Icon(
-                        painterResource(R.drawable.ic_baseline_arrow_back_24),
+                        painterResource(if (pending) R.drawable.ic_baseline_arrow_back_24 else R.drawable.ic_editor_close),
                         stringResource(
                             if (pending) {
                                 R.string.compose_editor_field_options
                             } else {
-                                androidx.appcompat.R.string.abc_action_bar_up_description
+                                CommonString.close
                             },
                         ),
                     )
