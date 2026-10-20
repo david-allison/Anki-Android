@@ -23,7 +23,6 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.compose.theme.AnkiDroidTheme
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -223,11 +222,10 @@ class EditorToolbarDialogTest : RobolectricTest() {
         assertNull(saved)
     }
 
-    @Ignore("Re-enable after updating the Create button selector to its accessibility label")
     @Test
     fun `library validates new templates and saves only when confirmed`() {
         showLibrary()
-        composeRule.onNodeWithText(getResourceString(R.string.compose_editor_add_custom_button)).performClick()
+        composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_add_custom_button)).performClick()
         val save = getResourceString(CommonString.save)
         composeRule.onNodeWithText(save).assertIsNotEnabled()
         composeRule.onNodeWithText(getResourceString(CommonString.note_editor_toolbar_icon)).performTextInput("Ruby")
