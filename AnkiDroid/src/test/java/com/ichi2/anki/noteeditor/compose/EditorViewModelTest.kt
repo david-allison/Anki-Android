@@ -983,7 +983,7 @@ class EditorViewModelTest : JvmTest() {
 
             val saved = assertNotNull(vm.state.value)
             assertEquals(savedFields, saved.fields.map { it.html })
-            assertEquals(1, saved.generation)
+            assertEquals(0, saved.generation, "Saving the same note must not replace the editor document")
             assertTrue(saved.resetFieldBaseline)
             assertFalse(saved.hasMetadataChanges)
             assertFalse(saved.isSaving)

@@ -737,7 +737,7 @@ class EditorViewModel(
             }
             val saved =
                 current.copy(
-                    generation = current.generation + 1,
+                    // Saving this document must not remount its fields before the activity closes.
                     resetFieldBaseline = true,
                     baselineFieldMap = null,
                     fields = current.fields.mapIndexed { index, field -> field.copy(html = snapshotHtml[index]) },

@@ -504,7 +504,7 @@ class ComposeNoteEditorActivity :
                 EditorSaveResult.Saved -> {
                     changed = true
                     if (changeTypeAfterSave) {
-                        webSession.synchronize()
+                        webSession.acceptSavedDocument()
                         setBusy(false)
                         changeTypeAfterSave = false
                         model.consumeSaveResult()

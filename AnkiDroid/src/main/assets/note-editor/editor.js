@@ -536,6 +536,24 @@
     }
 
     const methods = {
+        async acceptSavedDocument(value) {
+            if (
+                value.sessionId !== model?.sessionId ||
+                value.generation !== model.generation ||
+                !Array.isArray(value.fields) ||
+                value.fields.length !== fields.length ||
+                value.fields.some(html => typeof html !== "string")
+            ) {
+                throw new Error("The saved note no longer matches the editor.");
+            }
+            await writes;
+            await reconcile();
+            baseline = [...value.fields];
+            hostStateJson = value.hostStateJson;
+            await checkpoint();
+            status();
+            return {};
+        },
         async loadDocumentAndCreateDraft(value) {
             // Open storage while fields render. Keep the rejected database promise for
             // createDraft to await, but handle it now so an early failure is not unhandled.

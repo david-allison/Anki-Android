@@ -2,11 +2,13 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.os.Bundle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.NoteEditorFragment
+import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.ioDispatcher
 import com.ichi2.anki.noteeditor.web.WebEditorDocument
 import com.ichi2.anki.noteeditor.web.WebEditorDraft
@@ -32,6 +34,56 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class EditorWebSessionTest : JvmTest() {
+    @Test
+    fun `saving an existing note retains its document and toolbar until closing`() =
+        runTest {
+            val originalDispatcher = ioDispatcher
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+            val model = EditorViewModel(SavedStateHandle())
+            val store = ViewModelStore().apply { put("editor", model) }
+            val errors = mutableListOf<String>()
+            val session = EditorWebSession(model, backgroundScope, errors::add)
+            val web = mockk<WebEditorView>(relaxed = true)
+            every { web.context } returns ApplicationProvider.getApplicationContext()
+            var onChanged: ((WebEditorStatus) -> Unit)? = null
+            every { web.onChanged = any() } answers { onChanged = firstArg() }
+            try {
+                val note = addBasicNote()
+                model.load(
+                    Bundle().apply {
+                        putInt(NoteEditorFragment.EXTRA_CALLER, NoteEditorCaller.EDIT.value)
+                        putLong(NoteEditorFragment.EXTRA_CARD_ID, note.firstCard().id)
+                    },
+                )
+                session.attach(web)
+                runCurrent()
+                checkNotNull(onChanged)(WebEditorStatus(1, true, hasSelection = true, activeField = 1, canUndo = true))
+                val toolbar = session.toolbarState.value
+                val original = checkNotNull(model.state.value)
+                val savedFields = listOf("saved front", "<b>saved back</b>")
+                assertEquals(EditorSaveResult.Saved, model.save(savedFields))
+                runCurrent()
+                assertEquals(original.generation, model.state.value?.generation)
+                assertEquals(toolbar, session.toolbarState.value)
+                assertTrue(session.ready.value)
+                coVerify(exactly = 1) { web.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                coVerify(exactly = 0) { web.focusField(any(), any()) }
+
+                // Changing note type after Save can keep this editor open. Reset only its baseline.
+                session.acceptSavedDocument()
+                coVerify(exactly = 1) {
+                    web.acceptSavedDocument(original.sessionId, original.generation, savedFields, any())
+                }
+                coVerify(exactly = 1) { web.loadDocumentAndCreateDraft(any(), any(), any(), any()) }
+                assertEquals(toolbar, session.toolbarState.value)
+                assertTrue(errors.isEmpty(), errors.joinToString())
+            } finally {
+                session.detach()
+                store.clear()
+                ioDispatcher = originalDispatcher
+            }
+        }
+
     @Test
     fun `HTML defaults load with the document and changes wait for the next note`() =
         runTest {

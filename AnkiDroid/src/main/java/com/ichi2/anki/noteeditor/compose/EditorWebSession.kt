@@ -188,6 +188,15 @@ class EditorWebSession(
 
     suspend fun synchronize() = updates.withLock { synchronize(requireNotNull(view)) }
 
+    /** Save can leave Edit open for a note-type dialog; advance its baseline without replacing fields. */
+    suspend fun acceptSavedDocument() =
+        updates.withLock {
+            val editor = requireNotNull(view)
+            synchronize(editor)
+            val state = requireNotNull(model.state.value)
+            editor.acceptSavedDocument(state.sessionId, state.generation, state.fields.map { it.html }, model.hostState())
+        }
+
     private suspend fun synchronize(
         editor: WebEditorView,
         focusFirstField: Boolean = false,

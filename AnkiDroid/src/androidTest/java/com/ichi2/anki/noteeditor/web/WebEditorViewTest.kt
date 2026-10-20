@@ -64,6 +64,45 @@ class WebEditorViewTest : InstrumentedTest() {
     val keyboard = TestInputMethodRule()
 
     @Test
+    fun acceptingSavedFieldsKeepsExpansionSelectionAndUndoHistory() =
+        withEditor {
+            val draftId = "saved-in-place-${UUID.randomUUID()}"
+            val original = document("front").let { it.copy(fields = it.fields.map { field -> field.copy(collapsed = true) }) }
+            val back = "document.querySelector('.field-container[data-index=\"1\"]')"
+            try {
+                loadDocumentAndCreateDraft(original, draftId, "before")
+                // Focus temporarily expands a field whose stored default remains collapsed.
+                select(1, 0, 4)
+                assertTrue(execute(WebEditorAction.BOLD))
+                val target = assertNotNull(captureTarget())
+                val saved = snapshot()
+                assertTrue(saved.hasChanges)
+                evaluate("window.savedFieldNode = $back")
+
+                acceptSavedDocument(original.sessionId, original.generation, saved.fields, "saved")
+
+                assertEquals("true", evaluate("window.savedFieldNode === $back"))
+                assertEquals("\"true\"", evaluate("$back.querySelector('.collapse-toggle').getAttribute('aria-expanded')"))
+                assertEquals(target, captureTarget(), "Saving must retain the existing selection")
+                assertEquals(saved.fields, snapshot().fields)
+                assertFalse(snapshot().hasChanges)
+                assertTrue(execute(WebEditorAction.UNDO))
+                assertEquals("back", snapshot().fields[1])
+                assertTrue(snapshot().hasChanges, "Undo after Save must be compared with the newly saved baseline")
+                assertTrue(execute(WebEditorAction.REDO))
+                assertFalse(snapshot().hasChanges)
+                updateHostState("saved")
+                loadDocument(document("temporary"))
+                val draft = assertNotNull(restoreDraft(draftId))
+                assertEquals("saved", draft.hostStateJson)
+                assertFalse(draft.document.fields[1].collapsed)
+                assertFalse(snapshot().hasChanges, "Recovery must use the saved baseline")
+            } finally {
+                discardDraft(draftId)
+            }
+        }
+
+    @Test
     fun htmlDefaultsAllowTemporaryModeChangesAndDraftRecovery() =
         withEditor {
             val draftId = "html-default-test-${UUID.randomUUID()}"

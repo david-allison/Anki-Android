@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 8 resolved.**
+Recorded 2026-10-20. **15 action items; 9 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -264,20 +264,23 @@ Related checklists:
   label `OutlinedTextField`; [EditorToolbarButtons.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorToolbarButtons.kt),
   `Text(item.button.label)`.
 
-- [ ] **11. Prevent a visible field reset when saving an existing note.**
+- [x] **11. Prevent a visible field reset when saving an existing note.**
 
   **Feedback:** Saving the star note collapsed Notes and changed the toolbar.
 
-  **Assessment: agree; the code suggests a plausible cause.** The demo edits
-  an existing note. Saving an edit increments the document generation, and the
-  state observer synchronizes document changes. This can rebuild the fields
-  and reapply their collapsed defaults before the activity closes. Notes is
-  configured as collapsed by default in the demo.
+  **Assessment: agree; saving an edit unnecessarily replaced its document.**
+  The generation change triggered a reload, reapplying collapsed defaults
+  before the activity closed. Notes is collapsed by default in the demo.
 
-  **Completion action:** Confirm the save-time reload and avoid unnecessary
-  visible document reconstruction when the completed edit is closing. Verify
-  that the expanded field and toolbar do not reset before dismissal. Keep
-  “Start collapsed” behavior for a genuinely new Add document separate.
+  **Implemented 2026-10-20:** Saving an existing note retains its generation,
+  fields and toolbar. The save-before-changing-note-type flow marks the saved
+  content clean in place, preserving the DOM, selection and undo history if the
+  editor stays open. A new Add still starts a new document with its defaults.
+
+  **Verification:** All 62 model/session tests pass, including a regression
+  against save-time reloads. Both Pixel 9 Pro checks pass: saving an existing
+  note closes the activity, and accepting a save in place preserves expansion,
+  the same DOM node, selection, undo/redo, and the clean baseline after recovery.
 
   **Evidence:** [EditorViewModel.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorViewModel.kt),
   the edit branch of `saveSnapshot()`; [EditorWebSession.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorWebSession.kt),

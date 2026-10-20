@@ -272,6 +272,23 @@ class WebEditorView(
         )
     }
 
+    /** Mark the saved fields clean while retaining their DOM, selection and editing history. */
+    suspend fun acceptSavedDocument(
+        sessionId: String,
+        generation: Int,
+        fields: List<String>,
+        hostStateJson: String,
+    ) {
+        request(
+            "acceptSavedDocument",
+            JSONObject()
+                .put("sessionId", sessionId)
+                .put("generation", generation)
+                .put("fields", JSONArray(fields))
+                .put("hostStateJson", hostStateJson),
+        )
+    }
+
     /** A brief native Save/type transition can disable editing while snapshots remain available. */
     suspend fun setInputEnabled(enabled: Boolean) {
         request("setInputEnabled", JSONObject().put("enabled", enabled))
