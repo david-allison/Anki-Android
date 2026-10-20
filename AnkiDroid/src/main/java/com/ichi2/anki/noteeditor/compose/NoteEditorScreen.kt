@@ -73,7 +73,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -99,10 +98,10 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -696,10 +695,14 @@ private fun EditorPane(
         }
     }
     val fullscreen = showFieldOptions && panelSection != EditorFieldPanelSection.OPTIONS
-    var sheetTop by remember { mutableFloatStateOf(0f) }
+    var sheetTop by remember(sheetState) { mutableStateOf<Float?>(null) }
     LaunchedEffect(fullscreen, showFieldOptions) {
         // The native cursor must remain clipped behind a full-screen configuration window.
-        if (showFieldOptions) onFieldOptionsTop(if (fullscreen) 0f else sheetTop)
+        if (fullscreen) {
+            onFieldOptionsTop(0f)
+        } else if (showFieldOptions) {
+            sheetTop?.let(onFieldOptionsTop)
+        }
     }
     val closeOptions: () -> Unit = { onFieldOptionsRequested(false) }
     BackHandler(enabled = showFieldOptions) {
@@ -838,8 +841,11 @@ private fun EditorPane(
                                 (if (fullscreen) Modifier.clearAndSetSemantics {} else Modifier.testTag("editor_field_panel"))
                                     .onGloballyPositioned {
                                         onFieldOptionsBounds(it.boundsInRoot())
-                                        sheetTop = it.boundsInWindow().top
-                                        if (!fullscreen) onFieldOptionsTop(sheetTop)
+                                        // Clipped bounds become Rect.Zero once the sheet slides off-screen.
+                                        // Its actual position must keep revealing the fields during dismissal.
+                                        val top = it.positionInWindow().y
+                                        sheetTop = top
+                                        if (!fullscreen) onFieldOptionsTop(top)
                                     },
                             ) {
                                 key(panelInstance) {

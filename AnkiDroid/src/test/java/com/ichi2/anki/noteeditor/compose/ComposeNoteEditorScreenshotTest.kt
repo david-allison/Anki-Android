@@ -1495,7 +1495,8 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun fieldOptionsFinishSlidingOutBeforeRemovingContent() {
         var optionsVisible = false
-        showEditor(onFieldOptionsVisibility = { optionsVisible = it })
+        val clipTops = mutableListOf<Float>()
+        showEditor(onFieldOptionsVisibility = { optionsVisible = it }, onFieldOptionsTop = { clipTops += it })
         val editorBottom =
             composeRule
                 .onNodeWithContentDescription(
@@ -1504,6 +1505,9 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 .boundsInRoot.bottom
         openFieldOptions()
         composeRule.waitForIdle()
+        assertTrue(clipTops.all { it > 0f }, "Opening field options must not temporarily hide all fields: $clipTops")
+        val expandedTop = clipTops.last()
+        clipTops.clear()
         val panel = hasTestTag("editor_field_panel")
         var lastTop =
             composeRule
@@ -1526,6 +1530,10 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                 lastTop = sheet.positionInRoot.y
             }
             assertTrue(removed, "The sheet must finish closing")
+            assertTrue(
+                clipTops.all { it >= expandedTop },
+                "Dismissing the sheet must reveal more of the fields, never clip them away: $clipTops",
+            )
             assertEquals(false, optionsVisible, "Restore native cursor handling after the sheet leaves")
             composeRule.onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold)).assertIsDisplayed()
         } finally {
@@ -2885,6 +2893,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
         highlightColor: String = "#ffff00",
         headerVisibility: Flow<Boolean> = emptyFlow(),
         onFieldOptionsVisibility: (Boolean) -> Unit = {},
+        onFieldOptionsTop: (Float) -> Unit = {},
         onFieldSelected: (EditorFieldTarget) -> Unit = {},
         focusState: State<EditorToolbarState>? = null,
         description: String = "",
@@ -3017,6 +3026,7 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     onCustomButtonTemplates = { currentTemplates.value = it },
                     headerVisibility = headerVisibility,
                     onFieldOptionsVisibility = onFieldOptionsVisibility,
+                    onFieldOptionsTop = onFieldOptionsTop,
                     onFieldSelected = onFieldSelected,
                     editor = { Box(it.testTag("editor_fields")) },
                     preview = { Box(it) },

@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 6 resolved.**
+Recorded 2026-10-20. **15 action items; 7 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -193,25 +193,31 @@ Related checklists:
   [editor.js](../AnkiDroid/src/main/assets/note-editor/editor.js),
   `showHeader()` and the deliberate-scroll handler.
 
-- [ ] **08. Investigate fields briefly disappearing before expanding Notes.**
+- [x] **08. Investigate fields briefly disappearing before expanding Notes.**
 
   **Feedback:** The fields vanished briefly before the Notes field expanded.
 
-  **Assessment: agree this needs investigation; the cause is unconfirmed.**
-  Expanding a field only toggles and mounts that field. Panel transitions
-  separately clip the entire WebView document, making dismissal and clipping
-  worth investigating. The inspected code does not establish the cause of the
-  particular disappearance.
+  **Assessment: agree; reproduced a clipping error during panel dismissal.**
+  Once the sheet slides outside its parent, `boundsInWindow()` returns an empty
+  rectangle. The panel then reports a top of zero for several frames, telling
+  the WebView to clip away every field before clearing the clip on dismissal.
 
-  **Completion action:** Reproduce the panel-close/Notes-expand sequence and
-  inspect the transient frames, clipping bounds, and document reloads. Fix the
-  demonstrated cause and verify that field content remains visible throughout
-  the transition.
+  **Implemented 2026-10-20:** Use the sheet's unclipped `positionInWindow()` and
+  wait for its first measured position instead of assuming zero. Full-screen
+  configuration pages still deliberately clip the covered fields.
+
+  **Verification:** Extended the existing frame-by-frame panel dismissal test.
+  It failed before the fix, recording several zero-height clips at the end of
+  dismissal, and passes afterward. All eight selected light/dark panel checks
+  pass, including unchanged field bounds and configuration-page navigation.
+  This reproduces the panel transition defect; the original video was not
+  replayed on-device.
 
   **Evidence:** [editor.js](../AnkiDroid/src/main/assets/note-editor/editor.js),
   `clipFieldOptions()` and `setFieldOptionsVisible()`;
   [WebEditorView.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/web/WebEditorView.kt),
-  `setFieldOptionsTop()`; backend `FieldsOnly.svelte`, `toggleCollapsed()`
+  `setFieldOptionsTop()`; [NoteEditorScreen.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/NoteEditorScreen.kt),
+  the sheet positioning callback; backend `FieldsOnly.svelte`, `toggleCollapsed()`
   (see backend source locations below).
 
 - [ ] **09. Reduce excess width for single-symbol custom toolbar buttons.**
