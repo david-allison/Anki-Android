@@ -1,7 +1,11 @@
-<!-- SPDX-License-Identifier: Apache-2.0 -->
-<!-- Icons from Pictogrammers Material Design Icons. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="@android:color/black" android:pathData="M4,17L6.75,14.25L6.72,14.23C6.14,13.64 6.14,12.69 6.72,12.11L11.46,7.37L15.7,11.61L10.96,16.35C10.39,16.93 9.46,16.93 8.87,16.37L8.24,17H4M15.91,2.91C16.5,2.33 17.45,2.33 18.03,2.91L20.16,5.03C20.74,5.62 20.74,6.57 20.16,7.16L16.86,10.45L12.62,6.21L15.91,2.91Z" />
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: Google LLC
+  SPDX-FileComment: Material Symbols Rounded, fill 0, weight 300, optical size 24.
+  Source: https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/ink_highlighter/wght300/24px.svg
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="960" android:viewportHeight="960">
+    <group android:translateX="-0" android:translateY="960">
+        <path android:fillColor="@android:color/black" android:pathData="m544-406.15-104-104-197.69 197.69q-3.46 3.46-3.46 8.46 0 5 3.46 8.46l87.07 87.08q3.47 3.46 8.47 3.46t8.46-3.46L544-406.15Zm-61.23-146.77 104 104L785-647.15q3.46-3.46 3.46-8.85t-3.46-8.85l-86.31-86.3q-3.46-3.46-8.84-3.46-5.39 0-8.85 3.46L482.77-552.92ZM419.54-574l188.3 188.31-219.38 219.38q-21.69 21.69-50.61 21.69-28.93 0-50.62-21.69l-5.08-5.08-14.92 14.93q-9.85 9.84-23.19 15.46-13.35 5.61-27.81 5.61h-82.07q-12.47 0-16.89-11.03-4.42-11.04 4.42-19.89l82.77-82.77-4.3-4.31q-21.7-21.69-21.7-50.61 0-28.92 21.7-50.61L419.54-574Zm0 0 219.69-219.69q21.69-21.69 50.62-21.69 28.92 0 50.61 21.69l87.08 87.08q21.69 21.69 21.69 50.61 0 28.92-21.69 50.61l-219.7 219.7L419.54-574Z" />
+    </group>
 </vector>

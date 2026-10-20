@@ -1,18 +1,11 @@
 <!--
   SPDX-License-Identifier: Apache-2.0
   SPDX-FileCopyrightText: Google LLC
-  SPDX-FileComment: Material Symbols Outlined, fill 0, weight 300, optical size 24; intentionally not mirrored, because this setting always means right-to-left.
-  Source: https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/format_textdirection_r_to_l/wght300/24px.svg
+  SPDX-FileComment: Material Symbols Rounded, fill 0, weight 300, optical size 24. Intentionally not mirrored: this setting always means right-to-left.
+  Source: https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/format_textdirection_r_to_l/wght300/24px.svg
 -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960"
-    android:tint="?attr/colorControlNormal">
-  <group android:translateY="960">
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="M382.69-370v-195.39h-8.84q-61 0-103.96-43.15-42.96-43.15-42.96-104.15 0-61 42.96-104.15Q312.85-860 373.85-860h284.61v60h-77.69v430h-60v-430h-78.08v430h-60ZM253.92-213.46l71.69 71.31L283.46-100 140-243.85l143.46-143.46L326-344.77l-71.69 71.31H820v60H253.92Zm128.77-411.92V-800h-8.84q-36.08 0-61.5 25.66-25.43 25.66-25.43 61.69 0 36.04 25.43 61.65 25.42 25.62 61.5 25.62h8.84Zm0-87.31Z"/>
-  </group>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="960" android:viewportHeight="960" android:tint="?attr/colorControlNormal">
+    <group android:translateX="-0" android:translateY="960">
+        <path android:fillColor="@android:color/white" android:pathData="M442.69-800v400q0 12.77-8.63 21.38-8.62 8.62-21.38 8.62t-21.37-8.63q-8.62-8.62-8.62-21.37v-165.39h-8.84q-61 0-103.96-43.15-42.96-43.15-42.96-104.15 0-61 42.96-104.15Q312.85-860 373.85-860h254.61q12.75 0 21.38 8.63 8.62 8.63 8.62 21.38 0 12.76-8.62 21.37-8.63 8.62-21.38 8.62h-47.69v400q0 12.75-8.63 21.37-8.63 8.63-21.38 8.63-12.76 0-21.38-8.63-8.61-8.62-8.61-21.37v-400h-78.08ZM253.92-213.46l50.62 50.61q8.31 8.18 8.31 20.82t-8.28 20.95q-8.28 8.31-21.08 8.31-12.8 0-21.1-8.31l-97.08-97.07q-10.85-10.96-10.85-25.56 0-14.6 10.85-25.44l97.08-97.08q8.69-8.69 21.07-8.69 12.39 0 21.08 8.69 8.69 8.69 8.69 21.27 0 12.57-8.69 21.27l-50.23 50.23H790q12.75 0 21.37 8.63 8.63 8.63 8.63 21.38 0 12.76-8.63 21.37-8.62 8.62-21.37 8.62H253.92Zm128.77-411.92V-800h-8.84q-36.08 0-61.5 25.66-25.43 25.66-25.43 61.69 0 36.04 25.43 61.65 25.42 25.62 61.5 25.62h8.84Zm0-87.31Z" />
+    </group>
 </vector>

@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 2 resolved.**
+Recorded 2026-10-20. **15 action items; 3 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -72,7 +72,7 @@ Related checklists:
   **Evidence:** [EditorOptionsMenu.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorOptionsMenu.kt),
   `DropdownMenu`; existing `ComposeNoteEditorScreenshotTest/global_options.png`.
 
-- [ ] **03. Use rounded styling for the Toolbar layout icon.**
+- [x] **03. Use rounded styling for the Toolbar layout icon.**
 
   **Feedback:** The Toolbar layout icon is not round.
 
@@ -82,6 +82,20 @@ Related checklists:
   **Completion action:** Use a rounded version of the same layout symbol and
   verify that it remains distinct from Manage fields and consistent with nearby
   icons.
+
+  **Scope agreed 2026-10-20:** Prefer rounded styling for all icons added for
+  this editor.
+
+  **Implemented 2026-10-20:** Replaced all 17 added editor vectors with Google's
+  Material Icons Round or Material Symbols Rounded counterparts, including
+  Toolbar layout, alignment, indentation, lists, formatting, rich-text/HTML
+  mode, and text direction. Preserved tint, directional mirroring, the custom
+  mode-switch spacing, and the independently drawn color indicators. Each
+  vector records its source and license.
+
+  **Verification:** All 14 existing light/dark toolbar and alignment checks
+  pass. Reviewed a before/after sheet of all 17 icons and the rendered alignment
+  dialog.
 
   **Evidence:** [ic_view_column.xml](../AnkiDroid/src/main/res/drawable/ic_view_column.xml).
 

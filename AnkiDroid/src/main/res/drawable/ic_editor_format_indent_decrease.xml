@@ -1,8 +1,9 @@
-<!-- SPDX-License-Identifier: Apache-2.0 -->
-<!-- Icons from Pictogrammers Material Design Icons. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24"
-    android:autoMirrored="true">
-    <path android:fillColor="@android:color/black" android:pathData="M11,13H21V11H11M11,9H21V7H11M3,3V5H21V3M3,21H21V19H3M3,12L7,16V8M11,17H21V15H11V17Z" />
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: Google LLC
+  SPDX-FileComment: Material Icons Round.
+  Source: https://raw.githubusercontent.com/google/material-design-icons/master/src/editor/format_indent_decrease/materialiconsround/24px.svg
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24" android:autoMirrored="true">
+    <path android:fillColor="@android:color/black" android:pathData="M12 17h8c.55 0 1-.45 1-1s-.45-1-1-1h-8c-.55 0-1 .45-1 1s.45 1 1 1zm-8.65-4.65l2.79 2.79c.32.32.86.1.86-.35V9.21c0-.45-.54-.67-.85-.35l-2.79 2.79c-.2.19-.2.51-.01.7zM4 21h16c.55 0 1-.45 1-1s-.45-1-1-1H4c-.55 0-1 .45-1 1s.45 1 1 1zM3 4c0 .55.45 1 1 1h16c.55 0 1-.45 1-1s-.45-1-1-1H4c-.55 0-1 .45-1 1zm9 5h8c.55 0 1-.45 1-1s-.45-1-1-1h-8c-.55 0-1 .45-1 1s.45 1 1 1zm0 4h8c.55 0 1-.45 1-1s-.45-1-1-1h-8c-.55 0-1 .45-1 1s.45 1 1 1z" />
 </vector>
