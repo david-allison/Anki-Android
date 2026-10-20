@@ -2262,8 +2262,12 @@ open class DeckPicker :
             return
         }
 
-        val isEmpty = withCol { decks.cardCount(did, includeSubdecks = true) == 0 }
-        if (!deck?.filtered!! && isEmpty) {
+        // Empty Default can be absent from the due tree; its deck still exists.
+        val isEmptyRegularDeck =
+            withCol {
+                !decks.isFiltered(did) && decks.cardCount(did, includeSubdecks = true) == 0
+            }
+        if (isEmptyRegularDeck) {
             showEmptyDeckSnackbar()
             updateUi()
         } else {
