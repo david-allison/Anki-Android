@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 10 resolved.**
+Recorded 2026-10-20. **15 action items; 11 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -353,19 +353,34 @@ Related checklists:
   `synchronize()`; [editor.js](../AnkiDroid/src/main/assets/note-editor/editor.js),
   `loadDocumentAndCreateDraft()`.
 
-- [ ] **15. Replace the broken-image MathJax loading state.**
+- [x] **15. Replace the broken-image MathJax loading state.**
 
   **Feedback:** Inserting MathJax briefly shows a broken-image icon and
   “Mathjax”.
 
-  **Assessment: strongly agree; the code provides a concrete explanation.**
-  The MathJax component creates its image before asynchronous conversion
-  finishes. Its initially undefined result is encoded into an SVG data URL,
-  and the image has `alt="Mathjax"`. That can produce the reported placeholder.
+  **Assessment: strongly agree; a regression in our lazy-loading change.**
+  Backend commit `173a30af0` changed the shared component's conversion from
+  synchronous to asynchronous. The image still assumes the result is immediately
+  available, encoding `undefined` into its SVG data URL while the renderer loads.
+  The invalid image then exposes the broken-image icon and `alt="Mathjax"`.
+  This has not been reproduced in stock Anki Desktop.
 
   **Completion action:** Show a valid pending representation until the
   converted SVG is ready. Verify first insertion with an uncached renderer and
   subsequent edits, preserving the equation's selection and caret behavior.
+
+  **Implemented 2026-10-20:** Use the existing empty-equation SVG icon while
+  conversion is pending, styled for the current theme and font size. Replace
+  its source when conversion finishes while retaining the same selectable image
+  element. Expose the pending state through `aria-busy`.
+  Local shared-editor commit: `0e6990fca`; backend pointer: `60b828a`.
+
+  **Verification:** All five targeted native-editor browser tests pass,
+  including inline and block insertions with the renderer deliberately held
+  pending, successful rendering, selection preservation, equation replacement
+  with undo, and enabling previews. The desktop browser project's existing
+  harness returns 404 for this native route. The broader backend check also
+  encounters existing lint and macOS installer failures.
 
   **Evidence:** Backend `Mathjax.svelte`, the `converted` variable,
   asynchronous `render()`, and unconditional `<img>` (see below).
