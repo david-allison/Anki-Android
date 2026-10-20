@@ -26,10 +26,11 @@ import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.common.destinations.DeckOptionsDestination
 import com.ichi2.anki.common.destinations.StudyOptionsDestination
 import com.ichi2.anki.common.destinations.navigate
+import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyAction
 import com.ichi2.anki.launchCatchingIO
-import com.ichi2.anki.launchCatchingTask
+import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.study.StudyAvailability
@@ -121,6 +122,12 @@ class CongratsPage :
                 navigate(destination)
             }.launchIn(lifecycleScope)
 
+        viewModel.customStudyDeckId
+            .flowWithLifecycle(lifecycle)
+            .onEach { deckId ->
+                CustomStudyDialog.createInstance(deckId).show(childFragmentManager, null)
+            }.launchIn(lifecycleScope)
+
         // a rebuild triggered elsewhere (eg. deck options) while this screen wasn't visible may
         // have been missed, so recheck on every STARTED entry instead of trusting only the
         // opExecuted callback. Launched from inside repeatOnLifecycle so the collector is
@@ -138,6 +145,10 @@ class CongratsPage :
                             webViewLayout.post { webViewLayout.reload() }
                         }
                         CongratsRefreshState.DeckHasCardsToStudy -> openStudyOptionsAndFinish()
+                        CongratsRefreshState.EmptyDeck -> {
+                            showThemedToast(requireContext(), getString(CommonString.empty_deck), false)
+                            requireActivity().finish()
+                        }
                     }
                 }
             }
@@ -166,20 +177,13 @@ class CongratsPage :
     override val bridgeCommands =
         mapOf(
             "unbury" to { viewModel.onUnbury() },
-            "customStudy" to { onStudyMore() },
+            "customStudy" to { viewModel.onStudyMore() },
         )
 
     private fun openStudyOptionsAndFinish() {
         Timber.i("opening study options")
         navigate(StudyOptionsDestination)
         requireActivity().finish()
-    }
-
-    private fun onStudyMore() {
-        launchCatchingTask {
-            val customStudy = CustomStudyDialog.createInstance(deckId = withCol { decks.selected() })
-            customStudy.show(childFragmentManager, null)
-        }
     }
 
     companion object {
@@ -193,6 +197,18 @@ class CongratsViewModel :
     override val onError = MutableSharedFlow<String>()
     val unburyState = MutableSharedFlow<UnburyState>()
     val deckOptionsDestination = MutableSharedFlow<DeckOptionsDestination>()
+    val customStudyDeckId = MutableSharedFlow<DeckId>()
+
+    fun onStudyMore() {
+        launchCatchingIO {
+            val study = withCol { currentDeckStudyState() }
+            if (study.isEmptyRegularDeck) {
+                congratsRefreshState.emit(CongratsRefreshState.EmptyDeck)
+            } else {
+                customStudyDeckId.emit(study.deckId)
+            }
+        }
+    }
 
     fun onUnbury() {
         launchCatchingIO {
@@ -244,29 +260,28 @@ class CongratsViewModel :
         }
     }
 
-    /** Called every time the screen becomes STARTED. [isDeckFinished] is always checked,
-     * but reload/navigation only happens if something was actually
-     * missed while unwatched, or the deck no longer needs the congrats page. */
+    /** Recheck on every STARTED entry, including changes missed while the page was stopped. */
     suspend fun refreshIfNeeded() {
-        // desktop's Overview re-checks sched._is_finished() on every refresh instead of
-        // assuming the deck is still done - do the same before reloading the congrats page
-        val stillFinished = isDeckFinished()
-        if (!missedRefresh && stillFinished) return
+        val state = currentRefreshState()
+        if (!missedRefresh && state == CongratsRefreshState.ReloadPage) return
         missedRefresh = false
-        congratsRefreshState.emit(
-            if (stillFinished) CongratsRefreshState.ReloadPage else CongratsRefreshState.DeckHasCardsToStudy,
-        )
+        congratsRefreshState.emit(state)
     }
 
     private suspend fun emitRefreshState() {
         missedRefresh = false
-        val stillFinished = isDeckFinished()
-        congratsRefreshState.emit(
-            if (stillFinished) CongratsRefreshState.ReloadPage else CongratsRefreshState.DeckHasCardsToStudy,
-        )
+        congratsRefreshState.emit(currentRefreshState())
     }
 
-    private suspend fun isDeckFinished(): Boolean = withCol { currentDeckStudyState().availability == StudyAvailability.NoCardsAvailable }
+    private suspend fun currentRefreshState(): CongratsRefreshState =
+        withCol {
+            val study = currentDeckStudyState()
+            when {
+                study.isEmptyRegularDeck -> CongratsRefreshState.EmptyDeck
+                study.availability == StudyAvailability.CardsAvailable -> CongratsRefreshState.DeckHasCardsToStudy
+                else -> CongratsRefreshState.ReloadPage
+            }
+        }
 }
 
 sealed class UnburyState {
@@ -276,6 +291,8 @@ sealed class UnburyState {
 }
 
 sealed class CongratsRefreshState {
+    data object EmptyDeck : CongratsRefreshState()
+
     data object ReloadPage : CongratsRefreshState()
 
     data object DeckHasCardsToStudy : CongratsRefreshState()

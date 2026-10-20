@@ -15,6 +15,30 @@ class CongratsViewModelTest : RobolectricTest() {
     private val viewModel = CongratsViewModel()
 
     @Test
+    fun `Custom Study rejects an empty regular deck even before refresh`() =
+        runTest {
+            addDeck("Other")
+            viewModel.customStudyDeckId.test {
+                viewModel.congratsRefreshState.test {
+                    viewModel.onStudyMore()
+                    assertEquals(CongratsRefreshState.EmptyDeck, awaitItem())
+                }
+                expectNoEvents()
+            }
+        }
+
+    @Test
+    fun `Custom Study uses the deck from the current study state`() =
+        runTest {
+            val deckId = addDeck("Study", setAsSelected = true)
+            col.setDeck(listOf(addBasicNote().firstCard().id), deckId)
+            viewModel.customStudyDeckId.test {
+                viewModel.onStudyMore()
+                assertEquals(deckId, awaitItem())
+            }
+        }
+
+    @Test
     fun `onStudyQueuesChanged - navigates away once rebuild refills an emptied filtered deck`() =
         runTest {
             addBasicNote("Front", "Back")

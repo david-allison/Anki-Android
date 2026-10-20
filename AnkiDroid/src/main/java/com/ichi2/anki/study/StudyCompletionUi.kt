@@ -5,13 +5,11 @@ package com.ichi2.anki.study
 import android.content.Context
 import androidx.fragment.app.FragmentActivity
 import com.ichi2.anki.CollectionManager.TR
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.time.TIME_HOUR
 import com.ichi2.anki.common.time.TIME_MINUTE
 import com.ichi2.anki.common.utils.android.showThemedToast
-import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.pages.CongratsPage
 import com.ichi2.anki.snackbar.showSnackbar
 import kotlin.math.round
@@ -22,14 +20,18 @@ object StudyCompletionUi {
         activity.startActivity(CongratsPage.getIntent(activity))
     }
 
-    fun displayFromShortcut(activity: FragmentActivity) {
+    fun displayFromShortcut(
+        activity: FragmentActivity,
+        state: DeckStudyState,
+    ) {
+        if (state.isEmptyRegularDeck) {
+            showThemedToast(activity, activity.getString(CommonString.empty_deck), false)
+            return
+        }
         if (displayNewCongratsScreen(activity)) {
             openCongratsPage(activity)
         } else {
-            activity.launchCatchingTask {
-                val state = withCol { currentDeckStudyState() }
-                showThemedToast(activity, finishedMessage(activity, state), false)
-            }
+            showThemedToast(activity, finishedMessage(activity, state), false)
         }
     }
 
@@ -37,6 +39,10 @@ object StudyCompletionUi {
         activity: FragmentActivity,
         state: DeckStudyState,
     ) {
+        if (state.isEmptyRegularDeck) {
+            activity.showSnackbar(CommonString.empty_deck)
+            return
+        }
         if (displayNewCongratsScreen(activity)) {
             openCongratsPage(activity)
             return

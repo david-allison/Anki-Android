@@ -3,6 +3,7 @@ package com.ichi2.anki.pages
 
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import anki.scheduler.CardAnswer.Rating
 import anki.scheduler.CongratsInfoResponse
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.RobolectricTest
@@ -15,6 +16,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 @RunWith(AndroidJUnit4::class)
@@ -35,6 +37,8 @@ class CongratsPageTest : RobolectricTest() {
     @Test
     fun `congrats polling succeeds while the page is stopped`() =
         runTest {
+            addBasicNote()
+            col.sched.answerCard(assertNotNull(col.sched.card), Rating.EASY)
             launchFragmentInContainer<CongratsPage>().use { scenario ->
                 lateinit var fragment: CongratsPage
                 scenario.onFragment { fragment = it }

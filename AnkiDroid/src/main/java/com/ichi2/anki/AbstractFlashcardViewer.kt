@@ -149,6 +149,7 @@ import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.study.StudyCompletionUi
+import com.ichi2.anki.study.currentDeckStudyState
 import com.ichi2.anki.ui.windows.reviewer.StudyScreenRepository
 import com.ichi2.anki.utils.OnlyOnce.Method.ANSWER_CARD
 import com.ichi2.anki.utils.OnlyOnce.preventSimultaneousExecutions
@@ -522,10 +523,19 @@ abstract class AbstractFlashcardViewer :
         updateCurrentCard()
 
         if (currentCard == null) {
-            closeReviewer(RESULT_NO_MORE_CARDS)
-            // When launched with a shortcut, we want to display a message when finishing
-            if (intent.getBooleanExtra(EXTRA_STARTED_WITH_SHORTCUT, false)) {
-                StudyCompletionUi.displayFromShortcut(this)
+            val completion =
+                try {
+                    if (intent.getBooleanExtra(EXTRA_STARTED_WITH_SHORTCUT, false)) {
+                        withCol { currentDeckStudyState() }
+                    } else {
+                        null
+                    }
+                } finally {
+                    closeReviewer(RESULT_NO_MORE_CARDS)
+                }
+            if (completion != null) {
+                // Presentation must not launch work in the finishing reviewer's lifecycle scope.
+                StudyCompletionUi.displayFromShortcut(this, completion)
             }
             return
         }

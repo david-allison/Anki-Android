@@ -43,6 +43,30 @@ class ReviewCompletionTest : RobolectricTest() {
     }
 
     @Test
+    fun `deleting the last card from Default finishes as empty`() {
+        addDeck("Other")
+        val card = addBasicNote().firstCard()
+
+        completeReview(expectEmpty = true) {
+            col.removeNotes(cardIds = listOf(card.id))
+            assertEquals(DEFAULT_DECK_ID, col.decks.selected())
+            assertNull(col.sched.deckDueTree().find(DEFAULT_DECK_ID))
+        }
+    }
+
+    @Test
+    fun `deleting the last card from a listed regular deck finishes as empty`() {
+        val deck = addDeck("Regular", setAsSelected = true)
+        val card = addBasicNote().firstCard()
+        col.setDeck(listOf(card.id), deck)
+
+        completeReview(expectEmpty = true) {
+            col.removeNotes(cardIds = listOf(card.id))
+            assertNotNull(col.sched.deckDueTree().find(deck))
+        }
+    }
+
+    @Test
     fun `finished parent with cards only in its child still shows completion`() {
         val child = addDeck("Parent::Child")
         col.setDeck(listOf(addBasicNote().firstCard().id), child)
