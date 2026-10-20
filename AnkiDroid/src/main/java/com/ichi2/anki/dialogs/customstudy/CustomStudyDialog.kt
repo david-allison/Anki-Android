@@ -172,6 +172,17 @@ class CustomStudyDialog : AnalyticsDialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        // Custom Study needs cards. Loading its defaults also fails for hidden empty Default (Issue 22249).
+        val isEmpty = runBlocking { withCol { decks.cardCount(viewModel.deckId, includeSubdecks = true) == 0 } }
+        if (isEmpty) {
+            return AlertDialog
+                .Builder(requireActivity())
+                .title(text = TR.sentenceCase.customStudy)
+                .setMessage(CommonString.empty_deck)
+                .positiveButton(CommonString.dialog_ok)
+                .create()
+        }
+
         val option = selectedSubDialog
         return if (option == null || !defaultsAreInitialized()) {
             Timber.i("Showing Custom Study main menu")

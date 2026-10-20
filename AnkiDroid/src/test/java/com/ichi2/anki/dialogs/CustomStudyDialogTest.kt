@@ -12,6 +12,7 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isEnabled
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -21,6 +22,7 @@ import anki.scheduler.CustomStudyRequest.Cram.CramKind
 import anki.scheduler.customStudyDefaultsResponse
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
+import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
@@ -29,6 +31,7 @@ import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults.
 import com.ichi2.anki.dialogs.customstudy.CustomStudyViewModel
 import com.ichi2.anki.dialogs.tags.TagsDialogListener.Companion.REQUEST_SELECT_TAGS
 import com.ichi2.anki.dialogs.tags.TagsDialogListener.Companion.RESULT_SELECTED_TAGS
+import com.ichi2.anki.dialogs.utils.message
 import com.ichi2.anki.dialogs.utils.performPositiveClick
 import com.ichi2.anki.libanki.CardType
 import com.ichi2.anki.libanki.Collection
@@ -56,8 +59,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class CustomStudyDialogTest : RobolectricTest() {
@@ -65,6 +70,59 @@ class CustomStudyDialogTest : RobolectricTest() {
     override fun setUp() {
         super.setUp()
         uninitializeField<CustomStudyDialog>("deferredDefaults")
+    }
+
+    @Test
+    fun `hidden empty Default explains why custom study is unavailable and preserves redo`() {
+        val other = addDeck("Other")
+        col.setDeck(listOf(addBasicNote().firstCard().id), other)
+        addBasicNote()
+        col.undo()
+        assertNull(col.sched.deckDueTree().find(Consts.DEFAULT_DECK_ID))
+        val undoStatus = col.undoStatus()
+        assertNotNull(undoStatus.redo)
+
+        withCustomStudyFragment(argumentsDisplayingMainScreen()) { fragment ->
+            val dialog = assertNotNull(fragment.dialog as? AlertDialog)
+            assertEquals(fragment.getString(CommonString.empty_deck), dialog.message)
+            assertTrue(dialog.positiveButton.isEnabled)
+        }
+
+        assertEquals(Consts.DEFAULT_DECK_ID, col.decks.selected())
+        assertEquals(undoStatus, col.undoStatus())
+        col.redo()
+        withCustomStudyFragment(argumentsDisplayingMainScreen()) {
+            onView(withText(TR.customStudyStudyByCardStateOrTag()))
+                .inRoot(isDialog())
+                .check(matches(isEnabled()))
+        }
+    }
+
+    @Test
+    fun `empty deck explains why custom study is unavailable without selecting it`() {
+        addBasicNote()
+        val emptyDeck = addDeck("Empty")
+        val undoStatus = col.undoStatus()
+
+        withCustomStudyFragment(argumentsDisplayingMainScreen(emptyDeck)) { fragment ->
+            val dialog = assertNotNull(fragment.dialog as? AlertDialog)
+            assertEquals(fragment.getString(CommonString.empty_deck), dialog.message)
+        }
+
+        assertEquals(Consts.DEFAULT_DECK_ID, col.decks.selected())
+        assertEquals(undoStatus, col.undoStatus())
+    }
+
+    @Test
+    fun `custom study remains available when only a child deck has cards`() {
+        val child = addDeck("Default::Child")
+        col.setDeck(listOf(addBasicNote().firstCard().id), child)
+
+        withCustomStudyFragment(argumentsDisplayingMainScreen()) {
+            onView(withText(TR.customStudyStudyByCardStateOrTag()))
+                .inRoot(isDialog())
+                .check(matches(isEnabled()))
+        }
     }
 
     @Test
@@ -301,11 +359,12 @@ class CustomStudyDialogTest : RobolectricTest() {
 
     @Test
     fun `subscreens are ignored when restoring from process death`() {
+        addBasicNote()
         withCustomStudyFragment(args = argumentsDisplayingSubscreen(ContextMenuOption.EXTEND_REV, restoreFromProcessDeath = true)) {
             // ensure we're on the main screen
             onView(withText(TR.customStudyIncreaseTodaysReviewCardLimit()))
                 .inRoot(isDialog())
-                .check(matches(isEnabled()))
+                .check(matches(isDisplayed()))
         }
     }
 
@@ -331,6 +390,7 @@ class CustomStudyDialogTest : RobolectricTest() {
     @Test
     @Config(qualifiers = "en")
     fun `'review ahead' shows a day or days suffix`() {
+        addBasicNote()
         withStudyAheadDialog {
             val layout = binding.detailsEditText2Layout
             assertThat("default of 1 day", layout.suffixText.toString(), equalTo("day"))
@@ -345,6 +405,7 @@ class CustomStudyDialogTest : RobolectricTest() {
 
     @Test
     fun `'review ahead' rejects leading zeros and more than 5 digits`() {
+        addBasicNote()
         withStudyAheadDialog {
             val editText = binding.detailsEditText2
 
@@ -393,14 +454,19 @@ class CustomStudyDialogTest : RobolectricTest() {
     fun `'review ahead' search does not treat the deck name as a pattern`() =
         runTest {
             // '_' is a single-character wildcard in a search: "A_B" must not match "AXB"
-            val emptyDeckId = addDeck("A_B")
+            val deckId = addDeck("A_B")
+            addBasicNote().update { moveToDeck("A_B", false) }.firstCard().update {
+                queue = QueueType.Rev
+                type = CardType.Rev
+                due = col.sched.today + 30
+            }
             addDeck("AXB")
             addNoteDueTomorrow(deckName = "AXB")
 
-            withStudyAheadDialog(deckId = emptyDeckId) { dialog ->
+            withStudyAheadDialog(deckId = deckId) { dialog ->
                 onSubscreenEditText().perform(replaceText("1"))
                 shadowOf(Looper.getMainLooper()).idle()
-                assertThat("A_B has no cards", dialog.positiveButton.isEnabled, equalTo(false))
+                assertThat("A_B has no cards due tomorrow", dialog.positiveButton.isEnabled, equalTo(false))
             }
         }
 
@@ -422,6 +488,7 @@ class CustomStudyDialogTest : RobolectricTest() {
     @Config(qualifiers = "en")
     fun `'review ahead' warns when 0 days is entered`() =
         runTest {
+            addBasicNote()
             withStudyAheadDialog {
                 val layout = binding.detailsEditText2Layout
 
@@ -485,6 +552,7 @@ class CustomStudyDialogTest : RobolectricTest() {
 
     private fun mockCollectionWithSchedulerReturning(response: CustomStudyDefaultsResponse) =
         mockk<Collection>(relaxed = true) {
+            every { decks.cardCount(Consts.DEFAULT_DECK_ID, includeSubdecks = true) } returns 1
             every { sched } returns
                 mockk<Scheduler> {
                     every { customStudyDefaults(Consts.DEFAULT_DECK_ID) } returns response
