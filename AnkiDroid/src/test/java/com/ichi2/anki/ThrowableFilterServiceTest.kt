@@ -25,15 +25,15 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class ThrowableFilterServiceTest : JvmTest() {
     @Test
-    fun `database locked exceptions are discarded`() {
+    fun `unhandled database locked exceptions are retained`() {
         val exception = BackendDbLockedException(backendError {})
-        assertTrue(ThrowableFilterService.shouldDiscardThrowable(exception))
+        assertFalse(ThrowableFilterService.shouldDiscardThrowable(exception))
     }
 
     @Test
-    fun `collection locked exceptions are discarded`() {
+    fun `unhandled collection locked exceptions are retained`() {
         val exception = CollectionLockedException(BackendDbLockedException(backendError {}))
-        assertTrue(ThrowableFilterService.shouldDiscardThrowable(exception))
+        assertFalse(ThrowableFilterService.shouldDiscardThrowable(exception))
     }
 
     @Test
