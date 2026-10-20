@@ -2113,8 +2113,18 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
     @Test
     fun compactCustomButtonsInStackedToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.STACK)
 
-    private fun assertCompactCustomButtons(display: EditorToolbarDisplay) {
-        RuntimeEnvironment.setQualifiers("w320dp-h640dp-mdpi")
+    @Test
+    fun compactCustomButtonsWithLargeTextInScrollingToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.SCROLL, largeText = true)
+
+    @Test
+    fun compactCustomButtonsWithLargeTextInStackedToolbar() = assertCompactCustomButtons(EditorToolbarDisplay.STACK, largeText = true)
+
+    private fun assertCompactCustomButtons(
+        display: EditorToolbarDisplay,
+        largeText: Boolean = false,
+    ) {
+        RuntimeEnvironment.setQualifiers(if (largeText) "w426dp-h952dp-360dpi" else "w320dp-h640dp-mdpi")
+        if (largeText) RuntimeEnvironment.setFontScale(2f)
         val labels = listOf("★", "👩🏽‍💻", "Ruby annotation")
         showEditor(
             toolbarDisplay = display,
@@ -2135,17 +2145,30 @@ class ComposeNoteEditorScreenshotTest : ScreenshotTest() {
                     .fetchSemanticsNode()
                     .boundsInRoot
             }
-        composeRule
-            .onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold))
-            .assertIsDisplayed()
-            .assertTouchWidthIsEqualTo(48.composeDp)
-        assertEquals(48f, star.width, 1f, "Keep an icon-sized touch target")
+        val bold =
+            composeRule
+                .onNodeWithContentDescription(getResourceString(R.string.compose_editor_bold))
+                .assertIsDisplayed()
+                .assertTouchWidthIsEqualTo(48.composeDp)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        assertEquals(bold.width, star.width, 1f, "Single symbols must use the same button bounds as Bold")
+        assertEquals(bold.height, star.height, 1f, "Single symbols must use the same button bounds as Bold")
         assertEquals(star.width, emoji.width, 1f, "Joined emoji must not be sized by UTF-16 length")
-        assertEquals(48f, emoji.center.x - star.center.x, 1f, "Single symbols must occupy only one column")
+        assertEquals(
+            with(composeRule.density) { 48.composeDp.toPx() },
+            emoji.center.x - star.center.x,
+            1f,
+            "Single symbols must occupy only one column",
+        )
         assertTrue(longerLabel.width > star.width, "Longer labels must keep their flexible width")
-        labels.forEach { composeRule.onNodeWithText(it).assertTouchHeightIsEqualTo(48.composeDp) }
-        labels.take(2).forEach { composeRule.onNodeWithText(it).assertTouchWidthIsEqualTo(48.composeDp) }
-        captureScreen("custom_buttons_${display.name.lowercase()}")
+        labels.take(2).forEach {
+            composeRule
+                .onNodeWithText(it)
+                .assertTouchWidthIsEqualTo(48.composeDp)
+                .assertTouchHeightIsEqualTo(48.composeDp)
+        }
+        captureScreen("custom_buttons_${display.name.lowercase()}${if (largeText) "_large_text" else ""}")
     }
 
     @Test

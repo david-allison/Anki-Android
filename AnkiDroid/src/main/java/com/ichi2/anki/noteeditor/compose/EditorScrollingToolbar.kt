@@ -28,7 +28,8 @@ import kotlin.math.roundToInt
 internal fun rememberEditorToolbarButtonExtents(items: List<EditorToolbarItem>): List<ToolbarButtonExtent> {
     val density = LocalDensity.current
     // The usual icon-only toolbar does not need text measurement or offscreen button composition.
-    val textMeasurer = if (items.any { it is EditorToolbarItem.Custom }) rememberTextMeasurer() else null
+    val textMeasurer =
+        if (items.any { it is EditorToolbarItem.Custom && !it.button.label.isSingleToolbarSymbol() }) rememberTextMeasurer() else null
     val textStyle = MaterialTheme.typography.labelLarge
     return remember(items, density, textMeasurer, textStyle) {
         with(density) {
@@ -40,25 +41,28 @@ internal fun rememberEditorToolbarButtonExtents(items: List<EditorToolbarItem>):
                         } else {
                             ToolbarButtonExtent(48.dp.roundToPx(), 24.dp.roundToPx())
                         }
-                    is EditorToolbarItem.Custom -> {
-                        val textWidth =
-                            requireNotNull(textMeasurer)
-                                .measure(
-                                    item.button.label,
-                                    style = textStyle,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    constraints = Constraints(maxWidth = 60.dp.roundToPx()),
-                                ).size.width
-                        val padding = ButtonDefaults.TextButtonContentPadding
-                        val horizontalPadding =
-                            padding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) +
-                                padding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
-                        ToolbarButtonExtent(
-                            (textWidth + horizontalPadding.roundToPx()).coerceAtLeast(48.dp.roundToPx()),
-                            textWidth,
-                        )
-                    }
+                    is EditorToolbarItem.Custom ->
+                        if (item.button.label.isSingleToolbarSymbol()) {
+                            ToolbarButtonExtent(48.dp.roundToPx(), 24.dp.roundToPx())
+                        } else {
+                            val textWidth =
+                                requireNotNull(textMeasurer)
+                                    .measure(
+                                        item.button.label,
+                                        style = textStyle,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        constraints = Constraints(maxWidth = 60.dp.roundToPx()),
+                                    ).size.width
+                            val padding = ButtonDefaults.TextButtonContentPadding
+                            val horizontalPadding =
+                                padding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) +
+                                    padding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                            ToolbarButtonExtent(
+                                (textWidth + horizontalPadding.roundToPx()).coerceAtLeast(48.dp.roundToPx()),
+                                textWidth,
+                            )
+                        }
                 }
             }
         }

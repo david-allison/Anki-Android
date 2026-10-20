@@ -232,18 +232,24 @@ Related checklists:
   allocation while retaining an adequate touch target. Keep flexible widths for
   longer labels. Verify scrolling and stacked layouts, including emoji labels.
 
-  **Implemented 2026-10-20:** Custom buttons now have a 48 dp minimum width.
-  Both layouts use the rendered label width, so stars and joined emoji occupy
-  one stacked column while longer labels can use two. Scrolling overflow
-  indicators use the same measurements.
+  **Implemented 2026-10-20, including demo follow-up:** The initial 48 dp minimum
+  matched Bold's touch allocation, but left the custom text button visibly
+  wider: 48 dp versus Bold's 40 dp. Single-symbol labels now use an icon button
+  with the same bounds as Bold and a centered 24 dp glyph area. Symbols keep
+  their icon size when text is enlarged. Platform grapheme boundaries recognize
+  supported joined emoji and combining accents as single characters. Longer
+  labels retain flexible text-button widths. Both toolbar layouts and scrolling
+  overflow indicators use the corresponding icon or text measurements.
 
-  **Verification:** Eight light/dark layout checks and all three scroll-spacing
-  tests pass. New layout checks cover a star, a joined emoji, a longer label,
-  48 dp touch targets, and single-column spacing in both layouts. Reviewed the
-  stacked-toolbar screenshot.
+  **Verification:** Direct comparisons against Bold failed in both layouts
+  before the follow-up fix. Ten light/dark layout checks now pass, covering
+  normal text, doubled text size at Pixel display density, joined emoji, longer
+  labels, matching button bounds, 48 dp touch targets, and single-column spacing.
+  Fifteen symbol-classification, ordering, and scroll-spacing tests also pass,
+  including the older Android fallback for unsupported emoji sequences.
 
   **Evidence:** [EditorToolbarButtons.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorToolbarButtons.kt),
-  custom `TextButton`; [EditorScrollingToolbar.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorScrollingToolbar.kt),
+  custom `IconButton`/`TextButton`; [EditorScrollingToolbar.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorScrollingToolbar.kt),
   custom `ToolbarButtonExtent`; [NoteEditorScreen.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/NoteEditorScreen.kt),
   stacked items use their measured width to select one or two columns.
 

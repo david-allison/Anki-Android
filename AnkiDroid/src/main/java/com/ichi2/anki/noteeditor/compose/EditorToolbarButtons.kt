@@ -2,6 +2,10 @@
 
 package com.ichi2.anki.noteeditor.compose
 
+import android.graphics.Paint
+import android.graphics.Rect
+import android.icu.text.BreakIterator
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,15 +27,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.noteeditor.web.WebEditorAction
+import java.util.Locale
 import com.ichi2.anki.noteeditor.R as NoteEditorR
 
 /** Names are persisted; keep them stable when changing labels or toolbar order. */
@@ -101,12 +112,22 @@ internal fun EditorFormattingButtons(
     content(items) button@{ item ->
         if (item is EditorToolbarItem.Custom) {
             EditorTooltip(item.button.label) {
-                TextButton(
-                    onClick = { onCustomAction(item.button) },
-                    enabled = formatEnabled,
-                    modifier = Modifier.defaultMinSize(minWidth = 48.dp),
-                ) {
-                    Text(item.button.label, Modifier.widthIn(max = 60.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (remember(item.button.label) { item.button.label.isSingleToolbarSymbol() }) {
+                    IconButton(
+                        onClick = { onCustomAction(item.button) },
+                        enabled = formatEnabled,
+                        colors = editorIconButtonColors(MaterialTheme.colorScheme.primary),
+                    ) {
+                        EditorCustomToolbarIcon(item.button.label)
+                    }
+                } else {
+                    TextButton(
+                        onClick = { onCustomAction(item.button) },
+                        enabled = formatEnabled,
+                        modifier = Modifier.defaultMinSize(minWidth = 48.dp),
+                    ) {
+                        Text(item.button.label, Modifier.widthIn(max = 60.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
             return@button
@@ -136,6 +157,37 @@ internal fun EditorFormattingButtons(
         } else {
             EditorActionButton(button.icon, button.label, actionEnabled, click)
         }
+    }
+}
+
+@Composable
+private fun EditorCustomToolbarIcon(label: String) {
+    val color = LocalContentColor.current
+    val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG) }
+    val bounds = remember { Rect() }
+    // Treat the label as an icon, keeping its size independent of the user's text scale.
+    Canvas(Modifier.size(24.dp).semantics { text = AnnotatedString(label) }) {
+        paint.color = color.toArgb()
+        paint.textSize = size.minDimension
+        paint.getTextBounds(label, 0, label.length, bounds)
+        val scale = minOf(1f, size.width / bounds.width(), size.height / bounds.height())
+        if (scale < 1f) {
+            paint.textSize *= scale
+            paint.getTextBounds(label, 0, label.length, bounds)
+        }
+        // Center the actual glyph: a font baseline leaves stars below neighboring icons.
+        drawIntoCanvas {
+            it.nativeCanvas.drawText(label, center.x - bounds.exactCenterX(), center.y - bounds.exactCenterY(), paint)
+        }
+    }
+}
+
+/** Count user-perceived characters, so joined emoji and combining accents remain one icon. */
+internal fun String.isSingleToolbarSymbol(): Boolean {
+    if (isBlank()) return false
+    return BreakIterator.getCharacterInstance(Locale.ROOT).run {
+        setText(this@isSingleToolbarSymbol)
+        next() == this@isSingleToolbarSymbol.length
     }
 }
 
