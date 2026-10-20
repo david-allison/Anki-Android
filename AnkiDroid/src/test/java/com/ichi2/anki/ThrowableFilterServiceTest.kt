@@ -5,11 +5,13 @@ package com.ichi2.anki
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.backend.backendError
+import com.ichi2.anki.exception.CollectionLockedException
 import com.ichi2.anki.exception.StorageAccessException
 import com.ichi2.anki.servicelayer.ThrowableFilterService
 import com.ichi2.anki.servicelayer.ThrowableFilterService.safeFromPII
 import com.ichi2.testutils.JvmTest
 import net.ankiweb.rsdroid.BackendException
+import net.ankiweb.rsdroid.BackendException.BackendDbException.BackendDbLockedException
 import net.ankiweb.rsdroid.BackendException.BackendSchedulerUpgradeRequiredException
 import net.ankiweb.rsdroid.exceptions.BackendDeckIsFilteredException
 import net.ankiweb.rsdroid.exceptions.BackendNetworkException
@@ -22,6 +24,18 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class ThrowableFilterServiceTest : JvmTest() {
+    @Test
+    fun `database locked exceptions are discarded`() {
+        val exception = BackendDbLockedException(backendError {})
+        assertTrue(ThrowableFilterService.shouldDiscardThrowable(exception))
+    }
+
+    @Test
+    fun `collection locked exceptions are discarded`() {
+        val exception = CollectionLockedException(BackendDbLockedException(backendError {}))
+        assertTrue(ThrowableFilterService.shouldDiscardThrowable(exception))
+    }
+
     @Test
     fun `scheduler upgrade required exceptions are discarded`() {
         val exception = BackendSchedulerUpgradeRequiredException(backendError {})
