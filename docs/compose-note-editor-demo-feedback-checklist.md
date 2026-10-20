@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 5 resolved.**
+Recorded 2026-10-20. **15 action items; 6 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -154,7 +154,7 @@ Related checklists:
   `onSave(field.font, size.toInt())`; [EditorFieldOption.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorFieldOption.kt),
   `FONT`; [EditorFieldFontDialogTest.kt](../AnkiDroid/src/test/java/com/ichi2/anki/noteeditor/compose/EditorFieldFontDialogTest.kt).
 
-- [ ] **06. Clarify the font-size help text without omitting typed answers.**
+- [x] **06. Clarify the font-size help text without omitting typed answers.**
 
   **Feedback:** “Used when editing and typing answers” is confusing; the tester
   suggests “Used for text in the field”.
@@ -163,9 +163,12 @@ Related checklists:
   Typed answers also read this field's configured font and size, so the proposed
   replacement omits a real effect.
 
-  **Completion action:** Use wording such as **“Text size when editing this
-  field and typing its answer during review.”** Check that related help text
-  consistently describes the setting's scope.
+  **Implemented 2026-10-20:** Applied the approved wording: **“Used only when
+  editing and typing answers.”** The font-size dialog and field-options help
+  catalogue share the same string, keeping both descriptions consistent.
+
+  **Verification:** All four existing light/dark font-size dialog and
+  field-options help checks pass.
 
   **Evidence:** [compose_note_editor.xml](../AnkiDroid/src/main/res/values/compose_note_editor.xml),
   `compose_editor_field_font_help`; [TypeAnswer.kt](../AnkiDroid/src/main/java/com/ichi2/anki/cardviewer/TypeAnswer.kt)
