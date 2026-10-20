@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -405,6 +406,20 @@ class ComposeNoteEditorActivity :
             )
         }
         formattingRequest?.let { request ->
+            if (request.action in
+                setOf(WebEditorAction.MATHJAX_INLINE, WebEditorAction.MATHJAX_BLOCK, WebEditorAction.MATHJAX_CHEMISTRY)
+            ) {
+                LaunchedEffect(editorView, request) {
+                    try {
+                        editorView?.preloadMathjax()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Speculative loading must not prevent editing or opening the dialog.
+                        Timber.w(e, "Unable to preload the field equation renderer")
+                    }
+                }
+            }
             EditorFormattingDialog(
                 request = request,
                 onDismiss = {

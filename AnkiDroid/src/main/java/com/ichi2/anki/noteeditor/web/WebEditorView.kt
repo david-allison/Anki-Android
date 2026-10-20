@@ -414,6 +414,11 @@ class WebEditorView(
     suspend fun selectionText(target: WebEditorTarget): String? =
         request("selectionText", target.toJson()).let { if (it.isNull("text")) null else it.getString("text") }
 
+    /** Start loading the field renderer without waiting for it or holding the editor command queue. */
+    suspend fun preloadMathjax() {
+        request("preloadMathjax")
+    }
+
     suspend fun execute(
         action: WebEditorAction,
         target: WebEditorTarget? = null,

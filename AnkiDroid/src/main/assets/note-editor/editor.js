@@ -688,6 +688,13 @@
         },
         snapshot,
         captureTarget,
+        preloadMathjax() {
+            // Loading must not hold the command queue while the native dialog is open.
+            void api()
+                .preloadMathjax()
+                .catch(error => console.warn("Unable to preload MathJax", error));
+            return {};
+        },
         async selectionText(target) {
             await reconcile();
             const selection = selectionFor(target);

@@ -382,6 +382,25 @@ Related checklists:
   harness returns 404 for this native route. The broader backend check also
   encounters existing lint and macOS installer failures.
 
+  **Follow-up 2026-10-20:** Opening the equation dialog now starts loading and
+  initializing the field WebView's SVG renderer. This includes editing an
+  existing equation and restoring an open dialog. The separate dialog-preview
+  WebView does not initialize the field renderer. Preloading returns immediately
+  to the host command queue, and insertion reuses the module and startup promise.
+  Keep the valid placeholder if insertion happens before loading completes.
+  Local shared-editor commit: `56a65cd9d`; backend pointer: `67ba1f7`.
+
+  **Follow-up verification:** All eight focused native-editor browser checks
+  pass, including plain-editor startup without MathJax, duplicate preload calls,
+  unchanged selection/history, editing during loading, and insertion before or
+  after loading finishes. A focused check of the production host bridge confirms
+  that pending and failed preloads do not block subsequent commands. Extended
+  the device integration test to hold preloading pending while the dialog is
+  open and verify that a snapshot still completes. The backend, debug app, and
+  Android test APK builds pass; the Pixel was disconnected, so that device test
+  was not run. The final backend-wide check stops at an existing formatting
+  error in `code-mirror.ts`.
+
   **Evidence:** Backend `Mathjax.svelte`, the `converted` variable,
   asynchronous `render()`, and unconditional `<img>` (see below).
   [ComposeNoteEditorDemoTest.kt](../AnkiDroid/src/androidTest/java/com/ichi2/anki/noteeditor/compose/ComposeNoteEditorDemoTest.kt)

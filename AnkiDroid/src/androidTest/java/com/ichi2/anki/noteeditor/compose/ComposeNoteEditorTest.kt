@@ -93,6 +93,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assume.assumeTrue
@@ -1410,8 +1411,32 @@ class ComposeNoteEditorTest : InstrumentedTest() {
             selectFront()
             device.pressBack()
             waitUntil(message = { "The field keyboard did not close" }) { !scenario.keyboardVisible() }
+            assertEquals("false", web.evaluate("Boolean(globalThis.MathJax?.tex2svg)"))
+            web.evaluate(
+                """
+                (() => {
+                    const preload = AnkiEditorFields.preloadMathjax;
+                    const held = new Promise(resolve => { window.releaseMathjaxPreload = resolve; });
+                    window.mathjaxPreloadCalls = 0;
+                    window.mathjaxPreloadReady = false;
+                    AnkiEditorFields.preloadMathjax = () => {
+                        window.mathjaxPreloadCalls++;
+                        return held.then(preload).then(() => { window.mathjaxPreloadReady = true; });
+                    };
+                })()
+                """.trimIndent(),
+            )
             toolbar(R.string.compose_editor_equations)
             assertTrue(device.wait(Until.hasObject(By.text(testContext.getString(R.string.compose_editor_mathjax_equation))), 5_000))
+            try {
+                web.awaitJavascript("window.mathjaxPreloadCalls === 1")
+                // A pending preload must not hold the bridge queue or modify the note.
+                assertEquals(listOf("alpha.", "beta"), runBlocking { withTimeout(2_000) { web.snapshot().fields } })
+                assertEquals("false", web.evaluate("window.mathjaxPreloadReady"))
+            } finally {
+                web.evaluate("window.releaseMathjaxPreload()")
+            }
+            web.awaitJavascript("window.mathjaxPreloadReady && typeof globalThis.MathJax?.tex2svg === 'function'")
             val formula = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
             formula.click()
             formula.text = "x^2"
