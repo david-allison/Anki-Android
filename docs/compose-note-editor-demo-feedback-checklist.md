@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 1 resolved.**
+Recorded 2026-10-20. **15 action items; 2 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -50,7 +50,7 @@ Related checklists:
   `EditorSaveResult.Added.cardCount`; [NoteEditorFragment.kt](../AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt),
   `onNoteAdded()` uses `TR.importingCardsAdded(count)`.
 
-- [ ] **02. Increase the options menu's screen-edge spacing.**
+- [x] **02. Increase the options menu's screen-edge spacing.**
 
   **Feedback:** The options dropdown is too close to the screen edge.
 
@@ -59,6 +59,15 @@ Related checklists:
 
   **Completion action:** Give the popup a consistent screen inset. Verify its
   placement in LTR, RTL, and narrow windows without clipping menu content.
+
+  **Implemented 2026-10-20:** The options menu uses Material's popup positioning
+  with a 16dp minimum surface inset and a width limit for narrow windows. It
+  stays below the wrench, clamping within the window instead of flipping across
+  the anchor. Keyboard/caret preservation and Back handling are unchanged.
+
+  **Verification:** All 18 existing light/dark menu and interaction checks pass,
+  including opening Field options in RTL and in a small window with large text.
+  Reviewed the menu screenshot; its edge now aligns with the 16dp page inset.
 
   **Evidence:** [EditorOptionsMenu.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorOptionsMenu.kt),
   `DropdownMenu`; existing `ComposeNoteEditorScreenshotTest/global_options.png`.

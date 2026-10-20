@@ -7,16 +7,26 @@ import android.view.WindowManager
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.activity.compose.BackHandler
+import androidx.collection.intListOf
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -26,10 +36,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.ichi2.anki.R
 
@@ -67,10 +82,18 @@ internal fun EditorOptionsMenu(
                 colors = IconButtonDefaults.iconButtonColors(contentColor = controlColor),
             ) { Icon(painterResource(R.drawable.ic_build_black_24), label) }
         }
-        DropdownMenu(
+        // The popup keeps 8dp outside its bounds; another 8dp of transparent padding
+        // gives the menu surface a 16dp inset, including in RTL and narrow windows.
+        val menuMaxWidth =
+            with(LocalDensity.current) {
+                LocalWindowInfo.current.containerSize.width
+                    .toDp()
+            } - 16.dp
+        DropdownMenuPopup(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.widthIn(max = menuMaxWidth.coerceAtLeast(0.dp)).padding(horizontal = 8.dp),
+            popupPositionProvider = MenuDefaults.rememberDropdownMenuPopupPositionProvider(EditorMenuAnchorPosition),
             // Keep the field's input connection and caret while browsing settings.
             properties =
                 PopupProperties(
@@ -80,37 +103,57 @@ internal fun EditorOptionsMenu(
                             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 ),
         ) {
-            // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
-            // These niche options are intended for future user-defined JS; keep their implementation.
-            // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
-            // One settings entry point for every toolbar layout.
-            EditorSettingsMenuItem(
-                label = R.string.compose_editor_field_options,
-                icon = R.drawable.ic_tune_white,
-                enabled = fieldTarget != null,
+            Surface(
+                shape = MenuDefaults.shape,
+                color = MaterialTheme.colorScheme.surfaceContainer.compositeOver(MaterialTheme.colorScheme.surface),
+                tonalElevation = MenuDefaults.TonalElevation,
+                shadowElevation = MenuDefaults.ShadowElevation,
             ) {
-                expanded = false
-                onFieldOptions()
-            }
-            HorizontalDivider()
-            // Device-wide presentation settings, separate from shared field and preset properties.
-            EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_column) {
-                expanded = false
-                showToolbarDisplay = true
-            }
-            HorizontalDivider()
-            // Note-type structure and card templates.
-            EditorSettingsMenuItem(R.string.compose_editor_fields, R.drawable.ic_list_black) {
-                expanded = false
-                onFields()
-            }
-            EditorSettingsMenuItem(R.string.compose_editor_cards, R.drawable.ic_flashcard_black) {
-                expanded = false
-                onCards()
+                Column(
+                    Modifier.padding(vertical = 8.dp).width(IntrinsicSize.Max).verticalScroll(rememberScrollState()),
+                ) {
+                    // Shrink Images, MathJax Preview and Auto-close HTML are omitted from the UI only.
+                    // These niche options are intended for future user-defined JS; keep their implementation.
+                    // Temporary rationale: https://discord.com/channels/368267295601983490/882228005504696350/1559393939734270055
+                    // One settings entry point for every toolbar layout.
+                    EditorSettingsMenuItem(
+                        label = R.string.compose_editor_field_options,
+                        icon = R.drawable.ic_tune_white,
+                        enabled = fieldTarget != null,
+                    ) {
+                        expanded = false
+                        onFieldOptions()
+                    }
+                    HorizontalDivider()
+                    // Device-wide presentation settings, separate from shared field and preset properties.
+                    EditorSettingsMenuItem(R.string.compose_editor_toolbar_layout, R.drawable.ic_view_column) {
+                        expanded = false
+                        showToolbarDisplay = true
+                    }
+                    HorizontalDivider()
+                    // Note-type structure and card templates.
+                    EditorSettingsMenuItem(R.string.compose_editor_fields, R.drawable.ic_list_black) {
+                        expanded = false
+                        onFields()
+                    }
+                    EditorSettingsMenuItem(R.string.compose_editor_cards, R.drawable.ic_flashcard_black) {
+                        expanded = false
+                        onCards()
+                    }
+                }
             }
         }
     }
 }
+
+/** Stay below the wrench, clamping toward the window edge instead of flipping across the anchor. */
+private val EditorMenuAnchorPosition =
+    MenuAnchorPosition.Custom(
+        xCandidates = {
+            intListOf(if (layoutDirection == LayoutDirection.Ltr) anchorBounds.left else anchorBounds.right - menuSize.width)
+        },
+        yCandidates = { intListOf(anchorBounds.bottom, anchorBounds.top - menuSize.height) },
+    )
 
 @Composable
 private fun EditorSettingsMenuItem(
