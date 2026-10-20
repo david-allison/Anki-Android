@@ -35,6 +35,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.webkit.WebViewFeature
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.CardTemplateEditor
+import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.NoteEditorActivity
@@ -532,7 +533,7 @@ class ComposeNoteEditorActivity :
                         model.state.value
                             ?.initialFocusField
                             ?.let { webSession.view?.focusField(it) }
-                        lifecycleScope.launch { snackbar.showSnackbar(getString(R.string.compose_editor_added)) }
+                        lifecycleScope.launch { snackbar.showSnackbar(TR.importingCardsAdded(result.cardCount).replace(".", "")) }
                     }
                 }
                 is EditorSaveResult.Invalid -> {

@@ -39,7 +39,6 @@
     <string name="compose_editor_language_hint">Keyboard language hint</string>
     <string name="compose_editor_language_hint_summary">The keyboard language used when editing this field or typing an answer.\n\nYour keyboard may ignore this setting.</string>
     <string name="compose_editor_language_hint_default">Default</string>
-    <string name="compose_editor_added">Note added</string>
     <string name="compose_editor_discard">Discard changes to this note?</string>
     <string name="compose_editor_legacy">Open existing editor</string>
     <string name="compose_editor_stale_command">The insertion position changed. Select a field and try again.</string>

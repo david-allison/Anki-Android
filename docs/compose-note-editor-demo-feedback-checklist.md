@@ -1,6 +1,6 @@
 # Compose note editor: demo feedback checklist
 
-Recorded 2026-10-20. **15 action items; 0 resolved.**
+Recorded 2026-10-20. **15 action items; 1 resolved.**
 
 This records the tester's demo feedback and the code-based assessments discussed
 in chat. Recommendations remain proposals unless an explicit decision is
@@ -24,7 +24,7 @@ Related checklists:
 
 ## Feedback, assessments, and completion actions
 
-- [ ] **01. Restore the card count in the success snackbar.**
+- [x] **01. Restore the card count in the success snackbar.**
 
   **Feedback:** The snackbar says “Note added” instead of “1 card added”.
 
@@ -35,6 +35,15 @@ Related checklists:
   **Completion action:** Use the actual number of generated cards and the
   existing localized count message. Verify singular and plural results,
   including a note that generates multiple cards.
+
+  **Implemented 2026-10-20:** The snackbar uses `result.cardCount` with the
+  legacy editor's localized card-count message and punctuation handling.
+  Removed the unused “Note added” string.
+
+  **Verification:** All 61 existing `EditorViewModelTest` and
+  `EditorWebSessionTest` cases pass, including the Add/save flow. Inspected the
+  translation's singular and plural branches and the backend count passed
+  through `EditorSaveResult.Added`; no device reproduction was performed.
 
   **Evidence:** [ComposeNoteEditorActivity.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/ComposeNoteEditorActivity.kt),
   `handleSaveResult()`; [EditorState.kt](../AnkiDroid/src/main/java/com/ichi2/anki/noteeditor/compose/EditorState.kt),
