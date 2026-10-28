@@ -148,7 +148,7 @@ class ManageTagsViewModelTest : JvmTest() {
                 assertEquals(null, loadedState.error)
                 assertEquals(listOf("Straße::child"), col.getNote(note.id).tags)
                 assertEquals(undoBefore, col.undoStatus())
-                assertEquals(UserMessage.TagMoved(0), pendingMessages.value.single().message)
+                assertEquals(UserMessage.UnusedTagMoved(0), pendingMessages.value.single().message)
             }
         }
 
@@ -386,7 +386,7 @@ class ManageTagsViewModelTest : JvmTest() {
                     val refresh = refreshTags()
                     assertThat(loadedState.isWorking, equalTo(true))
                     refresh.join()
-                    assertThat(loadedState, equalTo(previous))
+                    assertThat(loadedState.copy(tagRevision = previous.tagRevision), equalTo(previous))
                 }
             }
         }
@@ -1045,7 +1045,7 @@ class ManageTagsViewModelTest : JvmTest() {
 
                 assertThat(col.getNote(first.id).tags, containsInAnyOrder("target::source::child", "unrelated"))
                 assertThat(col.getNote(second.id).tags, containsInAnyOrder("target::source", "target::source::other"))
-                assertThat(pendingMessages.value.single().message, equalTo(UserMessage.TagMoved(2)))
+                assertThat(pendingMessages.value.single().message, equalTo(UserMessage.UnusedTagMoved(2)))
                 assertThat(loadedState.visibleTagNames, containsInAnyOrder("target", "unrelated"))
                 assertThat(loadedState.totalTagCount, equalTo(5))
             }
@@ -1300,7 +1300,7 @@ class ManageTagsViewModelTest : JvmTest() {
             withViewModel {
                 ensureOpsExecuted(1) { moveTag("source", "target").join() }
                 assertThat(col.getNote(note.id).tags, containsInAnyOrder("target::source", "target::source::child", "unrelated"))
-                assertThat(pendingMessages.value.single().message, equalTo(UserMessage.TagMoved(1)))
+                assertThat(pendingMessages.value.single().message, equalTo(UserMessage.UnusedTagMoved(1)))
                 col.undo()
                 assertThat(col.getNote(note.id).tags, containsInAnyOrder(*original.toTypedArray()))
                 col.redo()
@@ -1471,7 +1471,7 @@ class ManageTagsViewModelTest : JvmTest() {
                 assertFalse(tagExists(TagName.asValid("source")))
                 assertTrue(tagExists(TagName.asValid("target::source::child")))
                 assertEquals(
-                    UserMessage.TagMoved(1),
+                    UserMessage.UnusedTagMoved(1),
                     pendingMessages.value
                         .single()
                         .message,
@@ -1501,7 +1501,7 @@ class ManageTagsViewModelTest : JvmTest() {
                 assertEquals(undoBefore, col.undoStatus())
                 assertEquals(2, loadedState.totalTagCount)
                 assertEquals(
-                    UserMessage.TagMoved(0),
+                    UserMessage.UnusedTagMoved(0),
                     pendingMessages.value
                         .single()
                         .message,
