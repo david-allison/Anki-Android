@@ -2,23 +2,13 @@
 
 package com.ichi2.anki.libanki
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
-import com.ichi2.testutils.AndroidTest
-import com.ichi2.testutils.EmptyApplication
 import org.intellij.lang.annotations.Language
 import org.json.JSONObject
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-@RunWith(AndroidJUnit4::class) // required due to differing JSON implementation
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class FieldTest : AndroidTest {
+class FieldTest {
     @Test
     fun `'tag' - null handling`() {
         val jsonObject = JSONObject()
