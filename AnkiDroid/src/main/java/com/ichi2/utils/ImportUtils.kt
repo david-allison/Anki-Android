@@ -26,13 +26,13 @@ import com.ichi2.anki.common.coroutines.applicationScope
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.exception.ManuallyReportedException
 import com.ichi2.anki.common.time.TimeManager
+import com.ichi2.anki.common.utils.ImportFileClassifier
 import com.ichi2.anki.compat.CompatHelper
 import com.ichi2.anki.dialogs.DialogHandlerMessage
 import com.ichi2.anki.dialogs.ImportDialog
 import com.ichi2.anki.servicelayer.DebugInfoService
 import com.ichi2.anki.showImportDialog
 import com.ichi2.anki.ui.internationalization.sentenceCase
-import com.ichi2.anki.utils.MimeTypeUtils
 import com.ichi2.utils.IntentUtil.resolveMimeType
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.Contract
@@ -42,7 +42,7 @@ import java.io.FileNotFoundException
 import java.io.InputStream
 import java.net.URLDecoder
 import java.net.URLEncoder
-import java.util.Locale
+import com.ichi2.anki.common.utils.ImportFileClassifier.Resolution as MetadataResolution
 
 object ImportUtils {
     // A filename should be shortened if over this threshold
@@ -93,12 +93,11 @@ object ImportUtils {
     }
 
     @SuppressLint("LocaleRootUsage")
-    fun isCollectionPackage(filename: String?): Boolean =
-        filename != null && (filename.lowercase(Locale.ROOT).endsWith(".colpkg") || "collection.apkg" == filename)
+    fun isCollectionPackage(filename: String?): Boolean = ImportFileClassifier.isCollectionPackage(filename)
 
     /** @return Whether the file is either a deck, or a collection package */
     @Contract("null -> false")
-    fun isValidPackageName(filename: String?): Boolean = FileImporter.isDeckPackage(filename) || isCollectionPackage(filename)
+    fun isValidPackageName(filename: String?): Boolean = ImportFileClassifier.isValidPackageName(filename)
 
     /**
      * Whether importUtils can handle the given intent
@@ -143,37 +142,35 @@ object ImportUtils {
                     null
                 }
             }
-            val packageMimeType by lazy {
-                val packageTypes = MimeTypeUtils.APKG_MIME_TYPES + MimeTypeUtils.COLPKG_MIME_TYPES
-                intentMimeType.takeIf { it in packageTypes } ?: providerMimeType.takeIf { it in packageTypes }
-            }
-            val providedName =
-                getFileNameFromContentProvider(context, uri)
-                    ?: when {
-                        packageMimeType in MimeTypeUtils.COLPKG_MIME_TYPES -> "unknown_filename.colpkg"
-                        packageMimeType in MimeTypeUtils.APKG_MIME_TYPES || intentMimeType == "application/zip" -> "unknown_filename.apkg"
-                        else -> return ImportResolution.Failure(
-                            ImportResult.Failure(
-                                context.getString(CommonString.import_error_content_provider, AnkiDroidApp.manualUrl + "#importing"),
-                            ),
-                        )
-                    }
-            val filename = validateFileName(providedName)
-            val source = ImportResolution.Source(uri, filename)
-            return when {
-                // Package filenames and specific package MIME types take precedence over text hints.
-                isCollectionPackage(filename) -> ImportResolution.CollectionPackage(source)
-                isDeckPackage(filename) -> ImportResolution.DeckPackage(source)
-                packageMimeType in MimeTypeUtils.COLPKG_MIME_TYPES -> ImportResolution.CollectionPackage(source)
-                packageMimeType in MimeTypeUtils.APKG_MIME_TYPES -> ImportResolution.DeckPackage(source)
-                getExtension(filename).lowercase() in listOf("csv", "tsv", "txt") ||
-                    intentMimeType in MimeTypeUtils.CSV_TSV_MIME_TYPES || providerMimeType in MimeTypeUtils.CSV_TSV_MIME_TYPES ->
-                    ImportResolution.Text(source)
-                isAnkiDatabase(filename) ->
-                    ImportResolution.Failure(ImportResult.Failure(context.getString(CommonString.import_error_load_imported_database)))
-                else ->
+            val filename = getFileNameFromContentProvider(context, uri)?.let(::validateFileName)
+            val metadata =
+                ImportFileClassifier.resolve(
+                    fileName = filename,
+                    fileExtension = filename?.let(::getExtension).orEmpty(),
+                    intentMimeType = intentMimeType,
+                    readProviderMimeType = { providerMimeType },
+                )
+            return when (metadata) {
+                is MetadataResolution.DeckPackage -> ImportResolution.DeckPackage(ImportResolution.Source(uri, metadata.fileName))
+                is MetadataResolution.CollectionPackage ->
+                    ImportResolution.CollectionPackage(
+                        ImportResolution.Source(uri, metadata.fileName),
+                    )
+                is MetadataResolution.Text -> ImportResolution.Text(ImportResolution.Source(uri, metadata.fileName))
+                is MetadataResolution.Failure ->
                     ImportResolution.Failure(
-                        ImportResult.Failure(context.getString(CommonString.import_error_not_apkg_extension, filename)),
+                        ImportResult.Failure(
+                            when (metadata.reason) {
+                                ImportFileClassifier.Reason.MISSING_FILENAME ->
+                                    context.getString(CommonString.import_error_content_provider, AnkiDroidApp.manualUrl + "#importing")
+                                ImportFileClassifier.Reason.ANKI_DATABASE ->
+                                    context.getString(
+                                        CommonString.import_error_load_imported_database,
+                                    )
+                                ImportFileClassifier.Reason.UNSUPPORTED_TYPE ->
+                                    context.getString(CommonString.import_error_not_apkg_extension, metadata.fileName)
+                            },
+                        ),
                     )
             }
         }
@@ -264,8 +261,6 @@ object ImportUtils {
             }
             return ImportResult.Success(file, tempOutDir)
         }
-
-        private fun isAnkiDatabase(filename: String?): Boolean = filename != null && hasExtension(filename, "anki2")
 
         /**
          * Uses the last path segment ([File.name]) so directory components cannot escape the
@@ -543,23 +538,13 @@ object ImportUtils {
             }
 
             @SuppressLint("LocaleRootUsage")
-            internal fun isDeckPackage(filename: String?): Boolean =
-                filename != null && filename.lowercase(Locale.ROOT).endsWith(".apkg") && "collection.apkg" != filename
+            internal fun isDeckPackage(filename: String?): Boolean = ImportFileClassifier.isDeckPackage(filename)
 
             @SuppressLint("LocaleRootUsage")
             fun hasExtension(
                 filename: String,
                 extension: String?,
-            ): Boolean {
-                val fileParts = filename.split("\\.".toRegex()).toTypedArray()
-                if (fileParts.size < 2) {
-                    return false
-                }
-                val extensionSegment = fileParts[fileParts.size - 1]
-                // either "apkg", or "apkg (1)".
-                // COULD_BE_BETTE: accepts .apkgaa"
-                return extensionSegment.lowercase(Locale.ROOT).startsWith(extension!!)
-            }
+            ): Boolean = ImportFileClassifier.hasExtension(filename, extension)
         }
     }
 
