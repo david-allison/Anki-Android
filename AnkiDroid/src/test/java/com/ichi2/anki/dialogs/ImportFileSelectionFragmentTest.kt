@@ -8,9 +8,9 @@ import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.utils.MimeTypeUtils
 import com.ichi2.anki.dialogs.ImportFileSelectionFragment.Companion.buildImportFilePickerIntent
 import com.ichi2.anki.dialogs.ImportFileSelectionFragment.ImportOptions
-import com.ichi2.anki.utils.MimeTypeUtils
 import com.ichi2.testutils.launchFragment
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat

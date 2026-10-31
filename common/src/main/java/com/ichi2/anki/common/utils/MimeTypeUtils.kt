@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2025 argon2r <vincentcs008@gmail.com>
 
-package com.ichi2.anki.utils
+package com.ichi2.anki.common.utils
 
 object MimeTypeUtils {
     val APKG_MIME_TYPES = setOf("application/apkg", "application/x-apkg", "application/vnd.anki")
