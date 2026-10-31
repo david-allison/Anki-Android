@@ -13,6 +13,7 @@ import com.ichi2.anki.settings.Prefs
 import com.ichi2.testutils.JvmPreferencesRule
 import com.ichi2.testutils.JvmTest
 import com.ichi2.testutils.assertFalse
+import com.ichi2.testutils.jvmPreferences
 import com.ichi2.testutils.withViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,6 @@ import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasSize
 import org.hamcrest.Matchers.not
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -30,12 +30,6 @@ import kotlin.test.assertEquals
 class CardBrowserSearchViewModelTest : JvmTest() {
     @get:Rule
     val preferences = JvmPreferencesRule()
-
-    @Before
-    override fun setUp() {
-        SearchHistory().clear()
-        super.setUp()
-    }
 
     @Test
     fun `initial state`() =
@@ -217,7 +211,7 @@ class CardBrowserSearchViewModelTest : JvmTest() {
     @Test
     fun `search history - submitted searches are trimmed and deduplicated`() =
         withViewModel {
-            // Loading and loaded states may contain the same history entries.
+            // Loading/Loaded transitions render entries; only changes to the entries matter here.
             searchHistoryListFlow.distinctUntilChanged().test {
                 submitSearch("aa")
                 assertThat(expectMostRecentItem(), hasSize(1))
@@ -511,7 +505,7 @@ class CardBrowserSearchViewModelTest : JvmTest() {
     ) = runTest {
         Prefs.devUsingCardBrowserSearchTools = useSearchTools
         addNotes(count = cardCount)
-        withViewModel(CardBrowserSearchViewModel(SavedStateHandle()), block)
+        withViewModel(CardBrowserSearchViewModel(SavedStateHandle(), SearchHistory(jvmPreferences())), block)
     }
 }
 
