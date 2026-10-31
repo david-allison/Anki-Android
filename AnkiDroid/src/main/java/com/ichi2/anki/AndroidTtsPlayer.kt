@@ -3,7 +3,6 @@
 package com.ichi2.anki
 
 import android.content.Context
-import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.ERROR
 import androidx.annotation.CheckResult
@@ -45,9 +44,6 @@ class AndroidTtsPlayer(
 
     /** The engine which is currently (or was most recently) speaking */
     private var currentTts: TextToSpeech? = null
-
-    /** Flyweight pattern for an empty bundle */
-    private val bundleFlyweight by lazy { Bundle() }
 
     private val ttsCompletedChannel: Channel<TtsCompletionStatus> = Channel()
 
@@ -170,7 +166,7 @@ class AndroidTtsPlayer(
                     currentUtterance = this
                     cancelledUtterances.remove(this)
                 }
-            tts.speak(tag.fieldText, TextToSpeech.QUEUE_FLUSH, bundleFlyweight, utteranceId)
+            tts.speak(tag.fieldText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
 
             continuation.invokeOnCancellation {
                 Timber.d("stopping tts due to cancellation")
