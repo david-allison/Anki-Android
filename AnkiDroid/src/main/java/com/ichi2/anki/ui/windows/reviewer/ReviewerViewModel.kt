@@ -14,6 +14,8 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
 import com.ichi2.anki.Reviewer
 import com.ichi2.anki.asyncIO
+import com.ichi2.anki.cardviewer.CardMediaPlayer
+import com.ichi2.anki.cardviewer.CardMediaPlayerFactory
 import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.cardviewer.appendNoSuggestAttributes
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -72,10 +74,14 @@ import com.ichi2.anki.common.destinations.Destination as NavigateDestination
 
 class ReviewerViewModel(
     savedStateHandle: SavedStateHandle,
-) : CardViewerViewModel(savedStateHandle),
+    mediaPlayerFactory: CardMediaPlayerFactory,
+) : CardViewerViewModel(savedStateHandle, mediaPlayerFactory),
     ChangeManager.Subscriber,
     BindingProcessor<ReviewerBinding, ViewerAction>,
     AutoAdvance.ActionListener {
+    // AndroidX's default factory requires the Java-visible SavedStateHandle constructor.
+    constructor(savedStateHandle: SavedStateHandle) : this(savedStateHandle, ::CardMediaPlayer)
+
     private var queueState: Deferred<CurrentQueueState?> =
         asyncIO {
             withCol { sched.currentQueueState() }
