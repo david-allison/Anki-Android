@@ -52,11 +52,12 @@ object ReviewRemindersDatabase {
      * SharedPreferences file for review reminders. We store the review reminders separately from the default SharedPreferences.
      */
     @VisibleForTesting
-    val remindersSharedPrefs: SharedPreferences =
-        appContext.getSharedPreferences(
-            SHARED_PREFS_FILE_KEY,
-            Context.MODE_PRIVATE,
-        )
+    val remindersSharedPrefs: SharedPreferences
+        get() =
+            appContext.getSharedPreferences(
+                SHARED_PREFS_FILE_KEY,
+                Context.MODE_PRIVATE,
+            )
 
     /**
      * Key in SharedPreferences for retrieving deck-specific reminders.
