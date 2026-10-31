@@ -4,20 +4,31 @@ package com.ichi2.anki.browser.search
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.browser.CardBrowserViewModel
-import com.ichi2.anki.browser.CardBrowserViewModelTestBase
 import com.ichi2.anki.browser.ColumnType
 import com.ichi2.anki.browser.JvmCardBrowserViewModelTestBase
 import com.ichi2.anki.browser.search.SortOrderBottomSheetFragment.ColumnUiModel
+import com.ichi2.testutils.EmptyApplication
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
 /** Tests [SortOrderBottomSheetFragment.ColumnUiModel] */
 class SortColumnUiModelTest : JvmCardBrowserViewModelTestBase() {
+    @Test
+    fun `initial item is available without ordering`() =
+        runViewModelTest {
+            val initialItem = ColumnUiModel.buildList(this).first()
+            val item = assertInstanceOf<ColumnUiModel.NoOrdering>(initialItem)
+            assertEquals(true, item.available)
+        }
+
     @Test
     fun `ordering is correct`() =
         runViewModelTest {
@@ -173,14 +184,11 @@ val ColumnUiModel.keyOrNull get() =
     }
 
 @RunWith(AndroidJUnit4::class)
-class SortColumnUiModelAndroidTest : CardBrowserViewModelTestBase() {
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
+class SortColumnUiModelAndroidTest {
     @Test
-    fun `properties of initial item`() =
-        runViewModelTest {
-            val initialItem = ColumnUiModel.buildList(this).first()
-
-            val item = assertInstanceOf<ColumnUiModel.NoOrdering>(initialItem)
-            assertEquals(true, item.available)
-            assertEquals("No sorting", item.getLabel(ApplicationProvider.getApplicationContext()))
-        }
+    fun `no ordering has a translated label`() {
+        assertEquals("No sorting", ColumnUiModel.NoOrdering.getLabel(ApplicationProvider.getApplicationContext()))
+    }
 }
