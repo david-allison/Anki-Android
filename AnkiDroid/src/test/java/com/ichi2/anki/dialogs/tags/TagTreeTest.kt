@@ -3,11 +3,12 @@
 
 package com.ichi2.anki.dialogs.tags
 
+import com.ichi2.anki.common.tags.TagsList
+import com.ichi2.anki.common.tags.TagsUtil
+import com.ichi2.anki.common.tags.TagsUtil.getUpdatedTags
 import com.ichi2.anki.dialogs.tags.TagTree.State.CHECKED
 import com.ichi2.anki.dialogs.tags.TagTree.State.INDETERMINATE
 import com.ichi2.anki.dialogs.tags.TagTree.State.UNCHECKED
-import com.ichi2.utils.TagsUtil
-import com.ichi2.utils.TagsUtil.getUpdatedTags
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
