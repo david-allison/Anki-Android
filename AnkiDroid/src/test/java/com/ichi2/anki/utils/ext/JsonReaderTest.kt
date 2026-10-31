@@ -2,27 +2,18 @@
 
 package com.ichi2.anki.utils.ext
 
-import android.util.JsonReader
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
-import com.ichi2.testutils.EmptyApplication
+import com.google.gson.stream.JsonReader
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
 import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import java.io.IOException
 import java.io.Reader
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class JsonReaderTest {
     @get:Rule
     val tempDirectory = TemporaryFolder()

@@ -2,9 +2,9 @@
 
 package com.ichi2.anki.utils.ext
 
-import android.util.JsonReader
-import android.util.JsonToken
-import android.util.MalformedJsonException
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
+import com.google.gson.stream.MalformedJsonException
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
