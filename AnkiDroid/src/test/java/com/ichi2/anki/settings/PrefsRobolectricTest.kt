@@ -6,6 +6,7 @@ import android.content.res.Resources
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import com.ichi2.anki.EmptyApplicationCategory
+import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.libanki.utils.append
 import com.ichi2.anki.preferences.HeaderFragment
@@ -40,6 +41,12 @@ import kotlin.test.assertEquals
 @Config(application = EmptyApplication::class)
 @Category(EmptyApplicationCategory::class)
 class PrefsRobolectricTest : RobolectricTest() {
+    @Test
+    fun `search history pref key is unchanged`() {
+        // this is checked in CrashReportService to ensure user data isn't sent to our servers.
+        assertThat(targetContext.getString(R.string.pref_browser_search_history), equalTo("browser_search_history"))
+    }
+
     private fun getKeysAndDefaultValues(): MutableMap<String, Any?> {
         val sharedPrefsSpy = spy(SPMockBuilder().createSharedPreferences())
         val prefs = PrefsRepository(sharedPrefsSpy, targetContext.resources)

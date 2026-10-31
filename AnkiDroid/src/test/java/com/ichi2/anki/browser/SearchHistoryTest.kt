@@ -3,9 +3,7 @@
 package com.ichi2.anki.browser
 
 import androidx.annotation.CheckResult
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager.withCol
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.Flag
 import com.ichi2.anki.R
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
@@ -17,30 +15,30 @@ import com.ichi2.anki.libanki.Consts.DEFAULT_DECK_ID
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.NoteTypeId
 import com.ichi2.anki.settings.Prefs
-import com.ichi2.testutils.AndroidTest
-import com.ichi2.testutils.EmptyApplication
-import com.ichi2.testutils.JvmPreferencesRule
+import com.ichi2.anki.settings.PrefsRepository
 import com.ichi2.testutils.JvmTest
-import com.ichi2.testutils.getString
+import com.ichi2.testutils.jvmPreferences
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.equalTo
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * Tests for [SearchHistory]
  */
 class SearchHistoryTest : JvmTest() {
-    @get:Rule
-    val preferences = JvmPreferencesRule()
+    private val prefs = jvmPreferences()
 
-    private val history by lazy { SearchHistory(maxEntries = 5) }
+    private fun writeSearchHistoryRaw(value: String?) = writeSearchHistoryRaw(value, prefs)
+
+    private fun readSearchHistoryRaw() = readSearchHistoryRaw(prefs)
+
+    private val history =
+        SearchHistory(prefs = prefs, maxEntries = 5).apply {
+            this.clear()
+        }
 
     @Test
     fun `entries is empty if no key is set`() {
@@ -258,21 +256,13 @@ class SearchHistoryTest : JvmTest() {
     }
 }
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class SearchHistoryPreferenceKeyTest : AndroidTest {
-    @Test
-    fun `pref key is unchanged`() {
-        // this is checked in CrashReportService to ensure user data isn't sent to our servers.
-        assertThat(getString(R.string.pref_browser_search_history), equalTo("browser_search_history"))
-    }
-}
-
-fun writeSearchHistoryRaw(value: String?) = Prefs.putString(R.string.pref_browser_search_history, value)
+fun writeSearchHistoryRaw(
+    value: String?,
+    prefs: PrefsRepository = Prefs,
+) = prefs.putString(R.string.pref_browser_search_history, value)
 
 @CheckResult
-fun readSearchHistoryRaw() = Prefs.getString(R.string.pref_browser_search_history, null)!!
+fun readSearchHistoryRaw(prefs: PrefsRepository = Prefs) = prefs.getString(R.string.pref_browser_search_history, null)!!
 
 suspend fun SearchHistoryEntry.toSearchString(): String? {
     val filters = SearchFilters.from(this@toSearchString) ?: return null
