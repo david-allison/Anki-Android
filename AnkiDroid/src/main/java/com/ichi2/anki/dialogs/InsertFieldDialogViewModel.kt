@@ -13,7 +13,9 @@ import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.Decks
 import com.ichi2.anki.libanki.NoteId
 import com.ichi2.anki.model.FieldName
+import com.ichi2.anki.model.SpecialFieldDescriptionMetadata
 import com.ichi2.anki.model.SpecialFields
+import com.ichi2.anki.model.all
 import com.ichi2.anki.utils.ext.asVar
 import com.ichi2.anki.utils.ext.require
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,14 +125,15 @@ class InsertFieldDialogViewModel(
 @Parcelize
 data class InsertFieldMetadata(
     val side: SingleCardSide,
-    val cardTemplateName: String,
-    val noteTypeName: String,
-    val tags: String?,
-    val flag: Int?,
-    val cardId: CardId?,
-    val deck: String?,
-) : Parcelable {
-    val subdeck: String?
+    override val cardTemplateName: String,
+    override val noteTypeName: String,
+    override val tags: String?,
+    override val flag: Int?,
+    override val cardId: CardId?,
+    override val deck: String?,
+) : Parcelable,
+    SpecialFieldDescriptionMetadata {
+    override val subdeck: String?
         get() = deck?.let { Decks.basename(it) }
 
     companion object {
