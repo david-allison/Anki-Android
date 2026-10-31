@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.Chronometer
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
-import androidx.core.view.isInvisible
 import com.google.android.material.color.MaterialColors
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.libanki.Card
@@ -28,17 +27,33 @@ import com.ichi2.anki.common.android.R as CommonR
  *
  * @see [Card.timeTaken] - used by the scheduler
  */
-class AnswerTimer(
-    private val cardTimer: Chronometer,
+class AnswerTimer internal constructor(
+    private val display: Display,
+    private val elapsedRealtime: () -> Long,
 ) {
+    constructor(cardTimer: Chronometer) : this(ChronometerDisplay(cardTimer), SystemClock::elapsedRealtime)
+
+    /** The timer controller only needs a display and a monotonic clock. */
+    internal interface Display {
+        var visibility: Int
+        var base: Long
+
+        fun start()
+
+        fun stop()
+
+        fun resetColor()
+
+        fun highlightLimit()
+
+        fun setOnTickListener(listener: () -> Unit)
+    }
+
     @VisibleForTesting
     var limit: Int = 0
         private set
 
     private lateinit var currentCard: Card
-
-    private val context: Context
-        get() = cardTimer.context
 
     var showTimer: Boolean = false
         private set
@@ -56,35 +71,35 @@ class AnswerTimer(
     ) {
         currentCard = newCard
         showTimer = newCard.shouldShowTimer(col)
-        if (showTimer && cardTimer.isInvisible) {
-            cardTimer.visibility = View.VISIBLE
-        } else if (!showTimer && cardTimer.visibility != View.INVISIBLE) {
-            cardTimer.visibility = View.INVISIBLE
+        if (showTimer && display.visibility == View.INVISIBLE) {
+            display.visibility = View.VISIBLE
+        } else if (!showTimer && display.visibility != View.INVISIBLE) {
+            display.visibility = View.INVISIBLE
         }
 
         // Optimisation to remove the number of timers. Speedup at call site is negligible (~500 micros)
         if (!showTimer) {
-            cardTimer.stop()
+            display.stop()
         } else {
             resetTimerUI(col, newCard)
         }
     }
 
-    @MainThread // cardTimer.base
+    @MainThread // display.base
     private fun resetTimerUI(col: Collection, newCard: Card) {
         // Set normal timer color
-        cardTimer.setTextColor(MaterialColors.getColor(context, android.R.attr.textColor, 0))
+        display.resetColor()
 
-        cardTimer.base = elapsedRealTime
-        cardTimer.start()
+        display.base = elapsedRealTime
+        display.start()
 
         // Stop and highlight the timer if it reaches the time limit.
         limit = newCard.timeLimit(col)
-        cardTimer.setOnChronometerTickListener { chronometer: Chronometer ->
-            val elapsed: Long = elapsedRealTime - chronometer.base
+        display.setOnTickListener {
+            val elapsed: Long = elapsedRealTime - display.base
             if (elapsed >= limit) {
-                chronometer.setTextColor(MaterialColors.getColor(context, CommonR.attr.maxTimerColor, 0))
-                chronometer.stop()
+                display.highlightLimit()
+                display.stop()
             }
         }
     }
@@ -96,7 +111,7 @@ class AnswerTimer(
 
         // We stop the UI timer so it doesn't trigger the tick listener while paused. Letting
         // it run would trigger the time limit condition (red, stopped timer) in the background.
-        cardTimer.stop()
+        display.stop()
         currentCard.stopTimer()
     }
 
@@ -116,8 +131,8 @@ class AnswerTimer(
         setBase(elapsedRealTime - withCol { currentCard.timeTaken(this@withCol) })
 
         // Don't start the timer if we have already reached the time limit or it will tick over
-        if (elapsedRealTime - cardTimer.base < withCol { currentCard.timeLimit(this@withCol) }) {
-            cardTimer.start()
+        if (elapsedRealTime - display.base < withCol { currentCard.timeLimit(this@withCol) }) {
+            display.start()
         }
     }
 
@@ -126,13 +141,45 @@ class AnswerTimer(
             return
         }
 
-        cardTimer.visibility = visibility
+        display.visibility = visibility
     }
 
     /** Milliseconds since boot */
     private val elapsedRealTime
-        get() = SystemClock.elapsedRealtime()
+        get() = elapsedRealtime()
 
     /** @see Chronometer.setBase */
-    private suspend fun setBase(base: Long) = withContext(Dispatchers.Main) { cardTimer.base = base }
+    private suspend fun setBase(base: Long) = withContext(Dispatchers.Main) { display.base = base }
+}
+
+/** Android rendering stays at the boundary; card timer state can run on the JVM. */
+private class ChronometerDisplay(
+    private val chronometer: Chronometer,
+) : AnswerTimer.Display {
+    private val context: Context
+        get() = chronometer.context
+
+    override var visibility: Int
+        get() = chronometer.visibility
+        set(value) {
+            chronometer.visibility = value
+        }
+
+    override var base: Long
+        get() = chronometer.base
+        set(value) {
+            chronometer.base = value
+        }
+
+    override fun start() = chronometer.start()
+
+    override fun stop() = chronometer.stop()
+
+    override fun resetColor() = chronometer.setTextColor(MaterialColors.getColor(context, android.R.attr.textColor, 0))
+
+    override fun highlightLimit() = chronometer.setTextColor(MaterialColors.getColor(context, CommonR.attr.maxTimerColor, 0))
+
+    override fun setOnTickListener(listener: () -> Unit) {
+        chronometer.setOnChronometerTickListener { listener() }
+    }
 }

@@ -2,24 +2,15 @@
 
 package com.ichi2.anki.reviewer
 
-import android.os.SystemClock
 import android.view.View
-import android.widget.Chronometer
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.Collection
-import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.JvmTest
 import com.ichi2.testutils.rules.MockitoCollectionRule
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.doReturn
@@ -28,15 +19,9 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.reset
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.verify
-import org.robolectric.annotation.Config
-import timber.log.Timber
 
-// This is difficult to test as Chronometer.mStarted isn't visible
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class AnswerTimerTest : JvmTest() {
-    private val chronometer = spy(Chronometer(ApplicationProvider.getApplicationContext()))
+    private val chronometer = spy(TestTimerDisplay())
 
     @get:Rule
     val mockColRule = MockitoCollectionRule()
@@ -60,7 +45,6 @@ class AnswerTimerTest : JvmTest() {
         verify(chronometer).visibility
         verify(chronometer).visibility = View.INVISIBLE
         verify(chronometer, never()).start()
-        // verifyNoMoreInteractions(chronometer) // unable to use: android.view.View.$$robo$$android_view_View$setFlags
     }
 
     @Test
@@ -73,11 +57,7 @@ class AnswerTimerTest : JvmTest() {
                 on { timeLimit(any()) } doReturn 12
             }
 
-        Mockito.mockStatic(SystemClock::class.java).use { mocked ->
-            mocked.`when`<Long> { SystemClock.elapsedRealtime() }.doReturn(13)
-
-            timer.setupForCard(col, card)
-        }
+        timer.setupForCard(col, card)
 
         assertThat("timer should be enabled", timer.showTimer, equalTo(true))
         assertThat("Time limit should be 12 minutes", timer.limit, equalTo(12))
@@ -87,7 +67,6 @@ class AnswerTimerTest : JvmTest() {
         // already visible: verify(chronometer).visibility = View.VISIBLE
         verify(chronometer, never()).stop()
         verify(chronometer).base = 13
-        // verifyNoMoreInteractions(chronometer) // unable to use: android.view.View.$$robo$$android_view_View$setFlags
     }
 
     @Test
@@ -130,7 +109,6 @@ class AnswerTimerTest : JvmTest() {
     @Test
     fun pauseResumeIfEnabled() =
         runTest {
-            Timber.v("aaa")
             val timer = getTimer()
 
             val timerCard: Card =
@@ -193,5 +171,48 @@ class AnswerTimerTest : JvmTest() {
             verify(chronometer, never()).start()
         }
 
-    private fun getTimer(): AnswerTimer = AnswerTimer(chronometer)
+    @Test
+    fun `ticks highlight and stop the display only when the limit is reached`() {
+        var now = 13L
+        val timer = AnswerTimer(chronometer) { now }
+        val card =
+            mock<Card> {
+                on { shouldShowTimer(any()) } doReturn true
+                on { timeLimit(any()) } doReturn 1000
+            }
+        timer.setupForCard(col, card)
+        reset(chronometer)
+
+        now += 999
+        chronometer.tick()
+        verify(chronometer, never()).highlightLimit()
+        verify(chronometer, never()).stop()
+
+        now++
+        chronometer.tick()
+        verify(chronometer).highlightLimit()
+        verify(chronometer).stop()
+    }
+
+    private fun getTimer(): AnswerTimer = AnswerTimer(chronometer) { 13L }
+}
+
+private class TestTimerDisplay : AnswerTimer.Display {
+    private var listener: () -> Unit = {}
+    override var visibility: Int = View.VISIBLE
+    override var base: Long = 0
+
+    override fun start() = Unit
+
+    override fun stop() = Unit
+
+    override fun resetColor() = Unit
+
+    override fun highlightLimit() = Unit
+
+    override fun setOnTickListener(listener: () -> Unit) {
+        this.listener = listener
+    }
+
+    fun tick() = listener()
 }
