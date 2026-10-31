@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Environment
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
-import android.webkit.WebView
 import androidx.core.content.edit
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,6 +19,7 @@ import com.ichi2.anki.common.storage.CollectionHelper.PREF_COLLECTION_PATH
 import com.ichi2.anki.multiprofile.ProfileManager.Companion.PREF_LAST_ACTIVE_PROFILE_ID
 import com.ichi2.anki.multiprofile.ProfileManager.Companion.PREF_WEBVIEW_PROFILE_ID
 import com.ichi2.anki.multiprofile.ProfileManager.Companion.PROFILE_REGISTRY_FILENAME
+import com.ichi2.testutils.DirectorySuffixWebViewShadow
 import com.ichi2.testutils.EmptyApplication
 import io.mockk.every
 import io.mockk.mockk
@@ -37,11 +37,7 @@ import org.junit.Test
 import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.Implementation
-import org.robolectric.annotation.Implements
-import org.robolectric.annotation.Resetter
 import org.robolectric.shadows.ShadowEnvironment
-import org.robolectric.shadows.ShadowWebView
 import java.io.File
 import java.io.IOException
 import kotlin.test.assertNotNull
@@ -719,25 +715,5 @@ class ProfileManagerTest {
         context
             .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
             .edit(commit = true) { putString(PREF_COLLECTION_PATH, dir.absolutePath) }
-    }
-}
-
-/** Captures the API boundary without instrumenting the entire WebView class with MockK. */
-@Implements(WebView::class)
-class DirectorySuffixWebViewShadow : ShadowWebView() {
-    companion object {
-        val suffixes = mutableListOf<String>()
-
-        @JvmStatic
-        @Implementation(minSdk = Build.VERSION_CODES.P)
-        fun setDataDirectorySuffix(suffix: String) {
-            suffixes += suffix
-        }
-
-        @JvmStatic
-        @Resetter
-        fun resetSuffixes() {
-            suffixes.clear()
-        }
     }
 }
