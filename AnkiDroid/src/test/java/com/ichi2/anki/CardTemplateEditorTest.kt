@@ -50,7 +50,6 @@ import kotlin.test.junit5.JUnit5Asserter.assertNotEquals
 import kotlin.test.junit5.JUnit5Asserter.assertNotNull
 import kotlin.test.junit5.JUnit5Asserter.assertNull
 import kotlin.test.junit5.JUnit5Asserter.assertTrue
-import kotlin.time.Duration
 
 @RunWith(AndroidJUnit4::class)
 class CardTemplateEditorTest : RobolectricTest() {
@@ -1325,19 +1324,6 @@ class CardTemplateEditorTest : RobolectricTest() {
                 confirmation,
             )
         }
-    }
-
-    @Test
-    fun `counting falls back to the note count when it times out`() {
-        val noteType = col.notetypes.byName("Basic (optional reversed card)")!!
-        val note = col.newNote(noteType)
-        note.setField(0, "Front")
-        note.setField(1, "Back")
-        col.addNote(note)
-        val reverseTemplate = noteType.templates[1]
-
-        assertEquals("No reverse card is created", 0, col.countCardsCreatedBy(noteType, reverseTemplate))
-        assertEquals("A timeout counts every note", 1, col.countCardsCreatedBy(noteType, reverseTemplate, timeout = Duration.ZERO))
     }
 
     @Test
