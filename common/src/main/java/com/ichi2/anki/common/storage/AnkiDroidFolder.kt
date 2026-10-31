@@ -15,7 +15,7 @@ enum class AnkiDroidFolder {
      * loss, but increases the risk of space used on their storage when they don't want to.
      *
      * It cannot be used on the Play Store starting with SDK 30, as Google will not
-     *  allow [android.Manifest.permission.MANAGE_EXTERNAL_STORAGE].
+     *  allow `MANAGE_EXTERNAL_STORAGE`.
      */
     PUBLIC,
 
