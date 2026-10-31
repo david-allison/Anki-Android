@@ -2,10 +2,7 @@
 
 package com.ichi2.anki.browser
 
-import android.content.SharedPreferences
 import androidx.annotation.CheckResult
-import androidx.core.content.edit
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.libanki.BrowserConfig
 import com.ichi2.anki.libanki.BrowserConfig.ACTIVE_CARD_COLUMNS_KEY
 import com.ichi2.anki.libanki.BrowserConfig.ACTIVE_NOTE_COLUMNS_KEY
@@ -13,12 +10,12 @@ import com.ichi2.anki.libanki.BrowserDefaults
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.model.CardsOrNotes.CARDS
 import com.ichi2.anki.model.CardsOrNotes.NOTES
-import timber.log.Timber
+import org.slf4j.LoggerFactory
 
 /**
- * A collection of columns available in the [browser][CardBrowser]
+ * A collection of columns available in the card browser
  *
- * These are stored in [SharedPreferences] under either:
+ * These are stored in [BrowserColumnPreferences] under either:
  * * [ACTIVE_CARD_COLUMNS_KEY]
  * * [ACTIVE_NOTE_COLUMNS_KEY]
  *
@@ -34,11 +31,12 @@ class BrowserColumnCollection(
     operator fun get(index: Int) = columns[index]
 
     companion object {
+        private val logger = LoggerFactory.getLogger(BrowserColumnCollection::class.java)
         private const val SEPARATOR_CHAR = '|'
 
         @CheckResult
         fun load(
-            prefs: SharedPreferences,
+            prefs: BrowserColumnPreferences,
             mode: CardsOrNotes,
         ): BrowserColumnCollection {
             val key = mode.toPreferenceKey()
@@ -47,7 +45,7 @@ class BrowserColumnCollection(
                     val value = prefs.getString(key, mode.defaultColumns())!!
                     value.split(SEPARATOR_CHAR).map { CardBrowserColumn.fromColumnKey(it) }
                 } catch (e: Exception) {
-                    Timber.w(e, "error loading columns, returning default")
+                    logger.warn("error loading columns, returning default", e)
                     val value = mode.defaultColumns()
                     value.split(SEPARATOR_CHAR).map { CardBrowserColumn.fromColumnKey(it) }
                 }
@@ -62,7 +60,7 @@ class BrowserColumnCollection(
         )
 
         fun replace(
-            prefs: SharedPreferences,
+            prefs: BrowserColumnPreferences,
             mode: CardsOrNotes,
             newColumns: List<CardBrowserColumn>,
         ): ColumnReplacement {
@@ -91,13 +89,13 @@ class BrowserColumnCollection(
          * no changes were made
          */
         fun update(
-            prefs: SharedPreferences,
+            prefs: BrowserColumnPreferences,
             mode: CardsOrNotes,
             block: (MutableList<CardBrowserColumn?>) -> Boolean,
         ): BrowserColumnCollection? {
             val valuesToUpdate: MutableList<CardBrowserColumn?> = load(prefs, mode).columns.toMutableList()
             if (!block(valuesToUpdate)) {
-                Timber.d("no changes requested")
+                logger.debug("no changes requested")
                 return null
             }
             // as in AnkiMobile, this converts: [QUESTION, NONE, TAGS] into [QUESTION, TAGS]
@@ -108,7 +106,7 @@ class BrowserColumnCollection(
         }
 
         fun save(
-            prefs: SharedPreferences,
+            prefs: BrowserColumnPreferences,
             mode: CardsOrNotes,
             value: BrowserColumnCollection,
         ) {
@@ -116,8 +114,8 @@ class BrowserColumnCollection(
             val preferenceValue =
                 value.columns
                     .joinToString(separator = SEPARATOR_CHAR.toString()) { it.ankiColumnKey }
-            Timber.d("updating '%s' [%s] to '%s'", key, mode, preferenceValue)
-            prefs.edit { putString(key, preferenceValue) }
+            logger.debug("updating '{}' [{}] to '{}'", key, mode, preferenceValue)
+            prefs.putString(key, preferenceValue)
         }
 
         private fun CardsOrNotes.toPreferenceKey() = BrowserConfig.activeColumnsKey(isNotesMode = this == NOTES)
@@ -126,4 +124,17 @@ class BrowserColumnCollection(
             (if (this == CARDS) BrowserDefaults.CARD_COLUMNS else BrowserDefaults.NOTE_COLUMNS)
                 .joinToString(separator = SEPARATOR_CHAR.toString())
     }
+}
+
+/** String preferences needed to persist browser columns, independent of platform storage. */
+interface BrowserColumnPreferences {
+    fun getString(
+        key: String,
+        defaultValue: String,
+    ): String?
+
+    fun putString(
+        key: String,
+        value: String,
+    )
 }

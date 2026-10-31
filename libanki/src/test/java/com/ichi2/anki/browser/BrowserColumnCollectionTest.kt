@@ -3,10 +3,10 @@
 package com.ichi2.anki.browser
 
 import androidx.annotation.CheckResult
-import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import com.ichi2.anki.browser.CardBrowserColumn.DECK
 import com.ichi2.anki.browser.CardBrowserColumn.FSRS_STABILITY
 import com.ichi2.anki.browser.CardBrowserColumn.SFLD
+import com.ichi2.anki.libanki.BrowserConfig
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.model.CardsOrNotes.CARDS
 import com.ichi2.anki.model.CardsOrNotes.NOTES
@@ -17,7 +17,22 @@ import org.junit.Test
 
 /** @see BrowserColumnCollection */
 class BrowserColumnCollectionTest {
-    val prefs = SPMockBuilder().createSharedPreferences()
+    private val prefs =
+        object : BrowserColumnPreferences {
+            private val values = mutableMapOf<String, String>()
+
+            override fun getString(
+                key: String,
+                defaultValue: String,
+            ): String = values[key] ?: defaultValue
+
+            override fun putString(
+                key: String,
+                value: String,
+            ) {
+                values[key] = value
+            }
+        }
 
     @Test
     fun `cards - ensure sensible defaults`() {
@@ -60,6 +75,18 @@ class BrowserColumnCollectionTest {
         assertThat("column size", updated.columns, hasSize(2))
         assertThat("first columns is unchanged", updated[0], equalTo(SFLD))
         assertThat("null column is replaced with third", updated[1], equalTo(FSRS_STABILITY))
+    }
+
+    @Test
+    fun `loading corrupt columns returns all defaults`() {
+        prefs.putString(BrowserConfig.ACTIVE_CARD_COLUMNS_KEY, "question|corrupt")
+        assertThat(load(CARDS).toKeyArray(), equalTo(listOf("noteFld", "template", "cardDue", "deck")))
+    }
+
+    @Test
+    fun `loading duplicate columns preserves distinct column order`() {
+        prefs.putString(BrowserConfig.ACTIVE_CARD_COLUMNS_KEY, "question|cardDue|cardDue|deck")
+        assertThat(load(CARDS).toKeyArray(), equalTo(listOf("question", "cardDue", "deck")))
     }
 
     private fun BrowserColumnCollection.toKeyArray() = columns.map { it.ankiColumnKey }
