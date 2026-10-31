@@ -103,6 +103,10 @@ private fun Project.configureAndroidAppCoverage(
             includeAndroidClasses(unitTestReport, debugVariant, classExcludes)
             includeTestExecutionData(unitTestReport, "testPlayDebugUnitTest", "**/*.exec")
             includeTestExecutionData(mergedReport, "testPlayDebugUnitTest", "**/*.exec")
+            if (file("src/testJvm/java").isDirectory) {
+                includeTestExecutionData(unitTestReport, "testPlayDebugJvmUnitTest", "**/*.exec")
+                includeTestExecutionData(mergedReport, "testPlayDebugJvmUnitTest", "**/*.exec")
+            }
         }
 
         onVariants(selector().withName("play$androidTestVariantName")) { androidTestVariant ->
