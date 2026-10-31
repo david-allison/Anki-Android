@@ -37,14 +37,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.experimental.categories.Category
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowEnvironment
-import timber.log.Timber
 import java.io.File
 import java.io.IOException
-import java.util.UUID
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -433,22 +430,6 @@ class ProfileManagerTest {
     }
 
     @Test
-    fun `getAllProfiles ignores bookkeeping keys whose value parses as profile JSON`() {
-        val manager = ProfileManager.create(context)
-        val metadataJson =
-            ProfileManager
-                .ProfileMetadata(displayName = ProfileName.fromTrustedSource("Not a profile"))
-                .toJson()
-
-        prefs.edit(commit = true) { putString(PREF_WEBVIEW_PROFILE_ID, metadataJson) }
-
-        assertFalse(
-            "Bookkeeping keys must never surface as profiles",
-            manager.getAllProfiles().containsKey(ProfileId(PREF_WEBVIEW_PROFILE_ID)),
-        )
-    }
-
-    @Test
     fun `switching the profile persists synchronously so it survives the process kill`() {
         val registry = RecordingPreferences(context.getSharedPreferences(PROFILE_REGISTRY_FILENAME, Context.MODE_PRIVATE))
         val wrapper =
@@ -467,128 +448,6 @@ class ProfileManagerTest {
 
         assertEquals("apply() is async and is lost when the process is killed", 1, registry.editors.sumOf { it.commits })
         assertEquals(0, registry.editors.sumOf { it.applies })
-    }
-
-    @Test
-    fun `ProfileId DEFAULT must be strictly 'default' to preserve legacy compatibility`() {
-        assertEquals("default", ProfileId.DEFAULT.value)
-    }
-
-    @Test
-    fun `ProfileMetadata JSON round-trip preserves all fields`() {
-        val original =
-            ProfileManager.ProfileMetadata(
-                displayName = ProfileName.fromTrustedSource("Test User"),
-                version = 5,
-                createdTimestamp = "2025-12-31T23:59:59Z",
-            )
-
-        val jsonString = original.toJson()
-        val reconstructed = ProfileManager.ProfileMetadata.fromJson(jsonString)
-
-        assertEquals("Serialization round-trip failed!", original, reconstructed)
-    }
-
-    @Test
-    fun `getAllProfiles returns all registered profiles`() {
-        val manager = ProfileManager.create(context)
-
-        val profile1 = manager.createNewProfile(ProfileName.fromTrustedSource("Work"))
-        val profile2 = manager.createNewProfile(ProfileName.fromTrustedSource("Personal"))
-
-        val allProfiles = manager.getAllProfiles()
-
-        assertEquals(3, allProfiles.size)
-        assertTrue(allProfiles.containsKey(ProfileId.DEFAULT))
-        assertTrue(allProfiles.containsKey(profile1))
-        assertTrue(allProfiles.containsKey(profile2))
-        assertEquals("Default", allProfiles[ProfileId.DEFAULT]?.displayName?.value)
-        assertEquals("Work", allProfiles[profile1]?.displayName?.value)
-        assertEquals("Personal", allProfiles[profile2]?.displayName?.value)
-    }
-
-    @Test
-    fun `getAllProfiles returns only default when no profiles created`() {
-        ProfileManager.create(context)
-
-        val allProfiles = ProfileManager.create(context).getAllProfiles()
-
-        assertEquals(1, allProfiles.size)
-        assertTrue(allProfiles.containsKey(ProfileId.DEFAULT))
-    }
-
-    @Test
-    fun `a new profile ID that matches an existing profile is generated again`() {
-        val manager = ProfileManager.create(context)
-        mockkStatic(UUID::class)
-        every { UUID.randomUUID() } returnsMany
-            listOf(
-                UUID.fromString("aaaaaaaa-0000-4000-8000-000000000000"),
-                UUID.fromString("aaaaaaaa-1111-4111-8111-111111111111"),
-                UUID.fromString("bbbbbbbb-0000-4000-8000-000000000000"),
-            )
-
-        val first = manager.createNewProfile(ProfileName.fromTrustedSource("Work"))
-        val second = manager.createNewProfile(ProfileName.fromTrustedSource("Personal"))
-
-        assertEquals(ProfileId("p_aaaaaaaa"), first)
-        assertEquals(ProfileId("p_bbbbbbbb"), second)
-    }
-
-    @Test
-    fun `createNewProfile rejects a name already in use, ignoring case`() {
-        val manager = ProfileManager.create(context)
-        manager.createNewProfile(ProfileName.fromTrustedSource("Work"))
-
-        assertThrows(IllegalArgumentException::class.java) {
-            manager.createNewProfile(ProfileName.fromTrustedSource("work"))
-        }
-        assertEquals(2, manager.getAllProfiles().size)
-    }
-
-    @Test
-    fun `createNewProfile does not log the profile name`() {
-        val manager = ProfileManager.create(context)
-
-        val logs = captureLogs { manager.createNewProfile(ProfileName.fromTrustedSource("Alice")) }
-
-        assertTrue("Expected createNewProfile to log", logs.isNotEmpty())
-        assertFalse("Profile name was logged: $logs", logs.any { it.contains("Alice") })
-    }
-
-    @Test
-    fun `renameProfile updates displayName in registry`() {
-        val manager = ProfileManager.create(context)
-        val profileId = manager.createNewProfile(ProfileName.fromTrustedSource("Original Name"))
-        val newName = ProfileName.fromTrustedSource("Updated Name")
-
-        manager.renameProfile(profileId, newName)
-
-        val json = prefs.getString(profileId.value, null)
-        val metadata = ProfileManager.ProfileMetadata.fromJson(json!!)
-
-        assertEquals(newName, metadata.displayName)
-    }
-
-    @Test
-    fun `renameProfile preserves version and createdTimestamp`() {
-        val manager = ProfileManager.create(context)
-        val profileId = manager.createNewProfile(ProfileName.fromTrustedSource("Original Name"))
-
-        val originalJson = prefs.getString(profileId.value, null)
-        val originalMetadata = ProfileManager.ProfileMetadata.fromJson(originalJson!!)
-
-        manager.renameProfile(profileId, ProfileName.fromTrustedSource("New Name"))
-
-        val updatedJson = prefs.getString(profileId.value, null)
-        val updatedMetadata = ProfileManager.ProfileMetadata.fromJson(updatedJson!!)
-
-        assertEquals("Version must be preserved", originalMetadata.version, updatedMetadata.version)
-        assertEquals(
-            "Timestamp must be preserved",
-            originalMetadata.createdTimestamp,
-            updatedMetadata.createdTimestamp,
-        )
     }
 
     @Test
@@ -630,55 +489,6 @@ class ProfileManagerTest {
         val deckPath = reloaded.activeProfileContext.sharedPrefs().getString(PREF_COLLECTION_PATH, null)
 
         assertEquals(File(context.getExternalFilesDir(null), ashishId.value).absolutePath, deckPath)
-    }
-
-    @Test
-    fun `renameProfile does not write to disk if name is identical`() {
-        val manager = ProfileManager.create(context)
-        val name = ProfileName.fromTrustedSource("No Change")
-        val profileId = manager.createNewProfile(name)
-
-        val originalJson = prefs.getString(profileId.value, null)
-
-        manager.renameProfile(profileId, name)
-
-        val currentJson = prefs.getString(profileId.value, null)
-        assertEquals("No disk write should occur for identical names", originalJson, currentJson)
-    }
-
-    @Test
-    fun `renameProfile throws IllegalArgumentException for missing profile`() {
-        val manager = ProfileManager.create(context)
-        val fakeId = ProfileId("p_ghost")
-
-        val exception =
-            assertThrows(IllegalArgumentException::class.java) {
-                manager.renameProfile(fakeId, ProfileName.fromTrustedSource("New Name"))
-            }
-
-        assertTrue(exception.message!!.contains("not found"))
-    }
-
-    @Test
-    fun `renameProfile rejects a name used by another profile, ignoring case`() {
-        val manager = ProfileManager.create(context)
-        manager.createNewProfile(ProfileName.fromTrustedSource("Work"))
-        val home = manager.createNewProfile(ProfileName.fromTrustedSource("Home"))
-
-        assertThrows(IllegalArgumentException::class.java) {
-            manager.renameProfile(home, ProfileName.fromTrustedSource("work"))
-        }
-        assertEquals("Home", manager.getAllProfiles()[home]?.displayName?.value)
-    }
-
-    @Test
-    fun `renameProfile can change the case of the profile's own name`() {
-        val manager = ProfileManager.create(context)
-        val work = manager.createNewProfile(ProfileName.fromTrustedSource("work"))
-
-        manager.renameProfile(work, ProfileName.fromTrustedSource("Work"))
-
-        assertEquals("Work", manager.getAllProfiles()[work]?.displayName?.value)
     }
 
     @Test
@@ -973,27 +783,5 @@ class ProfileManagerTest {
         context
             .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
             .edit(commit = true) { putString(PREF_COLLECTION_PATH, dir.absolutePath) }
-    }
-
-    private fun captureLogs(block: () -> Unit): List<String> {
-        val messages = mutableListOf<String>()
-        val tree =
-            object : Timber.Tree() {
-                override fun log(
-                    priority: Int,
-                    tag: String?,
-                    message: String,
-                    t: Throwable?,
-                ) {
-                    messages += message
-                }
-            }
-        Timber.plant(tree)
-        try {
-            block()
-        } finally {
-            Timber.uproot(tree)
-        }
-        return messages
     }
 }

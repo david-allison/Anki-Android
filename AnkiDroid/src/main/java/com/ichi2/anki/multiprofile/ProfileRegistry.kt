@@ -135,7 +135,7 @@ class ProfileRegistry(
         }
     }
 
-    private fun getProfileMetadata(id: ProfileId): ProfileMetadata? {
+    internal fun getProfileMetadata(id: ProfileId): ProfileMetadata? {
         val jsonString = globalPrefs.getString(id.value, null) ?: return null
         return try {
             ProfileMetadata.fromJson(jsonString)
