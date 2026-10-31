@@ -4,8 +4,6 @@
 package com.ichi2.anki
 
 import com.ichi2.anki.libanki.Notetypes
-import com.ichi2.anki.libanki.utils.append
-import com.ichi2.anki.libanki.utils.remove
 import com.ichi2.testutils.JvmTest
 import net.ankiweb.rsdroid.BackendException
 import org.junit.Assert
@@ -101,14 +99,10 @@ class CardTemplateStateTest : JvmTest() {
         }
 
     private fun CardTemplateNotetype.appendTemplate(name: String) {
-        notetype.templates.append(Notetypes.newTemplate(name))
-        Notetypes._updateTemplOrds(notetype)
-        addNewTemplate()
+        addNewTemplate(Notetypes.newTemplate(name))
     }
 
     private fun CardTemplateNotetype.deleteTemplate(ordinal: Int) {
         removeTemplate(ordinal)
-        notetype.templates.remove(getTemplate(ordinal))
-        Notetypes._updateTemplOrds(notetype)
     }
 }
