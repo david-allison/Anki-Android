@@ -2,10 +2,8 @@
 
 package com.ichi2.anki.browser
 
-import android.os.Bundle
 import android.os.Parcelable
 import androidx.annotation.CheckResult
-import androidx.core.os.BundleCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import anki.collection.OpChanges
@@ -35,6 +33,7 @@ import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.destinations.CardInfoDestination
 import com.ichi2.anki.common.destinations.CardInfoDestination.EntryPoint
 import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.storage.IdSnapshotFile
 import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
 import com.ichi2.anki.export.ExportDialogFragment.ExportType
@@ -130,6 +129,7 @@ class CardBrowserViewModel(
     private val browserOptionsRepository: BrowserOptionsRepository =
         BrowserOptionsRepository(preferences.sharedPrefs()),
     private val manualInit: Boolean = false,
+    selectionSavedState: BrowserSelectionSavedState = SavedStateHandleBrowserSelectionState(savedStateHandle),
 ) : ViewModel(),
     SharedPreferencesProvider by preferences,
     HasProgress<CardBrowserProgress> {
@@ -495,14 +495,14 @@ class CardBrowserViewModel(
      * Cards/notes to select when the next search completes, restored from [STATE_MULTISELECT_VALUES].
      *
      * While non-empty, the rows do not yet reflect the saved selection, so
-     * [generateExpensiveSavedState] saves this instead of [selectedRows]
+     * [saveSelectionSnapshot] saves this instead of [selectedRows]
      */
     private var pendingSelectionRestore: List<CardOrNoteId>
 
     /**
      * The file backing the most recently saved [STATE_MULTISELECT_VALUES], until replaced or the activity finishes.
      */
-    private var multiselectStateFile: IdsFile? = null
+    private var multiselectStateFile: IdSnapshotFile? = null
 
     val flowOfColumnHeadings: StateFlow<List<ColumnHeading>> =
         combine(flowOfActiveColumns, flowOfCardsOrNotes, flowOfAllColumns) { activeColumns, cardsOrNotes, allColumns ->
@@ -549,10 +549,7 @@ class CardBrowserViewModel(
         Timber.d("CardBrowserViewModel::init, launchOptions: '${options?.javaClass?.simpleName}'")
 
         // restore selection state
-        val idsFile =
-            savedStateHandle.get<Bundle>(STATE_MULTISELECT_VALUES)?.let { bundle ->
-                BundleCompat.getParcelable(bundle, STATE_MULTISELECT_VALUES, IdsFile::class.java)
-            }
+        val idsFile = selectionSavedState.restore()
         multiselectStateFile = idsFile
         pendingSelectionRestore =
             try {
@@ -632,31 +629,23 @@ class CardBrowserViewModel(
             }
         }
 
-        // use setSavedStateProvider as IdsFile writes to disk, so only write when necessary
-        savedStateHandle.setSavedStateProvider(STATE_MULTISELECT_VALUES) {
-            Timber.d("setSavedStateProvider executed")
-            generateExpensiveSavedState()
-        }
+        // Snapshot writes are deferred until Android requests saved state.
+        selectionSavedState.registerProvider(::saveSelectionSnapshot)
     }
 
-    @VisibleForTesting // far too complicated to mock setSavedStateProvider
-    fun generateExpensiveSavedState() =
-        Bundle().apply {
-            // a restored selection not yet applied to the rows is still the selection to save
-            saveMultiselectState(pendingSelectionRestore.ifEmpty { selectedRows.toList() })
-        }
-
-    private fun Bundle.saveMultiselectState(selection: List<CardOrNoteId>) {
+    internal fun saveSelectionSnapshot(): IdSnapshotFile? {
+        // A restored selection not yet applied to the rows is still the selection to save.
+        val selection = pendingSelectionRestore.ifEmpty { selectedRows.toList() }
         // Write the replacement before deleting the previous snapshot, so write failures preserve it.
         val idsFile =
             if (selection.isEmpty()) {
                 null
             } else {
-                IdsFile(idsFileDirectory, selection.map { it.cardOrNoteId }, IdsFile.Purpose.SELECTION)
+                IdSnapshotFile.create(idsFileDirectory, selection.map { it.cardOrNoteId }, IdsFile.Purpose.SELECTION.prefix)
             }
         multiselectStateFile?.removeSafely("CardBrowserViewModel")
         multiselectStateFile = idsFile
-        if (idsFile != null) putParcelable(STATE_MULTISELECT_VALUES, idsFile)
+        return idsFile
     }
 
     /**
