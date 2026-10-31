@@ -4,9 +4,7 @@
 package com.ichi2.anki.noteeditor
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModelStore
-import androidx.media3.common.MediaItem
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.noteeditor.AudioRecordingViewModel.Failure
@@ -18,6 +16,7 @@ import com.ichi2.anki.recorder.RecorderState
 import com.ichi2.anki.recorder.VoiceRecorder
 import com.ichi2.testutils.rules.MainDispatcherRule
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -36,17 +35,16 @@ import kotlin.test.fail
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-@RunWith(AndroidJUnit4::class)
-class AudioRecordingViewModelTest {
+abstract class AudioRecordingViewModelTestBase {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @get:Rule
     val recordingsFolder = TemporaryFolder()
 
-    private val mediaRecorderStub = MediaRecorderStub()
-    private val playerStub = PlayerStub()
-    private val viewModelStore = ViewModelStore()
+    protected val mediaRecorderStub = MediaRecorderStub()
+    protected val playerStub = PlayerStub()
+    protected val viewModelStore = ViewModelStore()
 
     @Before
     fun installMediaRecorder() {
@@ -58,6 +56,42 @@ class AudioRecordingViewModelTest {
         mediaRecorderStub.uninstall()
     }
 
+    private val recorderContext = mockk<Context>()
+
+    protected fun runViewModelTest(testBody: suspend TestScope.(AudioRecordingViewModel) -> Unit) =
+        runTest {
+            val viewModel =
+                AudioRecordingViewModel(
+                    AudioRecorder(recorderContext),
+                    playerStub.factory,
+                    recordingsFolder.root,
+                    loadSource = playerStub.loadSource,
+                ).also { viewModelStore.put(VIEW_MODEL_KEY, it) }
+            try {
+                testBody(viewModel)
+            } finally {
+                viewModelStore.clear()
+            }
+        }
+
+    protected fun AudioRecordingViewModel.record(): File {
+        startRecording()
+        stopRecording()
+        return mediaRecorderStub.outputFiles.last()
+    }
+
+    protected fun AudioRecordingViewModel.recordAndPlay(): File =
+        record().also {
+            play()
+            playerStub.ready()
+        }
+
+    companion object {
+        const val VIEW_MODEL_KEY = "audioRecording"
+    }
+}
+
+class AudioRecordingViewModelTest : AudioRecordingViewModelTestBase() {
     @Test
     fun `recording with a pause gives one recording in the recordings folder`() =
         runViewModelTest { viewModel ->
@@ -156,7 +190,7 @@ class AudioRecordingViewModelTest {
             playerStub.ready()
 
             assertEquals(1, playerStub.createdCount, "players created")
-            verify { playerStub.player.setMediaItem(MediaItem.fromUri(Uri.fromFile(recording))) }
+            assertEquals(listOf(recording), playerStub.sourceFiles)
             assertEquals(PlayerState.Ready(3.seconds, isPlaying = true), viewModel.playerState.value, "player state")
         }
 
@@ -170,7 +204,7 @@ class AudioRecordingViewModelTest {
             viewModel.play()
 
             assertEquals(PlayerState.Ready(3.seconds, isPlaying = true), viewModel.playerState.value, "after resuming")
-            verify(exactly = 1) { playerStub.player.setMediaItem(any()) }
+            assertEquals(1, playerStub.sourceFiles.size, "source loads")
         }
 
     @Test
@@ -335,10 +369,13 @@ class AudioRecordingViewModelTest {
             assertNull(viewModel.failure.value, "failure once shown")
             viewModel.play()
 
-            verify(exactly = 2) { playerStub.player.setMediaItem(any()) }
+            assertEquals(2, playerStub.sourceFiles.size, "source loads")
             assertEquals(RecorderState.Recorded(recording), viewModel.recorderState.value, "the recording can still be inserted")
         }
+}
 
+@RunWith(AndroidJUnit4::class)
+class AudioRecordingStorageAndroidTest : AudioRecordingViewModelTestBase() {
     @Test
     fun `recordings are stored outside the cache`() =
         runTest {
@@ -354,35 +391,4 @@ class AudioRecordingViewModelTest {
                 viewModelStore.clear()
             }
         }
-
-    private fun runViewModelTest(testBody: suspend TestScope.(AudioRecordingViewModel) -> Unit) =
-        runTest {
-            val viewModel =
-                AudioRecordingViewModel(
-                    AudioRecorder(ApplicationProvider.getApplicationContext()),
-                    playerStub.factory,
-                    recordingsFolder.root,
-                ).also { viewModelStore.put(VIEW_MODEL_KEY, it) }
-            try {
-                testBody(viewModel)
-            } finally {
-                viewModelStore.clear()
-            }
-        }
-
-    private fun AudioRecordingViewModel.record(): File {
-        startRecording()
-        stopRecording()
-        return mediaRecorderStub.outputFiles.last()
-    }
-
-    private fun AudioRecordingViewModel.recordAndPlay(): File =
-        record().also {
-            play()
-            playerStub.ready()
-        }
-
-    companion object {
-        private const val VIEW_MODEL_KEY = "audioRecording"
-    }
 }
