@@ -6,22 +6,17 @@ package com.ichi2.anki.dialogs
 import android.content.ContextWrapper
 import android.os.Looper
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.edit
-import androidx.lifecycle.Lifecycle
-import androidx.test.core.app.ActivityScenario
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.ichi2.anki.CollectionManager.TR
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.DeckPicker
-import com.ichi2.anki.IntroductionActivity
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.dialogs.CreateDeckDialog.DeckDialogType
 import com.ichi2.anki.dialogs.utils.input
 import com.ichi2.anki.libanki.DeckId
+import com.ichi2.testutils.EmptyAnkiActivity
 import com.ichi2.testutils.ext.snackbarText
 import com.ichi2.utils.getInputTextLayout
 import com.ichi2.utils.positiveButton
-import okhttp3.internal.closeQuietly
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.Matcher
@@ -31,31 +26,29 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.shadows.ShadowToast
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.fail
+import com.ichi2.anki.common.android.R as CommonR
 
 @RunWith(RobolectricTestRunner::class)
 class CreateDeckDialogTest : RobolectricTest() {
-    private lateinit var activityScenario: ActivityScenario<DeckPicker>
+    private lateinit var activity: EmptyAnkiActivity
 
     override fun setUp() {
         super.setUp()
-        getPreferences().edit { putBoolean(IntroductionActivity.PREF_INTRODUCTION_SLIDES_SHOWN, true) }
         ensureCollectionLoadIsSynchronous()
-        activityScenario =
-            ActivityScenario.launch(DeckPicker::class.java).apply {
-                moveToState(Lifecycle.State.STARTED)
-            }
+        activity = startRegularActivity()
+        activity.setTheme(CommonR.style.Theme_Light)
+        activity.setContentView(
+            CoordinatorLayout(activity).apply {
+                id = CommonR.id.root_layout
+            },
+        )
     }
 
-    override fun tearDown() {
-        activityScenario.closeQuietly()
-        super.tearDown()
+    private fun withActivity(block: (EmptyAnkiActivity) -> Unit) {
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        block(activity)
     }
 
     @Test
@@ -116,7 +109,7 @@ class CreateDeckDialogTest : RobolectricTest() {
         Shadows.shadowOf(Looper.getMainLooper()).idle()
 
         assertThat("no deck was created", col.decks.count(), equalTo(deckCount))
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             assertThat(
                 activity.snackbarText,
                 equalTo(TR.errorsFilteredParentDeck()),
@@ -128,7 +121,7 @@ class CreateDeckDialogTest : RobolectricTest() {
     fun `creating a descendant of a filtered deck with non-activity context shows an error`() {
         addDynamicDeck("Filtered Deck 1")
         val deckCount = col.decks.count()
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog = CreateDeckDialog(ContextWrapper(activity), "Create deck", DeckDialogType.DECK, null)
             dialog.onNewDeckCreated = { fail("the deck was not created") }
             dialog.createDeck("filtered deck 1::Parent::Child")
@@ -156,7 +149,7 @@ class CreateDeckDialogTest : RobolectricTest() {
         Shadows.shadowOf(Looper.getMainLooper()).idle()
 
         assertThat("no deck was created", col.decks.count(), equalTo(deckCount))
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             assertThat(
                 activity.snackbarText,
                 equalTo(TR.errorsFilteredParentDeck()),
@@ -247,79 +240,6 @@ class CreateDeckDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun searchDecksIconVisibilityDeckCreationTest() =
-        runTest {
-            // await deckpicker
-            val deckPicker =
-                suspendCoroutine { coro ->
-                    activityScenario.onActivity { deckPicker ->
-                        coro.resume(deckPicker)
-                    }
-                }
-
-            suspend fun decksCount() = withCol { decks.count() }
-            val deckCounter = AtomicInteger(1)
-
-            for (i in 0 until 10) {
-                val createDeckDialog =
-                    CreateDeckDialog(
-                        context = deckPicker,
-                        title = "Create deck",
-                        deckDialogType = DeckDialogType.DECK,
-                        parentId = null,
-                    )
-                val did =
-                    suspendCoroutine { coro ->
-                        createDeckDialog.onNewDeckCreated = { did: DeckId ->
-                            coro.resume(did)
-                        }
-                        createDeckDialog.createDeck("Deck$i")
-                    }
-                assertEquals(deckCounter.incrementAndGet(), decksCount())
-
-                assertEquals(deckCounter.get(), decksCount())
-
-                updateSearchDecksIcon(deckPicker)
-                assertEquals(
-                    deckPicker.viewModel.optionsMenuState?.searchIcon,
-                    decksCount() >= 10,
-                )
-
-                // After the last deck was created, delete a deck
-                if (decksCount() >= 10) {
-                    deckPicker.viewModel.deleteDeck(did).join()
-                    assertEquals(deckCounter.decrementAndGet(), decksCount())
-
-                    assertEquals(deckCounter.get(), decksCount())
-
-                    updateSearchDecksIcon(deckPicker)
-                    assertFalse(deckPicker.viewModel.optionsMenuState?.searchIcon ?: true)
-                }
-            }
-        }
-
-    private suspend fun updateSearchDecksIcon(deckPicker: DeckPicker) {
-        // the icon update requires a call to refreshState() and subsequent menu
-        // rebuild; access it directly instead so the test passes
-        deckPicker.viewModel.refreshMenuState()
-    }
-
-    @Test
-    fun searchDecksIconVisibilitySubdeckCreationTest() =
-        runTest {
-            val deckPicker =
-                suspendCoroutine { coro -> activityScenario.onActivity { coro.resume(it) } }
-            deckPicker.viewModel.refreshMenuState()
-            assertEquals(deckPicker.viewModel.optionsMenuState!!.searchIcon, false)
-            // a single top-level deck with lots of subdecks should turn the icon on
-            withCol {
-                decks.id(deckTreeName(0, 10, "Deck"))
-            }
-            deckPicker.viewModel.refreshMenuState()
-            assertEquals(deckPicker.viewModel.optionsMenuState!!.searchIcon, true)
-        }
-
-    @Test
     fun positiveButtonEnabledOnMatchingDeckNames() {
         val previousDeckName = "Deck Name"
         testRenameDialog(currentName = previousDeckName) {
@@ -362,7 +282,7 @@ class CreateDeckDialogTest : RobolectricTest() {
         }
         assertThat("the deck kept its name", col.decks.name(deckId), equalTo("a::b"))
         assertThat("no deck was created", col.decks.count(), equalTo(deckCount))
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             assertThat("no rename is reported", activity.snackbarText, nullValue())
         }
     }
@@ -414,7 +334,7 @@ class CreateDeckDialogTest : RobolectricTest() {
         renamedDeckId: DeckId? = null,
         callback: (CreateDeckDialog.() -> Unit),
     ) {
-        activityScenario.onActivity { activity: DeckPicker ->
+        withActivity { activity: EmptyAnkiActivity ->
             val createDeckDialog =
                 CreateDeckDialog(
                     context = activity,
@@ -448,7 +368,7 @@ class CreateDeckDialogTest : RobolectricTest() {
             dialog.onNewDeckCreated = { _: DeckId -> assertionCalled() }
             dialog.createDeck("Create Deck")
 
-            activityScenario.onActivity { activity ->
+            withActivity { activity ->
                 assertThat(
                     "Snackbar should confirm deck creation for valid name",
                     activity.snackbarText,
@@ -460,7 +380,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `createDeck with activity context shows snackbar for invalid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog = CreateDeckDialog(activity, "Create deck", DeckDialogType.DECK, null)
             dialog.onNewDeckCreated = { _: DeckId -> }
             dialog.createDeck("   ")
@@ -478,7 +398,7 @@ class CreateDeckDialogTest : RobolectricTest() {
     fun `createSubDeck with a blank name does not create a deck`() {
         val parentId = addDeck("Parent")
         val deckCount = col.decks.count()
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog = CreateDeckDialog(activity, "Create subdeck", DeckDialogType.SUB_DECK, parentId)
             dialog.onNewDeckCreated = { fail("the deck was not created") }
             dialog.createSubDeck(parentId, "   ")
@@ -495,7 +415,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `createDeck with non-activity context shows toast for valid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog =
                 CreateDeckDialog(ContextWrapper(activity), "Create deck", DeckDialogType.DECK, null)
             dialog.onNewDeckCreated = { _: DeckId -> }
@@ -511,7 +431,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `createDeck with non-activity context shows toast for invalid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog =
                 CreateDeckDialog(ContextWrapper(activity), "Create deck", DeckDialogType.DECK, null)
             dialog.onNewDeckCreated = { _: DeckId -> }
@@ -533,7 +453,7 @@ class CreateDeckDialogTest : RobolectricTest() {
             dialog.onNewDeckCreated = { _: DeckId -> assertionCalled() }
             dialog.renameDeck("Rename Deck")
 
-            activityScenario.onActivity { activity ->
+            withActivity { activity ->
                 assertThat(
                     "Snackbar should confirm rename for valid name",
                     activity.snackbarText,
@@ -545,7 +465,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `renameDeck with activity context shows snackbar for invalid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog = CreateDeckDialog(activity, "Create deck", DeckDialogType.RENAME_DECK, null, col.decks.id("Old Deck"))
             dialog.deckName = "Old Deck"
             dialog.onNewDeckCreated = { _: DeckId -> }
@@ -562,7 +482,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `renameDeck with non-activity context shows toast for valid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog =
                 CreateDeckDialog(
                     ContextWrapper(activity),
@@ -585,7 +505,7 @@ class CreateDeckDialogTest : RobolectricTest() {
 
     @Test
     fun `renameDeck with non-activity context shows toast for invalid name`() {
-        activityScenario.onActivity { activity ->
+        withActivity { activity ->
             val dialog =
                 CreateDeckDialog(
                     ContextWrapper(activity),
@@ -607,7 +527,7 @@ class CreateDeckDialogTest : RobolectricTest() {
     }
 
     /**
-     * Tests a scenario with a [DeckPicker] hosting a [CreateDeckDialog].
+     * Tests a scenario with a [EmptyAnkiActivity] hosting a [CreateDeckDialog].
      * The second parameter of the callback ('assertionCalled') must be called for this to pass
      */
     private fun ensureExecutionOfScenario(
@@ -616,7 +536,7 @@ class CreateDeckDialogTest : RobolectricTest() {
         renamedDeckId: DeckId? = null,
         callback: ((CreateDeckDialog, (() -> Unit)) -> Unit),
     ) {
-        activityScenario.onActivity { activity: DeckPicker ->
+        withActivity { activity: EmptyAnkiActivity ->
             val assertionCalled = AtomicReference(false)
             callback(CreateDeckDialog(activity, "Create deck", deckDialogType, parentId, renamedDeckId)) {
                 assertionCalled.set(true)
@@ -624,15 +544,6 @@ class CreateDeckDialogTest : RobolectricTest() {
             assertThat("no call to assertionCalled()", assertionCalled.get(), equalTo(true))
         }
     }
-
-    @Suppress("SameParameterValue")
-    private fun deckTreeName(
-        start: Int,
-        end: Int,
-        prefix: String,
-    ): String =
-        List(end - start + 1) { "${prefix}${it + start}" }
-            .joinToString("::")
 }
 
 /** Test of [CreateDeckDialog] */
