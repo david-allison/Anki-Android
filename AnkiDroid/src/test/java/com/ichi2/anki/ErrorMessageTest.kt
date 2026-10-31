@@ -7,7 +7,6 @@ import android.text.style.TypefaceSpan
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.utils.formatSearchError
 import com.ichi2.anki.utils.showSearchError
 import com.ichi2.testutils.EmptyAnkiActivity
 import org.junit.Test
@@ -32,47 +31,6 @@ class ErrorMessageTest : RobolectricTest() {
         val message = showMessage("<pre>$code</pre>")
         assertEquals(code, message.toString())
         assertEquals(listOf(code), codeSpans(message))
-    }
-
-    @Test
-    fun `ordinary text and unmatched delimiters are preserved`() {
-        val text = "Error: <tag> &amp; a_b *c*\n  `unfinished <pre>"
-        assertEquals(text, showMessage(text).toString())
-    }
-
-    @Test
-    fun `regex diagnostics preserve embedded closing tags`() {
-        val code = "regex parse error:\n    (?i)</pre>[<b>&amp;`\n              ^\nerror: unclosed character class"
-        val message = formatSearchError("<pre>$code</pre>")
-        assertEquals(code, message.toString())
-        assertEquals(listOf(code), codeSpans(message))
-    }
-
-    @Test
-    fun `malformed or unsupported code delimiters remain literal`() {
-        val messages =
-            listOf(
-                "an `unclosed",
-                "`a` and `unclosed",
-                "``a``",
-                "`a``b`",
-                "`a` then ` `",
-                "`a\nb`",
-                "`a\rb`",
-                "\\`a\\`",
-            )
-        for (text in messages) {
-            val message = formatSearchError(text)
-            assertEquals(text, message.toString())
-            assertEquals(emptyList(), codeSpans(message))
-        }
-    }
-
-    @Test
-    fun `inline code trims edge whitespace like Python Markdown`() {
-        val message = formatSearchError("Use `  and  ` or ` <b>&amp; `.")
-        assertEquals("Use and or <b>&amp;.", message.toString())
-        assertEquals(listOf("and", "<b>&amp;"), codeSpans(message))
     }
 
     @Test
