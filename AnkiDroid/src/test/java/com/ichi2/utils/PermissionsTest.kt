@@ -17,18 +17,17 @@ import androidx.fragment.app.FragmentManager
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.common.permissions.LEGACY_POST_NOTIFICATIONS
-import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.settings.PrefsRepository
 import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
+import com.ichi2.testutils.EmptyApplication
 import com.ichi2.utils.Permissions.attemptToEnableNotifications
 import com.ichi2.utils.Permissions.openAppSettingsScreen
 import com.ichi2.utils.Permissions.openAppSettingsScreenForPermission
-import com.ichi2.utils.Permissions.requestPermissionThroughDialogOrSettings
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.mockkStatic
@@ -41,14 +40,16 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import kotlin.reflect.KMutableProperty0
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
 class PermissionsTest {
     private lateinit var fragmentActivity: FragmentActivity
     private lateinit var context: Context
@@ -56,6 +57,7 @@ class PermissionsTest {
     private lateinit var fragmentManager: FragmentManager
     private lateinit var permissionRequestLauncher: ActivityResultLauncher<String>
     private lateinit var permissionsSpy: Permissions
+    private val prefs get() = PrefsRepository(context)
 
     @Before
     fun setUp() {
@@ -64,6 +66,9 @@ class PermissionsTest {
         fragment = mockk(relaxed = true)
         every { fragment.requireContext() } returns context
         every { fragment.requireActivity() } returns fragmentActivity
+        every { fragmentActivity.getSharedPreferences(any(), any()) } answers { context.getSharedPreferences(firstArg(), secondArg()) }
+        every { fragmentActivity.resources } returns context.resources
+        every { fragmentActivity.packageName } returns context.packageName
         fragmentManager = mockk(relaxed = true)
         permissionRequestLauncher = mockk(relaxed = true)
         permissionsSpy = spyk(Permissions)
@@ -74,15 +79,15 @@ class PermissionsTest {
         // Similarly with NotificationManagerCompat.areNotificationsEnabled
         mockkStatic(NotificationManagerCompat::class)
 
-        Prefs.notificationsPermissionRequested = false
-        Prefs.notificationsBottomSheetShownBelowAPI33 = false
+        prefs.notificationsPermissionRequested = false
+        prefs.notificationsBottomSheetShownBelowAPI33 = false
     }
 
     @After
     fun tearDown() {
         unmockkAll()
-        Prefs.notificationsPermissionRequested = false
-        Prefs.notificationsBottomSheetShownBelowAPI33 = false
+        prefs.notificationsPermissionRequested = false
+        prefs.notificationsBottomSheetShownBelowAPI33 = false
     }
 
     @Test
@@ -96,66 +101,10 @@ class PermissionsTest {
     }
 
     @Test
-    fun `requestPermissionThroughDialogOrSettings requests permission on first call`() {
-        Prefs.notificationsPermissionRequested = false
-        triggerPermissionRequest()
-        verifyPermissionWasRequested()
-    }
-
-    @Test
-    fun `requestPermissionThroughDialogOrSettings opens settings screen if we can't request the permission`() {
-        Prefs.notificationsPermissionRequested = true // not first call
-        setCanPermissionBeRequested(false)
-        triggerPermissionRequest()
-        verifyOSSettingsWasOpened()
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
-    fun `requestPermissionThroughDialogOrSettings for notif permission opens notif settings screen if we can't request the permission`() {
-        Prefs.notificationsPermissionRequested = true // not first call
-        setCanPermissionBeRequested(false)
-        triggerPermissionRequest(permission = Permissions.notificationsPermission)
-        verifyOSSettingsWasOpened(openedActivityAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-    }
-
-    @Test
-    fun `requestPermissionThroughDialogOrSettings requests permission on subsequent calls if we can request it`() {
-        Prefs.notificationsPermissionRequested = true // not first call
-        setCanPermissionBeRequested(true)
-        triggerPermissionRequest()
-        verifyPermissionWasRequested()
-    }
-
-    @Test
-    fun `canPermissionBeRequested reads the flag without kotlin-reflect`() {
-        val flag = mockk<KMutableProperty0<Boolean>> { every { get() } returns false }
-
-        val canRequest = Permissions.canPermissionBeRequested(fragmentActivity, DUMMY_PERMISSION_STRING, flag)
-
-        assertThat(canRequest, equalTo(true))
-    }
-
-    @Test
-    fun `requestPermissionThroughDialogOrSettings sets the flag without kotlin-reflect`() {
-        val flag =
-            mockk<KMutableProperty0<Boolean>> {
-                every { get() } returns false
-                every { set(any()) } just Runs
-            }
-
-        fragment.requestPermissionThroughDialogOrSettings(fragmentActivity, DUMMY_PERMISSION_STRING, flag, permissionRequestLauncher)
-
-        verify(exactly = 1) { flag.set(true) }
-        verifyPermissionWasRequested()
-    }
-
-    @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun `attemptToEnableNotifications for API at 33+ requests the notifications permission`() {
-        Prefs.notificationsPermissionRequested = false
+        prefs.notificationsPermissionRequested = false
         fragment.attemptToEnableNotifications(permissionRequestLauncher)
         verifyPermissionWasRequested(permission = Permissions.notificationsPermission)
     }
@@ -164,7 +113,7 @@ class PermissionsTest {
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun `attemptToEnableNotifications for API at 33+ opens notif settings screen if we can't request the permission`() {
-        Prefs.notificationsPermissionRequested = true // not first call
+        prefs.notificationsPermissionRequested = true // not first call
         setCanPermissionBeRequested(false)
         fragment.attemptToEnableNotifications(permissionRequestLauncher)
         verifyOSSettingsWasOpened(openedActivityAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -178,50 +127,32 @@ class PermissionsTest {
         // The notifications permission does not exist below API 33, so it should never be requested
         verify(exactly = 0) { permissionRequestLauncher.launch(any()) }
         // The OS request dialog should not have been opened
-        assertThat(Prefs.notificationsPermissionRequested, equalTo(false))
+        assertThat(prefs.notificationsPermissionRequested, equalTo(false))
         verifyOSSettingsWasOpened(openedActivityAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.TIRAMISU - 1])
-    fun `showNotificationsPermissionBottomSheetIfNeeded does nothing if permission is granted`() {
-        setPermissionsGranted(true)
-        setCanPermissionBeRequested(true)
-        showBottomSheetShouldFail()
     }
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
-    fun `showNotificationsPermissionBottomSheetIfNeeded for API at 33+ works on first call and afterward only if system allows it`() {
+    fun `runtime notification prompt launches the notifications bottom sheet`() {
         mockkObject(PermissionsBottomSheet)
 
         setPermissionsGranted(false)
         setCanPermissionBeRequested(true)
         showBottomSheetShouldSucceed()
-        showBottomSheetShouldSucceed()
-        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS) }
-
-        setCanPermissionBeRequested(false)
-        showBottomSheetShouldFail()
-        verify(exactly = 2) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS) }
+        verify(exactly = 1) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS) }
     }
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU - 1])
-    fun `showNotificationsPermissionBottomSheetIfNeeded for API before 33 only works on first call if cannot send notifications`() {
+    fun `legacy notification prompt launches settings guidance and records that it was shown`() {
         mockkObject(PermissionsBottomSheet)
 
         setPermissionsGranted(false)
         setCanPermissionBeRequested(true)
         showBottomSheetShouldSucceed()
-        assertThat(Prefs.notificationsBottomSheetShownBelowAPI33, equalTo(true))
-        showBottomSheetShouldFail()
-
-        setCanPermissionBeRequested(false)
-        showBottomSheetShouldFail()
+        assertThat(prefs.notificationsBottomSheetShownBelowAPI33, equalTo(true))
         verify(exactly = 1) { PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.LEGACY_NOTIFICATIONS) }
-        assertThat(Prefs.notificationsBottomSheetShownBelowAPI33, equalTo(true))
     }
 
     @Test
@@ -275,16 +206,6 @@ class PermissionsTest {
         every { ActivityCompat.shouldShowRequestPermissionRationale(any(), any()) } returns canBeRequested
     }
 
-    private fun triggerPermissionRequest(permission: String = DUMMY_PERMISSION_STRING) {
-        fragment.requestPermissionThroughDialogOrSettings(
-            fragmentActivity,
-            permission,
-            Prefs::notificationsPermissionRequested,
-            permissionRequestLauncher,
-        )
-        assertThat("requested flag should always be true after requesting", Prefs.notificationsPermissionRequested, equalTo(true))
-    }
-
     private fun verifyPermissionWasRequested(permission: String = DUMMY_PERMISSION_STRING) {
         verify(exactly = 1) { permissionRequestLauncher.launch(permission) }
         // No settings screen should be opened if the permission could be requested directly
@@ -299,15 +220,9 @@ class PermissionsTest {
         assertThat(intentSlot.captured.action, equalTo(openedActivityAction))
     }
 
-    private fun showBottomSheetShouldFail() {
-        permissionsSpy.showNotificationsPermissionBottomSheetIfNeeded(fragmentActivity, fragmentManager) {
-            throw IllegalStateException("callback should not be called")
-        }
-    }
-
     private fun showBottomSheetShouldSucceed() {
         permissionsSpy.showNotificationsPermissionBottomSheetIfNeeded(fragmentActivity, fragmentManager) {
-            Prefs.notificationsPermissionRequested = true
+            prefs.notificationsPermissionRequested = true
         }
     }
 
