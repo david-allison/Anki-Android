@@ -1,5 +1,6 @@
 
 import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.extension.impl.AndroidComponentsExtensionImpl
 import com.ichi2.anki.gradle.BackendTempLibraryService
 import com.ichi2.anki.gradle.GitHubActionsTestListener
@@ -126,7 +127,8 @@ subprojects {
                     it.configureRobolectricJvm()
                 }
 
-                it.maxParallelForks = gradleTestMaxParallelForks
+                // Library suites contain only a few classes; share JVM and SDK startup across them.
+                it.maxParallelForks = if (androidExtension is LibraryExtension) 1 else gradleTestMaxParallelForks
                 it.forkEvery = 40
                 it.systemProperties["junit.jupiter.execution.parallel.enabled"] = true
                 it.systemProperties["junit.jupiter.execution.parallel.mode.default"] = "concurrent"
