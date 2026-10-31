@@ -30,6 +30,7 @@ import com.ichi2.anki.common.android.AdaptionUtil
 import com.ichi2.anki.common.annotations.UseContextParameter
 import com.ichi2.anki.common.preferences.SharedPreferencesTestHook
 import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.common.time.MockTime
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.dialogs.DialogHandler
@@ -245,6 +246,7 @@ open class RobolectricTest(
         Dispatchers.resetMain()
         ioDispatcher = Dispatchers.IO
         runBlocking { CollectionManager.discardBackend() }
+        CollectionHelper.systemStorageFailure = null
         val pendingMethods = OnlyOnce.pendingMethods
         Assert.assertTrue(
             "OnlyOnce operations still pending after ${testName.methodName}: $pendingMethods. Await them before ending the test.",
