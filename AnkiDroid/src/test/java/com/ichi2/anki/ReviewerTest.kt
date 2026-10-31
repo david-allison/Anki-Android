@@ -487,14 +487,20 @@ class ReviewerTest : RobolectricTest() {
             val nonDefaultDeck = addDeck("Hello")
             assertThat("first card is shown", this.cardContent, containsString("One"))
             flipOrAnswerCard(Rating.GOOD)
+            advanceRobolectricLooperUntil { isDisplayingAnswer }
             // answer good, 'Rating.GOOD' should now be < 10m
             assertThat("initial time is 10m", this.getCardDataForJsApi().nextTime3, equalTo("<\u206810\u2069m"))
             flipOrAnswerCard(Rating.GOOD)
+            advanceRobolectricLooperUntil {
+                cardContent?.contains("Two") == true && OnlyOnce.Method.ANSWER_CARD !in OnlyOnce.pendingMethods
+            }
             assertThat("next card is shown", this.cardContent, containsString("Two"))
 
             undoableOp { col.setDeck(listOf(currentCard!!.id), nonDefaultDeck) }
+            advanceRobolectricLooperUntil { cardContent?.contains("One") == true && !isDisplayingAnswer }
 
             flipOrAnswerCard(Rating.GOOD)
+            advanceRobolectricLooperUntil { isDisplayingAnswer }
             assertThat("buttons should be updated", this.getCardDataForJsApi().nextTime3, equalTo("\u20681\u2069d"))
             assertThat("content should be updated", this.cardContent, containsString("One"))
         }
