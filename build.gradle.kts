@@ -104,21 +104,27 @@ subprojects {
             // com.android.lint [BasePlugin] has no `android` extension
             // as it can be applied to java-library
             val androidExtension = extensions.findByName("android") as? CommonExtension ?: return@withType
+            val usesRobolectric =
+                configurations.findByName("testImplementation")?.allDependencies?.any {
+                    it.group == "org.robolectric" && it.name == "robolectric"
+                } == true
             androidExtension.testOptions.unitTests {
-                isIncludeAndroidResources = true
+                isIncludeAndroidResources = usesRobolectric
             }
             androidExtension.testOptions.unitTests.all {
-                // Resolve SDKs before forking tests: Robolectric's shared download lock races on Windows (Issue 22069).
-                it.dependsOn(":AnkiDroid:robolectricSdkDownload")
-                val robolectricDependencies = project(":AnkiDroid").layout.buildDirectory.file("robolectric-deps.properties")
-                it.inputs.file(robolectricDependencies)
-                it.systemProperty(
-                    "robolectric-deps.properties",
-                    robolectricDependencies.get().asFile.absolutePath,
-                )
+                if (usesRobolectric) {
+                    // Resolve SDKs before forking tests: Robolectric's shared download lock races on Windows (Issue 22069).
+                    it.dependsOn(":AnkiDroid:robolectricSdkDownload")
+                    val robolectricDependencies = project(":AnkiDroid").layout.buildDirectory.file("robolectric-deps.properties")
+                    it.inputs.file(robolectricDependencies)
+                    it.systemProperty(
+                        "robolectric-deps.properties",
+                        robolectricDependencies.get().asFile.absolutePath,
+                    )
 
-                it.minHeapSize = "1g"
-                it.configureRobolectricJvm()
+                    it.minHeapSize = "1g"
+                    it.configureRobolectricJvm()
+                }
 
                 it.maxParallelForks = gradleTestMaxParallelForks
                 it.forkEvery = 40
