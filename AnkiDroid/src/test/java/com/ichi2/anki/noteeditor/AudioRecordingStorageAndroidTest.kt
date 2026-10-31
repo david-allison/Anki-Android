@@ -21,7 +21,7 @@ class AudioRecordingStorageAndroidTest : AudioRecordingViewModelTestBase() {
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val viewModel =
-                AudioRecordingViewModel(AudioRecorder(context), playerStub.factory)
+                AudioRecordingViewModel(AudioRecorder(context, createMediaRecorder = mediaRecorderStub::createRecorder), playerStub.factory)
                     .also { viewModelStore.put(VIEW_MODEL_KEY, it) }
             try {
                 val recording = viewModel.record()

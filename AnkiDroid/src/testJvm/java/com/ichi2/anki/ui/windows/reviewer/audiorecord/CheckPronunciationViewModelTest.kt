@@ -14,8 +14,6 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -35,23 +33,13 @@ abstract class CheckPronunciationViewModelTestBase {
     protected val playerStub = PlayerStub()
     protected val viewModelStore = ViewModelStore()
 
-    @Before
-    fun installMediaRecorder() {
-        mediaRecorderStub.install()
-    }
-
-    @After
-    fun uninstallMediaRecorder() {
-        mediaRecorderStub.uninstall()
-    }
-
     private val recorderContext = mockk<Context>()
 
     protected fun runViewModelTest(testBody: suspend TestScope.(CheckPronunciationViewModel) -> Unit) =
         runTest {
             val viewModel =
                 CheckPronunciationViewModel(
-                    AudioRecorder(recorderContext),
+                    AudioRecorder(recorderContext, createMediaRecorder = mediaRecorderStub::createRecorder),
                     playerStub.factory,
                     recordingsFolder.root,
                     loadSource = playerStub.loadSource,
