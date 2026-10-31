@@ -42,8 +42,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import anki.collection.OpChanges
 import com.ichi2.anki.CollectionManager.TR
-import com.ichi2.anki.backend.stripHTMLScriptAndStyleTags
 import com.ichi2.anki.common.crashreporting.CrashReportService
+import com.ichi2.anki.common.utils.prepareDeckDescription
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
 import com.ichi2.anki.filtered.FilteredDeckOptionsFragment
 import com.ichi2.anki.libanki.DeckId
@@ -524,19 +524,11 @@ class StudyOptionsFragment :
         fun formatDescription(
             @Language("HTML") desc: String,
             imageGetter: Html.ImageGetter? = null,
-        ): Spanned {
-            // #5715: In deck description, ignore what is in style and script tag
-            // Since we don't currently execute the JS/CSS, it's not worth displaying.
-            val withStrippedTags = stripHTMLScriptAndStyleTags(desc)
-            // #5188 - compat.fromHtml converts newlines into spaces.
-            val withoutWindowsLineEndings = withStrippedTags.replace("\r\n", "<br/>")
-            val withoutLinuxLineEndings = withoutWindowsLineEndings.replace("\n", "<br/>")
-
-            return withoutLinuxLineEndings.parseAsHtml(
+        ): Spanned =
+            prepareDeckDescription(desc).parseAsHtml(
                 flags = HtmlCompat.FROM_HTML_MODE_LEGACY,
                 imageGetter = imageGetter,
             )
-        }
 
         fun FragmentActivity.registerStudyOptionsStudyHandler(action: () -> Unit) {
             setFragmentResultListener(REQUEST_STUDY_OPTIONS_STUDY) { _, _ ->

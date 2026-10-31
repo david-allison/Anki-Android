@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2018 Mike Hardy <mike@mikehardy.net>
 
-package com.ichi2.anki.backend
+package com.ichi2.anki.common.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,7 +22,7 @@ class HtmlUtilsTest {
             assertEquals(
                 s.replace("\n", "\\n") + " should be removed.",
                 "",
-                stripHTML(s),
+                stripHtmlTags(s),
             )
         }
     }
@@ -42,7 +42,7 @@ class HtmlUtilsTest {
             assertEquals(
                 s.replace("\n", "\\n") + " should be removed.",
                 "",
-                stripHTML(s),
+                stripHtmlTags(s),
             )
         }
     }

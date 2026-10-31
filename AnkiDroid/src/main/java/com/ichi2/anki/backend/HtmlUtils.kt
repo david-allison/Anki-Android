@@ -7,27 +7,12 @@
 package com.ichi2.anki.backend
 
 import androidx.core.text.HtmlCompat
+import com.ichi2.anki.common.utils.stripHtmlTags
+import com.ichi2.anki.common.utils.stripSpecialFields
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-// Regex pattern used in removing tags from text before diff
-private val commentPattern = Pattern.compile("(?s)<!--.*?-->")
-private val stylePattern = Pattern.compile("(?si)<style.*?>.*?</style>")
-private val scriptPattern = Pattern.compile("(?si)<script.*?>.*?</script>")
-private val tagPattern = Pattern.compile("(?s)<.*?>")
-private val typePattern = Pattern.compile("(?s)\\[\\[type:.+?]]")
-private val avRefPattern = Pattern.compile("(?s)\\[anki:play:.:\\d+?]")
 private val htmlEntitiesPattern = Pattern.compile("&#?\\w+;")
-
-/**
- * Strip special fields like `[[type:...]]` and `[anki:play...]` from a string.
- * @param input The text to be cleaned.
- * @return The text without special fields.
- */
-fun stripSpecialFields(input: String): String {
-    val s = typePattern.matcher(input).replaceAll("")
-    return avRefPattern.matcher(s).replaceAll("")
-}
 
 /**
  * Strip HTML and special fields from a string.
@@ -44,24 +29,7 @@ fun stripHTMLAndSpecialFields(input: String): String {
  * @param inputParam The HTML text to be cleaned.
  * @return The text without the aforementioned tags.
  */
-fun stripHTML(inputParam: String): String {
-    var s = commentPattern.matcher(inputParam).replaceAll("")
-    s = stripHTMLScriptAndStyleTags(s)
-    s = tagPattern.matcher(s).replaceAll("")
-    return entsToTxt(s)
-}
-
-/**
- * Strips <style>...</style> and <script>...</script> HTML tags and content from a string.
- * @param inputParam The HTML text to be cleaned.
- * @return The text without the aforementioned tags.
- */
-fun stripHTMLScriptAndStyleTags(inputParam: String): String {
-    var htmlMatcher = stylePattern.matcher(inputParam)
-    val s = htmlMatcher.replaceAll("")
-    htmlMatcher = scriptPattern.matcher(s)
-    return htmlMatcher.replaceAll("")
-}
+fun stripHTML(inputParam: String): String = entsToTxt(stripHtmlTags(inputParam))
 
 /**
  * Takes a string and replaces all the HTML symbols in it with their unescaped representation.
