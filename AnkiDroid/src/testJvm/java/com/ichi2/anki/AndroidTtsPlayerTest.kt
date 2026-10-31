@@ -6,7 +6,6 @@ package com.ichi2.anki
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.dialogs.viewmodel.play
 import com.ichi2.anki.libanki.TTSTag
 import com.ichi2.anki.libanki.TtsPlayer.TtsCompletionStatus
@@ -24,12 +23,10 @@ import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasItem
 import org.hamcrest.Matchers.not
 import org.junit.Test
-import org.junit.runner.RunWith
 import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 /** Test for [AndroidTtsPlayer] */
-@RunWith(AndroidJUnit4::class)
 class AndroidTtsPlayerTest {
     @Test
     fun `voice preview selects an unavailable voice so the engine can download it`() =
