@@ -42,6 +42,7 @@ sealed interface PlayerState {
 class VoicePlayer(
     private val scope: CoroutineScope,
     private val createPlayer: () -> Player,
+    private val loadSource: (Player, File) -> Unit = ::loadRecordingSource,
 ) : Closeable {
     val state: StateFlow<PlayerState>
         field = MutableStateFlow<PlayerState>(PlayerState.Empty)
@@ -83,7 +84,7 @@ class VoicePlayer(
         setState(PlayerState.Loading)
         position.value = Duration.ZERO
         player.pause()
-        player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+        loadSource(player, file)
         player.prepare()
     }
 
@@ -176,6 +177,13 @@ class VoicePlayer(
     }
 
     companion object {
+        internal fun loadRecordingSource(
+            player: Player,
+            file: File,
+        ) {
+            player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+        }
+
         private val TICK_INTERVAL = 16.milliseconds
 
         fun createExoPlayer(context: Context): Player =

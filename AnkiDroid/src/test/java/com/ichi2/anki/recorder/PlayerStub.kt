@@ -8,6 +8,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import io.mockk.every
 import io.mockk.mockk
+import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -18,6 +19,14 @@ class PlayerStub {
     val factory: () -> Player = {
         createdCount++
         player
+    }
+
+    val sourceFiles: List<File>
+        field = mutableListOf<File>()
+
+    val loadSource: (Player, File) -> Unit = { target, file ->
+        check(target === player)
+        sourceFiles += file
     }
 
     var createdCount = 0
