@@ -76,6 +76,7 @@ import com.ichi2.anki.Whiteboard.Companion.createInstance
 import com.ichi2.anki.Whiteboard.OnPaintColorChangeListener
 import com.ichi2.anki.cardviewer.Gesture
 import com.ichi2.anki.cardviewer.ViewerCommand
+import com.ichi2.anki.cardviewer.flagAfter
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.destinations.CardInfoDestination
@@ -1724,39 +1725,12 @@ open class Reviewer :
         which: ViewerCommand,
         fromGesture: Gesture?,
     ): Boolean {
+        which.flagAfter(currentCard?.flag)?.let { flag ->
+            Timber.i("Flag command: %s; setting flag to %d", which, flag.code)
+            onFlag(currentCard, flag)
+            return true
+        }
         when (which) {
-            ViewerCommand.TOGGLE_FLAG_RED -> {
-                toggleFlag(Flag.RED)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_ORANGE -> {
-                toggleFlag(Flag.ORANGE)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_GREEN -> {
-                toggleFlag(Flag.GREEN)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_BLUE -> {
-                toggleFlag(Flag.BLUE)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_PINK -> {
-                toggleFlag(Flag.PINK)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_TURQUOISE -> {
-                toggleFlag(Flag.TURQUOISE)
-                return true
-            }
-            ViewerCommand.TOGGLE_FLAG_PURPLE -> {
-                toggleFlag(Flag.PURPLE)
-                return true
-            }
-            ViewerCommand.UNSET_FLAG -> {
-                onFlag(currentCard, Flag.NONE)
-                return true
-            }
             ViewerCommand.MARK -> {
                 onMark(currentCard)
                 return true
@@ -1834,16 +1808,6 @@ open class Reviewer :
     ) {
         Timber.v("userAction%d", number)
         loadUrlInViewer("javascript: userAction($number);")
-    }
-
-    private fun toggleFlag(flag: Flag) {
-        if (currentCard!!.flag == flag) {
-            Timber.i("Toggle flag: unsetting flag")
-            onFlag(currentCard, Flag.NONE)
-        } else {
-            Timber.i("Toggle flag: Setting flag to %d", flag.code)
-            onFlag(currentCard, flag)
-        }
     }
 
     override fun restoreCollectionPreferences(col: Collection) {
