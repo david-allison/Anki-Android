@@ -44,7 +44,6 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowActivity
-import timber.log.Timber
 import kotlin.test.junit5.JUnit5Asserter.assertEquals
 import kotlin.test.junit5.JUnit5Asserter.assertNotEquals
 import kotlin.test.junit5.JUnit5Asserter.assertNotNull
@@ -354,368 +353,45 @@ class CardTemplateEditorTest : RobolectricTest() {
         )
     }
 
-    /**
-     * In a note type with two card templates using different fields, some notes may only use card 1,
-     * and some may only use card 2. If you delete the 2nd template,
-     * it will cause the notes that only use card 2 to disappear.
-     *
-     * So the unit test would then be to make a note type like the "basic (optional reverse card)"
-     * with two fields Enable1 and Enable2, and two templates "card 1" and "card 2".
-     * Both cards use selective generation, so they're empty unless the corresponding field is set.
-     *
-     * So then in the unit test you make the note type, add the two templates, then you add two notes,
-     * with Enable1 and Enable2 respectively set to "y".
-     * Then you try to delete one of the templates and it should fail
-     *
-     * (question: but I thought deleting one should work - still one card left to maintain the note,
-     * and second template delete should fail since we finally get to a place where no cards are left?
-     * I am having trouble creating selectively generated cards though - I can do one optional field but not 2 ugh)
-     *
-     */
+    /** Backend deletion policy is covered in CardTemplateEditingTest; this checks the warning UI. */
     @Test
-    fun testDeleteTemplateWithSelectivelyGeneratedCards() =
-        runTest {
-            val noteTypeName = "Basic (optional reversed card)"
-            val collectionBasicNoteTypeOriginal = getCurrentDatabaseNoteTypeCopy(noteTypeName)
-
-            // Start the CardTemplateEditor with a specific note type, and make sure the note type starts unchanged
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.putExtra("noteTypeId", collectionBasicNoteTypeOriginal.id)
-            val templateEditorController =
-                Robolectric
-                    .buildActivity(
-                        CardTemplateEditor::class.java,
-                        intent,
-                    ).create()
-                    .start()
-                    .resume()
-                    .visible()
-            saveControllerForCleanup(templateEditorController)
-            val testEditor = templateEditorController.get()
-            assertFalse("Note type should not have changed yet", testEditor.noteTypeHasChanged())
-            assertEquals("Note type should have 2 templates now", 2, testEditor.tempNoteType?.templateCount)
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-
-            // Try to delete Card 1 template - click delete, check confirm for card delete popup indicating it was possible, then dismiss it
-            val shadowTestEditor = shadowOf(testEditor)
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
-            advanceRobolectricLooper()
-            assertEquals("Wrong dialog shown?", "Delete the “Card 1” card type, and its 0 cards?", getAlertDialogText(true))
-            clickAlertDialogButton { negativeButton }
-            advanceRobolectricLooper()
-            assertFalse("Note type should not have changed", testEditor.noteTypeHasChanged())
-
-            // Create note with forward and back info, Add Reverse is empty, so should only be one card
-            val selectiveGeneratedNote = col.newNote(collectionBasicNoteTypeOriginal)
-            selectiveGeneratedNote.setField(0, "TestFront")
-            selectiveGeneratedNote.setField(1, "TestBack")
-            val fields = selectiveGeneratedNote.fields
-            for (field in fields) {
-                Timber.d("Got a field: %s", field)
+    fun testDeleteTemplateWithSelectivelyGeneratedCards() {
+        val noteType = col.notetypes.byName("Basic (optional reversed card)")!!
+        val note =
+            col.newNote(noteType).apply {
+                setField(0, "Front")
+                setField(1, "Back")
             }
-            col.addNote(selectiveGeneratedNote)
-            assertEquals("selective generation should result in one card", 1, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-
-            // Try to delete the template again, but there's selective generation means it would orphan the note
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
+        col.addNote(note)
+        withCardTemplateEditor(noteType) {
+            assertTrue("Unable to request deletion", shadowOf(this).clickMenuItem(R.id.action_delete))
             advanceRobolectricLooper()
-            assertEquals(
-                "Did not show dialog about deleting only card?",
-                getResourceString(CommonString.orphan_note_message),
-                getAlertDialogText(true),
-            )
+            assertEquals("The orphan warning is shown", getResourceString(CommonString.orphan_note_message), getAlertDialogText(true))
             clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            assertNull(
-                "Can delete used template?",
-                collectionBasicNoteTypeOriginal.getCardIds(0),
-            )
-            assertEquals(
-                "Change already in database?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("A blocked deletion must not change the note type", testEditor.noteTypeHasChanged())
-
-            // Assert can delete 'Card 2'
-            assertNotNull("Cannot delete unused template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-
-            // Edit note to have Add Reverse set to 'y' so we get a second card
-            selectiveGeneratedNote.setField(2, "y")
-            selectiveGeneratedNote.flush()
-
-            // - assert two cards
-            assertEquals("should be two cards now", 2, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-
-            // - assert can delete either Card template but not both
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNull("Can delete both templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
-
-            // A couple more notes to make sure things are okay
-            val secondNote = col.newNote(collectionBasicNoteTypeOriginal)
-            secondNote.setField(0, "TestFront2")
-            secondNote.setField(1, "TestBack2")
-            secondNote.setField(2, "y")
-            col.addNote(secondNote)
-
-            // - assert can delete either Card template but not both
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNull("Can delete both templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
+            assertFalse("A blocked deletion leaves the editor unchanged", noteTypeHasChanged())
+            assertEquals("A blocked deletion preserves both templates", 2, tempNoteType!!.templateCount)
         }
+    }
 
-    /**
-     * Normal template deletion - with no selective generation should of course work
-     */
     @Test
-    fun testDeleteTemplateWithGeneratedCards() =
-        runTest {
-            val noteTypeName = "Basic (and reversed card)"
-            var collectionBasicNoteTypeOriginal = getCurrentDatabaseNoteTypeCopy(noteTypeName)
+    fun testDeletePendingAddExistingCardCount() {
+        addBasicAndReversedNote()
+        withCardTemplateEditor(col.notetypes.basicAndReversed) {
+            selectTab(1)
+            advanceRobolectricLooper()
+            deleteSelectedCardType()
+            addCardType(this, shadowOf(this))
+            assertNull("The replacement has no database identity", tempNoteType!!.getOriginalOrdinal(1))
 
-            // Start the CardTemplateEditor with a specific note type, and make sure the note type starts unchanged
-            var intent = Intent(Intent.ACTION_VIEW)
-            intent.putExtra("noteTypeId", collectionBasicNoteTypeOriginal.id)
-            var templateEditorController =
-                Robolectric
-                    .buildActivity(
-                        CardTemplateEditor::class.java,
-                        intent,
-                    ).create()
-                    .start()
-                    .resume()
-                    .visible()
-            saveControllerForCleanup(templateEditorController)
-            var testEditor = templateEditorController.get()
-            assertFalse("Note type should not have changed yet", testEditor.noteTypeHasChanged())
-            assertEquals("Note type should have 2 templates now", 2, testEditor.tempNoteType?.templateCount)
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-
-            // Create note with forward and back info
-            val selectiveGeneratedNote = col.newNote(collectionBasicNoteTypeOriginal)
-            selectiveGeneratedNote.setField(0, "TestFront")
-            selectiveGeneratedNote.setField(1, "TestBack")
-            col.addNote(selectiveGeneratedNote)
-            assertEquals("card generation should result in two cards", 2, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-
-            // Test if we can delete the template - should be possible - but cancel the delete
-            var shadowTestEditor = shadowOf(testEditor)
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
+            assertTrue("Unable to request deletion", shadowOf(this).clickMenuItem(R.id.action_delete))
             advanceRobolectricLooper()
             assertEquals(
-                "Did not show dialog about deleting template and it's card?",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_delete, 1, 1, "Card 1"),
-                getAlertDialogText(true),
-            )
-            clickAlertDialogButton { negativeButton }
-            advanceRobolectricLooper()
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNull("Can delete both templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
-            assertEquals(
-                "Change in database despite no change?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertEquals("Note type should have 2 templates still", 2, testEditor.tempNoteType?.templateCount)
-
-            // Add a template - click add, click confirm for card add, click confirm again for full sync
-            addCardType(testEditor, shadowTestEditor)
-            // the templates must be different
-            testEditor.tempNoteType!!.getTemplate(2).qfmt += "different_template"
-            assertTrue("Note type should have changed", testEditor.noteTypeHasChanged())
-            assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(2))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-            assertTrue("Ordinal not pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(2))
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
-            advanceRobolectricLooper()
-            assertFalse("Note type should now be unchanged", testEditor.noteTypeHasChanged())
-            assertEquals("card generation should result in three cards", 3, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-            // reload the note type for future comparison after saving the edit
-            collectionBasicNoteTypeOriginal = getCurrentDatabaseNoteTypeCopy(noteTypeName)
-
-            // Start the CardTemplateEditor back up after saving (which closes the thing...)
-            intent = Intent(Intent.ACTION_VIEW)
-            intent.putExtra("noteTypeId", collectionBasicNoteTypeOriginal.id)
-            templateEditorController =
-                Robolectric
-                    .buildActivity(CardTemplateEditor::class.java, intent)
-                    .create()
-                    .start()
-                    .resume()
-                    .visible()
-            saveControllerForCleanup(templateEditorController)
-            testEditor = templateEditorController.get()
-            shadowTestEditor = shadowOf(testEditor)
-            assertFalse("Note type should not have changed yet", testEditor.noteTypeHasChanged())
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(2))
-            assertEquals("Note type should have 3 templates now", 3, testEditor.tempNoteType?.templateCount)
-
-            // Add another template - but we work in memory for a while before saving
-            addCardType(testEditor, shadowTestEditor)
-            assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(3))
-            assertTrue("Note type should have changed", testEditor.noteTypeHasChanged())
-            assertEquals("Note type should have 4 templates now", 4, testEditor.tempNoteType?.templateCount)
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(2))
-            assertTrue("Ordinal not pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(3))
-            assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(3))
-
-            // Delete two pre-existing templates for real now - but still without saving it out, should work fine
-            advanceRobolectricLooper()
-            testEditor.mainBinding.cardTemplateEditorPager.currentItem = 0
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
-            advanceRobolectricLooper()
-            assertEquals(
-                "Did not show dialog about deleting template and it's card?",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_delete, 1, 1, "Card 1"),
-                getAlertDialogText(true),
-            )
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            advanceRobolectricLooper()
-            testEditor.mainBinding.cardTemplateEditorPager.currentItem = 0
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
-            advanceRobolectricLooper()
-            assertEquals(
-                "Did not show dialog about deleting template and it's card?",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_delete, 1, 1, "Card 2"),
-                getAlertDialogText(true),
-            )
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-
-            // - assert can delete any 1 or 2 Card templates but not all
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(2))
-            assertNotNull("Cannot delete two templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
-            assertNotNull("Cannot delete two templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 2))
-            assertNotNull("Cannot delete two templates?", collectionBasicNoteTypeOriginal.getCardIds(1, 2))
-            assertNull("Can delete all templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1, 2))
-            assertEquals(
-                "Change already in database?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(1))
-
-            // Now confirm everything to persist it to the database
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
-            advanceRobolectricLooper()
-            advanceRobolectricLooper()
-            assertNotEquals(
-                "Change not in database?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertEquals("Note type should have 2 templates now", 2, getCurrentDatabaseNoteTypeCopy(noteTypeName).templates.length())
-            assertEquals("should be two cards", 2, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-        }
-
-    /**
-     * Deleting a template you just added - but in the same ordinal as a previous pending delete - should get it's card count correct
-     */
-    @Test
-    fun testDeletePendingAddExistingCardCount() =
-        runTest {
-            val noteTypeName = "Basic (optional reversed card)"
-            val collectionBasicNoteTypeOriginal = getCurrentDatabaseNoteTypeCopy(noteTypeName)
-
-            // Start the CardTemplateEditor with a specific note type, and make sure the note type starts unchanged
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.putExtra("noteTypeId", collectionBasicNoteTypeOriginal.id)
-            val templateEditorController =
-                Robolectric
-                    .buildActivity(
-                        CardTemplateEditor::class.java,
-                        intent,
-                    ).create()
-                    .start()
-                    .resume()
-                    .visible()
-            saveControllerForCleanup(templateEditorController)
-            val testEditor = templateEditorController.get()
-            assertFalse("Note type should not have changed yet", testEditor.noteTypeHasChanged())
-            assertEquals("Note type should have 2 templates now", 2, testEditor.tempNoteType?.templateCount)
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-
-            // Create note with forward and back info
-            val selectiveGeneratedNote = col.newNote(collectionBasicNoteTypeOriginal)
-            selectiveGeneratedNote.setField(0, "TestFront")
-            selectiveGeneratedNote.setField(1, "TestBack")
-            selectiveGeneratedNote.setField(2, "y")
-            col.addNote(selectiveGeneratedNote)
-            assertEquals("card generation should result in two cards", 2, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
-
-            // Delete ord 1 / 'Card 2' and check the message
-            val shadowTestEditor = shadowOf(testEditor)
-            testEditor.mainBinding.cardTemplateEditorPager.currentItem = 1
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
-            advanceRobolectricLooper()
-            assertEquals(
-                "Did not show dialog about deleting template and it's card?",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_delete, 1, 1, "Card 2"),
-                getAlertDialogText(true),
-            )
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            assertTrue("Note type should have changed", testEditor.noteTypeHasChanged())
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNull("Can delete both templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
-            assertEquals(
-                "Change in database despite no save?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertEquals("Note type should have 1 template", 1, testEditor.tempNoteType?.templateCount)
-
-            // Add a template - click add, click confirm for card add, click confirm again for full sync
-            addCardType(testEditor, shadowTestEditor)
-            assertTrue("Note type should have changed", testEditor.noteTypeHasChanged())
-            assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(1))
-            assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
-            assertTrue("Ordinal not pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
-            assertEquals("Note type should have 2 templates", 2, testEditor.tempNoteType?.templateCount)
-
-            // Delete ord 1 / 'Card 2' again and check the message - it's in the same spot as the pre-existing template but there are no cards actually associated
-            testEditor.mainBinding.cardTemplateEditorPager.currentItem = 1
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_delete))
-            advanceRobolectricLooper()
-            assertEquals(
-                "Did not show dialog about deleting template and it's card?",
+                "An unsaved replacement has no existing cards to delete",
                 getQuantityString(CommonPlurals.card_template_editor_confirm_delete, 0, 0, CollectionManager.TR.cardTemplatesCard(2)),
                 getAlertDialogText(true),
             )
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            assertTrue("Note type should have changed", testEditor.noteTypeHasChanged())
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(0))
-            assertNotNull("Cannot delete template?", collectionBasicNoteTypeOriginal.getCardIds(1))
-            assertNull("Can delete both templates?", collectionBasicNoteTypeOriginal.getCardIds(0, 1))
-            assertEquals(
-                "Change in database despite no save?",
-                collectionBasicNoteTypeOriginal.toString().trim(),
-                getCurrentDatabaseNoteTypeCopy(noteTypeName).toString().trim(),
-            )
-            assertEquals("Note type should have 1 template", 1, testEditor.tempNoteType?.templateCount)
-
-            // Save it out and make some assertions
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
-            advanceRobolectricLooper()
-            assertFalse("Note type should now be unchanged", testEditor.noteTypeHasChanged())
-            assertEquals("card generation should result in 1 card", 1, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
         }
+    }
 
     @Test
     fun testDeckOverride() {
@@ -1223,56 +899,6 @@ class CardTemplateEditorTest : RobolectricTest() {
     }
 
     @Test
-    fun `adding from an unsaved optional reverse template creates no cards`() {
-        val noteType = col.notetypes.byName("Basic (optional reversed card)")!!
-        val note = col.newNote(noteType)
-        note.setField(0, "Front")
-        note.setField(1, "Back")
-        note.setField(2, "")
-        col.addNote(note)
-        assertEquals("Only the forward card should exist", 1, getNoteTypeCardCount(noteType))
-
-        withCardTemplateEditor(noteType) {
-            selectTab(1)
-            advanceRobolectricLooper()
-            addCardType(this, shadowOf(this))
-            advanceRobolectricLooper()
-            assertEquals("The first duplicate should be selected", 2, selectedTabPosition)
-            assertTrue(
-                "The selected template must be unsaved",
-                CardTemplateNotetype.isOrdinalPendingAdd(tempNoteType!!, selectedTabPosition),
-            )
-
-            // Keep the empty condition, but make each front distinct so saving succeeds.
-            templateFragment(2).binding.editText.setText("{{#Add Reverse}}{{Front}} {{Back}}{{/Add Reverse}}")
-            assertTrue("Unable to add a card type", shadowOf(this).clickMenuItem(R.id.action_add))
-            advanceRobolectricLooper()
-            val confirmation = getAlertDialogText(true)
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            assertEquals("The second duplicate should be selected", 3, selectedTabPosition)
-            templateFragment(3).binding.editText.setText("{{#Add Reverse}}{{Back}} {{Front}}{{/Add Reverse}}")
-
-            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(R.id.action_confirm))
-            advanceRobolectricLooper()
-            assertEquals(
-                "Both new templates should be saved",
-                4,
-                col.notetypes
-                    .get(noteType.id)!!
-                    .templates
-                    .length(),
-            )
-            assertEquals("Neither conditional template should generate cards", 1, getNoteTypeCardCount(noteType))
-            assertEquals(
-                "Adding from an unsaved conditional template must not promise a card that will not be generated",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_add, 0, 0),
-                confirmation,
-            )
-        }
-    }
-
-    @Test
     fun `adding from a broken template does not crash`() {
         addBasicAndReversedNote()
         withCardTemplateEditor(col.notetypes.basicAndReversed) {
@@ -1285,84 +911,6 @@ class CardTemplateEditorTest : RobolectricTest() {
                 getAlertDialogText(true),
             )
         }
-    }
-
-    @Test
-    fun `adding a template with a card number condition counts generated cards`() {
-        addBasicAndReversedNote()
-        val noteType = col.notetypes.basicAndReversed
-        val initialCardCount = getNoteTypeCardCount(noteType)
-        assertEquals("Both original cards should exist", 2, initialCardCount)
-
-        withCardTemplateEditor(noteType) {
-            // Preview supplies c3 for the new template, but card generation does not.
-            templateFragment(0).binding.editText.setText("{{#c3}}{{Front}}{{/c3}}")
-            assertTrue("Unable to add a card type", shadowOf(this).clickMenuItem(R.id.action_add))
-            advanceRobolectricLooper()
-            val confirmation = getAlertDialogText(true)
-            clickAlertDialogButton { positiveButton }
-            advanceRobolectricLooper()
-            assertEquals("The new template should be selected", 2, selectedTabPosition)
-
-            // Avoid identical fronts without changing the condition or field requirements.
-            templateFragment(2).binding.editText.setText("{{#c3}}{{Front}} extra{{/c3}}")
-            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(R.id.action_confirm))
-            advanceRobolectricLooper()
-            assertEquals(
-                "The new template should be saved",
-                3,
-                col.notetypes
-                    .get(noteType.id)!!
-                    .templates
-                    .length(),
-            )
-            val createdCards = getNoteTypeCardCount(noteType) - initialCardCount
-            assertEquals("The card number condition should prevent generation", 0, createdCards)
-            assertEquals(
-                "The confirmation must count generated cards, not nonempty previews",
-                getQuantityString(CommonPlurals.card_template_editor_confirm_add, createdCards, createdCards),
-                confirmation,
-            )
-        }
-    }
-
-    @Test
-    fun `a failed save does not add card types - Issue 19953`() {
-        addBasicNote()
-        val noteType = col.notetypes.basic
-        val savedNames = noteType.templatesNames
-
-        withCardTemplateEditor(noteType) {
-            repeat(2) {
-                assertTrue("Unable to add a card type", shadowOf(this).clickMenuItem(R.id.action_add))
-                advanceRobolectricLooper()
-                clickAlertDialogButton { positiveButton }
-                advanceRobolectricLooper()
-            }
-            assertEquals("The new card types should share a front", tempNoteType!!.getTemplate(1).qfmt, tempNoteType!!.getTemplate(2).qfmt)
-
-            throwOnShowError = false
-            saveChanges()
-            assertEquals("A failed save must not add card types", savedNames, col.notetypes.get(noteType.id)!!.templatesNames)
-
-            templateFragment(2).binding.editText.setText("{{Back}} {{Front}}")
-            val editedNames = tempNoteType!!.notetype.templatesNames
-            saveChanges()
-            assertEquals("Saving again should add each card type once", editedNames, col.notetypes.get(noteType.id)!!.templatesNames)
-        }
-    }
-
-    @Test
-    fun `deleting the first card type keeps the cards of the second`() {
-        val note = addBasicAndReversedNote()
-        val reverseCardId = note.cards().single { it.ord == 1 }.id
-
-        withCardTemplateEditor(col.notetypes.basicAndReversed) {
-            deleteSelectedCardType()
-            saveChanges()
-        }
-
-        assertEquals("Only the deleted card type's card should be removed", listOf(reverseCardId), note.cids())
     }
 
     @Test

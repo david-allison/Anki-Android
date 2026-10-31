@@ -3,9 +3,11 @@
 
 package com.ichi2.anki.libanki
 
+import com.ichi2.anki.libanki.utils.append
 import com.ichi2.anki.libanki.utils.insert
 import com.ichi2.anki.libanki.utils.remove
 import org.slf4j.LoggerFactory
+import java.util.regex.Pattern
 
 /** Tracks template identities while editing a note type, independently of platform persistence. */
 open class CardTemplateEditorModel(
@@ -39,15 +41,51 @@ open class CardTemplateEditorModel(
         notetype.templates[ordinal] = template
     }
 
-    fun addNewTemplate() {
-        logger.debug("addNewTemplate()")
+    /** Append an unsaved template and track its identity in the same operation. */
+    fun addNewTemplate(template: CardTemplate) {
+        notetype.templates.append(template)
         originalTemplateOrds.add(null)
+        Notetypes._updateTemplOrds(notetype)
     }
 
+    /** Delete an editor position, retaining its original database ordinal for later validation. */
     fun removeTemplate(ord: Int) {
-        logger.debug("removeTemplate() on ordinal {}", ord)
+        val template = getTemplate(ord)
         originalTemplateOrds.removeAt(ord)?.let { deletedTemplateOrds.add(it) }
+        notetype.templates.remove(template)
+        Notetypes._updateTemplOrds(notetype)
     }
+
+    /** Copy the selected template, choosing an unused localized name and reversing a single card type. */
+    fun buildNewTemplate(
+        sourceOrdinal: CardOrdinal,
+        cardName: (Int) -> String,
+    ): CardTemplate {
+        val templates = notetype.templates
+        var nextNumber = templateCount + 1
+        var name = cardName(nextNumber)
+        while (templates.any { it.name == name }) name = cardName(++nextNumber)
+        val source = getTemplate(sourceOrdinal)
+        return Notetypes.newTemplate(name).apply {
+            qfmt = source.qfmt
+            afmt = source.afmt
+            if (templateCount == 1) {
+                val oldFront = qfmt
+                val answer = Pattern.compile("(?s)(.+)<hr id=answer>(.+)").matcher(afmt)
+                qfmt = if (answer.find()) answer.group(2)!!.trim() else afmt.replace("{{FrontSide}}", "")
+                afmt = "{{FrontSide}}\n\n<hr id=answer>\n\n$oldFront"
+            }
+            setOrd(templates.last().ord + 1)
+        }
+    }
+
+    /** Unsaved additions cannot orphan existing notes; all queued original deletions must be checked together. */
+    fun deletionWouldOrphanNote(
+        collection: Collection,
+        position: CardOrdinal,
+    ): Boolean =
+        getOriginalOrdinal(position) != null &&
+            collection.notetypes.getCardIdsForNoteType(noteTypeId, getDeleteDbOrds(position)) == null
 
     /** Move a template while retaining its database identity for saving, previews and deletion checks. */
     fun repositionTemplate(
