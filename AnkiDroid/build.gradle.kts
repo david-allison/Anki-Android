@@ -4,6 +4,7 @@
 import com.ichi2.anki.gradle.VersionCodeTasks
 import com.ichi2.anki.gradle.WriteReleaseMetadata
 import com.ichi2.anki.gradle.isCoverageEnabled
+import com.ichi2.anki.gradle.registerJvmUnitTests
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.ZoneId
@@ -334,6 +335,11 @@ android {
                 }
             }
         }
+    }
+
+    sourceSets.getByName("test").apply {
+        java.srcDir("src/testJvm/java")
+        kotlin.srcDir("src/testJvm/java")
     }
 
     testOptions {
@@ -914,3 +920,5 @@ dependencies {
     // an "unresolved" warning, which is treated as an error due to allWarningsAsErrors
     testFixturesImplementation(libs.kotlinx.coroutines.core)
 }
+
+registerJvmUnitTests(libs.versions.robolectric.get())
