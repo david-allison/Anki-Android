@@ -5,15 +5,12 @@ package com.ichi2.anki.noteeditor
 
 import android.content.Context
 import androidx.lifecycle.ViewModelStore
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.noteeditor.AudioRecordingViewModel.Failure
 import com.ichi2.anki.recorder.AudioRecorder
 import com.ichi2.anki.recorder.MediaRecorderStub
 import com.ichi2.anki.recorder.PlayerState
 import com.ichi2.anki.recorder.PlayerStub
 import com.ichi2.anki.recorder.RecorderState
-import com.ichi2.anki.recorder.VoiceRecorder
 import com.ichi2.testutils.rules.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
@@ -25,7 +22,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -371,24 +367,5 @@ class AudioRecordingViewModelTest : AudioRecordingViewModelTestBase() {
 
             assertEquals(2, playerStub.sourceFiles.size, "source loads")
             assertEquals(RecorderState.Recorded(recording), viewModel.recorderState.value, "the recording can still be inserted")
-        }
-}
-
-@RunWith(AndroidJUnit4::class)
-class AudioRecordingStorageAndroidTest : AudioRecordingViewModelTestBase() {
-    @Test
-    fun `recordings are stored outside the cache`() =
-        runTest {
-            val context = ApplicationProvider.getApplicationContext<Context>()
-            val viewModel =
-                AudioRecordingViewModel(AudioRecorder(context), playerStub.factory)
-                    .also { viewModelStore.put(VIEW_MODEL_KEY, it) }
-            try {
-                val recording = viewModel.record()
-
-                assertEquals(File(context.noBackupFilesDir, VoiceRecorder.RECORDINGS_DIRECTORY), recording.parentFile)
-            } finally {
-                viewModelStore.clear()
-            }
         }
 }

@@ -2,21 +2,14 @@
 
 package com.ichi2.anki.browser.search
 
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.browser.CardBrowserViewModel
 import com.ichi2.anki.browser.ColumnType
 import com.ichi2.anki.browser.JvmCardBrowserViewModelTestBase
 import com.ichi2.anki.browser.search.SortOrderBottomSheetFragment.ColumnUiModel
-import com.ichi2.testutils.EmptyApplication
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.experimental.categories.Category
 import org.junit.jupiter.api.assertInstanceOf
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
 /** Tests [SortOrderBottomSheetFragment.ColumnUiModel] */
@@ -182,13 +175,3 @@ val ColumnUiModel.keyOrNull get() =
         is ColumnUiModel.NoOrdering -> null
         is ColumnUiModel.AnkiColumn -> this.key.value
     }
-
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class SortColumnUiModelAndroidTest {
-    @Test
-    fun `no ordering has a translated label`() {
-        assertEquals("No sorting", ColumnUiModel.NoOrdering.getLabel(ApplicationProvider.getApplicationContext()))
-    }
-}

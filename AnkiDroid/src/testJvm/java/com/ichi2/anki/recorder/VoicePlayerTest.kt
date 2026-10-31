@@ -3,15 +3,10 @@
 
 package com.ichi2.anki.recorder
 
-import android.net.Uri
-import androidx.media3.common.MediaItem
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.recorder.PlayerState.Empty
 import com.ichi2.anki.recorder.PlayerState.Failed
 import com.ichi2.anki.recorder.PlayerState.Loading
 import com.ichi2.anki.recorder.PlayerState.Ready
-import com.ichi2.testutils.EmptyApplication
 import io.mockk.verify
 import io.mockk.verifyOrder
 import kotlinx.coroutines.job
@@ -25,10 +20,7 @@ import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.hasSize
 import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
 import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -293,30 +285,4 @@ class VoicePlayerTest {
 
     private val VoicePlayer.isPlaying: Boolean
         get() = (state.value as? Ready)?.isPlaying == true
-}
-
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class VoicePlayerAndroidTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
-    private val playerStub = PlayerStub()
-    private val recording by lazy { File(tempFolder.root, "recording.3gp") }
-
-    @Test
-    fun `load pauses, sets the recording and prepares`() =
-        runTest {
-            val voicePlayer = VoicePlayer(backgroundScope, playerStub.factory)
-
-            voicePlayer.load(recording)
-
-            assertThat(voicePlayer.state.value, equalTo(Loading))
-            verifyOrder {
-                playerStub.player.pause()
-                playerStub.player.setMediaItem(MediaItem.fromUri(Uri.fromFile(recording)))
-                playerStub.player.prepare()
-            }
-        }
 }
