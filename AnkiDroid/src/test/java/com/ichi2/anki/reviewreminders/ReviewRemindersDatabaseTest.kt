@@ -4,12 +4,15 @@
 package com.ichi2.anki.reviewreminders
 
 import androidx.core.content.edit
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.storage.CollectionHelper
+import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.common.time.MockTime
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.libanki.EpochMilliseconds
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.testutils.JvmApplicationRule
+import com.ichi2.testutils.JvmPreferencesRule
+import com.ichi2.testutils.JvmTest
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -27,8 +30,8 @@ import org.hamcrest.Matchers.sameInstance
 import org.intellij.lang.annotations.Language
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.reflect.full.declaredMemberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.time.Duration.Companion.days
@@ -38,8 +41,15 @@ import kotlin.time.Duration.Companion.days
  * Please read the documentation of [ReviewReminder] carefully and ensure you have implemented
  * a proper migration method to the new schema. See the past schema migrations for examples.
  */
-@RunWith(AndroidJUnit4::class)
-class ReviewRemindersDatabaseTest : RobolectricTest() {
+class ReviewRemindersDatabaseTest : JvmTest() {
+    @get:Rule
+    val application = JvmApplicationRule()
+
+    @get:Rule
+    val preferences = JvmPreferencesRule()
+
+    private var previousStorageDecision: StorageDecision? = null
+
     companion object {
         private val yesterday = MockTime(TimeManager.time.intTimeMS() - 1.days.inWholeMilliseconds)
         private val today = MockTime(TimeManager.time.intTimeMS())
@@ -107,6 +117,8 @@ class ReviewRemindersDatabaseTest : RobolectricTest() {
 
     @Before
     override fun setUp() {
+        previousStorageDecision = CollectionHelper.storageDecisionTestOverride
+        CollectionHelper.storageDecisionTestOverride = StorageDecision.Decided
         super.setUp()
         TimeManager.resetWith(today)
         clearRemindersState()
@@ -114,9 +126,16 @@ class ReviewRemindersDatabaseTest : RobolectricTest() {
 
     @After
     override fun tearDown() {
-        super.tearDown()
-        TimeManager.reset()
-        clearRemindersState()
+        try {
+            TimeManager.reset()
+            clearRemindersState()
+        } finally {
+            try {
+                super.tearDown()
+            } finally {
+                CollectionHelper.storageDecisionTestOverride = previousStorageDecision
+            }
+        }
     }
 
     private fun clearRemindersState() {
