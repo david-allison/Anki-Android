@@ -15,12 +15,13 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.OnContextAndLongClickListener
 import com.ichi2.anki.OnContextAndLongClickListener.Companion.setOnContextAndLongClickListener
 import com.ichi2.anki.R
+import com.ichi2.anki.common.tags.TagsList
+import com.ichi2.anki.common.tags.TagsUtil
 import com.ichi2.anki.databinding.ItemTagBinding
 import com.ichi2.ui.CheckBoxTriStates
 import com.ichi2.ui.CheckBoxTriStates.State.CHECKED
 import com.ichi2.ui.CheckBoxTriStates.State.INDETERMINATE
 import com.ichi2.ui.CheckBoxTriStates.State.UNCHECKED
-import com.ichi2.utils.TagsUtil
 import com.ichi2.utils.TypedFilter
 import java.util.Locale
 import java.util.Stack

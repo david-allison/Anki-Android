@@ -37,6 +37,8 @@ import com.ichi2.anki.OnContextAndLongClickListener
 import com.ichi2.anki.R
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
 import com.ichi2.anki.browser.IdsFile
+import com.ichi2.anki.common.tags.TagsList
+import com.ichi2.anki.common.tags.TagsUtil
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.databinding.DialogTagsBinding
 import com.ichi2.anki.launchCatchingTask
@@ -47,7 +49,6 @@ import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.utils.ext.requireParcelable
 import com.ichi2.ui.AccessibleSearchView
 import com.ichi2.utils.DisplayUtils.setDialogKeyboardResize
-import com.ichi2.utils.TagsUtil
 import com.ichi2.utils.customView
 import com.ichi2.utils.getInputField
 import com.ichi2.utils.input
