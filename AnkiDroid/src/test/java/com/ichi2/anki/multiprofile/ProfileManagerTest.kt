@@ -22,11 +22,9 @@ import com.ichi2.anki.multiprofile.ProfileManager.Companion.PREF_WEBVIEW_PROFILE
 import com.ichi2.anki.multiprofile.ProfileManager.Companion.PROFILE_REGISTRY_FILENAME
 import com.ichi2.testutils.EmptyApplication
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.mockkStatic
-import io.mockk.runs
 import io.mockk.unmockkAll
 import io.mockk.verify
 import org.junit.After
@@ -39,7 +37,11 @@ import org.junit.Test
 import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.Implementation
+import org.robolectric.annotation.Implements
+import org.robolectric.annotation.Resetter
 import org.robolectric.shadows.ShadowEnvironment
+import org.robolectric.shadows.ShadowWebView
 import java.io.File
 import java.io.IOException
 import kotlin.test.assertNotNull
@@ -271,47 +273,17 @@ class ProfileManagerTest {
         assertTrue(wrapped.filesDir.startsWith(profileDir))
     }
 
+    /** The policy is tested on the JVM; this checks the Android call on every supported API. */
     @Test
-    @Config(minSdk = Build.VERSION_CODES.P)
-    fun `New profile sets WebView directory suffix (API 28+)`() {
-        val newId = "p_webview_test"
-        prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, newId) }
+    @Config(minSdk = Build.VERSION_CODES.P, shadows = [DirectorySuffixWebViewShadow::class])
+    fun `modern devices route profile storage to the WebView directory suffix`() {
+        ProfileManager.create(context)
+        assertEquals(emptyList<String>(), DirectorySuffixWebViewShadow.suffixes)
 
-        mockkStatic(WebView::class)
-        every { WebView.setDataDirectorySuffix(any()) } just runs
-
+        prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, "p_webview_test") }
         ProfileManager.create(context)
 
-        verify(exactly = 1) { WebView.setDataDirectorySuffix(newId) }
-    }
-
-    @Test
-    @Config(minSdk = Build.VERSION_CODES.P)
-    fun `Default profile does not set WebView directory suffix (API 28+)`() {
-        mockkStatic(WebView::class)
-        every { WebView.setDataDirectorySuffix(any()) } just runs
-
-        ProfileManager.create(context)
-
-        verify(exactly = 0) { WebView.setDataDirectorySuffix(any()) }
-    }
-
-    @Test
-    @Config(minSdk = Build.VERSION_CODES.P)
-    fun `Swallows exception if WebView is already initialized`() {
-        val newId = "p_error_test"
-        prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, newId) }
-
-        mockkStatic(WebView::class)
-        every { WebView.setDataDirectorySuffix(any()) } throws IllegalStateException("Already initialized")
-
-        try {
-            ProfileManager.create(context)
-        } catch (e: Exception) {
-            throw AssertionError("Manager should have caught the WebView exception but didn't", e)
-        }
-
-        verify(exactly = 1) { WebView.setDataDirectorySuffix(newId) }
+        assertEquals(listOf("p_webview_test"), DirectorySuffixWebViewShadow.suffixes)
     }
 
     @Test
@@ -338,9 +310,8 @@ class ProfileManagerTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.O_MR1])
-    fun `Legacy device keeps cookies on first run as the WebView data is already Default's (Pre-API 28)`() {
+    fun `legacy default adoption does not initialize the cookie manager`() {
         val cookieManager = mockCookieManager()
-        assertNull(prefs.getString(PREF_WEBVIEW_PROFILE_ID, null), "no WebView owner is recorded before the first run")
 
         ProfileManager.create(context)
 
@@ -351,14 +322,20 @@ class ProfileManagerTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.O_MR1])
-    fun `Legacy device does not clear cookies for the same profile repeatedly (Pre-API 28)`() {
-        val cookieManager = mockCookieManager()
+    fun `legacy cookie ownership is recorded only after removal and flush`() {
+        val cookieManager = mockCookieManager(completesRemoval = false)
+        var completion: ValueCallback<Boolean>? = null
+        every { cookieManager.removeAllCookies(any()) } answers { completion = firstArg() }
+        every { cookieManager.flush() } answers {
+            assertNull(prefs.getString(PREF_WEBVIEW_PROFILE_ID, null), "flush before recording ownership")
+        }
         prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, "p_bob") }
 
-        // the first launch clears the cookies as p_bob takes ownership of the WebView data
         ProfileManager.create(context)
-        // the second launch does not clear them again as p_bob already owns the data
-        ProfileManager.create(context)
+
+        assertNull(prefs.getString(PREF_WEBVIEW_PROFILE_ID, null))
+        verify(exactly = 0) { cookieManager.flush() }
+        assertNotNull(completion).onReceiveValue(true)
 
         verify(exactly = 1) { cookieManager.removeAllCookies(any()) }
         verify(exactly = 1) { cookieManager.flush() }
@@ -366,55 +343,14 @@ class ProfileManagerTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.O_MR1])
-    fun `Legacy device clears cookies once the active profile changed (Pre-API 28)`() {
-        val cookieManager = mockCookieManager()
-
-        ProfileManager.create(context)
-        prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, "p_bob") }
-        ProfileManager.create(context)
-
-        verify(exactly = 1) { cookieManager.removeAllCookies(any()) }
-        assertEquals("p_bob", prefs.getString(PREF_WEBVIEW_PROFILE_ID, null))
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.O_MR1])
-    fun `Legacy device clears cookies with no recorded owner once another profile exists (Pre-API 28)`() {
-        val cookieManager = mockCookieManager()
-        val manager = ProfileManager.create(context)
-        manager.createNewProfile(ProfileName.fromTrustedSource("Bob"))
-        prefs.edit(commit = true) { remove(PREF_WEBVIEW_PROFILE_ID) }
-
-        ProfileManager.create(context)
-
-        verify(exactly = 1) { cookieManager.removeAllCookies(any()) }
-        assertEquals(ProfileId.DEFAULT.value, prefs.getString(PREF_WEBVIEW_PROFILE_ID, null))
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.O_MR1])
-    fun `Legacy device clears cookies again if the removal never completed (Pre-API 28)`() {
-        val cookieManager = mockCookieManager(completesRemoval = false)
-        prefs.edit(commit = true) { putString(PREF_LAST_ACTIVE_PROFILE_ID, "p_bob") }
-
-        ProfileManager.create(context)
-        ProfileManager.create(context)
-
-        verify(exactly = 2) { cookieManager.removeAllCookies(any()) }
-        assertNull(prefs.getString(PREF_WEBVIEW_PROFILE_ID, null))
-    }
-
-    @Test
-    @Config(minSdk = Build.VERSION_CODES.P)
+    @Config(minSdk = Build.VERSION_CODES.P, shadows = [DirectorySuffixWebViewShadow::class])
     fun `a profile that fails to load leaves the WebView directory alone (API 28+)`() {
-        mockkStatic(WebView::class)
-        every { WebView.setDataDirectorySuffix(any()) } just runs
-        val unloadable = makeActiveProfileUnloadable()
+        val previousSuffixes = DirectorySuffixWebViewShadow.suffixes.toList()
+        makeActiveProfileUnloadable()
 
         assertNull(ProfileManager.createOrNull(context))
 
-        verify(exactly = 0) { WebView.setDataDirectorySuffix(unloadable.value) }
+        assertEquals(previousSuffixes, DirectorySuffixWebViewShadow.suffixes)
     }
 
     @Test
@@ -729,7 +665,6 @@ class ProfileManagerTest {
         assertFalse("media.trash folder should be deleted", trashFile.parentFile!!.exists())
     }
 
-    /** Stubs [CookieManager.getInstance]. [completesRemoval] fires the cookie removal callback. */
     private class RecordingEditor(
         private val delegate: SharedPreferences.Editor,
     ) : SharedPreferences.Editor by delegate {
@@ -762,6 +697,7 @@ class ProfileManagerTest {
         return profileId
     }
 
+    /** Stubs [CookieManager.getInstance]. [completesRemoval] fires the cookie removal callback. */
     private fun mockCookieManager(completesRemoval: Boolean = true): CookieManager {
         mockkStatic(CookieManager::class)
         val cookieManager = mockk<CookieManager>(relaxed = true)
@@ -783,5 +719,25 @@ class ProfileManagerTest {
         context
             .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
             .edit(commit = true) { putString(PREF_COLLECTION_PATH, dir.absolutePath) }
+    }
+}
+
+/** Captures the API boundary without instrumenting the entire WebView class with MockK. */
+@Implements(WebView::class)
+class DirectorySuffixWebViewShadow : ShadowWebView() {
+    companion object {
+        val suffixes = mutableListOf<String>()
+
+        @JvmStatic
+        @Implementation(minSdk = Build.VERSION_CODES.P)
+        fun setDataDirectorySuffix(suffix: String) {
+            suffixes += suffix
+        }
+
+        @JvmStatic
+        @Resetter
+        fun resetSuffixes() {
+            suffixes.clear()
+        }
     }
 }

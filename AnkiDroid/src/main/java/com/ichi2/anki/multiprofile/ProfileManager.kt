@@ -45,6 +45,25 @@ class ProfileManager private constructor(
 
     internal val profileRegistry by lazy { ProfileRegistry(globalProfilePrefs) }
 
+    private val browserStorage by lazy {
+        ProfileBrowserStorage(
+            registry = profileRegistry,
+            supportsSeparateDirectories = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P,
+            setDirectorySuffix = { suffix ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    WebView.setDataDirectorySuffix(suffix)
+                }
+            },
+            clearCookies = { onComplete ->
+                val cookies = CookieManager.getInstance()
+                cookies.removeAllCookies {
+                    cookies.flush()
+                    onComplete()
+                }
+            },
+        )
+    }
+
     /**
      * Internal initialization logic.
      * Finds the correct profile to load (or creates the default) and initializes the environment.
@@ -124,11 +143,11 @@ class ProfileManager private constructor(
             ensureProfileCollectionPath(wrapper)
         } catch (e: Exception) {
             Timber.w(e, "Failed to load profile context for $profileId")
-            configureWebView(ProfileId.DEFAULT)
+            browserStorage.configure(ProfileId.DEFAULT)
             throw RuntimeException("Failed to load profile environment", e)
         }
 
-        configureWebView(profileId)
+        browserStorage.configure(profileId)
 
         Timber.d("Profile loaded: $profileId at ${profileBaseDir.file.absolutePath}")
     }
@@ -163,59 +182,6 @@ class ProfileManager private constructor(
             ).apply { mkdirs() }
 
         prefs.edit { putString(PREF_COLLECTION_PATH, profileCollectionDir.absolutePath) }
-    }
-
-    /**
-     * Records [profileId] as the owner of the shared WebView storage, clearing the cookies of the
-     * previous owner first.
-     *
-     * [WebView.setDataDirectorySuffix] is unavailable before API 28, so every profile shares one
-     * WebView data directory and a profile change has to clear it. No recorded owner means the
-     * first run of a build which records one: if Default is also the only profile then no other
-     * profile has ever run here, so the existing data is adopted rather than cleared, which would
-     * otherwise touch the WebView on the startup path and drop the AnkiWeb session of users who
-     * never switch profiles.
-     */
-    private fun resetWebViewDataIfProfileChanged(profileId: ProfileId) {
-        val webViewOwner = profileRegistry.getWebViewProfileId()
-        if (webViewOwner == profileId) return
-
-        if (webViewOwner == null && profileId.isDefault() && profileRegistry.isOnlyProfile(profileId)) {
-            Timber.i("Adopting the existing WebView data: no other profile has run on this install")
-            profileRegistry.setWebViewProfileId(profileId)
-            return
-        }
-
-        Timber.i("WebView data belongs to another profile, clearing cookies")
-        CookieManager.getInstance().removeAllCookiesSync {
-            profileRegistry.setWebViewProfileId(profileId)
-        }
-    }
-
-    /** Runs [block] once the removal has completed and the cookies are flushed to disk. */
-    private fun CookieManager.removeAllCookiesSync(block: CookieManager.() -> Unit) =
-        removeAllCookies {
-            flush()
-            block()
-        }
-
-    private fun configureWebView(profileId: ProfileId) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-            resetWebViewDataIfProfileChanged(profileId)
-            return
-        }
-
-        if (profileId.isDefault()) {
-            return
-        }
-
-        try {
-            WebView.setDataDirectorySuffix(profileId.value)
-        } catch (e: Exception) {
-            // This usually means the WebView was accessed before the profile was loaded.
-            // This represents a potential privacy leak (using default cookies).
-            Timber.w(e, "Failed to set WebView directory suffix (WebView already initialized?)")
-        }
     }
 
     /**
