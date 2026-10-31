@@ -2,7 +2,7 @@
 
 package com.ichi2.anki.browser.search
 
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.equalTo
@@ -13,7 +13,7 @@ import org.junit.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class SavedSearchesTest : JvmTest() {
+class SavedSearchesTest : InMemoryAnkiTest() {
     @Test
     fun `matches Anki Desktop ordering`() =
         withSavedSearches {
@@ -110,11 +110,8 @@ class SavedSearchesTest : JvmTest() {
             assertNull(byName("a"))
         }
 
-    private fun withSavedSearches(block: suspend SavedSearches.() -> Unit) =
-        runTest {
-            block(SavedSearches)
-        }
+    private fun withSavedSearches(block: CollectionSavedSearches.() -> Unit) = block(CollectionSavedSearches(col.config))
 }
 
-context(_: SavedSearches)
-suspend fun add(data: String) = SavedSearches.add(SavedSearch(data, data))
+context(searches: CollectionSavedSearches)
+fun add(data: String) = searches.add(SavedSearch(data, data))
