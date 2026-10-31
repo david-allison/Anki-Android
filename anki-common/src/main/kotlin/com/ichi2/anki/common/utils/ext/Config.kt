@@ -16,7 +16,6 @@ import com.ichi2.anki.libanki.Config
 import com.ichi2.anki.libanki.Consts
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Decks.Companion.CURRENT_DECK
-import com.ichi2.anki.model.CardsOrNotes
 import org.json.JSONObject
 
 /**
@@ -70,12 +69,6 @@ val Config.hideAudioPlayButtons by configProperty(ConfigKey.Bool.HIDE_AUDIO_PLAY
  * [source](https://github.com/ankitects/anki/blob/main/rslib/src/config/string.rs)
  */
 var Config.cardStateCustomizer by configProperty(ConfigKey.String.CARD_STATE_CUSTOMIZER)
-
-/** Whether the browser displays cards or notes. */
-var Config.cardsOrNotes by configProperty(ConfigKey.Bool.BROWSER_TABLE_SHOW_NOTES_MODE).mapped(
-    decode = { if (it) CardsOrNotes.NOTES else CardsOrNotes.CARDS },
-    encode = { it == CardsOrNotes.NOTES },
-)
 
 /** The stored selected deck ID; the referenced deck may no longer exist. */
 val Config.currentDeckId by jsonConfigProperty<DeckId>(CURRENT_DECK).orDefault(Consts.DEFAULT_DECK_ID)

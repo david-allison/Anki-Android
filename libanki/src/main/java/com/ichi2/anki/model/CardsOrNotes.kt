@@ -2,18 +2,15 @@
 
 package com.ichi2.anki.model
 
-import android.os.Parcelable
 import com.ichi2.anki.common.utils.ext.cardsOrNotes
 import com.ichi2.anki.libanki.Collection
-import kotlinx.parcelize.Parcelize
 
 /**
  * Config: Whether the `CardBrowser` is in "Cards" or "Notes" mode
  *
  * @see cardsOrNotes
  */
-@Parcelize
-enum class CardsOrNotes : Parcelable {
+enum class CardsOrNotes {
     CARDS,
     NOTES,
     ;
