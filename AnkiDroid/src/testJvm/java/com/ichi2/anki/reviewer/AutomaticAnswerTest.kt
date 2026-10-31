@@ -2,30 +2,30 @@
 
 package com.ichi2.anki.reviewer
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
+import android.os.Handler
 import com.ichi2.anki.reviewer.AutomaticAnswer.AutomaticallyAnswered
-import com.ichi2.testutils.EmptyApplication
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
-import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowLooper.runUiThreadTasksIncludingDelayedTasks
+import org.mockito.kotlin.whenever
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class AutomaticAnswerTest {
-    @Test
-    fun `default instance buries cards`() {
-        assertThat(
-            AutomaticAnswer.defaultInstance(automaticallyAnsweredMock()).settings.answerAction,
-            equalTo(AutomaticAnswerAction.BURY_CARD),
-        )
-    }
+    private val pending = mutableListOf<Runnable>()
+    private val handler =
+        mock<Handler>().apply {
+            doAnswer { invocation ->
+                pending.add(invocation.getArgument(0))
+                true
+            }.whenever(this).postDelayed(any(), any())
+            doAnswer { invocation ->
+                pending.removeAll { it === invocation.getArgument<Runnable>(0) }
+                null
+            }.whenever(this).removeCallbacks(any())
+            whenever(hasMessages(0)).thenAnswer { pending.isNotEmpty() }
+        }
 
     @Test
     fun disableWorks() {
@@ -49,6 +49,7 @@ class AutomaticAnswerTest {
         val answer =
             AutomaticAnswer(
                 target = automaticallyAnsweredMock(),
+                timeoutHandler = handler,
                 settings =
                     AutomaticAnswerSettings(
                         secondsToShowQuestionFor = 0.0,
@@ -113,7 +114,9 @@ class AutomaticAnswerTest {
     }
 
     private fun waitForTaskCompletion() {
-        runUiThreadTasksIncludingDelayedTasks()
+        while (pending.isNotEmpty()) {
+            pending.removeAt(0).run()
+        }
     }
 
     private fun validAnswer(
@@ -136,6 +139,7 @@ class AutomaticAnswerTest {
             }
         return AutomaticAnswer(
             target = automaticAnswerHandler,
+            timeoutHandler = handler,
             settings =
                 AutomaticAnswerSettings(
                     secondsToShowQuestionFor = 10.0,

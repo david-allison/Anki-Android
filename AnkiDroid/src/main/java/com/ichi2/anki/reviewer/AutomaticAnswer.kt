@@ -2,6 +2,7 @@
 
 package com.ichi2.anki.reviewer
 
+import android.os.Handler
 import androidx.annotation.CheckResult
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -56,6 +57,8 @@ import timber.log.Timber
 class AutomaticAnswer(
     target: AutomaticallyAnswered,
     @VisibleForTesting val settings: AutomaticAnswerSettings,
+    /** Queue shared by the automatic question and answer callbacks. */
+    @VisibleForTesting val timeoutHandler: Handler = HandlerUtils.newHandler(),
 ) : DefaultLifecycleObserver {
     private var activityIsPaused = false
 
@@ -90,13 +93,6 @@ class AutomaticAnswer(
             }
             target.automaticShowQuestion(settings.answerAction)
         }
-
-    /**
-     * Handler for the delay in auto showing question and/or answer
-     * One toggle for both question and answer, could set longer delay for auto next question
-     */
-    @VisibleForTesting
-    val timeoutHandler = HandlerUtils.newHandler()
 
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
