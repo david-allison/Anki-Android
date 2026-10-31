@@ -15,9 +15,10 @@ import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.CollectionFiles
 import timber.log.Timber
 import java.io.File
-import java.io.IOException
 
 object CollectionHelper {
+    private val directory = CollectionDirectory()
+
     /**
      * The preference key for the path to the current AnkiDroid directory
      *
@@ -56,24 +57,7 @@ object CollectionHelper {
      */
     @Synchronized
     @Throws(StorageAccessException::class)
-    fun initializeAnkiDroidDirectory(dir: File) {
-        // Create specified directory if it doesn't exit
-        if (!dir.exists() && !dir.mkdirs()) {
-            throw StorageAccessException("Failed to create AnkiDroid directory $dir")
-        }
-        if (!dir.canWrite()) {
-            throw StorageAccessException("No write access to AnkiDroid directory $dir")
-        }
-        // Add a .nomedia file to it if it doesn't exist
-        val nomedia = File(dir, ".nomedia")
-        if (!nomedia.exists()) {
-            try {
-                nomedia.createNewFile()
-            } catch (e: IOException) {
-                throw StorageAccessException("Failed to create .nomedia file", e)
-            }
-        }
-    }
+    fun initializeAnkiDroidDirectory(dir: File) = initializeCollectionDirectory(dir)
 
     /**
      * Try to access the current AnkiDroid directory
@@ -122,7 +106,11 @@ object CollectionHelper {
     fun getCollectionPath(context: Context) = getCollectionPaths(context).requireDiskBasedCollection().colDb
 
     /** A temporary override for [getCurrentAnkiDroidDirectory] */
-    var ankiDroidDirectoryOverride: File? = null
+    var ankiDroidDirectoryOverride: File?
+        get() = directory.override
+        set(value) {
+            directory.override = value
+        }
 
     /**
      * Set when startup failed to choose a default collection path because Android could not
@@ -133,7 +121,11 @@ object CollectionHelper {
      */
     // TODO: #19552 - consolidate with AnkiDroidApp.fatalError and StorageDecision (a dedicated
     //  'storage unavailable' state) once the storage setup flow exists
-    var systemStorageFailure: SystemStorageException? = null
+    var systemStorageFailure: SystemStorageException?
+        get() = directory.systemStorageFailure
+        set(value) {
+            directory.systemStorageFailure = value
+        }
 
     /**
      * Whether the location of the collection has been decided: [StorageDecision.Decided] once
@@ -152,11 +144,7 @@ object CollectionHelper {
      */
     fun storageDecision(preferences: SharedPreferences): StorageDecision {
         storageDecisionTestOverride?.let { return it }
-        if (ankiDroidDirectoryOverride != null) return StorageDecision.Decided
-        // a recorded systemStorageFailure also leaves the path unset: startup has already
-        // surfaced it via AnkiDroidApp.fatalError, and reads rethrow it rather than
-        // reporting 'not configured'
-        return if (preferences.contains(PREF_COLLECTION_PATH)) StorageDecision.Decided else StorageDecision.Undecided
+        return directory.storageDecision(preferences.contains(PREF_COLLECTION_PATH))
     }
 
     /**
@@ -184,24 +172,8 @@ object CollectionHelper {
      * @throws SystemStorageException if startup failed to choose a default collection path
      * ([systemStorageFailure])
      */
-    fun getCurrentAnkiDroidDirectory(preferences: SharedPreferences): File {
-        val collectionDirectory = preferences.getString(PREF_COLLECTION_PATH, null)
-        return if (isInstrumentationTest) {
-            // create an "androidTest" directory inside the current collection directory which contains the test data
-            // "/AnkiDroid/androidTest" would be a new collection path
-            File(collectionDirectory ?: throw collectionPathUnset(), "androidTest")
-        } else {
-            ankiDroidDirectoryOverride
-                ?: File(collectionDirectory ?: throw collectionPathUnset())
-        }
-    }
-
-    /**
-     * The collection path is unset: either the expected pre-setup state
-     * ([StorageNotConfiguredException]) or startup failed to choose a default and the recorded
-     * [SystemStorageException] is rethrown.
-     */
-    private fun collectionPathUnset(): Exception = systemStorageFailure ?: StorageNotConfiguredException()
+    fun getCurrentAnkiDroidDirectory(preferences: SharedPreferences): File =
+        directory.current(preferences.getString(PREF_COLLECTION_PATH, null), isInstrumentationTest)
 
     /** Test-only override for [storageDecision]. @see ankiDroidDirectoryOverride */
     @VisibleForTesting

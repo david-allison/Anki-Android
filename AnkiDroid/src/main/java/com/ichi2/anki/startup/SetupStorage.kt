@@ -13,6 +13,7 @@ import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.exception.StorageNotConfiguredException
 import com.ichi2.anki.exception.SystemStorageException
+import com.ichi2.anki.exception.build
 import com.ichi2.anki.selectAnkiDroidFolder
 import com.ichi2.anki.selectStoragePermissions
 import timber.log.Timber

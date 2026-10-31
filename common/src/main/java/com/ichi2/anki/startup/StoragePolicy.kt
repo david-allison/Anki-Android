@@ -2,15 +2,13 @@
 
 package com.ichi2.anki.startup
 
-import com.ichi2.anki.StoragePermissionSet
 import com.ichi2.anki.common.storage.AnkiDroidFolder
 import com.ichi2.anki.common.storage.StorageDecision
 
 /**
  * Who chooses the [AnkiDroidFolder] on a fresh install.
  *
- * Declared per [StoragePermissionSet] ([StoragePermissionSet.storagePolicy]) and applied by
- * [maybeSetDefaultCollectionPath].
+ * Declared per storage permission set and applied during collection startup.
  */
 sealed interface StoragePolicy {
     /** Only one folder is possible, so it is persisted on startup. */
@@ -30,7 +28,7 @@ sealed interface StoragePolicy {
 /**
  * The folder to persist on startup, or `null` if the user has yet to choose.
  *
- * @param hasRequiredPermissions [StoragePermissionSet.hasRequiredPermissions]
+ * @param hasRequiredPermissions Whether the storage permissions are granted.
  */
 fun StoragePolicy.folderToPersist(hasRequiredPermissions: Boolean): AnkiDroidFolder? =
     when (this) {
