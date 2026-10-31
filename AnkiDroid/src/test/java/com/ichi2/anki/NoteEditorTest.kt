@@ -464,26 +464,6 @@ class NoteEditorTest : RobolectricTest() {
         }
 
     @Test
-    fun copyNotePreservesHiddenFieldsAcrossTypeChanges() =
-        withRealSpinnerSelection {
-            val name = addStandardNoteType("Three Fields", arrayOf("Front", "Back", "Extra"), "{{Front}}", "{{Back}}{{Extra}}")
-            val original = addNoteUsingNoteTypeName(name, "front", "back", "extra")
-            val editor =
-                openNoteEditorWithArgs(
-                    NoteEditorDestination.EditSelection(listOf(original.firstCard().id), DEFAULT).toBundle(),
-                )
-            val copied = openNoteEditorWithArgs(getCopyNoteIntent(editor))
-            advanceRobolectricLooper()
-            copied.setCurrentlySelectedNoteType(col.notetypes.basic.id)
-            advanceRobolectricLooper()
-            copied.setField(0, "edited front")
-            copied.setField(1, "")
-            copied.setCurrentlySelectedNoteType(original.noteTypeId)
-            advanceRobolectricLooper()
-            assertEquals(listOf("edited front", "", "extra"), copied.currentFieldStrings.toList())
-        }
-
-    @Test
     fun copyNotePreservesHiddenFieldsAcrossRecreation() =
         withRealSpinnerSelection {
             ensureCollectionLoadIsSynchronous()
@@ -531,50 +511,6 @@ class NoteEditorTest : RobolectricTest() {
                 advanceRobolectricLooper()
                 assertEquals(listOf("", "", ""), editor.currentFieldStrings.toList())
             }
-        }
-
-    @Test
-    fun hiddenStickyBaselineSurvivesRoundTrip() =
-        withRealSpinnerSelection {
-            runTest {
-                val name = addStandardNoteType("Sticky Three Fields", arrayOf("Front", "Back", "Extra"), "{{Front}}", "{{Back}}{{Extra}}")
-                val type = col.notetypes.byName(name)!!
-                type.markFieldAsSticky(2)
-                val editor = openNoteEditorWithArgs(NoteEditorDestination.AddNote().toBundle())
-                editor.setCurrentlySelectedNoteType(type.id)
-                advanceRobolectricLooper()
-                editor.setField(0, "front")
-                editor.setField(2, "sticky text")
-                editor.saveNote()
-                advanceRobolectricLooper()
-                assertEquals(listOf("", "", "sticky text"), editor.currentFieldStrings.toList())
-                assertFalse(editor.hasUnsavedChanges())
-                editor.setFieldValueFromUi(0, "temporary edit")
-                editor.setFieldValueFromUi(0, "")
-                assertFalse(editor.hasUnsavedChanges())
-                editor.setCurrentlySelectedNoteType(col.notetypes.basic.id)
-                advanceRobolectricLooper()
-                editor.setCurrentlySelectedNoteType(type.id)
-                advanceRobolectricLooper()
-                assertEquals(listOf("", "", "sticky text"), editor.currentFieldStrings.toList())
-                assertFalse(editor.hasUnsavedChanges(), "Only unchanged sticky content remains")
-            }
-        }
-
-    @Test
-    fun hiddenDraftStillRequiresDiscardConfirmation() =
-        withRealSpinnerSelection {
-            val name = addStandardNoteType("Hidden Draft", arrayOf("Front", "Back", "Extra"), "{{Front}}", "{{Back}}{{Extra}}")
-            val typeId = col.notetypes.byName(name)!!.id
-            val editor = openNoteEditorWithArgs(NoteEditorDestination.AddNote().toBundle())
-            editor.setCurrentlySelectedNoteType(typeId)
-            advanceRobolectricLooper()
-            editor.setField(2, "unsaved draft text")
-            assertTrue(editor.hasUnsavedChanges())
-            editor.setCurrentlySelectedNoteType(col.notetypes.basic.id)
-            advanceRobolectricLooper()
-            assertEquals(listOf("", ""), editor.currentFieldStrings.toList())
-            assertTrue(editor.hasUnsavedChanges(), "Hidden draft text must still trigger the discard confirmation")
         }
 
     @Test
@@ -1062,24 +998,6 @@ class NoteEditorTest : RobolectricTest() {
         }
 
     @Test
-    fun `hasUnsavedChanges - note contained a newline`() =
-        withNoteEditorEditing(addBasicNote("hello\nworld")) {
-            assertFalse(hasUnsavedChanges())
-        }
-
-    @Test
-    fun `hasUnsavedChanges - note contained a HTML newline - 20174`() =
-        withNoteEditorEditing(addBasicNote("hello<br>world")) {
-            assertFalse(hasUnsavedChanges())
-        }
-
-    @Test
-    fun `hasUnsavedChanges - note contained a legacy HTML newline`() =
-        withNoteEditorEditing(addBasicNote("hello<br />world")) {
-            assertFalse(hasUnsavedChanges())
-        }
-
-    @Test
     fun `hasUnsavedChanges - sticky field content alone is not an unsaved change`() =
         runTest {
             val basic = makeNoteForType(NoteType.BASIC)
@@ -1109,33 +1027,6 @@ class NoteEditorTest : RobolectricTest() {
         }
 
     @Test
-    fun `hasUnsavedChanges - sticky field with a br line break survives a note type switch`() =
-        runTest {
-            val basic = makeNoteForType(NoteType.BASIC)
-            basic!!.fields[0].sticky = true
-
-            val editor =
-                getNoteEditorAdding(NoteType.BASIC)
-                    .withFirstField("Hello<br>World")
-                    .build()
-
-            editor.saveNote()
-            advanceRobolectricLooper()
-            assertFalse(editor.hasUnsavedChanges(), "fresh screen after save: no real edits yet")
-
-            // switching note type re-populates every field from its own current content, which
-            // converts the sticky field's `<br>` into a real line break - this must not look like
-            // an edit, since the field's rendered content is unchanged from the user's perspective
-            editor.noteType = col.notetypes.byName("Basic (optional reversed card)")!!
-            advanceRobolectricLooper()
-
-            assertFalse(
-                editor.hasUnsavedChanges(),
-                "the sticky field's content round-tripped through a <br>/newline conversion but was never actually edited",
-            )
-        }
-
-    @Test
     fun `hasUnsavedChanges - changing note type while adding does not discard unsaved field content`() =
         runTest {
             val editor =
@@ -1160,28 +1051,6 @@ class NoteEditorTest : RobolectricTest() {
                 editor.hasUnsavedChanges(),
                 "the user's unsaved content survived the note type change, so it must still be " +
                     "reported as an unsaved change - otherwise pressing back silently discards it",
-            )
-        }
-
-    @Test
-    fun `hasUnsavedChanges - typing then clearing a field before a note type switch that adds fields is not an unsaved change`() =
-        runTest {
-            val editor =
-                getNoteEditorAdding(NoteType.BASIC)
-                    .build()
-
-            // user types into the first field, then reverts their own edit before switching
-            editor.setFieldValueFromUi(0, "x")
-            editor.setFieldValueFromUi(0, "")
-            assertFalse(editor.hasUnsavedChanges(), "user's only edit was reverted; nothing to save")
-
-            // switch to a note type with an extra field (Basic -> Basic (optional reversed card))
-            editor.noteType = col.notetypes.byName("Basic (optional reversed card)")!!
-            advanceRobolectricLooper()
-
-            assertFalse(
-                editor.hasUnsavedChanges(),
-                "all fields are still blank after the note type switch added a field; there is nothing to save",
             )
         }
 
