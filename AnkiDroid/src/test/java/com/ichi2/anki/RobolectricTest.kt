@@ -46,6 +46,7 @@ import com.ichi2.compat.customtabs.CustomTabActivityHelper
 import com.ichi2.testutils.AndroidTest
 import com.ichi2.testutils.NoLiveRobolectricActivitiesRule
 import com.ichi2.testutils.ProductionCollectionManager
+import com.ichi2.testutils.RobolectricTestApplication
 import com.ichi2.testutils.common.FailOnUnhandledExceptionRule
 import com.ichi2.testutils.common.IgnoreFlakyTestsInCIRule
 import com.ichi2.testutils.filter
@@ -70,6 +71,7 @@ import org.junit.rules.TestName
 import org.robolectric.Robolectric
 import org.robolectric.Shadows
 import org.robolectric.android.controller.ActivityController
+import org.robolectric.annotation.Config
 import org.robolectric.junit.rules.TimeoutRule
 import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLog
@@ -85,6 +87,7 @@ import com.ichi2.testutils.Robolectric as RobolectricActivities
 /**
  * @param loadBackend Disable for tests which do not use the native backend.
  */
+@Config(application = RobolectricTestApplication::class)
 open class RobolectricTest(
     private val loadBackend: Boolean = true,
 ) : AnkiTest,
