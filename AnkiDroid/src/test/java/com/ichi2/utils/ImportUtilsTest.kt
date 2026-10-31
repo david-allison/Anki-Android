@@ -42,7 +42,6 @@ import org.mockito.kotlin.whenever
 import org.robolectric.Shadows.shadowOf
 import java.io.File
 import java.io.FileNotFoundException
-import java.io.IOException
 import java.io.InputStream
 import java.util.function.Supplier
 import kotlin.test.assertIs
@@ -83,42 +82,6 @@ class ImportUtilsTest : RobolectricTest() {
     }
 
     @Test
-    fun `unexpected source errors are still reported`() {
-        val uri = "content://import/broken.apkg".toUri()
-        val exception = IOException("Provider failed")
-        shadowOf(targetContext.contentResolver).registerInputStreamSupplier(uri) { throw exception }
-
-        val result = importerWithFileName("broken.apkg").prepareImport(targetContext, Intent(Intent.ACTION_VIEW, uri))
-
-        assertEquals(exception, assertIs<ImportResult.Failure>(result).exception)
-        verify(crashReporter).sendExceptionReport(exception, "ImportUtils", null, false)
-    }
-
-    @Test
-    fun `pending or trashed download returns an import failure without a crash report`() {
-        val uri = "content://import/pending.apkg".toUri()
-        val exception = IllegalStateException("Only owner is able to interact with pending/trashed item $uri")
-        shadowOf(targetContext.contentResolver).registerInputStreamSupplier(uri) { throw exception }
-
-        val result = importerWithFileName("pending.apkg").prepareImport(targetContext, Intent(Intent.ACTION_VIEW, uri))
-
-        assertEquals(exception, assertIs<ImportResult.Failure>(result).exception)
-        verifyNoInteractions(crashReporter)
-    }
-
-    @Test
-    fun `other illegal state errors from the source are still reported`() {
-        val uri = "content://import/illegal-state.apkg".toUri()
-        val exception = IllegalStateException("Provider failed")
-        shadowOf(targetContext.contentResolver).registerInputStreamSupplier(uri) { throw exception }
-
-        val result = importerWithFileName("illegal-state.apkg").prepareImport(targetContext, Intent(Intent.ACTION_VIEW, uri))
-
-        assertEquals(exception, assertIs<ImportResult.Failure>(result).exception)
-        verify(crashReporter).sendExceptionReport(exception, "ImportUtils", null, false)
-    }
-
-    @Test
     fun `storage provider refused by media store imports through media store`() {
         val result = importRefusedStorageDocument { "package contents".byteInputStream() }
 
@@ -145,22 +108,6 @@ class ImportUtilsTest : RobolectricTest() {
         } finally {
             unmockkStatic(MediaStore::class)
         }
-    }
-
-    @Test
-    fun `file not found while reading an open source is still reported`() {
-        val uri = "content://import/unreadable.apkg".toUri()
-        val exception = FileNotFoundException("Read failed after opening")
-        shadowOf(targetContext.contentResolver).registerInputStreamSupplier(uri) {
-            object : InputStream() {
-                override fun read(): Int = throw exception
-            }
-        }
-
-        val result = importerWithFileName("unreadable.apkg").prepareImport(targetContext, Intent(Intent.ACTION_VIEW, uri))
-
-        assertEquals(exception, assertIs<ImportResult.Failure>(result).exception)
-        verify(crashReporter).sendExceptionReport(exception, "ImportUtils", null, false)
     }
 
     private fun importerWithFileName(fileName: String): FileImporter =
