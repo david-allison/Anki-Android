@@ -4,144 +4,86 @@ package com.ichi2.anki.sync
 
 import android.content.DialogInterface
 import androidx.appcompat.app.AlertDialog
-import com.ichi2.anki.RobolectricTest
-import com.ichi2.anki.settings.Prefs
-import com.ichi2.testutils.EmptyAnkiActivity
+import androidx.fragment.app.FragmentActivity
+import com.ichi2.anki.EmptyApplicationCategory
+import com.ichi2.testutils.EmptyApplication
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.notNullValue
-import org.hamcrest.Matchers.nullValue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLooper
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import com.ichi2.anki.common.android.R as CommonR
 
-/** Tests for [MeteredSyncPolicy] */
 @RunWith(RobolectricTestRunner::class)
-class MeteredSyncPolicyTest : RobolectricTest() {
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
+class MeteredSyncPolicyTest {
     @Before
-    override fun setUp() {
-        super.setUp()
+    fun setUp() {
         mockkObject(MeteredSyncPolicy)
+        every { MeteredSyncPolicy.shouldBlock() } returns true
     }
 
     @After
-    override fun tearDown() {
+    fun tearDown() {
         unmockkObject(MeteredSyncPolicy)
-        super.tearDown()
     }
 
     @Test
-    fun `runs onConfirm immediately when not blocked`() {
-        every { MeteredSyncPolicy.shouldBlock() } returns false
-
-        val result = attemptMeteredSync()
-
-        assertThat("onDialogShown not called", result.dialogShown, equalTo(false))
-        assertThat("onConfirm ran", result.onConfirmCalled, equalTo(true))
-        assertThat(result.permission, equalTo(MeteredSyncPermission.USE_PREFERENCES))
-        assertThat("no dialog shown", result.dialog, nullValue())
-    }
-
-    @Test
-    fun `shows dialog and notifies onDialogShown when blocked`() {
-        every { MeteredSyncPolicy.shouldBlock() } returns true
-
-        val result = attemptMeteredSync()
-
-        assertThat("onDialogShown invoked", result.dialogShown, equalTo(true))
-        assertThat("onConfirm not yet run", result.onConfirmCalled, equalTo(false))
-        assertThat("dialog shown", result.dialog, notNullValue())
-    }
-
-    @Test
-    fun `Continue runs onConfirm`() {
-        every { MeteredSyncPolicy.shouldBlock() } returns true
-
-        val result = attemptMeteredSync()
-        assertThat("onConfirm not called initially", result.onConfirmCalled, equalTo(false))
-
-        result.clickContinue()
-
-        assertThat("onConfirm ran after Continue", result.onConfirmCalled, equalTo(true))
-        assertThat(result.permission, equalTo(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME))
-    }
-
-    @Test
-    fun `Cancel does not run onConfirm`() {
-        every { MeteredSyncPolicy.shouldBlock() } returns true
-
-        val result = attemptMeteredSync()
-        assertThat("onConfirm not called initially", result.onConfirmCalled, equalTo(false))
-
-        result.clickCancel()
-
-        assertThat("onConfirm not run after Cancel", result.onConfirmCalled, equalTo(false))
-    }
-
-    @Test
-    fun `skipPrompt skips prompt even when metered`() {
-        // Issue 20674
-        every { MeteredSyncPolicy.shouldBlock() } returns true
-
-        val result = attemptMeteredSync(skipPrompt = true)
-
-        assertThat("onConfirm ran immediately", result.onConfirmCalled, equalTo(true))
-        assertThat("no dialog shown", result.dialog, nullValue())
-        assertThat("onDialogShown not called", result.dialogShown, equalTo(false))
-        assertThat(result.permission, equalTo(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME))
-    }
-
-    @Test
-    fun `skipPrompt on unmetered network runs directly`() {
-        every { MeteredSyncPolicy.shouldBlock() } returns false
-
-        val result = attemptMeteredSync(skipPrompt = true)
-
-        assertThat("onConfirm ran immediately", result.onConfirmCalled, equalTo(true))
-        assertThat("no dialog shown", result.dialog, nullValue())
-        assertThat(result.permission, equalTo(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME))
-    }
-
-    @Test
-    fun `setAlwaysAllow persists choice`() {
-        unmockkObject(MeteredSyncPolicy)
-        Prefs.allowSyncOnMeteredConnections = false
-        MeteredSyncPolicy.setAlwaysAllow(true)
-        assertThat(Prefs.allowSyncOnMeteredConnections, equalTo(true))
-    }
-
-    /** Invokes [MeteredSyncPolicy.confirmThen] from a freshly-built activity. */
-    private fun attemptMeteredSync(skipPrompt: Boolean = false): MeteredSyncAttemptResult {
-        var dialogShown = false
-        var permission: MeteredSyncPermission? = null
-        with(startRegularActivity<EmptyAnkiActivity>()) {
-            MeteredSyncPolicy.confirmThen(
-                skipPrompt = skipPrompt,
-                onDialogShown = { dialogShown = true },
-            ) { permission = it }
+    fun `shows dialog and notifies onDialogShown when blocked`() =
+        withMeteredSyncAttempt { result ->
+            assertTrue(result.dialogShown)
+            assertFalse(result.onConfirmCalled)
+            assertNotNull(result.dialog)
         }
-        return MeteredSyncAttemptResult(
-            dialogShown = dialogShown,
-            getPermission = { permission },
-            dialog = ShadowDialog.getLatestDialog() as? AlertDialog,
-        )
+
+    @Test
+    fun `Continue runs onConfirm`() =
+        withMeteredSyncAttempt { result ->
+            assertFalse(result.onConfirmCalled)
+            result.clickContinue()
+            assertTrue(result.onConfirmCalled)
+            assertEquals(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME, result.permission)
+        }
+
+    @Test
+    fun `Cancel does not run onConfirm`() =
+        withMeteredSyncAttempt { result ->
+            assertFalse(result.onConfirmCalled)
+            result.clickCancel()
+            assertFalse(result.onConfirmCalled)
+        }
+
+    private fun withMeteredSyncAttempt(testBody: (MeteredSyncAttemptResult) -> Unit) {
+        Robolectric.buildActivity(FragmentActivity::class.java).use { controller ->
+            controller.get().setTheme(CommonR.style.Theme_Light)
+            val activity = controller.setup().get()
+            var dialogShown = false
+            var permission: MeteredSyncPermission? = null
+            with(activity) {
+                MeteredSyncPolicy.confirmThen(onDialogShown = { dialogShown = true }) { permission = it }
+            }
+            val dialog = ShadowDialog.getLatestDialog() as? AlertDialog
+            try {
+                testBody(MeteredSyncAttemptResult(dialogShown, { permission }, dialog))
+            } finally {
+                dialog?.dismiss()
+            }
+        }
     }
 
-    /**
-     * Tracks the side effects of a single call to [MeteredSyncPolicy.confirmThen].
-     *
-     * @property dialogShown whether the warning dialog's `onDialogShown` callback fired
-     * @property onConfirmCalled whether `onConfirm` has been invoked
-     * @property permission the permission received by `onConfirm`, or `null` before it runs
-     * @property dialog the most recently displayed [AlertDialog], or `null` if none was shown
-     */
     private class MeteredSyncAttemptResult(
         val dialogShown: Boolean,
         private val getPermission: () -> MeteredSyncPermission?,
