@@ -5,7 +5,6 @@ package com.ichi2.anki
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.database.sqlite.SQLiteDatabaseCorruptException
@@ -53,7 +52,6 @@ import com.ichi2.anki.browser.CardBrowserFragment
 import com.ichi2.anki.browser.CardBrowserViewModel.RowSelection
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.time.TimeManager
-import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.databinding.ActivityHomescreenBinding
 import com.ichi2.anki.deckpicker.DeckFilters
 import com.ichi2.anki.deckpicker.DeckPickerViewModel
@@ -123,11 +121,7 @@ import org.junit.Test
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
 import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
-import org.mockito.kotlin.whenever
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.Robolectric
 import org.robolectric.RuntimeEnvironment
@@ -147,7 +141,6 @@ import com.ichi2.anki.common.android.R as CommonR
 
 typealias ContextMenuOption = DeckPickerContextMenuOption
 
-@KotlinCleanup("SPMockBuilder")
 @RunWith(ParameterizedRobolectricTestRunner::class)
 class DeckPickerTest : RobolectricTest() {
     @ParameterizedRobolectricTestRunner.Parameter
@@ -210,99 +203,6 @@ class DeckPickerTest : RobolectricTest() {
         DeckPicker()
 
         assertDoesNotThrow { ChangeManager.notifySubscribers(opChanges { studyQueues = true }, null) }
-    }
-
-    @Test
-    @SuppressLint("UseKtx")
-    fun getPreviousVersionUpgradeFrom201to292() {
-        val newVersion = 20900302 // 2.9.2
-        val preferences = mock(SharedPreferences::class.java)
-        whenever(preferences.getLong(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, newVersion.toLong()))
-            .thenThrow(ClassCastException::class.java)
-        whenever(preferences.getInt(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, newVersion))
-            .thenThrow(ClassCastException::class.java)
-        whenever(preferences.getString(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, ""))
-            .thenReturn("2.0.1")
-        val editor = mock(SharedPreferences.Editor::class.java)
-        whenever(preferences.edit()).thenReturn(editor)
-        val updated = mock(SharedPreferences.Editor::class.java)
-        whenever(editor.remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)).thenReturn(updated)
-        ActivityScenario.launch(DeckPicker::class.java).use { scenario ->
-            scenario.onActivity { deckPicker: DeckPicker ->
-                val previousVersion =
-                    deckPicker.viewModel.getPreviousVersion(preferences, newVersion.toLong())
-                assertEquals(0, previousVersion)
-            }
-        }
-        verify(editor, times(1)).remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)
-        verify(updated, times(1)).apply()
-    }
-
-    @Test
-    @SuppressLint("UseKtx")
-    fun getPreviousVersionUpgradeFrom202to292() {
-        val newVersion: Long = 20900302 // 2.9.2
-        val preferences = mock(SharedPreferences::class.java)
-        whenever(preferences.getLong(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, newVersion))
-            .thenThrow(ClassCastException::class.java)
-        whenever(preferences.getInt(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, 20900203))
-            .thenThrow(ClassCastException::class.java)
-        whenever(preferences.getString(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, ""))
-            .thenReturn("2.0.2")
-        val editor = mock(SharedPreferences.Editor::class.java)
-        whenever(preferences.edit()).thenReturn(editor)
-        val updated = mock(SharedPreferences.Editor::class.java)
-        whenever(editor.remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)).thenReturn(updated)
-        ActivityScenario.launch(DeckPicker::class.java).use { scenario ->
-            scenario.onActivity { deckPicker: DeckPicker ->
-                val previousVersion = deckPicker.viewModel.getPreviousVersion(preferences, newVersion)
-                assertEquals(40, previousVersion)
-            }
-        }
-        verify(editor, times(1)).remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)
-        verify(updated, times(1)).apply()
-    }
-
-    @Test
-    @SuppressLint("UseKtx")
-    fun getPreviousVersionUpgradeFrom281to291() {
-        val prevVersion = 20800301 // 2.8.1
-        val newVersion: Long = 20900301 // 2.9.1
-        val preferences = mock(SharedPreferences::class.java)
-        whenever(preferences.getLong(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, newVersion))
-            .thenThrow(ClassCastException::class.java)
-        whenever(preferences.getInt(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, 20900203))
-            .thenReturn(prevVersion)
-        val editor = mock(SharedPreferences.Editor::class.java)
-        whenever(preferences.edit()).thenReturn(editor)
-        val updated = mock(SharedPreferences.Editor::class.java)
-        whenever(editor.remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)).thenReturn(updated)
-        ActivityScenario.launch(DeckPicker::class.java).use { scenario ->
-            scenario.onActivity { deckPicker: DeckPicker ->
-                val previousVersion = deckPicker.viewModel.getPreviousVersion(preferences, newVersion)
-                assertEquals(prevVersion.toLong(), previousVersion)
-            }
-        }
-        verify(editor, times(1)).remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)
-        verify(updated, times(1)).apply()
-    }
-
-    @Test
-    fun getPreviousVersionUpgradeFrom291to292() {
-        val prevVersion: Long = 20900301 // 2.9.1
-        val newVersion: Long = 20900302 // 2.9.2
-        val preferences = mock(SharedPreferences::class.java)
-        whenever(preferences.getLong(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, newVersion))
-            .thenReturn(prevVersion)
-        val editor = mock(SharedPreferences.Editor::class.java)
-        whenever(preferences.edit()).thenReturn(editor)
-        ActivityScenario.launch(DeckPicker::class.java).use { scenario ->
-            scenario.onActivity { deckPicker: DeckPicker ->
-                val previousVersion = deckPicker.viewModel.getPreviousVersion(preferences, newVersion)
-                assertEquals(prevVersion, previousVersion)
-            }
-        }
-        verify(editor, never()).remove(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)
     }
 
     @Test

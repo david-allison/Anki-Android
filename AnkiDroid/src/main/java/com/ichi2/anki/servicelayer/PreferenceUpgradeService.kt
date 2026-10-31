@@ -50,6 +50,41 @@ private typealias VersionIdentifier = Int
 private typealias LegacyVersionIdentifier = Long
 
 object PreferenceUpgradeService {
+    const val PREF_LAST_UPGRADE_VERSION = "lastUpgradeVersion"
+
+    fun getPreviousVersion(
+        preferences: SharedPreferences,
+        current: Long,
+    ): Long {
+        var previous: Long
+        try {
+            previous = preferences.getLong(PREF_LAST_UPGRADE_VERSION, current)
+        } catch (e: ClassCastException) {
+            Timber.w(e)
+            previous =
+                try {
+                    // set 20900203 to default value, as it's the latest version that stores integer in shared prefs
+                    preferences.getInt(PREF_LAST_UPGRADE_VERSION, 20900203).toLong()
+                } catch (cce: ClassCastException) {
+                    Timber.w(cce)
+                    // Previous versions stored this as a string.
+                    val s = preferences.getString(PREF_LAST_UPGRADE_VERSION, "")
+                    // The last version of AnkiDroid that stored this as a string was 2.0.2.
+                    // We manually set the version here, but anything older will force a DB check.
+                    if ("2.0.2" == s) {
+                        40
+                    } else {
+                        0
+                    }
+                }
+            Timber.d("Updating shared preferences stored key %s type to long", PREF_LAST_UPGRADE_VERSION)
+            // Expected Editor.putLong to be called later to update the value in shared prefs
+            preferences.edit { remove(PREF_LAST_UPGRADE_VERSION) }
+        }
+        Timber.i("Previous AnkiDroid version: %s", previous)
+        return previous
+    }
+
     fun upgradePreferences(
         context: Context,
         previousVersionCode: LegacyVersionIdentifier,
