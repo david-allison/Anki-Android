@@ -3,14 +3,10 @@
 
 package com.ichi2.anki.reviewreminders
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.MAX_LINE_LENGTH
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.TRIM_TARGET_BYTES
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.TRIM_TRIGGER_BYTES
-import com.ichi2.testutils.AndroidTest
-import com.ichi2.testutils.EmptyApplication
-import com.ichi2.testutils.targetContext
+import com.ichi2.testutils.rules.MainDispatcherRule
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.endsWith
@@ -22,34 +18,40 @@ import org.hamcrest.Matchers.nullValue
 import org.hamcrest.Matchers.startsWith
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
+import org.junit.rules.TemporaryFolder
 import timber.log.Timber
 import java.io.File
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class ReminderLogTreeTest : AndroidTest {
+class ReminderLogTreeTest {
+    @get:Rule
+    val mainDispatcher = MainDispatcherRule()
+
+    @get:Rule
+    val logDirectory = TemporaryFolder()
+
     private lateinit var tree: ReminderLogTree
+    private var previousTrees = emptyList<Timber.Tree>()
     private val temporaryFile: File
         get() = File(tree.logFile.parentFile, "${tree.logFile.name}.tmp")
 
     @Before
     fun setUp() {
-        // Own the tree: application initialization may have planted zero or multiple reminder trees.
-        Timber.forest().filterIsInstance<ReminderLogTree>().forEach(Timber::uproot)
-        tree = ReminderLogTree(targetContext).also { Timber.plant(it) }
-        tree.logFile.delete()
-        temporaryFile.delete()
+        previousTrees = Timber.forest()
+        Timber.uprootAll()
+        tree = ReminderLogTree(logDirectory.root, reportWarning = { _, _ -> }).also { Timber.plant(it) }
     }
 
     @After
     fun tearDown() {
-        Timber.uproot(tree)
-        awaitLogWrites()
+        try {
+            Timber.uproot(tree)
+            awaitLogWrites()
+        } finally {
+            Timber.uprootAll()
+            previousTrees.forEach(Timber::plant)
+        }
     }
 
     @Test
