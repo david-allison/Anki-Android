@@ -14,7 +14,7 @@ import com.ichi2.anki.common.utils.ext.requireSystemService
 import com.ichi2.anki.exception.AnrReportException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.Instant
+import java.io.Reader
 
 /**
  * Launches reporting of a previous run's ANR in the background during main-process startup on Android 11+.
@@ -46,39 +46,35 @@ context(context: AnkiDroidApp)
 internal fun reportPreviousAnr() {
     // Android's exit history is shared across profiles, so the processed marker must be too.
     val state = SharedPreferencesAnrReportState(context.baseContext)
-    val since = state.lastProcessedTimestamp
 
     // ApplicationExitInfo has no app version. Do not attribute an older build's ANR to this one.
     @Suppress("DEPRECATION")
     val updatedAt = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
     val activityManager = context.requireSystemService<ActivityManager>()
-    val latestAnrExitInfo =
-        activityManager
-            .getHistoricalProcessExitReasons(null, 0, 0)
-            .filter {
-                it.reason == ApplicationExitInfo.REASON_ANR &&
-                    it.processName == context.packageName &&
-                    it.timestamp > since && it.timestamp >= updatedAt
-            }.maxByOrNull { it.timestamp } ?: return
-
-    // Avoid processing the same ANR on every launch.
-    if (!state.markProcessed(latestAnrExitInfo.timestamp)) return
-    val anrReport = latestAnrExitInfo.readAnrReport() ?: return
-
-    // TODO(#22027): Evaluate API 37 AnrInfo metadata (ANR type, timeout, user perceptibility)
-    CrashReportService.sendExceptionReport(
-        anrReport,
-        origin = "PreviousAnrReporter",
-        additionalInfo = "Previous ANR: process exited at ${latestAnrExitInfo.instant}.",
-        onlyIfSilent = true,
-    )
+    processPreviousAnr(
+        state,
+        context.packageName,
+        updatedAt,
+        exits = {
+            activityManager.getHistoricalProcessExitReasons(null, 0, 0).map(::AndroidAnrExit)
+        },
+    ) { report, metadata ->
+        CrashReportService.sendExceptionReport(
+            report,
+            origin = "PreviousAnrReporter",
+            additionalInfo = metadata,
+            onlyIfSilent = true,
+        )
+    }
 }
 
-/** The timestamp of the process's death. */
-@get:RequiresApi(Build.VERSION_CODES.R)
-private val ApplicationExitInfo.instant: Instant
-    get() = Instant.ofEpochMilli(timestamp)
-
 @RequiresApi(Build.VERSION_CODES.R)
-private fun ApplicationExitInfo.readAnrReport(): AnrReportException? =
-    traceInputStream?.reader()?.use { AnrReportException(it.readAnrMainThreadStackTrace()) }
+private class AndroidAnrExit(
+    private val exit: ApplicationExitInfo,
+) : PreviousAnrExit {
+    override val timestamp get() = exit.timestamp
+    override val processName get() = exit.processName
+    override val isAnr get() = exit.reason == ApplicationExitInfo.REASON_ANR
+
+    override fun openTrace(): Reader? = exit.traceInputStream?.reader()
+}
