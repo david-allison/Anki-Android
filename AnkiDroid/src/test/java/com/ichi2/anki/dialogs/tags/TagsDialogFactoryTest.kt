@@ -4,14 +4,18 @@ package com.ichi2.anki.dialogs.tags
 
 import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.dialogs.tags.TagsDialog.DialogType
 import com.ichi2.anki.utils.ext.DIALOG_FRAGMENT_TAG
 import com.ichi2.anki.utils.ext.showDialogFragment
+import com.ichi2.testutils.EmptyApplication
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 import org.robolectric.Robolectric
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotSame
@@ -20,6 +24,8 @@ import kotlin.test.assertTrue
 import com.ichi2.anki.common.android.R as CommonR
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
 class TagsDialogFactoryTest : RobolectricTest() {
     @Test
     fun `duplicate edit requests preserve preselected tags`() =
