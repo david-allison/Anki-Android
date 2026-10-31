@@ -25,6 +25,7 @@ import anki.search.BrowserRow.Color
 import com.ichi2.anki.AnkiDroidApp.Companion.sharedPrefs
 import com.ichi2.anki.Flag
 import com.ichi2.anki.R
+import com.ichi2.anki.browserColorRes
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.utils.android.darkenColor
 import com.ichi2.anki.common.utils.android.lightenColorAbsolute

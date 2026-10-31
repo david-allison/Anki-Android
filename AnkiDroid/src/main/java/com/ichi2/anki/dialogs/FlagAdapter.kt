@@ -17,6 +17,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.ichi2.anki.Flag
 import com.ichi2.anki.compat.showSoftInput
 import com.ichi2.anki.databinding.ItemEditFlagBinding
+import com.ichi2.anki.rename
 import com.ichi2.utils.moveCursorToEnd
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
