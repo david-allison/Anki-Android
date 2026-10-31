@@ -3,7 +3,8 @@
 package com.ichi2.anki.previewer
 
 import com.ichi2.anki.libanki.Card
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.AnkiTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
@@ -12,7 +13,7 @@ import org.junit.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import kotlin.test.assertNotNull
 
-class TypeAnswerTest : JvmTest() {
+class TypeAnswerTest : InMemoryAnkiTest() {
     /** [Issue #20575](https://github.com/ankidroid/Anki-Android/issues/20575) */
     @Test
     fun `answerFilter escapes Regex`() =
@@ -21,7 +22,7 @@ class TypeAnswerTest : JvmTest() {
 
             val typeAnswer = TypeAnswer.createInstance(card)
 
-            val result = assertDoesNotThrow { typeAnswer.answerFilter("") }
+            val result = assertDoesNotThrow { typeAnswer.answerFilter(col, "") }
             assertThat(result, containsString("$ ls"))
             assertThat(result, not(containsString("[[type:Back]]")))
         }
@@ -31,7 +32,7 @@ class TypeAnswerTest : JvmTest() {
         runTest {
             val card = addClozeNote("{{c1::hello}} world").firstCard()
 
-            val typeAnswer = TypeAnswer.getInstance(card, "[[type:cloze:nc:Text]]")
+            val typeAnswer = TypeAnswer.getInstance(col, card, "[[type:cloze:nc:Text]]")
 
             assertNotNull(typeAnswer, "chained 'cloze' and 'nc' modifiers")
             assertThat(typeAnswer.expectedAnswer, equalTo("hello"))
@@ -42,7 +43,7 @@ class TypeAnswerTest : JvmTest() {
     fun `noSuggest is false when nosuggest modifier is absent`() =
         runTest {
             val card = addBasicWithTypingNote("front", "back").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:Back]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:Back]]"))
             assertThat(typeAnswer.noSuggest, equalTo(false))
         }
 
@@ -50,7 +51,7 @@ class TypeAnswerTest : JvmTest() {
     fun `noSuggest is true when nosuggest modifier is present`() =
         runTest {
             val card = addBasicWithTypingNote("front", "back").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:nosuggest:Back]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:nosuggest:Back]]"))
             assertThat(typeAnswer.noSuggest, equalTo(true))
         }
 
@@ -58,7 +59,7 @@ class TypeAnswerTest : JvmTest() {
     fun `nosuggest composes with nc modifier`() =
         runTest {
             val card = addBasicWithTypingNote("front", "back").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:nosuggest:nc:Back]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:nosuggest:nc:Back]]"))
             assertThat(typeAnswer.noSuggest, equalTo(true))
         }
 
@@ -66,7 +67,7 @@ class TypeAnswerTest : JvmTest() {
     fun `combining is true when nc modifier is absent`() =
         runTest {
             val card = addBasicWithTypingNote("front", "back").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:Back]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:Back]]"))
             assertThat(typeAnswer.combining, equalTo(true))
         }
 
@@ -74,7 +75,7 @@ class TypeAnswerTest : JvmTest() {
     fun `combining is false when nc modifier is present`() =
         runTest {
             val card = addBasicWithTypingNote("front", "back").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:nc:Back]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:nc:Back]]"))
             assertThat(typeAnswer.combining, equalTo(false))
         }
 
@@ -82,7 +83,7 @@ class TypeAnswerTest : JvmTest() {
     fun `nosuggest composes with cloze modifier`() =
         runTest {
             val card = addClozeNote("{{c1::hello}} world").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:nosuggest:cloze:Text]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:nosuggest:cloze:Text]]"))
             assertThat(typeAnswer.noSuggest, equalTo(true))
             assertThat(typeAnswer.expectedAnswer, equalTo("hello"))
         }
@@ -91,7 +92,7 @@ class TypeAnswerTest : JvmTest() {
     fun `nosuggest composes with cloze and nc modifiers`() =
         runTest {
             val card = addClozeNote("{{c1::hello}} world").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:nosuggest:cloze:nc:Text]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:nosuggest:cloze:nc:Text]]"))
             assertThat(typeAnswer.noSuggest, equalTo(true))
             assertThat(typeAnswer.combining, equalTo(false))
             assertThat(typeAnswer.expectedAnswer, equalTo("hello"))
@@ -103,10 +104,10 @@ class TypeAnswerTest : JvmTest() {
             val note = addClozeNote("{{c1::alpha}} and {{c2::beta}}")
             val (card1, card2) = note.cards()
 
-            val typeAnswerCard1 = requireNotNull(TypeAnswer.getInstance(card1, "[[type:cloze:Text]]"))
+            val typeAnswerCard1 = requireNotNull(TypeAnswer.getInstance(col, card1, "[[type:cloze:Text]]"))
             assertThat(typeAnswerCard1.expectedAnswer, equalTo("alpha"))
 
-            val typeAnswerCard2 = requireNotNull(TypeAnswer.getInstance(card2, "[[type:cloze:Text]]"))
+            val typeAnswerCard2 = requireNotNull(TypeAnswer.getInstance(col, card2, "[[type:cloze:Text]]"))
             assertThat(typeAnswerCard2.expectedAnswer, equalTo("beta"))
         }
 
@@ -114,12 +115,13 @@ class TypeAnswerTest : JvmTest() {
     fun `cloze type-in-answer extracts expected answer with hint`() =
         runTest {
             val card = addClozeNote("{{c1::alpha::hint for alpha}}").firstCard()
-            val typeAnswer = requireNotNull(TypeAnswer.getInstance(card, "[[type:cloze:Text]]"))
+            val typeAnswer = requireNotNull(TypeAnswer.getInstance(col, card, "[[type:cloze:Text]]"))
             assertThat(typeAnswer.expectedAnswer, equalTo("alpha"))
         }
 
     companion object {
-        suspend fun TypeAnswer.Companion.createInstance(card: Card) = requireNotNull(TypeAnswer.getInstance(card, VALID_CARD_TEXT))
+        context(test: AnkiTest)
+        fun TypeAnswer.Companion.createInstance(card: Card) = requireNotNull(TypeAnswer.getInstance(test.col, card, VALID_CARD_TEXT))
 
         const val VALID_CARD_TEXT = """<style>.card {
     font-family: arial;

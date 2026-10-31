@@ -92,12 +92,13 @@ import com.ichi2.anki.cardviewer.RenderedCard
 import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.cardviewer.TTS
 import com.ichi2.anki.cardviewer.TypeAnswer
-import com.ichi2.anki.cardviewer.TypeAnswer.Companion.createInstance
 import com.ichi2.anki.cardviewer.TypeAnswerWebView
 import com.ichi2.anki.cardviewer.ViewerCommand
 import com.ichi2.anki.cardviewer.ViewerRefresh
+import com.ichi2.anki.cardviewer.createInstance
 import com.ichi2.anki.cardviewer.handledGamepadKeyDown
 import com.ichi2.anki.cardviewer.handledGamepadKeyUp
+import com.ichi2.anki.cardviewer.updateInfo
 import com.ichi2.anki.common.android.animationDisabled
 import com.ichi2.anki.common.android.animationEnabled
 import com.ichi2.anki.common.annotations.NeedsTest
@@ -1239,7 +1240,7 @@ abstract class AbstractFlashcardViewer :
 
     protected open fun restorePreferences(): SharedPreferences {
         val preferences = baseContext.sharedPrefs()
-        typeAnswer = createInstance(preferences)
+        typeAnswer = TypeAnswer.createInstance(preferences)
         // mDeckFilename = preferences.getString("deckFilename", "");
         minimalClickSpeed = preferences.getInt("showCardAnswerButtonTime", 0)
         fullscreenMode = fromPreference(preferences)
