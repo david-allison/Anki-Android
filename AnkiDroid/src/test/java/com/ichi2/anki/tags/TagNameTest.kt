@@ -42,6 +42,7 @@ class TagNameTest : JvmTest() {
                 "ﬄ" to "ffl",
                 "i" to "ı",
                 "i" to "İ",
+                "\uA7C0" to "\uA7C1",
                 "café" to "cafe\u0301",
                 "\uD801\uDC00" to "\uD801\uDC28",
             )

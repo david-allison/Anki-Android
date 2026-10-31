@@ -2,10 +2,9 @@
 
 package com.ichi2.anki.tags
 
-import android.icu.lang.UCharacter
 import anki.collection.OpChanges
 import anki.collection.OpChangesWithCount
-import com.ichi2.anki.common.utils.ext.isAscii
+import com.ichi2.anki.common.utils.ankiCaseFold
 import com.ichi2.anki.libanki.Tags
 import com.ichi2.anki.libanki.utils.RustCompat
 import timber.log.Timber
@@ -23,7 +22,7 @@ import java.text.Normalizer
 class TagName private constructor(
     val value: String,
 ) {
-    private val identity = foldCase(normalize(value))
+    private val identity = normalize(value).ankiCaseFold()
 
     /** Includes [root] itself; `a::b` is a descendant of `a`, but `ab` is not. */
     fun isSameOrDescendantOf(root: TagName): Boolean = identity == root.identity || identity.startsWith("${root.identity}::")
@@ -56,37 +55,6 @@ class TagName private constructor(
             // in upstream, a space is converted to "::" in the UI
             // But "_" is converted to " " in some visual displays
             return TagName(tagName.replace(" ", "_"))
-        }
-
-        /**
-         * Match the backend's three-character case-folding bug in unicase 2.6.0.
-         *
-         * Anki pins this version because collation changes can invalidate SQLite indexes.
-         * The bug is fixed in unicase 2.10.0 by
-         * [afc3c16219c9](https://github.com/seanmonstar/unicase/commit/afc3c16219c9720839f2f4c16a3ede52274df7d7).
-         * Remove the rotation when the backend adopts that fix.
-         */
-        private fun foldCase(spelling: String): String {
-            // If it's ASCII: avoid an ICU call and allocation per character.
-            if (spelling.isAscii()) return spelling.lowercase()
-
-            return buildString {
-                var offset = 0
-                while (offset < spelling.length) {
-                    val codePoint = spelling.codePointAt(offset)
-                    val folded = UCharacter.foldCase(String(Character.toChars(codePoint)), true)
-                    // Reproduce unicase 2.6.0's bug per input character: "ﬃ" folds to "iff",
-                    // while the three literal characters in "ffi" keep their order.
-                    if (folded.codePointCount(0, folded.length) == 3) {
-                        val last = folded.offsetByCodePoints(0, 2)
-                        append(folded, last, folded.length)
-                        append(folded, 0, last)
-                    } else {
-                        append(folded)
-                    }
-                    offset += Character.charCount(codePoint)
-                }
-            }
         }
 
         // Mirror tags/register.rs for identity only. Preserve the supplied spelling
