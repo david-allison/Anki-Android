@@ -5,6 +5,7 @@ package com.ichi2.anki
 import androidx.lifecycle.SavedStateHandle
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel
 import com.ichi2.anki.previewer.TemplatePreviewerViewModel
+import com.ichi2.anki.ui.windows.reviewer.ReviewerViewModel
 import org.junit.Test
 
 class SavedStateViewModelConstructorsTest {
@@ -12,7 +13,11 @@ class SavedStateViewModelConstructorsTest {
     fun `default AndroidX factory can find saved state constructors`() {
         // SavedStateViewModelFactory matches the Java signature exactly. Kotlin default
         // parameters alone do not expose this constructor when dependencies are added.
-        for (model in listOf(CardBrowserSearchViewModel::class.java, TemplatePreviewerViewModel::class.java)) {
+        for (model in listOf(
+            CardBrowserSearchViewModel::class.java,
+            TemplatePreviewerViewModel::class.java,
+            ReviewerViewModel::class.java,
+        )) {
             model.getConstructor(SavedStateHandle::class.java)
         }
     }
