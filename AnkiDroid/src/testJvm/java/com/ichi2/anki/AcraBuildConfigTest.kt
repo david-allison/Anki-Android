@@ -2,30 +2,25 @@
 
 package com.ichi2.anki
 
-import android.app.Application
-import androidx.test.core.app.ApplicationProvider.getApplicationContext
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.acra.ReportField
 import org.acra.builder.ReportBuilder
 import org.acra.collector.ReflectionCollector
-import org.acra.config.CoreConfigurationBuilder
+import org.acra.config.CoreConfiguration
 import org.acra.data.CrashReportData
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.json.JSONObject
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
 class AcraBuildConfigTest {
     @Test
     fun `only reviewed build metadata is collected`() {
-        val config = CoreConfigurationBuilder().withBuildConfigClass(BuildConfig::class.java).build()
+        val config = mock<CoreConfiguration> { on { buildConfigClass } doReturn BuildConfig::class.java }
         val report = CrashReportData()
 
-        ReflectionCollector().collect(ReportField.BUILD_CONFIG, getApplicationContext(), config, ReportBuilder(), report)
+        ReflectionCollector().collect(ReportField.BUILD_CONFIG, mock(), config, ReportBuilder(), report)
 
         val buildConfig = report[ReportField.BUILD_CONFIG.name] as JSONObject
         assertThat(
