@@ -10,6 +10,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
+import com.ichi2.anki.libanki.CardOrdinal
 import com.ichi2.anki.libanki.CardTemplateEditorModel
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.observability.undoableOp
@@ -23,11 +24,22 @@ import java.io.IOException
 class CardTemplateNotetype(
     notetype: NotetypeJson,
 ) : CardTemplateEditorModel(notetype) {
+    /** File-backed editor state, independent of Android saved-state transport. */
+    data class SavedState(
+        val fileName: String?,
+        val originalTemplateOrds: ArrayList<CardOrdinal?>,
+        val deletedTemplateOrds: ArrayList<CardOrdinal>,
+    )
+
+    fun saveState(cacheDirectory: File): SavedState =
+        SavedState(saveTempNoteType(cacheDirectory, notetype), originalTemplateOrds, deletedTemplateOrds)
+
     fun toBundle(cacheDirectory: File = appContext.cacheDir): Bundle =
         Bundle().apply {
-            putString(STATE_EDITED_NOTE_TYPE_FILENAME, saveTempNoteType(cacheDirectory, notetype))
-            putSerializable(STATE_ORIGINAL_TEMPLATE_ORDS, originalTemplateOrds)
-            putSerializable(STATE_DELETED_TEMPLATE_ORDS, deletedTemplateOrds)
+            val state = saveState(cacheDirectory)
+            putString(STATE_EDITED_NOTE_TYPE_FILENAME, state.fileName)
+            putSerializable(STATE_ORIGINAL_TEMPLATE_ORDS, state.originalTemplateOrds)
+            putSerializable(STATE_DELETED_TEMPLATE_ORDS, state.deletedTemplateOrds)
         }
 
     private fun loadTemplateChanges(bundle: Bundle) {
@@ -59,23 +71,28 @@ class CardTemplateNotetype(
          * @param bundle a Bundle that should contain persisted JSON under STATE_EDITED_NOTE_TYPE_FILENAME key
          * @return re-hydrated TemporaryNoteType or null if there was a problem, null means should reload from database
          */
-        fun fromBundle(bundle: Bundle): CardTemplateNotetype? {
-            val editedNoteTypeFileName = bundle.getString(STATE_EDITED_NOTE_TYPE_FILENAME)
-            // Bundle.getString is @Nullable, so we have to check.
-            if (editedNoteTypeFileName == null) {
+        fun fromBundle(bundle: Bundle): CardTemplateNotetype? =
+            readSavedNotetype(bundle.getString(STATE_EDITED_NOTE_TYPE_FILENAME))?.apply {
+                loadTemplateChanges(bundle)
+            }
+
+        fun fromSavedState(state: SavedState): CardTemplateNotetype? =
+            readSavedNotetype(state.fileName)?.apply {
+                originalTemplateOrds = state.originalTemplateOrds
+                deletedTemplateOrds = state.deletedTemplateOrds
+            }
+
+        private fun readSavedNotetype(fileName: String?): CardTemplateNotetype? {
+            if (fileName == null) {
                 Timber.d("fromBundle() - note type file name under key %s", STATE_EDITED_NOTE_TYPE_FILENAME)
                 return null
             }
-            Timber.d("onCreate() loading saved note type file %s", editedNoteTypeFileName)
-            val tempNotetypeJSON: NotetypeJson =
-                try {
-                    getTempNoteType(editedNoteTypeFileName)
-                } catch (e: IOException) {
-                    Timber.w(e, "Unable to load saved note type file")
-                    return null
-                }
-            return CardTemplateNotetype(tempNotetypeJSON).apply {
-                loadTemplateChanges(bundle)
+            Timber.d("onCreate() loading saved note type file %s", fileName)
+            return try {
+                CardTemplateNotetype(getTempNoteType(fileName))
+            } catch (e: IOException) {
+                Timber.w(e, "Unable to load saved note type file")
+                null
             }
         }
 
