@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-package com.ichi2.anki.utils.ext
+package com.ichi2.anki.common.json
 
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
@@ -10,7 +10,7 @@ import org.json.JSONObject
 import java.io.File
 
 /** Reads a UTF-8 JSON object without allocating a string containing the whole document. */
-internal fun File.readJson(): JSONObject =
+fun File.readJson(): JSONObject =
     JsonReader(bufferedReader()).use { reader ->
         reader.readObject().also {
             if (reader.peek() != JsonToken.END_DOCUMENT) {
