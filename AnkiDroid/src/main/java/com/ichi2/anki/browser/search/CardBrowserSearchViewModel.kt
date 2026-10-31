@@ -45,8 +45,10 @@ import timber.log.Timber
 // EditText, but should not be coupled directly to the parent SearchView.
 class CardBrowserSearchViewModel(
     private val savedStateHandle: ViewModelSavedStateHandle,
+    private val searchHistoryManager: SearchHistory,
 ) : ViewModel() {
-    private val searchHistoryManager = SearchHistory()
+    // AndroidX's default factory requires the Java-visible SavedStateHandle constructor.
+    constructor(savedStateHandle: ViewModelSavedStateHandle) : this(savedStateHandle, SearchHistory())
 
     val advancedSearchFlow =
         savedStateHandle.getMutableStateFlow(STATE_ADVANCED_SEARCH_ENABLED, false)
