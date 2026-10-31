@@ -19,9 +19,9 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.common.analytics.Analytics
 import com.ichi2.anki.common.analytics.AnalyticsEvent.LinkClicked
 import com.ichi2.anki.common.analytics.LinkAction
+import com.ichi2.anki.common.utils.MimeTypeUtils
 import com.ichi2.anki.requireAnkiActivity
 import com.ichi2.anki.snackbar.showSnackbar
-import com.ichi2.anki.utils.MimeTypeUtils
 import com.ichi2.utils.title
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
