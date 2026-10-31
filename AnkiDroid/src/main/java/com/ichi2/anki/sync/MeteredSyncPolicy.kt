@@ -59,22 +59,21 @@ object MeteredSyncPolicy {
         onDialogShown: () -> Unit,
         onConfirm: (permission: MeteredSyncPermission) -> Unit,
     ) {
-        if (skipPrompt) {
-            onConfirm(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME)
-            return
-        }
-        if (!shouldBlock()) {
-            onConfirm(MeteredSyncPermission.USE_PREFERENCES)
-            return
-        }
-        AlertDialog.Builder(context).show {
-            message(CommonString.metered_sync_data_warning)
-            positiveButton(CommonString.dialog_continue) { onConfirm(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME) }
-            negativeButton(CommonString.dialog_cancel)
-            checkBoxPrompt(CommonString.button_do_not_show_again) { checked ->
-                setAlwaysAllow(checked)
-            }
-        }
-        onDialogShown()
+        confirmMeteredSync(
+            skipPrompt = skipPrompt,
+            shouldBlock = ::shouldBlock,
+            showPrompt = { onContinue ->
+                AlertDialog.Builder(context).show {
+                    message(CommonString.metered_sync_data_warning)
+                    positiveButton(CommonString.dialog_continue) { onContinue() }
+                    negativeButton(CommonString.dialog_cancel)
+                    checkBoxPrompt(CommonString.button_do_not_show_again) { checked ->
+                        setAlwaysAllow(checked)
+                    }
+                }
+            },
+            onDialogShown = onDialogShown,
+            onConfirm = onConfirm,
+        )
     }
 }
