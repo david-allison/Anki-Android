@@ -22,14 +22,18 @@ import com.ichi2.anki.NotificationChannel
 import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.common.permissions.LEGACY_POST_NOTIFICATIONS
 import com.ichi2.anki.common.permissions.MANAGE_EXTERNAL_STORAGE
+import com.ichi2.anki.common.permissions.NotificationPermissionPrompt
 import com.ichi2.anki.common.permissions.canPostNotifications
+import com.ichi2.anki.common.permissions.canRequestPermission
 import com.ichi2.anki.common.permissions.hasPermission
+import com.ichi2.anki.common.permissions.requestPermissionOrOpenSettings
+import com.ichi2.anki.common.permissions.showNotificationPermissionPromptIfNeeded
 import com.ichi2.anki.common.utils.android.isRobolectric
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.compat.CompatHelper.Companion.getPackageInfoCompat
 import com.ichi2.anki.compat.GET_PERMISSIONS_L
 import com.ichi2.anki.compat.PackageInfoFlagsCompat
-import com.ichi2.anki.settings.Prefs
+import com.ichi2.anki.settings.PrefsRepository
 import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
 import com.ichi2.utils.Permissions.arePermissionsDefinedInManifest
 import timber.log.Timber
@@ -54,12 +58,8 @@ object Permissions {
         permission: String,
         permissionRequestedFlag: KMutableProperty0<Boolean>,
     ): Boolean =
-        if (permissionRequestedFlag.get()) {
-            // Previous requests have been made, only request again if we are not blocked from requesting
+        canRequestPermission(permissionRequestedFlag) {
             ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
-        } else {
-            // No previous requests, so we can request
-            true
         }
 
     /**
@@ -82,12 +82,12 @@ object Permissions {
         permissionRequestedFlag: KMutableProperty0<Boolean>,
         permissionRequestLauncher: ActivityResultLauncher<String>,
     ) {
-        if (canPermissionBeRequested(activity, permission, permissionRequestedFlag)) {
-            permissionRequestedFlag.set(true)
-            permissionRequestLauncher.launch(permission)
-        } else {
-            showToastAndOpenAppSettingsScreenForPermission(permission, CommonString.manually_grant_permissions)
-        }
+        requestPermissionOrOpenSettings(
+            requested = permissionRequestedFlag,
+            shouldShowRationale = { ActivityCompat.shouldShowRequestPermissionRationale(activity, permission) },
+            request = { permissionRequestLauncher.launch(permission) },
+            openSettings = { showToastAndOpenAppSettingsScreenForPermission(permission, CommonString.manually_grant_permissions) },
+        )
     }
 
     /**
@@ -96,11 +96,12 @@ object Permissions {
      * In that case, we open the system settings screen for the user to manually enable notifications.
      */
     fun Fragment.attemptToEnableNotifications(notificationPermissionLauncher: ActivityResultLauncher<String>) {
+        val prefs = PrefsRepository(requireContext())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissionThroughDialogOrSettings(
                 activity = requireActivity(),
                 permission = notificationsPermission,
-                permissionRequestedFlag = Prefs::notificationsPermissionRequested,
+                permissionRequestedFlag = prefs::notificationsPermissionRequested,
                 permissionRequestLauncher = notificationPermissionLauncher,
             )
         } else {
@@ -130,32 +131,25 @@ object Permissions {
         fragmentManager: FragmentManager,
         callback: () -> Unit,
     ) {
-        if (canPostNotifications(context = activity)) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val canRequest =
-                canPermissionBeRequested(
-                    activity,
-                    notificationsPermission,
-                    permissionRequestedFlag = Prefs::notificationsPermissionRequested,
-                )
-            if (!canRequest) {
-                Timber.i("Not showing notifications permissions bottom sheet: permission permanently denied")
-                return
+        val prefs = PrefsRepository(activity)
+        val shown =
+            showNotificationPermissionPromptIfNeeded(
+                notificationsEnabled = canPostNotifications(context = activity),
+                supportsRuntimePermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+                canRequestPermission = {
+                    canPermissionBeRequested(activity, notificationsPermission, prefs::notificationsPermissionRequested)
+                },
+                legacyPromptShown = prefs::notificationsBottomSheetShownBelowAPI33,
+            ) { prompt ->
+                val permissions =
+                    when (prompt) {
+                        NotificationPermissionPrompt.RUNTIME_PERMISSION -> OptionalPermissionSet.NOTIFICATIONS
+                        NotificationPermissionPrompt.LEGACY_SETTINGS -> OptionalPermissionSet.LEGACY_NOTIFICATIONS
+                    }
+                Timber.i("Showing notifications permissions bottom sheet: %s", prompt)
+                PermissionsBottomSheet.launch(fragmentManager, permissions)
             }
-            Timber.i("Showing notifications permissions bottom sheet: API >= 33")
-            PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.NOTIFICATIONS)
-        } else {
-            if (Prefs.notificationsBottomSheetShownBelowAPI33) {
-                Timber.i("Not showing notifications permissions bottom sheet: already attempted")
-                return
-            }
-            Timber.i("Showing notifications permissions bottom sheet: API < 33")
-            PermissionsBottomSheet.launch(fragmentManager, OptionalPermissionSet.LEGACY_NOTIFICATIONS)
-            Prefs.notificationsBottomSheetShownBelowAPI33 = true
-        }
-
-        callback()
+        if (shown) callback()
     }
 
     /**
@@ -166,9 +160,10 @@ object Permissions {
      * and hence it is placed here as a utility function.
      */
     fun requestNotificationPermissionsForSyncing(fragmentActivity: FragmentActivity) {
-        if (!Prefs.syncNotifsRequestShown) {
+        val prefs = PrefsRepository(fragmentActivity)
+        if (!prefs.syncNotifsRequestShown) {
             showNotificationsPermissionBottomSheetIfNeeded(fragmentActivity, fragmentActivity.supportFragmentManager) {
-                Prefs.syncNotifsRequestShown = true
+                prefs.syncNotifsRequestShown = true
             }
         }
     }
