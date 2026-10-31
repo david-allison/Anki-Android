@@ -6,12 +6,12 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.common.utils.ext.cardStateCustomizer
 import com.ichi2.anki.utils.CollectionPreferences
 import com.ichi2.testutils.JvmTest
-import com.ichi2.testutils.inMemoryPrefs
+import com.ichi2.testutils.jvmPreferences
 import org.junit.Test
 import kotlin.test.assertEquals
 
 class StudyScreenRepositoryCollectionTest : JvmTest() {
-    private val repository = StudyScreenRepository(inMemoryPrefs())
+    private val repository = StudyScreenRepository(jvmPreferences())
 
     @Test
     fun `custom scheduling js is correctly retrieved`() =
