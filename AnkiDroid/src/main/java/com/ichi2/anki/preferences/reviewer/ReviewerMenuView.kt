@@ -20,6 +20,8 @@ import com.ichi2.anki.Flag
 import com.ichi2.anki.R
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.databinding.ViewReviewerMenuBinding
+import com.ichi2.anki.id
+import com.ichi2.anki.queryDisplayNames
 import com.ichi2.anki.utils.ext.setIconRes
 import com.ichi2.utils.increaseHorizontalPaddingOfMenuIcons
 import kotlinx.coroutines.launch

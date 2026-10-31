@@ -3,15 +3,15 @@
 package com.ichi2.anki
 
 import com.ichi2.anki.libanki.testutils.AnkiTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import com.ichi2.anki.utils.ext.flag
-import com.ichi2.testutils.JvmTest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.hasSize
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /** Tests for [Flag] */
-class FlagTest : JvmTest() {
+class FlagTest : InMemoryAnkiTest() {
     @Test
     fun `search node conversion integration test`() {
         val allFlags = Flag.entries

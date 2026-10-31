@@ -29,7 +29,10 @@ import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.databinding.FragmentPreviewerBinding
+import com.ichi2.anki.drawableRes
+import com.ichi2.anki.id
 import com.ichi2.anki.previewer.PreviewerFragment.Companion.ARG_CARD_IDS_FILE
+import com.ichi2.anki.queryDisplayNames
 import com.ichi2.anki.reviewer.BindingMap
 import com.ichi2.anki.reviewer.BindingProcessor
 import com.ichi2.anki.reviewer.MappableBinding

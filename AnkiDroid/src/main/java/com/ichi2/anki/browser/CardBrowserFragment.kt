@@ -120,6 +120,7 @@ import com.ichi2.anki.dialogs.startDeckSelection
 import com.ichi2.anki.dialogs.tags.TagsDialog
 import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
+import com.ichi2.anki.drawableRes
 import com.ichi2.anki.export.ExportDialogFragment
 import com.ichi2.anki.filtered.FilteredDeckOptionsFragment
 import com.ichi2.anki.formatCardCount
@@ -133,6 +134,7 @@ import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.previewer.PreviewerFragment
 import com.ichi2.anki.progress.observeProgress
+import com.ichi2.anki.queryDisplayNames
 import com.ichi2.anki.requireAnkiActivity
 import com.ichi2.anki.requireNavigationDrawerActivity
 import com.ichi2.anki.scheduling.ForgetCardsDialog
