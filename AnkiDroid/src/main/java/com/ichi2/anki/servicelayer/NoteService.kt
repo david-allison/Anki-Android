@@ -7,7 +7,7 @@
 package com.ichi2.anki.servicelayer
 
 import com.ichi2.anki.CollectionManager.withCol
-import com.ichi2.anki.FieldEditText
+import com.ichi2.anki.common.noteeditor.FieldText
 import com.ichi2.anki.exception.MediaSizeLimitExceededException
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.Collection
@@ -151,12 +151,7 @@ object NoteService {
     fun convertToHtmlNewline(
         fieldData: String,
         replaceNewlines: Boolean,
-    ): String =
-        if (!replaceNewlines) {
-            fieldData
-        } else {
-            fieldData.replace(FieldEditText.NEW_LINE, "<br>")
-        }
+    ): String = FieldText.toStored(fieldData, replaceNewlines)
 
     suspend fun toggleMark(
         note: Note,
