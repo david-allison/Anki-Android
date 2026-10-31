@@ -4,7 +4,6 @@ package com.ichi2.testutils
 
 import com.ichi2.anki.TtsVoices
 import kotlinx.coroutines.CompletableDeferred
-import org.robolectric.util.ReflectionHelpers
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicReference
 
@@ -16,11 +15,12 @@ class TtsVoicesCacheOverride(
     engine: String?,
     locales: List<Locale>,
 ) : AutoCloseable {
+    @Suppress("UNCHECKED_CAST")
     private val cache =
-        ReflectionHelpers.getStaticField<AtomicReference<CompletableDeferred<TtsVoices.EngineLocales>>>(
-            TtsVoices::class.java,
-            "engineLocaleData",
-        )
+        TtsVoices::class.java
+            .getDeclaredField("engineLocaleData")
+            .apply { isAccessible = true }
+            .get(null) as AtomicReference<CompletableDeferred<TtsVoices.EngineLocales>>
     private val previous = cache.getAndSet(CompletableDeferred(TtsVoices.EngineLocales(engine, locales)))
 
     override fun close() {
