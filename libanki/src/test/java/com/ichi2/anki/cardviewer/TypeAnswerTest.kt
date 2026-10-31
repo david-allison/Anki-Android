@@ -3,12 +3,12 @@
 package com.ichi2.anki.cardviewer
 
 import com.ichi2.anki.cardviewer.TypeAnswer.Companion.contentForCloze
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.intellij.lang.annotations.Language
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class TypeAnswerTest : JvmTest() {
+class TypeAnswerTest : InMemoryAnkiTest() {
     @Test
     fun testTypeAnsAnswerFilterNormalCorrect() {
         @Language("HTML")
@@ -235,5 +235,5 @@ $!"""
         TypeAnswer(
             useInputTag = false,
             autoFocus = false,
-        ).filterAnswer(answer, correctAnswer, userAnswer)
+        ).filterAnswer(answer, correctAnswer, userAnswer, col::compareAnswer)
 }

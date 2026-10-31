@@ -4,10 +4,10 @@ package com.ichi2.anki.servicelayer
 
 import android.os.LocaleList
 import android.widget.EditText
-import com.ichi2.anki.common.utils.ext.getStringOrNull
 import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.Notetypes
+import com.ichi2.anki.libanki.keyboardLanguageHint
 import timber.log.Timber
 import java.util.Locale
 
@@ -39,8 +39,8 @@ object LanguageHintService {
     }
 
     var Field.languageHint: LanguageHint?
-        get() = jsonObject.getStringOrNull("ad-hint-locale") ?.let { Locale.forLanguageTag(it) }
+        get() = keyboardLanguageHint
         set(value) {
-            jsonObject.put("ad-hint-locale", value?.toLanguageTag())
+            keyboardLanguageHint = value
         }
 }

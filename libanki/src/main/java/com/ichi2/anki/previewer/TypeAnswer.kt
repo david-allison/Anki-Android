@@ -2,21 +2,20 @@
 
 package com.ichi2.anki.previewer
 
-import android.os.LocaleList
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.cardviewer.TypeAnswerModifiers
 import com.ichi2.anki.libanki.Card
+import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Field
-import com.ichi2.anki.servicelayer.LanguageHintService
-import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
+import com.ichi2.anki.libanki.keyboardLanguageHint
 import org.intellij.lang.annotations.Language
 import org.jetbrains.annotations.VisibleForTesting
+import java.util.Locale
 
 /**
  * Handles `type in the answer card` properties
  *
  * @see [combining]
- * @see [imeHintLocales]
+ * @see [keyboardLanguageHint]
  * @see [noSuggest]
  * */
 class TypeAnswer private constructor(
@@ -36,14 +35,14 @@ class TypeAnswer private constructor(
     val font = field.font
     val fontSize = field.fontSize
 
-    /** a field property specific to AnkiDroid that allows to automatically select
-     *   a language for the keyboard. @see [LanguageHintService] */
-    val imeHintLocales: LocaleList? by lazy {
-        field.languageHint?.let { LocaleList(it) }
-    }
+    /** Optional field language used to select the keyboard language. */
+    val keyboardLanguageHint: Locale? by lazy { field.keyboardLanguageHint }
 
-    suspend fun answerFilter(typedAnswer: String = ""): String {
-        val answerComparison = withCol { compareAnswer(expectedAnswer, provided = typedAnswer, combining = combining) }
+    fun answerFilter(
+        col: Collection,
+        typedAnswer: String = "",
+    ): String {
+        val answerComparison = col.compareAnswer(expectedAnswer, provided = typedAnswer, combining = combining)
 
         @Language("HTML")
         val repl = """<div style="font-family: '$font'; font-size: ${fontSize}px">$answerComparison</div>"""
@@ -60,7 +59,8 @@ class TypeAnswer private constructor(
          *
          * ([Source](https://github.com/ankitects/anki/blob/8af63f81eb235b8d21df4e8eeaa6e02f46b3fbf6/qt/aqt/reviewer.py#L702))
          */
-        suspend fun getInstance(
+        fun getInstance(
+            col: Collection,
             card: Card,
             text: String,
         ): TypeAnswer? {
@@ -68,9 +68,9 @@ class TypeAnswer private constructor(
             val rawField = match.groups[1]?.value ?: return null
 
             val modifiers = TypeAnswerModifiers.parse(rawField)
-            val fields = withCol { card.noteType(this).fields }
+            val fields = card.noteType(col).fields
             val typeAnswerField = fields.firstOrNull { it.name == modifiers.fieldName } ?: return null
-            val expectedAnswer = getExpectedTypeInAnswer(card, isCloze = modifiers.cloze, fieldName = modifiers.fieldName)
+            val expectedAnswer = getExpectedTypeInAnswer(col, card, isCloze = modifiers.cloze, fieldName = modifiers.fieldName)
 
             return TypeAnswer(
                 text = text,
@@ -85,17 +85,16 @@ class TypeAnswer private constructor(
          * @param isCloze whether the placeholder was a `cloze:` type filter
          * @param fieldName the name of the field in the card template
          */
-        private suspend fun getExpectedTypeInAnswer(
+        private fun getExpectedTypeInAnswer(
+            col: Collection,
             card: Card,
             isCloze: Boolean,
             fieldName: String,
         ): String {
-            val expected = withCol { card.note(this@withCol).getItem(fieldName) }
+            val expected = card.note(col).getItem(fieldName)
             return if (isCloze) {
                 val clozeIdx = card.ord + 1
-                withCol {
-                    extractClozeForTyping(expected, clozeIdx)
-                }
+                col.extractClozeForTyping(expected, clozeIdx)
             } else {
                 expected
             }
