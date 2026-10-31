@@ -41,6 +41,9 @@ import timber.log.Timber
 import java.io.Closeable
 import kotlin.time.Duration.Companion.milliseconds
 
+/** Constructs playback with the card viewer's JavaScript and error callbacks. */
+typealias CardMediaPlayerFactory = (JavascriptEvaluator, MediaErrorListener) -> CardMediaPlayer
+
 /**
  * Handles the two ways an Anki card defines sound:
  * * Regular Sound (file-based, mp3 etc..): [SoundOrVideoTag]

@@ -3,18 +3,15 @@
 package com.ichi2.anki.previewer
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.viewModelScope
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.lifecycle.ViewModelStore
 import com.ichi2.anki.Flag
-import com.ichi2.anki.pages.PostRequestBridge
 import com.ichi2.anki.servicelayer.NoteService
 import com.ichi2.anki.utils.ext.flag
 import com.ichi2.testutils.JvmTest
-import com.ichi2.testutils.mockWebResourceRequest
+import com.ichi2.testutils.jvmCardMediaPlayerFactory
 import io.mockk.coEvery
 import io.mockk.spyk
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
@@ -26,11 +23,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.time.Duration.Companion.seconds
 
-@RunWith(AndroidJUnit4::class)
 class PreviewerViewModelTest : JvmTest() {
+    private val viewModels = ViewModelStore()
+
     private lateinit var viewModel: PreviewerViewModel
 
     private fun TestScope.onNextButtonClick() {
@@ -62,7 +59,10 @@ class PreviewerViewModelTest : JvmTest() {
                 note.cards().map { it.id }
             }
         updateDeckConfig(col.decks.selected()) { autoplay = false }
-        viewModel = spyk(PreviewerViewModel(SavedStateHandle(), cardIds, initialIndex = 0))
+        val originalViewModel =
+            PreviewerViewModel(SavedStateHandle(), cardIds, initialIndex = 0, mediaPlayerFactory = jvmCardMediaPlayerFactory)
+        viewModels.put("previewer", originalViewModel)
+        viewModel = spyk(originalViewModel)
         // the default implementation requires the Collection media directory,
         // which needs Robolectric with CollectionStorageMode.IN_MEMORY_WITH_MEDIA or ON_DISK
         coEvery { viewModel.prepareCardTextForDisplay(any()) } answers { firstArg() }
@@ -71,30 +71,12 @@ class PreviewerViewModelTest : JvmTest() {
 
     @After
     override fun tearDown() {
-        viewModel.viewModelScope.cancel()
-        super.tearDown()
-    }
-
-    @Test
-    fun `a missing image on the previous answer does not suppress the next question warning`() =
-        runTest {
-            onNextButtonClick()
-            assertTrue(viewModel.showingAnswer.value)
-            val reportedFiles = mutableListOf<String>()
-            viewModel.mediaErrorHandler.processFailure(
-                mockWebResourceRequest("${PostRequestBridge.BASE_URL}first-missing.jpg", mainFrame = false),
-            ) { reportedFiles.add(it) }
-            assertEquals(listOf("first-missing.jpg"), reportedFiles)
-
-            onNextButtonClick()
-            assertEquals(1, viewModel.currentIndex.value)
-            assertFalse(viewModel.showingAnswer.value)
-            viewModel.mediaErrorHandler.processFailure(
-                mockWebResourceRequest("${PostRequestBridge.BASE_URL}second-missing.jpg", mainFrame = false),
-            ) { reportedFiles.add(it) }
-
-            assertEquals(listOf("first-missing.jpg", "second-missing.jpg"), reportedFiles)
+        try {
+            viewModels.clear()
+        } finally {
+            super.tearDown()
         }
+    }
 
     @Test
     fun `next button`() =

@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.OnErrorListener
 import com.ichi2.anki.cardviewer.CardMediaPlayer
+import com.ichi2.anki.cardviewer.CardMediaPlayerFactory
+import com.ichi2.anki.cardviewer.JavascriptEvaluator
 import com.ichi2.anki.cardviewer.MediaErrorHandler
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
@@ -25,6 +27,7 @@ import timber.log.Timber
 
 abstract class CardViewerViewModel(
     val savedStateHandle: SavedStateHandle,
+    mediaPlayerFactory: CardMediaPlayerFactory = ::CardMediaPlayer,
 ) : ViewModel(),
     OnErrorListener,
     PostRequestHandler {
@@ -43,9 +46,9 @@ abstract class CardViewerViewModel(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val cardMediaPlayer =
-        CardMediaPlayer(
-            javascriptEvaluator = { launchCatchingIO { eval.emit(it) } },
-            mediaErrorListener = mediaErrorHandler,
+        mediaPlayerFactory(
+            JavascriptEvaluator { launchCatchingIO { eval.emit(it) } },
+            mediaErrorHandler,
         ).also {
             addCloseable(it)
         }
