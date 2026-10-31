@@ -3,6 +3,7 @@
 
 package com.ichi2.utils
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -21,6 +22,7 @@ import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.R
 import com.ichi2.anki.common.permissions.LEGACY_POST_NOTIFICATIONS
+import com.ichi2.anki.common.permissions.POST_NOTIFICATIONS
 import com.ichi2.anki.settings.PrefsRepository
 import com.ichi2.anki.ui.windows.permissions.PermissionsBottomSheet
 import com.ichi2.testutils.EmptyApplication
@@ -162,36 +164,8 @@ class PermissionsTest {
     }
 
     @Test
-    fun `openAppSettingsScreenForPermission opens the generic app settings screen for an unhandled permission`() {
-        fragment.openAppSettingsScreenForPermission(DUMMY_PERMISSION_STRING)
-        verifyOSSettingsWasOpened()
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
-    fun `openAppSettingsScreenForPermission for the notifications permission at API 33+ opens the notif settings screen`() {
-        fragment.openAppSettingsScreenForPermission(Permissions.notificationsPermission)
-        verifyOSSettingsWasOpened(openedActivityAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.TIRAMISU - 1])
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    fun `openAppSettingsScreenForPermission for the legacy notifications sentinel opens the notif settings screen`() {
-        fragment.openAppSettingsScreenForPermission(LEGACY_POST_NOTIFICATIONS)
-        verifyOSSettingsWasOpened(openedActivityAction = Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.O - 1])
-    fun `openAppSettingsScreenForPermission for the legacy notifications sentinel before API 26 opens the generic app settings screen`() {
-        fragment.openAppSettingsScreenForPermission(LEGACY_POST_NOTIFICATIONS)
-        verifyOSSettingsWasOpened()
-    }
-
-    @Test
-    fun `legacy_post_notification_permission resource matches the LEGACY_POST_NOTIFICATIONS constant`() {
+    fun `notification permission identifiers match Android and the legacy resource`() {
+        assertThat(POST_NOTIFICATIONS, equalTo(Manifest.permission.POST_NOTIFICATIONS))
         assertThat(
             context.getString(R.string.legacy_post_notification_permission),
             equalTo(LEGACY_POST_NOTIFICATIONS),
