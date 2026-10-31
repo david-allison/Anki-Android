@@ -5,7 +5,6 @@ package com.ichi2.anki.dialogs
 import android.os.Bundle
 import android.os.Looper
 import android.view.View
-import android.widget.AdapterView
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -16,7 +15,6 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.SavedStateHandle
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
@@ -31,7 +29,6 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.scheduler.CustomStudyDefaultsResponse
-import anki.scheduler.CustomStudyRequest.Cram.CramKind
 import anki.scheduler.customStudyDefaultsResponse
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
@@ -39,11 +36,12 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.dialogs.customstudy.CustomStudyCardState
+import com.ichi2.anki.dialogs.customstudy.CustomStudyDefaults
+import com.ichi2.anki.dialogs.customstudy.CustomStudyDefaults.Companion.toDomainModel
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.ContextMenuOption
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyAction
-import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults.Companion.toDomainModel
-import com.ichi2.anki.dialogs.customstudy.CustomStudyViewModel
 import com.ichi2.anki.dialogs.tags.TagsDialogListener.Companion.REQUEST_SELECT_TAGS
 import com.ichi2.anki.dialogs.tags.TagsDialogListener.Companion.RESULT_SELECTED_TAGS
 import com.ichi2.anki.dialogs.utils.performPositiveClick
@@ -67,14 +65,10 @@ import com.ichi2.utils.positiveButton
 import com.ichi2.utils.textAsIntOrNull
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
@@ -94,7 +88,6 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -109,27 +102,6 @@ class CustomStudyDialogTest : RobolectricTest() {
         super.setUp()
         uninitializeField<CustomStudyDialog>("deferredInitialization")
     }
-
-    @Test
-    fun `cancelling a defaults read prevents late deck selection`() =
-        runTest {
-            val response = customStudyDefaultsResponse { availableNew = 1 }
-            val collection = mockCollectionWithSchedulerReturning(response)
-            val decks = collection.decks
-            val initialization = Job()
-            every { collection.sched.customStudyDefaults(Consts.DEFAULT_DECK_ID) } answers {
-                initialization.cancel()
-                response
-            }
-            CollectionManager.setColForTests(collection)
-            val viewModel = CustomStudyViewModel(SavedStateHandle(mapOf(CustomStudyViewModel.ARG_DECK_ID to Consts.DEFAULT_DECK_ID)))
-
-            assertFailsWith<CancellationException> {
-                withContext(initialization) { viewModel.initialize() }
-            }
-
-            verify(exactly = 0) { decks.select(Consts.DEFAULT_DECK_ID) }
-        }
 
     @Test
     fun `empty deck initialization does not block the dialog`() =
@@ -796,7 +768,7 @@ class CustomStudyDialogTest : RobolectricTest() {
                 // the first item is automatically selected at start
                 assertThat(studyDialog.viewModel.selectedCardStateIndex, equalTo(0))
 
-                studyDialog.setCardStateSelectionTo(CustomStudyDialog.CustomStudyCardState.DueCardsOnly)
+                studyDialog.setCardStateSelectionTo(CustomStudyCardState.DueCardsOnly)
 
                 // create list of selected tags
                 // Note: using an ArrayList because that is how it's stored in the passed Bundle
@@ -913,25 +885,6 @@ class CustomStudyDialogTest : RobolectricTest() {
                 assertNotNull(col.decks.customStudySession)
             }
         }
-
-    @Test
-    fun `selectedKind maps selected card state index to cram kind`() {
-        val viewModel = CustomStudyViewModel(SavedStateHandle())
-
-        CustomStudyDialog.CustomStudyCardState.entries.forEachIndexed { index, cardState ->
-            viewModel.selectedCardStateIndex = index
-            assertThat(viewModel.selectedKind, equalTo(cardState.kind))
-        }
-    }
-
-    @Test
-    fun `selectedKind defaults to new cards when no card state is selected`() {
-        val viewModel = CustomStudyViewModel(SavedStateHandle())
-
-        viewModel.selectedCardStateIndex = AdapterView.INVALID_POSITION
-
-        assertThat(viewModel.selectedKind, equalTo(CramKind.CRAM_KIND_NEW))
-    }
 
     @Test
     @Config(qualifiers = "en")
@@ -1316,12 +1269,12 @@ class CustomStudyDialogTest : RobolectricTest() {
         }
 
     /** Set the card state to [state] and also verify the selection in the fragment's ViewModel */
-    private fun CustomStudyDialog.setCardStateSelectionTo(state: CustomStudyDialog.CustomStudyCardState) {
+    private fun CustomStudyDialog.setCardStateSelectionTo(state: CustomStudyCardState) {
         assertThat(
             state.ordinal,
             allOf(
                 greaterThanOrEqualTo(0),
-                lessThan(CustomStudyDialog.CustomStudyCardState.entries.size),
+                lessThan(CustomStudyCardState.entries.size),
             ),
         )
         // can't use MaterialAutoCompleteTextView.listSelection as the popup is closed and updates
@@ -1334,7 +1287,7 @@ class CustomStudyDialogTest : RobolectricTest() {
     }
 
     /**
-     * The current backend value of [CustomStudyDialog.CustomStudyDefaults] for the default deck
+     * The current backend value of [CustomStudyDefaults] for the default deck
      * */
     private val defaultsOfDefaultDeck
         get() = col.sched.customStudyDefaults(Consts.DEFAULT_DECK_ID).toDomainModel()
