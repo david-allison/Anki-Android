@@ -123,16 +123,16 @@ private fun Project.configureAndroidAppCoverage(
             variant.hostTests[HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
         }
         onVariants(selector().withName("playDebug")) { debugVariant ->
+            val jvmTestTasks = if (file("src/testJvm/java").isDirectory) listOf("testPlayDebugJvmUnitTest") else emptyList()
             unitCoverage.registerAndroidSuite(
                 module = project,
                 variant = debugVariant,
                 classExcludes = classExcludes,
+                additionalTestTasks = jvmTestTasks,
             )
-            includeTestExecutionData(
-                report = mergedReport,
-                taskName = "testPlayDebugUnitTest",
-                pattern = "**/*.exec",
-            )
+            for (taskName in listOf("testPlayDebugUnitTest") + jvmTestTasks) {
+                includeTestExecutionData(report = mergedReport, taskName = taskName, pattern = "**/*.exec")
+            }
         }
 
         onVariants(selector().withName("play$androidTestVariantName")) { androidTestVariant ->
@@ -194,7 +194,7 @@ private fun Project.configureJvmCoverage(
             }
         unitCoverage.registerSuite(
             module = project,
-            taskName = "test",
+            taskNames = listOf("test"),
             runtimeClasspath = "testRuntimeClasspath",
             sources = files(sources),
             classes = files(classes),

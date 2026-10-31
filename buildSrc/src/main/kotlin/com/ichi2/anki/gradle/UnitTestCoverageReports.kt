@@ -86,12 +86,13 @@ internal class UnitTestCoverageReports(
         module: Project,
         variant: Variant,
         classExcludes: List<String>,
+        additionalTestTasks: List<String> = emptyList(),
         hasTests: () -> Boolean = { true },
     ) {
         val unitTest = (variant as? HasHostTests)?.hostTests?.get(HostTestBuilder.UNIT_TEST_TYPE)
         registerSuite(
             module = module,
-            taskName = "test${variant.name.replaceFirstChar { it.uppercase() }}UnitTest",
+            taskNames = listOf("test${variant.name.replaceFirstChar { it.uppercase() }}UnitTest") + additionalTestTasks,
             // Disabled host tests have no classpath. Use the production graph for their zero report.
             runtimeClasspath = (unitTest ?: variant).runtimeConfiguration.name,
             sources = module.files(variant.sources.java?.all, variant.sources.kotlin?.all),
@@ -107,7 +108,7 @@ internal class UnitTestCoverageReports(
 
     fun registerSuite(
         module: Project,
-        taskName: String,
+        taskNames: List<String>,
         runtimeClasspath: String,
         sources: FileCollection,
         classes: FileCollection,
@@ -122,19 +123,21 @@ internal class UnitTestCoverageReports(
                 sourceDirectories.from(sources)
             }
         }
-        module.includeTestExecutionData(
-            report = aggregate,
-            taskName = taskName,
-            pattern = "**/*.exec",
-            includeModule = { module in runtimeModules && hasTests() },
-        )
+        for (taskName in taskNames) {
+            module.includeTestExecutionData(
+                report = aggregate,
+                taskName = taskName,
+                pattern = "**/*.exec",
+                includeModule = { module in runtimeModules && hasTests() },
+            )
+        }
 
         // A module owns one flag even if AGP discovers several debug variants. Keep their
         // registration from creating the same task twice, and check for ambiguity only in CI coverage.
         if (suites.size == 1) {
             registerSuiteReport(
                 module = module,
-                taskName = taskName,
+                taskNames = taskNames,
                 runtimeClasspath = runtimeClasspath,
                 hasTests = hasTests,
             )
@@ -148,7 +151,7 @@ internal class UnitTestCoverageReports(
      */
     private fun registerSuiteReport(
         module: Project,
-        taskName: String,
+        taskNames: List<String>,
         runtimeClasspath: String,
         hasTests: () -> Boolean,
     ) {
@@ -169,12 +172,14 @@ internal class UnitTestCoverageReports(
                 val collectCoverage = coverageEnabled
                 setOnlyIf { collectCoverage }
             }
-        module.includeTestExecutionData(
-            report = suiteReport,
-            taskName = taskName,
-            pattern = "**/*.exec",
-            includeModule = hasTests,
-        )
+        for (taskName in taskNames) {
+            module.includeTestExecutionData(
+                report = suiteReport,
+                taskName = taskName,
+                pattern = "**/*.exec",
+                includeModule = hasTests,
+            )
+        }
         ciReports.configure {
             if (module in ciModules) {
                 dependsOn(suiteReport)
