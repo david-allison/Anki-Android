@@ -38,7 +38,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.annotations.Contract
 import timber.log.Timber
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.InputStream
 import com.ichi2.anki.common.utils.ImportFileClassifier.Resolution as MetadataResolution
 
@@ -346,29 +345,11 @@ object ImportUtils {
             data: Uri,
             tempPath: String,
         ): CacheFileResult =
-            try {
-                openImportSource(context, data)?.let { input ->
-                    copyToCache(input, tempPath)
-                } ?: run {
-                    Timber.w("Content provider crashed")
-                    CacheFileResult.ContentProviderCrashed
-                }
-            } catch (e: FileNotFoundException) {
-                // The selected file may have been deleted since the provider returned its URI.
-                Timber.w(e, "Import source file is unavailable")
-                CacheFileResult.SourceFileUnavailable(e)
-            } catch (e: IllegalStateException) {
-                if (e.message?.contains("pending/trashed") == true) {
-                    Timber.w(e, "Import source file is pending or trashed")
-                    CacheFileResult.SourceFileUnavailable(e)
-                } else {
-                    Timber.w("Could not open import source")
-                    CacheFileResult.Error(e)
-                }
-            } catch (e: Exception) {
-                Timber.w("Could not open import source")
-                CacheFileResult.Error(e)
-            }
+            cacheImportSource(
+                tempPath = tempPath,
+                openSource = { openImportSource(context, data) },
+                copy = { input, path -> CompatHelper.compat.copyFile(input, path) },
+            )
 
         private fun openImportSource(
             context: Context,
@@ -394,21 +375,6 @@ object ImportUtils {
                 null
             }
         }
-
-        /**
-         * Returns [CacheFileResult.Error] for any [Exception] while copying or closing [input].
-         */
-        private fun copyToCache(
-            input: InputStream,
-            tempPath: String,
-        ): CacheFileResult =
-            try {
-                input.use { CompatHelper.compat.copyFile(it, tempPath) }
-                CacheFileResult.Success(tempPath)
-            } catch (e: Exception) {
-                Timber.w("Could not copy file to %s", tempPath)
-                CacheFileResult.Error(e)
-            }
 
         sealed class CacheFileResult {
             data class Success(
