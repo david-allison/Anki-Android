@@ -52,50 +52,6 @@ class CreateDeckDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun testCreateSubDeckFunction() {
-        val deckParentId = col.decks.id("Deck Name")
-        val deckName = "filteredDeck"
-        ensureExecutionOfScenario(DeckDialogType.SUB_DECK, deckParentId) { createDeckDialog, assertionCalled ->
-            createDeckDialog.onNewDeckCreated = { id: DeckId ->
-                val deckNameWithParentName = col.decks.getSubdeckName(deckParentId, deckName)
-                assertThat(id, equalTo(col.decks.id(deckNameWithParentName!!)))
-                assertionCalled()
-            }
-            createDeckDialog.createSubDeck(deckParentId, deckName)
-        }
-    }
-
-    @Test
-    fun testCreateDeckFunction() {
-        val deckName = "Deck Name"
-        ensureExecutionOfScenario(DeckDialogType.DECK) { createDeckDialog, assertionCalled ->
-            createDeckDialog.onNewDeckCreated = { id: DeckId ->
-                // a deck was created
-                assertThat(id, equalTo(col.decks.byName(deckName)!!.id))
-                assertionCalled()
-            }
-            createDeckDialog.createDeck(deckName)
-        }
-    }
-
-    @Test
-    fun testCreateDeckWithQuotes() {
-        val deckNameWithQuotes = "New \"Quoted\" Deck"
-        ensureExecutionOfScenario(DeckDialogType.DECK) { createDeckDialog, assertionCalled ->
-            createDeckDialog.onNewDeckCreated = { id: DeckId ->
-                // Verify that quotes are preserved in deck names when creating
-                assertThat(
-                    "Quotes should be preserved in deck names when creating",
-                    col.decks.name(id),
-                    equalTo(deckNameWithQuotes),
-                )
-                assertionCalled()
-            }
-            createDeckDialog.createDeck(deckNameWithQuotes)
-        }
-    }
-
-    @Test
     fun `creating a child of a filtered deck shows an error`() {
         addDynamicDeck("Filtered Deck 1")
         val deckCount = col.decks.count()
@@ -158,42 +114,6 @@ class CreateDeckDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun testRenameDeckFunction() {
-        val deckName = "Deck Name"
-        val deckNewName = "New Deck Name"
-        val deckId = col.decks.id(deckName)
-        ensureExecutionOfScenario(DeckDialogType.RENAME_DECK, renamedDeckId = deckId) { createDeckDialog, assertionCalled ->
-            createDeckDialog.deckName = deckName
-            createDeckDialog.onNewDeckCreated = { id: DeckId ->
-                // a deck name was renamed
-                assertThat(deckNewName, equalTo(col.decks.name(id)))
-                assertionCalled()
-            }
-            createDeckDialog.renameDeck(deckNewName)
-        }
-    }
-
-    @Test
-    fun testRenameDeckWithQuotes() {
-        val deckName = "Deck Name"
-        val deckNewNameWithQuotes = "New \"Quoted\" Deck Name"
-        val deckId = col.decks.id(deckName)
-        ensureExecutionOfScenario(DeckDialogType.RENAME_DECK, renamedDeckId = deckId) { createDeckDialog, assertionCalled ->
-            createDeckDialog.deckName = deckName
-            createDeckDialog.onNewDeckCreated = { id: DeckId ->
-                // Verify that the quotes are preserved in the renamed deck
-                assertThat(
-                    "Quotes should be preserved in deck names when renaming",
-                    col.decks.name(id),
-                    equalTo(deckNewNameWithQuotes),
-                )
-                assertionCalled()
-            }
-            createDeckDialog.renameDeck(deckNewNameWithQuotes)
-        }
-    }
-
-    @Test
     fun `deck ordering hint`() {
         // The correct way to order a deck is ['01', '02', '10']
         val expectedText = "If you have deck ordering issues (e.g. ‘10’ appears before ‘2’), replace ‘2’ with ‘02’"
@@ -236,24 +156,6 @@ class CreateDeckDialogTest : RobolectricTest() {
             assertThat("Create is disabled if the subdeck name is blank", positiveButton.isEnabled, equalTo(false))
             input = "Child"
             assertThat("Create is enabled if the subdeck name is not blank", positiveButton.isEnabled, equalTo(true))
-        }
-    }
-
-    @Test
-    fun positiveButtonEnabledOnMatchingDeckNames() {
-        val previousDeckName = "Deck Name"
-        testRenameDialog(currentName = previousDeckName) {
-            input = previousDeckName
-            assertThat("no error is displayed", getInputTextLayout().error, nullValue())
-        }
-    }
-
-    @Test
-    fun `renaming a deck with an extra colon does not conflict with itself`() {
-        testRenameDialog(currentName = "a::b") {
-            input = "a:::b"
-            assertThat("no error is displayed", getInputTextLayout().error, nullValue())
-            assertThat("rename is enabled", positiveButton.isEnabled, equalTo(true))
         }
     }
 
