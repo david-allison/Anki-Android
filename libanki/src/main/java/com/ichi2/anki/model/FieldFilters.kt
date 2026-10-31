@@ -287,6 +287,12 @@ object FieldFilters {
             fieldName: String,
             filterName: String,
             ctx: TemplateManager.TemplateRenderContext,
+        ): String = apply(fieldText, filterName)
+
+        /** Transforms a rendered type marker without requiring a template-rendering context. */
+        fun apply(
+            fieldText: String,
+            filterName: String = name,
         ): String {
             if (filterName != name) return fieldText
             if (!fieldText.contains("[[type:")) return fieldText
