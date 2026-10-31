@@ -2,6 +2,12 @@ plugins {
     id("ankidroid.jvm.library")
 }
 
+val gradleTestMaxParallelForks = rootProject.extra["gradleTestMaxParallelForks"] as Int
+
+tasks.withType<Test>().configureEach {
+    maxParallelForks = gradleTestMaxParallelForks
+}
+
 dependencies {
     compileOnly(libs.android.lint.api)
     compileOnly(libs.android.lint)
