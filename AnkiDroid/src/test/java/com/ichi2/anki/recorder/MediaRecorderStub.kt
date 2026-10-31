@@ -47,11 +47,13 @@ class MediaRecorderStub {
         mockkObject(CompatHelper)
         every { CompatHelper.compat } returns
             object : Compat by real {
-                override fun getMediaRecorder(context: Context): MediaRecorder {
-                    if (failCreate) throw RuntimeException("Unable to initialize media recorder")
-                    return mediaRecorder
-                }
+                override fun getMediaRecorder(context: Context): MediaRecorder = createRecorder()
             }
+    }
+
+    fun createRecorder(): MediaRecorder {
+        if (failCreate) throw RuntimeException("Unable to initialize media recorder")
+        return mediaRecorder
     }
 
     fun uninstall() {

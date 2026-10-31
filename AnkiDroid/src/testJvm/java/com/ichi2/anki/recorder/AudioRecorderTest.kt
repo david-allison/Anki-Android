@@ -5,14 +5,9 @@ package com.ichi2.anki.recorder
 
 import android.content.Context
 import android.media.MediaRecorder
-import com.ichi2.anki.compat.CompatHelper
-import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import io.mockk.verify
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,17 +33,7 @@ class AudioRecorderTest {
 
     private val mockMediaRecorder = mockk<MediaRecorder>(relaxed = true)
 
-    private fun createRecorder(): AudioRecorder {
-        mockkObject(CompatHelper)
-        every { CompatHelper.compat.getMediaRecorder(any()) } returns mockMediaRecorder
-        return AudioRecorder(context)
-    }
-
-    @After
-    fun teardown() {
-        unmockkObject(CompatHelper)
-        clearAllMocks()
-    }
+    private fun createRecorder(): AudioRecorder = AudioRecorder(context, createMediaRecorder = { mockMediaRecorder })
 
     @Test
     fun `start should set isRecording to true and configure recorder`() {

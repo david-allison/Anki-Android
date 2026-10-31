@@ -22,6 +22,7 @@ import java.io.File
  */
 class AudioRecorder(
     private val context: Context,
+    private val createMediaRecorder: () -> MediaRecorder = { CompatHelper.compat.getMediaRecorder(context) },
 ) : Closeable {
     private var recorder: MediaRecorder? = null
     private var isTempFile = false
@@ -55,7 +56,7 @@ class AudioRecorder(
         val target = file ?: createTempFile() ?: return
         currentFile = target
 
-        val mediaRecorder = recorder ?: CompatHelper.compat.getMediaRecorder(context).also { recorder = it }
+        val mediaRecorder = recorder ?: createMediaRecorder().also { recorder = it }
 
         // Attempt High Quality (AAC), fallback to Standard (AMR) if it fails
         if (!configure(mediaRecorder, target, useHighQuality = true)) {

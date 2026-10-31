@@ -30,8 +30,6 @@ import org.hamcrest.Matchers.hasSize
 import org.hamcrest.Matchers.not
 import org.hamcrest.Matchers.nullValue
 import org.hamcrest.Matchers.startsWith
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -49,16 +47,6 @@ class VoiceRecorderTest {
     private val mediaRecorderStub = MediaRecorderStub()
     private val mediaRecorder get() = mediaRecorderStub.mediaRecorder
     private val recordingsDirectory by lazy { File(tempFolder.root, "recordings") }
-
-    @Before
-    fun installMediaRecorder() {
-        mediaRecorderStub.install()
-    }
-
-    @After
-    fun uninstallMediaRecorder() {
-        mediaRecorderStub.uninstall()
-    }
 
     @Test
     fun `start records into a new file`() =
@@ -333,7 +321,12 @@ class VoiceRecorderTest {
         }
 
     private fun TestScope.createRecorder(directory: File = recordingsDirectory) =
-        VoiceRecorder(AudioRecorder(context), directory, backgroundScope, testScheduler.timeSource)
+        VoiceRecorder(
+            AudioRecorder(context, createMediaRecorder = mediaRecorderStub::createRecorder),
+            directory,
+            backgroundScope,
+            testScheduler.timeSource,
+        )
 
     private fun TestScope.advanceBy(duration: Duration) {
         advanceTimeBy(duration)

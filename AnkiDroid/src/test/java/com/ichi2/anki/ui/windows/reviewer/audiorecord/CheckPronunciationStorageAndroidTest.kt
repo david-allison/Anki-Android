@@ -20,8 +20,10 @@ class CheckPronunciationStorageAndroidTest : CheckPronunciationViewModelTestBase
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val viewModel =
-                CheckPronunciationViewModel(AudioRecorder(context), playerStub.factory)
-                    .also { viewModelStore.put(VIEW_MODEL_KEY, it) }
+                CheckPronunciationViewModel(
+                    AudioRecorder(context, createMediaRecorder = mediaRecorderStub::createRecorder),
+                    playerStub.factory,
+                ).also { viewModelStore.put(VIEW_MODEL_KEY, it) }
             try {
                 val recording = viewModel.record()
 
