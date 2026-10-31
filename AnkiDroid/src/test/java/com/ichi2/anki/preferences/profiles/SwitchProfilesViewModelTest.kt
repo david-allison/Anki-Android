@@ -3,50 +3,38 @@
 
 package com.ichi2.anki.preferences.profiles
 
-import android.content.Context
-import androidx.core.content.edit
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import com.ichi2.anki.multiprofile.ProfileId
 import com.ichi2.anki.multiprofile.ProfileManager
-import com.ichi2.anki.multiprofile.ProfileManager.Companion.PROFILE_REGISTRY_FILENAME
 import com.ichi2.anki.multiprofile.ProfileName
 import com.ichi2.anki.multiprofile.ProfileName.ValidationResult
-import org.junit.After
+import com.ichi2.anki.multiprofile.ProfileRegistry
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-@RunWith(AndroidJUnit4::class)
 class SwitchProfilesViewModelTest {
-    private lateinit var context: Context
-    private lateinit var profileManager: ProfileManager
-
-    private val prefs
-        get() = context.getSharedPreferences(PROFILE_REGISTRY_FILENAME, Context.MODE_PRIVATE)
+    private lateinit var profileRegistry: ProfileRegistry
 
     @Before
     fun setUp() {
-        context = ApplicationProvider.getApplicationContext()
-        prefs.edit(commit = true) { clear() }
-        profileManager = ProfileManager.create(context)
+        profileRegistry = ProfileRegistry(SPMockBuilder().createSharedPreferences())
+        profileRegistry.saveProfile(
+            ProfileId.DEFAULT,
+            ProfileManager.ProfileMetadata(ProfileName.fromTrustedSource(ProfileManager.DEFAULT_PROFILE_DISPLAY_NAME)),
+            isActive = true,
+        )
     }
 
-    @After
-    fun tearDown() {
-        prefs.edit(commit = true) { clear() }
-    }
-
-    private fun viewModel() = SwitchProfilesViewModel(profileManager)
+    private fun viewModel() = SwitchProfilesViewModel(profileRegistry)
 
     private val validName: ProfileName
         get() = (ProfileName.validate("Work") as ValidationResult.Valid).name
 
-    private fun createProfile(name: String) = profileManager.createNewProfile(nameOf(name))
+    private fun createProfile(name: String) = profileRegistry.createNewProfile(nameOf(name))
 
     private fun nameOf(raw: String) = (ProfileName.validate(raw) as ValidationResult.Valid).name
 

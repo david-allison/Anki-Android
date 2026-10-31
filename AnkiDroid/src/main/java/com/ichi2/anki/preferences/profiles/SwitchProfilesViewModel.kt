@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ichi2.anki.multiprofile.ProfileManager
 import com.ichi2.anki.multiprofile.ProfileName
+import com.ichi2.anki.multiprofile.ProfileRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
@@ -18,11 +19,13 @@ import timber.log.Timber
  * of the view layer so it survives configuration changes.
  */
 class SwitchProfilesViewModel(
-    private val profileManager: ProfileManager,
+    private val profileRegistry: ProfileRegistry,
 ) : ViewModel() {
+    constructor(profileManager: ProfileManager) : this(profileManager.profileRegistry)
+
     /** Profiles shown in the list. */
     val profiles: StateFlow<List<ProfileItem>>
-        field = MutableStateFlow(profileManager.profileItems())
+        field = MutableStateFlow(profileRegistry.profileItems())
 
     val isAddProfileDialogVisible: StateFlow<Boolean>
         field = MutableStateFlow(false)
@@ -42,7 +45,7 @@ class SwitchProfilesViewModel(
     fun addProfile(name: ProfileName) {
         isAddProfileDialogVisible.value = false
         Timber.i("Add profile confirmed (%d chars)", name.value.length)
-        profileManager.createNewProfile(name)
+        profileRegistry.createNewProfile(name)
         refresh()
     }
 
@@ -58,7 +61,7 @@ class SwitchProfilesViewModel(
         val profile = profileBeingRenamed.value ?: return
         profileBeingRenamed.value = null
         Timber.i("Rename profile confirmed: %s", profile.id)
-        profileManager.renameProfile(profile.id, name)
+        profileRegistry.renameProfile(profile.id, name)
         refresh()
     }
 
@@ -69,7 +72,7 @@ class SwitchProfilesViewModel(
 
     /** Reloads the list from the registry. */
     fun refresh() {
-        profiles.value = profileManager.profileItems()
+        profiles.value = profileRegistry.profileItems()
     }
 
     companion object {
@@ -84,7 +87,7 @@ class SwitchProfilesViewModel(
          * The registry is backed by SharedPreferences, which has no defined order,
          * so sort by name to keep the list stable across launches.
          */
-        private fun ProfileManager.profileItems(): List<ProfileItem> =
+        private fun ProfileRegistry.profileItems(): List<ProfileItem> =
             getAllProfiles()
                 .map { (id, metadata) -> ProfileItem(id = id, name = metadata.displayName.value) }
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
