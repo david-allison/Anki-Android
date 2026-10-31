@@ -3,7 +3,7 @@
 package com.ichi2.anki.browser.search
 
 import com.ichi2.anki.libanki.testutils.AnkiTest
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 
 /** Test for [CardState] */
 @RunWith(Parameterized::class)
-class CardStateTest : JvmTest() {
+class CardStateTest : InMemoryAnkiTest() {
     @Parameterized.Parameter(0)
     @JvmField
     var stateParam: CardState? = null
@@ -42,7 +42,7 @@ class CardStateTest : JvmTest() {
                 CardState.Buried -> "Buried"
                 CardState.Suspended -> "Suspended"
             }
-        assertEquals(state.label, state.toExpectedLabel())
+        assertEquals(state.label(col.tr), state.toExpectedLabel())
     }
 
     companion object {

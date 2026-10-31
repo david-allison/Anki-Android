@@ -6,14 +6,14 @@ import anki.search.SearchNode
 import anki.search.searchNode
 import com.ichi2.anki.libanki.exception.InvalidSearchException
 import com.ichi2.anki.libanki.testutils.AnkiTest
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.junit.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /** Tests for [SearchString] */
-class SearchStringTest : JvmTest() {
+class SearchStringTest : InMemoryAnkiTest() {
     @Test
     fun `valid searchString from string`() {
         val result = fromUserInput("hello")
