@@ -33,7 +33,7 @@ import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.launchCatchingViewTask
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.snackbar.showSnackbar
-import com.ichi2.anki.utils.ext.requireParcelable
+import com.ichi2.anki.utils.ext.requireString
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
 
@@ -68,8 +68,8 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_co
     private val onBackPressedDispatcher
         get() = (dialog as ComponentDialog).onBackPressedDispatcher
 
-    private val cardsOrNotes: CardsOrNotes by lazy {
-        requireArguments().requireParcelable(ARG_MODE)
+    internal val cardsOrNotes: CardsOrNotes by lazy {
+        CardsOrNotes.valueOf(requireArguments().requireString(ARG_MODE))
     }
 
     private val discardChangesCallback =
@@ -235,7 +235,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_co
                 Timber.d("Building 'Manage columns' dialog for %s mode", cardsOrNotes)
                 arguments =
                     Bundle().apply {
-                        putParcelable(ARG_MODE, cardsOrNotes)
+                        putString(ARG_MODE, cardsOrNotes.name)
                     }
             }
     }
