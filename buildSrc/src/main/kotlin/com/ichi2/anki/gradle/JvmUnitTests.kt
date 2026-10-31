@@ -17,6 +17,14 @@ import java.io.Serializable
 
 /** Run src/testJvm tests without Robolectric while retaining the normal aggregate test command. */
 fun Project.registerJvmUnitTests(robolectricVersion: String) {
+    val jupiterTest =
+        Regex("(?:import\\s+|@)org\\.junit\\.jupiter\\.(?:api\\.(?:Test(?:Factory|Template)?|RepeatedTest|Nested)|params\\.ParameterizedTest)\\b")
+    val misplacedTests =
+        fileTree("src/test/java") { include("**/*.kt", "**/*.java") }.files
+            .filter { jupiterTest.containsMatchIn(it.readText()) }
+    require(misplacedTests.isEmpty()) {
+        "Jupiter tests must run in src/testJvm/java: ${misplacedTests.joinToString { it.relativeTo(projectDir).path }}"
+    }
     val sources = fileTree("src/testJvm/java") { include("**/*Test.kt", "**/*Test.java") }
     val patterns = sources.files.sorted().flatMap { source ->
         val text = source.readText()
@@ -32,16 +40,18 @@ fun Project.registerJvmUnitTests(robolectricVersion: String) {
         val variantName = variant.name.replaceFirstChar(Char::uppercaseChar)
         val aggregateName = "test${variantName}UnitTest"
         val nativeName = "test${variantName}JvmUnitTest"
-        registerJvmUnitTestTask(aggregateName, nativeName, patterns, robolectricVersion)
+        registerJvmUnitTestTask(aggregateName, nativeName, patterns, robolectricVersion, androidTestsUseJUnit4 = true)
     }
 }
 
 /** Preserves aggregate and focused execution when native tests have their own worker JVMs. */
+@JvmOverloads
 fun Project.registerJvmUnitTestTask(
     aggregateName: String,
     nativeName: String,
     patterns: List<String>,
     robolectricVersion: String,
+    androidTestsUseJUnit4: Boolean = false,
 ) {
     val nativeCount = layout.buildDirectory.file("test-results/$nativeName.count").get().asFile
     val aggregateCount = layout.buildDirectory.file("test-results/$aggregateName.count").get().asFile
@@ -61,13 +71,20 @@ fun Project.registerJvmUnitTestTask(
         native.setJvmArgs(aggregate.jvmArgs)
         native.systemProperties = aggregate.systemProperties.filterKeys { !it.startsWith("robolectric") }
         native.environment(aggregate.environment)
+        val original = aggregate.options as JUnitPlatformOptions
         native.useJUnitPlatform {
             val options = this
-            val original = aggregate.options as JUnitPlatformOptions
             options.includeTags(*original.includeTags.toTypedArray())
             options.excludeTags(*original.excludeTags.toTypedArray())
             options.includeEngines(*original.includeEngines.toTypedArray())
             options.excludeEngines(*original.excludeEngines.toTypedArray())
+        }
+        if (androidTestsUseJUnit4) {
+            // Robolectric uses JUnit 4. Its detector rejects helpers before forkEvery counts them.
+            aggregate.useJUnit {
+                includeCategories(*original.includeTags.toTypedArray())
+                excludeCategories(*original.excludeTags.toTypedArray())
+            }
         }
         native.filter.isFailOnNoMatchingTests = false
         native.failOnNoDiscoveredTests.set(false)
