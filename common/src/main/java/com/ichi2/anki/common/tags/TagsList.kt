@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2021 Tarek Mohamed Abdalla <tarekkma@gmail.com>
 
-package com.ichi2.anki.dialogs.tags
+package com.ichi2.anki.common.tags
 
+import com.ichi2.anki.common.tags.TagsUtil.compareTag
+import com.ichi2.anki.common.tags.TagsUtil.getTagAncestors
+import com.ichi2.anki.common.tags.TagsUtil.getTagRoot
 import com.ichi2.anki.common.utils.UniqueArrayList
 import com.ichi2.anki.common.utils.UniqueArrayList.Companion.from
-import com.ichi2.utils.TagsUtil.compareTag
-import com.ichi2.utils.TagsUtil.getTagAncestors
-import com.ichi2.utils.TagsUtil.getTagRoot
 import java.util.ArrayList
 import java.util.TreeSet
 
@@ -109,10 +109,10 @@ class TagsList(
     fun isIndeterminate(tag: String): Boolean = indeterminateTags.contains(tag)
 
     /** Whether the tag itself is partially selected, independently of its descendants. */
-    internal fun isPartiallySelected(tag: String): Boolean = partiallySelectedTags.contains(tag)
+    fun isPartiallySelected(tag: String): Boolean = partiallySelectedTags.contains(tag)
 
     /** Checks the complete selection, including descendants hidden by the dialog's filter. */
-    internal fun hasSelectedDescendants(tag: String): Boolean {
+    fun hasSelectedDescendants(tag: String): Boolean {
         val prefix = "$tag::"
         // Descendants are contiguous in these case-insensitive sets; only the first candidate is needed.
         return checkedTags.ceiling(prefix)?.startsWith(prefix, ignoreCase = true) == true ||
@@ -248,7 +248,7 @@ class TagsList(
     fun copyOfIndeterminateTagList(): List<String> = ArrayList(indeterminateTags)
 
     /** Tags whose original per-note selection must be preserved when saving, excluding display-only ancestors. */
-    internal fun copyOfPartiallySelectedTagList(): List<String> = ArrayList(partiallySelectedTags)
+    fun copyOfPartiallySelectedTagList(): List<String> = ArrayList(partiallySelectedTags)
 
     /**
      * @return return a copy of all tags list

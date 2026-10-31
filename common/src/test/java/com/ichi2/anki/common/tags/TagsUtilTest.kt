@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2021 Tarek Mohamed Abdalla <tarekkma@gmail.com>
 
-package com.ichi2.utils
+package com.ichi2.anki.common.tags
 
-import com.ichi2.utils.ListUtil.Companion.assertListEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,7 +38,7 @@ class TagsUtilTest {
                     selected!!,
                     indeterminate!!,
                 )
-            assertListEquals(updated, actual)
+            assertEquals(updated, actual)
         }
 
         companion object {
