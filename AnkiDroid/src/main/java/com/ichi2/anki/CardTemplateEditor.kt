@@ -81,19 +81,15 @@ import com.ichi2.anki.dialogs.InsertFieldMetadata
 import com.ichi2.anki.dialogs.registerDeckSelectedHandler
 import com.ichi2.anki.dialogs.startDeckSelection
 import com.ichi2.anki.libanki.CardOrdinal
-import com.ichi2.anki.libanki.CardTemplates
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NoteId
 import com.ichi2.anki.libanki.NoteTypeId
-import com.ichi2.anki.libanki.NotetypeJson
-import com.ichi2.anki.libanki.Notetypes
 import com.ichi2.anki.libanki.Notetypes.Companion.NOT_FOUND_NOTE_TYPE
 import com.ichi2.anki.libanki.countCardsCreatedBy
 import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
 import com.ichi2.anki.libanki.getStockNotetype
 import com.ichi2.anki.libanki.getStockNotetypeKinds
-import com.ichi2.anki.libanki.utils.append
 import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.notetype.CardTypeName
 import com.ichi2.anki.notetype.RenameCardTypeDialog
@@ -119,12 +115,10 @@ import com.ichi2.utils.show
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
 import net.ankiweb.rsdroid.Translations
-import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.TimeoutException
-import java.util.regex.Pattern
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.Duration.Companion.seconds
@@ -1077,7 +1071,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                     } else {
                         0
                     }
-                confirmDeleteCards(template, tempModel.notetype, numAffectedCards)
+                confirmDeleteCards(template, numAffectedCards)
             }
         }
 
@@ -1107,7 +1101,11 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                 return
             }
             val noteType = templateEditor.tempNoteType!!.notetype
-            val newTemplate = buildNewTemplate(noteType)
+            val newTemplate =
+                templateEditor.tempNoteType!!.buildNewTemplate(
+                    requireArguments().getInt(ARG_CARD_INDEX),
+                    TR::cardTemplatesCard,
+                )
             launchCatchingTask {
                 // Show confirmation dialog
                 val numAffectedCards =
@@ -1121,7 +1119,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                             }
                         }
                     }
-                confirmAddCards(noteType, newTemplate, numAffectedCards)
+                confirmAddCards(newTemplate, numAffectedCards)
             }
         }
 
@@ -1426,25 +1424,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
         private suspend fun deletionWouldOrphanNote(
             tempModel: CardTemplateNotetype?,
             position: Int,
-        ): Boolean {
-            // For existing templates, make sure we won't leave orphaned notes if we delete the template
-            //
-            // Note: we are in-memory, so the database is unaware of previous but unsaved deletes.
-            // If we were deleting a template we just added, we don't care. If not, then for every
-            // template delete queued up, we check the database to see if this delete in combo with any other
-            // pending deletes could orphan cards
-            if (!CardTemplateNotetype.isOrdinalPendingAdd(tempModel!!, position)) {
-                val currentDeletes = tempModel.getDeleteDbOrds(position)
-                val cardIds = withCol { notetypes.getCardIdsForNoteType(tempModel.noteTypeId, currentDeletes) }
-                if (cardIds == null) {
-                    // It is possible but unlikely that a user has an in-memory template addition that would
-                    // generate cards making the deletion safe, but we don't handle that. All users who do
-                    // not already have cards generated making it safe will see this error message:
-                    return true
-                }
-            }
-            return false
-        }
+        ): Boolean = withCol { tempModel!!.deletionWouldOrphanNote(this, position) }
 
         private var onCardBrowserAppearanceActivityResult =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
@@ -1485,12 +1465,10 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
          * Confirm if the user wants to delete all the cards associated with current template
          *
          * @param tmpl template to remove
-         * @param notetype note type to remove template from, modified in place by reference
          * @param numAffectedCards number of cards which will be affected
          */
         private fun confirmDeleteCards(
             tmpl: BackendCardTemplate,
-            notetype: NotetypeJson,
             numAffectedCards: Int,
         ) {
             val d = ConfirmationDialog()
@@ -1509,7 +1487,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                 positiveButtonText = getString(CommonString.dialog_positive_delete),
             )
 
-            val deleteCard = Runnable { deleteTemplate(tmpl, notetype) }
+            val deleteCard = Runnable { deleteTemplate(tmpl) }
             val confirm = Runnable { executeWithSyncCheck(deleteCard) }
             d.setConfirm(confirm)
             templateEditor.showDialogFragment(d)
@@ -1517,11 +1495,9 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
 
         /**
          * Confirm if the user wants to add new card template
-         * @param notetype note type to add new template and modified in place by reference
          * @param numAffectedCards number of cards which will be affected
          */
         private fun confirmAddCards(
-            notetype: NotetypeJson,
             newTemplate: BackendCardTemplate,
             numAffectedCards: Int,
         ) {
@@ -1540,7 +1516,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                 positiveButtonText = getString(CommonString.menu_add),
             )
 
-            val addCard = Runnable { addNewTemplate(notetype, newTemplate) }
+            val addCard = Runnable { addNewTemplate(newTemplate) }
             val confirm = Runnable { executeWithSyncCheck(addCard) }
             d.setConfirm(confirm)
             templateEditor.showDialogFragment(d)
@@ -1584,107 +1560,32 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
 
         /**
          * @param tmpl template to remove
-         * @param notetype note type to remove from, updated in place by reference
          */
-        private fun deleteTemplate(
-            tmpl: BackendCardTemplate,
-            notetype: NotetypeJson,
-        ) {
-            val oldTemplates = notetype.templates
-            val newTemplates = CardTemplates(JSONArray())
-            for (possibleMatch in oldTemplates) {
-                if (possibleMatch.ord != tmpl.ord) {
-                    newTemplates.append(possibleMatch)
-                } else {
-                    Timber.d("deleteTemplate() found match - removing template with ord %s", possibleMatch.ord)
-                    templateEditor.tempNoteType!!.removeTemplate(possibleMatch.ord)
-                }
-            }
-            notetype.templates = newTemplates
-            Notetypes._updateTemplOrds(notetype)
+        private fun deleteTemplate(tmpl: BackendCardTemplate) {
+            val model = templateEditor.tempNoteType!!
+            model.removeTemplate(tmpl.ord)
             // Make sure the fragments reinitialize, otherwise the reused ordinal causes staleness
             (templateEditor.mainBinding.cardTemplateEditorPager.adapter as TemplatePagerAdapter).ordinalShift()
             templateEditor.mainBinding.cardTemplateEditorPager.adapter!!
                 .notifyDataSetChanged()
             templateEditor.mainBinding.cardTemplateEditorPager.setCurrentItem(
-                newTemplates.length() - 1,
+                model.templateCount - 1,
                 templateEditor.animationDisabled(),
             )
         }
 
         /**
          * Add new template to a given note type
-         * @param noteType note type to add new template to
          */
-        private fun addNewTemplate(
-            noteType: NotetypeJson,
-            newTemplate: BackendCardTemplate,
-        ) {
-            val templates = noteType.templates
-            templates.append(newTemplate)
-            templateEditor.tempNoteType!!.addNewTemplate()
+        private fun addNewTemplate(newTemplate: BackendCardTemplate) {
+            val model = templateEditor.tempNoteType!!
+            model.addNewTemplate(newTemplate)
             templateEditor.mainBinding.cardTemplateEditorPager.adapter!!
                 .notifyDataSetChanged()
             templateEditor.mainBinding.cardTemplateEditorPager.setCurrentItem(
-                templates.length() - 1,
+                model.templateCount - 1,
                 templateEditor.animationDisabled(),
             )
-        }
-
-        private fun buildNewTemplate(noteType: NotetypeJson): BackendCardTemplate {
-            val oldCardIndex = requireArguments().getInt(ARG_CARD_INDEX)
-            val templates = noteType.templates
-            val oldTemplate = templates[oldCardIndex]
-            val newTemplate = Notetypes.newTemplate(newCardName(templates))
-            // Set up question & answer formats
-            newTemplate.qfmt = oldTemplate.qfmt
-            newTemplate.afmt = oldTemplate.afmt
-            // Reverse the front and back if only one template
-            if (templates.length() == 1) {
-                flipQA(newTemplate)
-            }
-            val lastExistingOrd = templates.last().ord
-            Timber.d("buildNewTemplate() lastExistingOrd was %s", lastExistingOrd)
-            newTemplate.setOrd(lastExistingOrd + 1)
-            return newTemplate
-        }
-
-        /**
-         * Flip the question and answer side of the template
-         * @param template template to flip
-         */
-        @KotlinCleanup("Use Kotlin's Regex methods")
-        private fun flipQA(template: BackendCardTemplate) {
-            val qfmt = template.qfmt
-            val afmt = template.afmt
-            val m = Pattern.compile("(?s)(.+)<hr id=answer>(.+)").matcher(afmt)
-            template.qfmt =
-                if (!m.find()) {
-                    afmt.replace("{{FrontSide}}", "")
-                } else {
-                    m.group(2)!!.trim()
-                }
-            template.afmt = "{{FrontSide}}\n\n<hr id=answer>\n\n$qfmt"
-        }
-
-        /**
-         * Get name for new template
-         * @param templates array of templates which is being added to
-         * @return name for new template
-         */
-        private fun newCardName(templates: CardTemplates): String {
-            // Start by trying to set the name to "Card n" where n is the new num of templates
-            var n = templates.length() + 1
-            // If the starting point for name already exists, iteratively increase n until we find a unique name
-            while (true) {
-                // Get new name
-                val name = TR.cardTemplatesCard(n)
-                // Cycle through all templates checking if new name exists
-                if (templates.all { name != it.name }) {
-                    return name
-                }
-                n += 1
-            }
         }
 
         data class CardTemplate(

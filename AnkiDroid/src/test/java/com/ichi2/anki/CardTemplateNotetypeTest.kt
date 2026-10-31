@@ -6,8 +6,6 @@ package com.ichi2.anki
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.Notetypes
-import com.ichi2.anki.libanki.utils.append
-import com.ichi2.anki.libanki.utils.remove
 import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.parcelledCopy
 import org.junit.Rule
@@ -35,10 +33,7 @@ class CardTemplateNotetypeTest {
             )
         val edited = CardTemplateNotetype(notetype)
         edited.removeTemplate(1)
-        notetype.templates.remove(edited.getTemplate(1))
-        notetype.templates.append(Notetypes.newTemplate("New"))
-        Notetypes._updateTemplOrds(notetype)
-        edited.addNewTemplate()
+        edited.addNewTemplate(Notetypes.newTemplate("New"))
         edited.repositionTemplate(2, 0)
 
         val bundle = edited.toBundle(tempFolder.root).parcelledCopy(javaClass.classLoader)
