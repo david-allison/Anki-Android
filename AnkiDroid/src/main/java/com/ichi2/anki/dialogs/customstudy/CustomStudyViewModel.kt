@@ -2,14 +2,11 @@
 
 package com.ichi2.anki.dialogs.customstudy
 
-import android.widget.AdapterView
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import anki.scheduler.CustomStudyRequest.Cram.CramKind
 import com.ichi2.anki.CollectionManager.withCol
-import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyCardState
-import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults
-import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyDefaults.Companion.toDomainModel
+import com.ichi2.anki.dialogs.customstudy.CustomStudyDefaults.Companion.toDomainModel
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Deck
 import com.ichi2.anki.libanki.DeckId
@@ -24,11 +21,11 @@ class CustomStudyViewModel(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     /**
-     * The index of the currently selected [CustomStudyDialog.CustomStudyCardState] or
-     * [AdapterView.INVALID_POSITION] if there's no selection.
+     * The index of the currently selected [CustomStudyCardState] or
+     * `-1` if there's no selection.
      */
-    var selectedCardStateIndex: Int = AdapterView.INVALID_POSITION
-        get() = savedStateHandle.get<Int>(KEY_CARDS_SELECTION_INDEX) ?: AdapterView.INVALID_POSITION
+    var selectedCardStateIndex: Int = NO_CARD_STATE_SELECTED
+        get() = savedStateHandle.get<Int>(KEY_CARDS_SELECTION_INDEX) ?: NO_CARD_STATE_SELECTED
         set(value) {
             field = value
             savedStateHandle[KEY_CARDS_SELECTION_INDEX] = value
@@ -79,13 +76,15 @@ class CustomStudyViewModel(
      */
     val selectedKind: CramKind
         get() =
-            if (selectedCardStateIndex != AdapterView.INVALID_POSITION) {
+            if (selectedCardStateIndex != NO_CARD_STATE_SELECTED) {
                 CustomStudyCardState.entries[selectedCardStateIndex].kind
             } else {
                 CramKind.CRAM_KIND_NEW
             }
 
     companion object {
+        private const val NO_CARD_STATE_SELECTED = -1
+
         /**
          * Required key for a [DeckId] which [CustomStudyDialog] expects to receive as an argument.
          */
