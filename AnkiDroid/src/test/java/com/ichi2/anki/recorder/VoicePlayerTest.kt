@@ -34,9 +34,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class VoicePlayerTest {
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -66,21 +63,6 @@ class VoicePlayerTest {
 
             assertThat("players created", playerStub.createdCount, equalTo(1))
             assertThat("listeners", playerStub.listeners, hasSize(1))
-        }
-
-    @Test
-    fun `load pauses, sets the recording and prepares`() =
-        runTest {
-            val voicePlayer = createVoicePlayer()
-
-            voicePlayer.load(recording)
-
-            assertThat(voicePlayer.state.value, equalTo(Loading))
-            verifyOrder {
-                playerStub.player.pause()
-                playerStub.player.setMediaItem(MediaItem.fromUri(Uri.fromFile(recording)))
-                playerStub.player.prepare()
-            }
         }
 
     @Test
@@ -296,7 +278,7 @@ class VoicePlayerTest {
             assertThat("ticker running", scopeJobs.any { it.isActive }, equalTo(false))
         }
 
-    private fun TestScope.createVoicePlayer() = VoicePlayer(backgroundScope, playerStub.factory)
+    private fun TestScope.createVoicePlayer() = VoicePlayer(backgroundScope, playerStub.factory, playerStub.loadSource)
 
     private fun TestScope.loadedPlayer() =
         createVoicePlayer().apply {
@@ -311,4 +293,30 @@ class VoicePlayerTest {
 
     private val VoicePlayer.isPlaying: Boolean
         get() = (state.value as? Ready)?.isPlaying == true
+}
+
+@RunWith(AndroidJUnit4::class)
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
+class VoicePlayerAndroidTest {
+    @get:Rule
+    val tempFolder = TemporaryFolder()
+
+    private val playerStub = PlayerStub()
+    private val recording by lazy { File(tempFolder.root, "recording.3gp") }
+
+    @Test
+    fun `load pauses, sets the recording and prepares`() =
+        runTest {
+            val voicePlayer = VoicePlayer(backgroundScope, playerStub.factory)
+
+            voicePlayer.load(recording)
+
+            assertThat(voicePlayer.state.value, equalTo(Loading))
+            verifyOrder {
+                playerStub.player.pause()
+                playerStub.player.setMediaItem(MediaItem.fromUri(Uri.fromFile(recording)))
+                playerStub.player.prepare()
+            }
+        }
 }
