@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-package com.ichi2.anki.browser
+package com.ichi2.anki.common.storage
 
 import com.ichi2.anki.common.time.MockTime
 import com.ichi2.anki.common.time.TimeManager

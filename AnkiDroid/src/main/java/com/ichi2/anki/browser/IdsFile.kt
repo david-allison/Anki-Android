@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Parcel
 import android.os.Parcelable
 import com.ichi2.anki.common.android.appContext
+import com.ichi2.anki.common.storage.IdSnapshotFile
 import timber.log.Timber
 import java.io.File
 
