@@ -25,8 +25,8 @@ import com.ichi2.anki.common.android.appContext
 import com.ichi2.anki.common.coroutines.applicationScope
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.exception.ManuallyReportedException
-import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.common.utils.ImportFileClassifier
+import com.ichi2.anki.common.utils.ImportFileName
 import com.ichi2.anki.compat.CompatHelper
 import com.ichi2.anki.dialogs.DialogHandlerMessage
 import com.ichi2.anki.dialogs.ImportDialog
@@ -40,13 +40,9 @@ import timber.log.Timber
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
-import java.net.URLDecoder
-import java.net.URLEncoder
 import com.ichi2.anki.common.utils.ImportFileClassifier.Resolution as MetadataResolution
 
 object ImportUtils {
-    // A filename should be shortened if over this threshold
-    private const val FILE_NAME_SHORTENING_THRESHOLD = 100
     private const val EXTERNAL_STORAGE_PROVIDER_AUTHORITY = "com.android.externalstorage.documents"
 
     /** Resolve the source and select its importer without copying files or starting UI. */
@@ -262,43 +258,7 @@ object ImportUtils {
             return ImportResult.Success(file, tempOutDir)
         }
 
-        /**
-         * Uses the last path segment ([File.name]) so directory components cannot escape the
-         * destination. Empty names, `.`, and `..` become `unnamed_file`. Leading dots on a real
-         * filename are preserved (e.g. `.hidden.apkg`, `..apkg`).
-         */
-        @CheckResult
-        private fun sanitizeFileName(fileName: String): String {
-            val sanitized = File(fileName).name
-            return if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
-                "unnamed_file"
-            } else {
-                sanitized
-            }
-        }
-
-        private fun validateFileName(fileName: String): String {
-            // #6137 - filenames can be too long when URLEncoded
-            val sanitized = sanitizeFileName(fileName)
-            return try {
-                val encoded = URLEncoder.encode(sanitized, "UTF-8")
-                if (encoded.length <= FILE_NAME_SHORTENING_THRESHOLD) {
-                    Timber.d("No filename truncation necessary")
-                    sanitized
-                } else {
-                    Timber.d("Filename was longer than %d, shortening", FILE_NAME_SHORTENING_THRESHOLD)
-                    // take 90 instead of 100 so we don't get the extension
-                    val substringLength = FILE_NAME_SHORTENING_THRESHOLD - 10
-                    val shortenedFileName = encoded.take(substringLength) + "..." + getExtension(fileName)
-                    Timber.d("Shortened filename")
-                    // if we don't decode, % is double-encoded
-                    sanitizeFileName(URLDecoder.decode(shortenedFileName, "UTF-8"))
-                }
-            } catch (e: Exception) {
-                Timber.w(e, "Failed to shorten file")
-                sanitizeFileName("file_${TimeManager.time.intTimeMS()}.${getExtension(fileName)}")
-            }
-        }
+        private fun validateFileName(fileName: String): String = ImportFileName.normalize(fileName) { getExtension(fileName) }
 
         @CheckResult
         private fun getExtension(fileName: String): String {
