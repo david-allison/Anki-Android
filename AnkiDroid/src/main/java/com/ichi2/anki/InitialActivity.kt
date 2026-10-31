@@ -312,8 +312,9 @@ enum class OptionalPermissionSet(
 internal fun selectStoragePermissions(
     canManageExternalStorage: Boolean,
     currentFolderIsAccessibleAndLegacy: Boolean,
+    sdkVersion: Int = Build.VERSION.SDK_INT,
 ): StoragePermissionSet {
-    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q || currentFolderIsAccessibleAndLegacy) {
+    if (sdkVersion <= Build.VERSION_CODES.Q || currentFolderIsAccessibleAndLegacy) {
         // match AnkiDroid behaviour before scoped storage - force the use of ~/AnkiDroid,
         // since it's fast & safe up to & including 'Q'
         // If a user upgrades their OS from Android 10 to 11 then storage speed is severely reduced
