@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-package com.ichi2.anki.utils.ext
+package com.ichi2.anki.common.json
 
 import com.google.gson.stream.JsonWriter
 import org.json.JSONArray
@@ -8,7 +8,7 @@ import org.json.JSONObject
 import java.io.File
 
 /** Writes [obj] incrementally as UTF-8, closing the writer when finished. */
-internal fun File.writeJson(obj: JSONObject) {
+fun File.writeJson(obj: JSONObject) {
     JsonWriter(bufferedWriter()).use { writer ->
         writer.writeObject(obj)
     }

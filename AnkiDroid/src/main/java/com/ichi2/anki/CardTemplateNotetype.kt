@@ -9,13 +9,13 @@ import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 import com.ichi2.anki.common.android.appContext
+import com.ichi2.anki.common.json.readJson
+import com.ichi2.anki.common.json.writeJson
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
 import com.ichi2.anki.libanki.CardOrdinal
 import com.ichi2.anki.libanki.CardTemplateEditorModel
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.observability.undoableOp
-import com.ichi2.anki.utils.ext.readJson
-import com.ichi2.anki.utils.ext.writeJson
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
