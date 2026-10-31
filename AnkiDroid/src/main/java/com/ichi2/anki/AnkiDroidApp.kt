@@ -634,7 +634,8 @@ open class AnkiDroidApp :
         }
     }
 
-    private fun setupTextToSpeech() {
+    /** Prefetches voices; callers can also start discovery lazily when they need speech. */
+    protected open fun setupTextToSpeech() {
         setup("setupTextToSpeech") {
             TtsVoices.launchBuildLocalesJob()
         }
