@@ -89,8 +89,7 @@ import com.ichi2.anki.libanki.NoteTypeId
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.Notetypes
 import com.ichi2.anki.libanki.Notetypes.Companion.NOT_FOUND_NOTE_TYPE
-import com.ichi2.anki.libanki.backend.BackendUtils
-import com.ichi2.anki.libanki.backend.model.toBackendNote
+import com.ichi2.anki.libanki.countCardsCreatedBy
 import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
 import com.ichi2.anki.libanki.getStockNotetype
 import com.ichi2.anki.libanki.getStockNotetypeKinds
@@ -120,7 +119,6 @@ import com.ichi2.utils.show
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
 import net.ankiweb.rsdroid.Translations
-import net.ankiweb.rsdroid.exceptions.BackendTemplateException
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -129,9 +127,7 @@ import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.TimeSource
 
 private typealias BackendCardTemplate = com.ichi2.anki.libanki.CardTemplate
 
@@ -1113,7 +1109,17 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
             val newTemplate = buildNewTemplate(noteType)
             launchCatchingTask {
                 // Show confirmation dialog
-                val numAffectedCards = withProgress { withCol { countCardsCreatedBy(noteType, newTemplate) } }
+                val numAffectedCards =
+                    withProgress {
+                        withCol {
+                            countCardsCreatedBy(noteType, newTemplate) { noteCount ->
+                                Analytics.sendAnalyticsException(
+                                    TimeoutException("New card type count timed out with $noteCount notes"),
+                                    false,
+                                )
+                            }
+                        }
+                    }
                 confirmAddCards(noteType, newTemplate, numAffectedCards)
             }
         }
@@ -1766,32 +1772,5 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                     ord,
                 )
             }
-    }
-}
-
-@VisibleForTesting
-internal fun Collection.countCardsCreatedBy(
-    noteType: NotetypeJson,
-    template: BackendCardTemplate,
-    timeout: Duration = 1.seconds,
-): Int {
-    val deadline = TimeSource.Monotonic.markNow() + timeout
-    val unreferencedOrd = generateSequence(0) { it + 1 }.first { "c${it + 1}" !in template.qfmt }
-    val templateBytes = BackendUtils.toJsonBytes(template.deepClone().apply { setOrd(unreferencedOrd) })
-    val noteIds = notetypes.nids(noteType)
-    return try {
-        noteIds.count { nid ->
-            if (deadline.hasPassedNow()) {
-                Timber.w("counting the cards of a new card type timed out")
-                Analytics.sendAnalyticsException(TimeoutException("New card type count timed out with ${noteIds.size} notes"), false)
-                return noteIds.size
-            }
-            !backend
-                .renderUncommittedCardLegacy(getNote(nid).toBackendNote(), unreferencedOrd, templateBytes, false, true)
-                .isEmpty
-        }
-    } catch (e: BackendTemplateException) {
-        Timber.w(e, "new card type has a template error")
-        0
     }
 }
