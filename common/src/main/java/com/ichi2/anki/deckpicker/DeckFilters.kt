@@ -3,7 +3,6 @@
 
 package com.ichi2.anki.deckpicker
 
-import android.annotation.SuppressLint
 import androidx.annotation.VisibleForTesting
 import com.ichi2.anki.common.utils.lastIndexOfOrNull
 import java.util.Locale
@@ -85,7 +84,7 @@ class DeckFilters
             /**
              * Whether [filter] appears in [name].
              */
-            @SuppressLint("LocaleRootUsage")
+            @Suppress("LocaleRootUsage")
             fun deckNameMatchesFilter(name: String) =
                 // If the filter is "foo:", two cases can occur:
                 // Either we actually have a deck with a single colon, "foo:bar" and we want to find it,
