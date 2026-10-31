@@ -5,15 +5,12 @@ package com.ichi2.anki
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
-import android.database.sqlite.SQLiteDatabaseCorruptException
-import android.database.sqlite.SQLiteFullException
 import android.os.Build
 import android.os.Environment
 import android.os.Parcelable
 import androidx.annotation.CheckResult
 import androidx.annotation.RequiresApi
 import androidx.core.content.edit
-import com.ichi2.anki.backend.DatabaseCorruption
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.permissions.LEGACY_POST_NOTIFICATIONS
 import com.ichi2.anki.common.permissions.hasAllPermissions
@@ -24,12 +21,11 @@ import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.common.storage.isLegacyStorage
 import com.ichi2.anki.common.utils.android.SdCard
 import com.ichi2.anki.compat.CompatHelper.Companion.sdkVersion
-import com.ichi2.anki.exception.CollectionLockedException
-import com.ichi2.anki.exception.StorageAccessException
 import com.ichi2.anki.exception.SystemStorageException
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService
 import com.ichi2.anki.servicelayer.PreferenceUpgradeService.setPreferencesUpToDate
 import com.ichi2.anki.startup.StoragePolicy
+import com.ichi2.anki.startup.collectionOpenFailure
 import com.ichi2.anki.startup.folderToPersist
 import com.ichi2.anki.startup.maybeSetDefaultCollectionPath
 import com.ichi2.anki.ui.windows.permissions.LegacyNotificationsPermissionFragment
@@ -41,7 +37,6 @@ import com.ichi2.anki.ui.windows.permissions.PermissionsUntil29Fragment
 import com.ichi2.utils.Permissions
 import com.ichi2.utils.VersionUtils.pkgVersionName
 import kotlinx.parcelize.Parcelize
-import net.ankiweb.rsdroid.BackendException
 import timber.log.Timber
 
 /** Utilities for launching the first activity (currently the DeckPicker)  */
@@ -90,36 +85,10 @@ object InitialActivity {
             try {
                 CollectionManager.getColUnsafe()
                 return null
-            } catch (e: CollectionLockedException) {
-                Timber.w(e)
-                StartupFailure.DatabaseLocked
-            } catch (e: BackendException.BackendDbException.BackendDbFileTooNewException) {
-                Timber.w(e)
-                StartupFailure.FutureAnkidroidVersion
-            } catch (e: BackendException.BackendDbException.BackendDbFullException) {
-                Timber.w(e)
-                StartupFailure.DiskFull
-            } catch (e: BackendException.BackendDbException.BackendDbCorruptException) {
-                Timber.w(e)
-                DatabaseCorruption.isDetected = true
-                StartupFailure.DBError(e)
-            } catch (e: SQLiteFullException) {
-                // TODO: delete the android.database branches when the backend is no longer Android
-                Timber.w(e)
-                StartupFailure.DiskFull
-            } catch (e: SQLiteDatabaseCorruptException) {
-                Timber.w(e)
-                DatabaseCorruption.isDetected = true
-                StartupFailure.DBError(e)
-            } catch (e: StorageAccessException) {
-                // Same handling as the fall through, but without the exception report
-                // These are now handled with a dialog and don't generate actionable reports
-                Timber.w(e)
-                StartupFailure.DBError(e)
             } catch (e: Exception) {
-                Timber.w(e)
-                CrashReportService.sendExceptionReport(e, "InitialActivity::getStartupFailureType")
-                StartupFailure.DBError(e)
+                collectionOpenFailure(e) {
+                    CrashReportService.sendExceptionReport(it, "InitialActivity::getStartupFailureType")
+                }
             }
 
         if (!SdCard.isMounted) {
