@@ -30,6 +30,9 @@ abstract class CardBrowserViewModelTestBase : JvmTest() {
         viewModels.put("browser-${nextViewModelId++}", viewModel)
     }
 
+    protected open fun createSelectionSavedState(handle: SavedStateHandle): BrowserSelectionSavedState =
+        SavedStateHandleBrowserSelectionState(handle)
+
     protected open fun createLastDeckIdRepository(): LastDeckIdRepository = SharedPreferencesLastDeckIdRepository()
 
     @After
@@ -99,6 +102,7 @@ abstract class CardBrowserViewModelTestBase : JvmTest() {
                 isFragmented = isFragmented,
                 manualInit = initMode == InitMode.MANUAL || initMode == InitMode.AUTOMATIC,
                 savedStateHandle = savedStateHandle,
+                selectionSavedState = createSelectionSavedState(savedStateHandle),
             ).also(::own)
         // makes ignoreValuesFromViewModelLaunch work under test
         if (initMode == InitMode.AUTOMATIC) {
