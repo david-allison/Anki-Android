@@ -17,6 +17,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.ext.findActivity
 import com.ichi2.anki.launchCatchingTask
+import com.ichi2.anki.libanki.DeckEditor
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Decks
 import com.ichi2.anki.snackbar.showSnackbar
@@ -136,19 +137,27 @@ class CreateDeckDialog(
         dialog: AlertDialog,
         text: CharSequence,
     ) {
-        // we need the fully-qualified name for subdecks
-        val maybeDeckName = fullyQualifyDeckName(dialogText = text)
-        // if the name is empty, it seems distracting to show an error
-        if (maybeDeckName == null || !Decks.isValidDeckName(maybeDeckName)) {
-            dialog.positiveButton.isEnabled = false
-            return
-        }
-        val existingDeckId = withCol { decks.idForName(maybeDeckName) }
+        val nameValidation =
+            withCol {
+                DeckEditor(decks).validateName(
+                    input = text.toString(),
+                    parentId = if (deckDialogType == DeckDialogType.SUB_DECK) parentId!! else null,
+                    renamedDeckId = renamedDeckId,
+                )
+            }
         if (!dialog.getInputField().text.contentEquals(text)) return
-        if (existingDeckId != null && existingDeckId != renamedDeckId) {
-            dialog.getInputTextLayout().error = context.getString(CommonString.error_name_exists)
-            dialog.positiveButton.isEnabled = false
-            return
+        when (nameValidation) {
+            DeckEditor.NameValidation.INVALID -> {
+                // Empty input should not display an error.
+                dialog.positiveButton.isEnabled = false
+                return
+            }
+            DeckEditor.NameValidation.ALREADY_EXISTS -> {
+                dialog.getInputTextLayout().error = context.getString(CommonString.error_name_exists)
+                dialog.positiveButton.isEnabled = false
+                return
+            }
+            DeckEditor.NameValidation.VALID -> Unit
         }
         dialog.getInputTextLayout().error = null
         dialog.positiveButton.isEnabled = true
@@ -163,62 +172,31 @@ class CreateDeckDialog(
             }
     }
 
-    /**
-     * Returns the fully qualified deck name for the provided input
-     * @param dialogText The user supplied text in the dialog
-     * @return [dialogText], or the deck name containing `::` in case of [DeckDialogType.SUB_DECK]
-     */
-    private suspend fun fullyQualifyDeckName(dialogText: CharSequence) =
-        when (deckDialogType) {
-            DeckDialogType.DECK, DeckDialogType.RENAME_DECK -> dialogText.toString()
-            DeckDialogType.SUB_DECK -> withCol { decks.getSubdeckName(parentId!!, dialogText.toString()) }
-        }
-
     fun createSubDeck(
         did: DeckId,
         deckName: String?,
-    ) {
-        shownDialog?.dismiss()
-        activity.launchCatchingTask {
-            val deckNameWithParentName = withCol { decks.getSubdeckName(did, deckName) }
-            if (deckNameWithParentName == null) {
-                Timber.d("CreateDeckDialog::createSubDeck - Not creating invalid subdeck name '%s'", deckName)
-                displayFeedback(context.getString(CommonString.invalid_deck_name), Snackbar.LENGTH_LONG)
-                return@launchCatchingTask
-            }
-            createDeck(deckNameWithParentName)
-        }
-    }
+    ) = createDeck { withCol { DeckEditor(decks).createSubdeck(did, deckName) } }
 
-    fun createDeck(deckName: String) {
-        if (Decks.isValidDeckName(deckName)) {
-            activity.launchCatchingTask {
-                if (createNewDeck(deckName)) {
-                    // 11668: Display feedback if a deck is created
+    fun createDeck(deckName: String) = createDeck { withCol { DeckEditor(decks).create(deckName) } }
+
+    private fun createDeck(operation: suspend () -> DeckId?) {
+        activity.launchCatchingTask {
+            try {
+                val newDeckId = operation()
+                if (newDeckId == null) {
+                    Timber.d("CreateDeckDialog: not creating a deck with an invalid name")
+                    displayFeedback(context.getString(CommonString.invalid_deck_name), Snackbar.LENGTH_LONG)
+                } else {
+                    onNewDeckCreated(newDeckId)
                     displayFeedback(context.getString(CommonString.deck_created))
                 }
+            } catch (filteredAncestor: BackendDeckIsFilteredException) {
+                Timber.w(filteredAncestor)
+                displayFeedback(filteredAncestor.localizedMessage ?: filteredAncestor.message ?: "", Snackbar.LENGTH_LONG)
             }
-        } else {
-            Timber.d("CreateDeckDialog::createDeck - Not creating invalid deck name '%s'", deckName)
-            displayFeedback(context.getString(CommonString.invalid_deck_name), Snackbar.LENGTH_LONG)
         }
         // AlertDialog should be dismissed after the Keyboard 'Done' or Deck 'Ok' button is pressed
         shownDialog?.dismiss()
-    }
-
-    private suspend fun createNewDeck(deckName: String): Boolean {
-        try {
-            // create normal deck or sub deck
-            Timber.i("CreateDeckDialog::createNewDeck")
-            val newDeckId = withCol { decks.id(deckName) }
-            Timber.d("Created deck '%s'; id: %d", deckName, newDeckId)
-            onNewDeckCreated(newDeckId)
-        } catch (filteredAncestor: BackendDeckIsFilteredException) {
-            Timber.w(filteredAncestor)
-            displayFeedback(filteredAncestor.localizedMessage ?: filteredAncestor.message ?: "", Snackbar.LENGTH_LONG)
-            return false
-        }
-        return true
     }
 
     private fun onPositiveButtonClicked() {
@@ -249,7 +227,7 @@ class CreateDeckDialog(
             activity.launchCatchingTask {
                 try {
                     // the backend reports no change if the new name normalises to the old one
-                    if (withCol { decks.rename(deckId, newDeckName) }.deck) {
+                    if (withCol { DeckEditor(decks).rename(deckId, newDeckName) }) {
                         onNewDeckCreated(deckId)
                         // 11668: Display feedback if a deck is renamed
                         displayFeedback(context.getString(CommonString.deck_renamed))
