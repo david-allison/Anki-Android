@@ -27,9 +27,10 @@ class AudioRecordingViewModel(
     audioRecorder: AudioRecorder = AudioRecorder(appContext),
     createPlayer: () -> Player = { VoicePlayer.createExoPlayer(appContext) },
     recordingsDirectory: File = VoiceRecorder.recordingsDirectory(appContext),
+    loadSource: (Player, File) -> Unit = VoicePlayer::loadRecordingSource,
 ) : ViewModel() {
     private val recorder = VoiceRecorder(audioRecorder, recordingsDirectory, viewModelScope)
-    private val player = VoicePlayer(viewModelScope, createPlayer)
+    private val player = VoicePlayer(viewModelScope, createPlayer, loadSource)
 
     val recorderState: StateFlow<RecorderState> = recorder.state
     val elapsed: StateFlow<Duration> = recorder.elapsed
