@@ -5,12 +5,16 @@ package com.ichi2.anki.ui.windows.reviewer
 import androidx.core.content.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.scheduler.CardAnswer.Rating
 import app.cash.turbine.test
-import com.ichi2.anki.RobolectricTest
-import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.ext.cardStateCustomizer
+import com.ichi2.anki.libanki.TemplateManager
+import com.ichi2.anki.model.FieldFilters.NoSuggestFilter
+import com.ichi2.anki.settings.Prefs
+import com.ichi2.testutils.JvmPreferencesRule
+import com.ichi2.testutils.OnDiskJvmTest
+import com.ichi2.testutils.jvmCardMediaPlayerFactory
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -19,29 +23,38 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@RunWith(AndroidJUnit4::class)
-class ReviewerViewModelTest : RobolectricTest() {
-    private val viewModelStore = ViewModelStore()
+class ReviewerViewModelTest : OnDiskJvmTest() {
+    @get:Rule
+    val preferences = JvmPreferencesRule()
 
-    override fun getCollectionStorageMode() = CollectionStorageMode.IN_MEMORY_WITH_MEDIA
+    private val viewModelStore = ViewModelStore()
+    private var originalFieldFilters = emptyMap<String, TemplateManager.FieldFilter>()
 
     @Before
     fun disableAutoplay() {
+        originalFieldFilters = TemplateManager.fieldFilters.toMap()
+        NoSuggestFilter.ensureApplied()
         // stored in collection; no need for a reset
         updateDeckConfig(col.decks.selected()) { autoplay = false }
     }
 
     @After
-    fun clearViewModels() {
-        viewModelStore.clear()
+    override fun tearDown() {
+        try {
+            viewModelStore.clear()
+        } finally {
+            TemplateManager.fieldFilters.clear()
+            TemplateManager.fieldFilters.putAll(originalFieldFilters)
+            super.tearDown()
+        }
     }
 
     @Test
@@ -63,12 +76,12 @@ class ReviewerViewModelTest : RobolectricTest() {
         }
 
     private suspend fun TestScope.htmlAnswerField(filter: String): Element {
-        targetContext.sharedPrefs().edit { putBoolean("useInputTag", true) }
+        preferences.preferences.edit { putBoolean(Prefs.key(R.string.use_input_tag_key), true) }
         val card = addBasicWithTypingNote("front", "back").firstCard()
         val noteType = card.noteType(col)
         noteType.templates[0].qfmt = "{{Front}}{{$filter:Back}}"
         col.notetypes.save(noteType)
-        val viewModel = ReviewerViewModel(SavedStateHandle()).also { viewModelStore.put("reviewer", it) }
+        val viewModel = ReviewerViewModel(SavedStateHandle(), jvmCardMediaPlayerFactory).also { viewModelStore.put("reviewer", it) }
         lateinit var html: String
         viewModel.eval
             .filter { it.startsWith("_showQuestion(") }
@@ -87,7 +100,7 @@ class ReviewerViewModelTest : RobolectricTest() {
         runTest {
             val card = addBasicNote().firstCard()
             col.config.cardStateCustomizer = "await new Promise(resolve => setTimeout(resolve, 5000));"
-            val viewModel = ReviewerViewModel(SavedStateHandle()).also { viewModelStore.put("reviewer", it) }
+            val viewModel = ReviewerViewModel(SavedStateHandle(), jvmCardMediaPlayerFactory).also { viewModelStore.put("reviewer", it) }
 
             viewModel.onShowAnswer()
             viewModel.answerCard(Rating.GOOD)
@@ -106,7 +119,7 @@ class ReviewerViewModelTest : RobolectricTest() {
         runTest {
             val card = addBasicNote().firstCard()
             val savedStateHandle = SavedStateHandle(mapOf("showingAnswer" to true))
-            val viewModel = ReviewerViewModel(savedStateHandle).also { viewModelStore.put("reviewer", it) }
+            val viewModel = ReviewerViewModel(savedStateHandle, jvmCardMediaPlayerFactory).also { viewModelStore.put("reviewer", it) }
 
             viewModel.onPageFinished(true)
             advanceUntilIdle()
@@ -123,7 +136,7 @@ class ReviewerViewModelTest : RobolectricTest() {
             val card = addBasicNote().firstCard()
             col.config.cardStateCustomizer = "await new Promise(resolve => setTimeout(resolve, 5000));"
             val savedStateHandle = SavedStateHandle(mapOf("showingAnswer" to true))
-            val viewModel = ReviewerViewModel(savedStateHandle).also { viewModelStore.put("reviewer", it) }
+            val viewModel = ReviewerViewModel(savedStateHandle, jvmCardMediaPlayerFactory).also { viewModelStore.put("reviewer", it) }
 
             viewModel.statesMutationEvalFlow.test {
                 viewModel.onPageFinished(true)
@@ -147,7 +160,7 @@ class ReviewerViewModelTest : RobolectricTest() {
         runTest {
             val card = addBasicNote().firstCard()
             col.config.cardStateCustomizer = "await new Promise(resolve => setTimeout(resolve, 5000));"
-            val viewModel = ReviewerViewModel(SavedStateHandle()).also { viewModelStore.put("reviewer", it) }
+            val viewModel = ReviewerViewModel(SavedStateHandle(), jvmCardMediaPlayerFactory).also { viewModelStore.put("reviewer", it) }
 
             viewModel.statesMutationEvalFlow.test {
                 viewModel.onPageFinished(false)
