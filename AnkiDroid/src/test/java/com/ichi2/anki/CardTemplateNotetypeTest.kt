@@ -7,14 +7,19 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.libanki.Notetypes
 import com.ichi2.anki.libanki.utils.append
 import com.ichi2.anki.libanki.utils.remove
+import com.ichi2.testutils.EmptyApplication
 import net.ankiweb.rsdroid.BackendException
 import org.junit.Assert
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import kotlin.test.junit5.JUnit5Asserter.assertNotNull
 import kotlin.test.junit5.JUnit5Asserter.assertNull
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
 class CardTemplateNotetypeTest : RobolectricTest() {
     @Test
     fun `failed validation preserves a bundle saved before the save attempt`() =
@@ -22,10 +27,10 @@ class CardTemplateNotetypeTest : RobolectricTest() {
             val original = col.notetypes.basicAndReversed
             val edited = CardTemplateNotetype(original.deepClone())
             edited.getTemplate(0).qfmt = "{{Missing}}"
-            val state = edited.toBundle()
+            val state = edited.toBundle(targetContext.cacheDir)
 
             try {
-                edited.saveToDatabase()
+                edited.saveToDatabase(targetContext.cacheDir)
                 Assert.fail("An unknown field must fail validation")
             } catch (_: BackendException) {
                 // The saved bundle must remain usable after validation fails.
@@ -35,7 +40,7 @@ class CardTemplateNotetypeTest : RobolectricTest() {
             assertNotNull("Failed validation must preserve the saved editor state", restored)
             Assert.assertEquals(edited.notetype.toString(), restored!!.notetype.toString())
             restored.getTemplate(0).qfmt = original.templates[0].qfmt
-            restored.saveToDatabase()
+            restored.saveToDatabase(targetContext.cacheDir)
             assertNull("A successful save should clear the temporary file", CardTemplateNotetype.fromBundle(state))
         }
 
@@ -52,7 +57,7 @@ class CardTemplateNotetypeTest : RobolectricTest() {
         assertNull("An unsaved addition must have no database ordinal", edited.getOriginalOrdinal(1))
         Assert.assertTrue(CardTemplateNotetype.isOrdinalPendingAdd(edited, 1))
 
-        val restored = CardTemplateNotetype.fromBundle(edited.toBundle())!!
+        val restored = CardTemplateNotetype.fromBundle(edited.toBundle(targetContext.cacheDir))!!
         Assert.assertArrayEquals(intArrayOf(1), restored.getDeleteDbOrds(1))
         restored.deleteTemplate(1)
         restored.appendTemplate("Replacement")
@@ -79,15 +84,15 @@ class CardTemplateNotetypeTest : RobolectricTest() {
             Assert.assertTrue(CardTemplateNotetype.isOrdinalPendingAdd(edited, 1))
             edited.getTemplate(0).qfmt = "{{Missing}}"
 
-            val restored = CardTemplateNotetype.fromBundle(edited.toBundle())!!
+            val restored = CardTemplateNotetype.fromBundle(edited.toBundle(targetContext.cacheDir))!!
             try {
-                restored.saveToDatabase()
+                restored.saveToDatabase(targetContext.cacheDir)
                 Assert.fail("An unknown field must fail validation")
             } catch (_: BackendException) {
                 Assert.assertEquals(originalCards.map { it.id }.toSet(), note.cids().toSet())
             }
             restored.getTemplate(0).qfmt = original.templates[0].qfmt
-            restored.saveToDatabase()
+            restored.saveToDatabase(targetContext.cacheDir)
 
             Assert.assertEquals(listOf("Card 1", "New"), col.notetypes.get(original.id)!!.templatesNames)
             Assert.assertEquals(originalCards[0].id, note.cards().single { it.ord == 0 }.id)
