@@ -173,9 +173,9 @@ class ProfileManagerTest {
         assertTrue(wrapped.filesDir.startsWith(profileDir))
     }
 
-    /** The policy is tested on the JVM; this checks the Android call on every supported API. */
+    /** The policy is tested on the JVM; check the platform boundary on its first and latest SDKs. */
     @Test
-    @Config(minSdk = Build.VERSION_CODES.P, shadows = [DirectorySuffixWebViewShadow::class])
+    @Config(sdk = [Build.VERSION_CODES.P, Config.NEWEST_SDK], shadows = [DirectorySuffixWebViewShadow::class])
     fun `modern devices route profile storage to the WebView directory suffix`() {
         ProfileManager.create(context)
         assertEquals(emptyList<String>(), DirectorySuffixWebViewShadow.suffixes)
