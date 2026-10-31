@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 package com.ichi2.anki.utils.ext
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.common.utils.ext.contentEquals
 import com.ichi2.anki.common.utils.ext.getStringOrNull
 import com.ichi2.anki.common.utils.ext.jsonObjectIterable
-import com.ichi2.testutils.AndroidTest
-import com.ichi2.testutils.EmptyApplication
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.equalTo
@@ -17,19 +13,13 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@RunWith(AndroidJUnit4::class) // This is necessary, android and JVM differ on JSONObject.NULL
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-class JSONObjectTest : AndroidTest {
+class JSONObjectTest {
     @Test
     fun `contentEquals compares nested values independently of object key order`() {
         val first = JSONObject("""{"css":"é 😀","values":[true,false,null,{},[],{"front":"a","back":"b"}]}""")
@@ -87,9 +77,7 @@ class JSONObjectTest : AndroidTest {
 
         assertNull(JSONObject().getStringOrNull("test"), message = "{}")
         assertNull(test(JSONObject.NULL), message = "{ test: null }")
-        // WARN: this differs between pure JVM and Robolectric/Android
-        // On Robolectric/Android, this is {}.
-        // On JVM following using the standard implementation it's null.
+        // The standalone Android JSON runtime preserves Android's object-to-string coercion.
         assertNotNull(test(JSONObject()), message = "test: { }")
         assertNotNull(test("null"), message = """{ test: "null" }""")
         assertNotNull(test("1"), message = """{ test: "1" }""")
