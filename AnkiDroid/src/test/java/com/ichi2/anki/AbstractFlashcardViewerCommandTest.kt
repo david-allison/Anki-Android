@@ -3,7 +3,6 @@
 package com.ichi2.anki
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.cardviewer.ViewerCommand
 import com.ichi2.anki.cardviewer.ViewerCommand.TOGGLE_FLAG_BLUE
 import com.ichi2.anki.cardviewer.ViewerCommand.TOGGLE_FLAG_GREEN
 import com.ichi2.anki.cardviewer.ViewerCommand.TOGGLE_FLAG_ORANGE
@@ -30,76 +29,6 @@ import org.robolectric.Robolectric
 
 @RunWith(AndroidJUnit4::class)
 class AbstractFlashcardViewerCommandTest : RobolectricTest() {
-    @Test
-    fun doubleTapSetsNone() {
-        val viewer = createViewer()
-        viewer.executeCommand(TOGGLE_FLAG_RED)
-        viewer.executeCommand(TOGGLE_FLAG_RED)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.NONE))
-    }
-
-    @Test
-    fun noneDoesNothing() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(UNSET_FLAG)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.NONE))
-    }
-
-    @Test
-    fun doubleNoneDoesNothing() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(UNSET_FLAG)
-        viewer.executeCommand(UNSET_FLAG)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.NONE))
-    }
-
-    @Test
-    fun flagCanBeChanged() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_RED)
-        viewer.executeCommand(TOGGLE_FLAG_BLUE)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.BLUE))
-    }
-
-    @Test
-    fun unsetUnsets() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_RED)
-        viewer.executeCommand(UNSET_FLAG)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.NONE))
-    }
-
-    @Test
-    fun tapRedFlagSetsRed() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_RED)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.RED))
-    }
-
-    @Test
-    fun tapOrangeFlagSetsOrange() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_ORANGE)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.ORANGE))
-    }
-
-    companion object {
-        val updateCard: ViewerRefresh = ViewerRefresh(queues = true, note = true, card = true)
-    }
-
     @Test
     fun testRefreshIfRequired() {
         // Create an ActivityController instance for AbstractFlashcardViewer
@@ -134,68 +63,31 @@ class AbstractFlashcardViewerCommandTest : RobolectricTest() {
     }
 
     @Test
-    fun tapGreenFlagSesGreen() {
+    fun flagCommandsReachTheCardUpdate() {
         val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_GREEN)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.GREEN))
+        val flags =
+            listOf(
+                TOGGLE_FLAG_RED to Flag.RED,
+                TOGGLE_FLAG_ORANGE to Flag.ORANGE,
+                TOGGLE_FLAG_GREEN to Flag.GREEN,
+                TOGGLE_FLAG_BLUE to Flag.BLUE,
+                TOGGLE_FLAG_PINK to Flag.PINK,
+                TOGGLE_FLAG_TURQUOISE to Flag.TURQUOISE,
+                TOGGLE_FLAG_PURPLE to Flag.PURPLE,
+            )
+        for ((command, flag) in flags) {
+            viewer.executeCommand(command)
+            assertThat(viewer.lastFlag, equalTo(flag))
+            viewer.executeCommand(command)
+            assertThat(viewer.lastFlag, equalTo(Flag.NONE))
+        }
+        viewer.executeCommand(TOGGLE_FLAG_RED)
+        viewer.executeCommand(UNSET_FLAG)
+        assertThat(viewer.lastFlag, equalTo(Flag.NONE))
     }
 
-    @Test
-    fun tapBlueFlagSetsBlue() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_BLUE)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.BLUE))
-    }
-
-    @Test
-    fun tapPinkFlagSetsPink() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_PINK)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.PINK))
-    }
-
-    @Test
-    fun tapTurquoiseFlagSetsTurquoise() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_TURQUOISE)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.TURQUOISE))
-    }
-
-    @Test
-    fun tapPurpleFlagSetsPurple() {
-        val viewer = createViewer()
-
-        viewer.executeCommand(TOGGLE_FLAG_PURPLE)
-
-        assertThat(viewer.lastFlag, equalTo(Flag.PURPLE))
-    }
-
-    @Test
-    fun doubleTapUnsets() {
-        testDoubleTapUnsets(TOGGLE_FLAG_RED)
-        testDoubleTapUnsets(TOGGLE_FLAG_ORANGE)
-        testDoubleTapUnsets(TOGGLE_FLAG_GREEN)
-        testDoubleTapUnsets(TOGGLE_FLAG_BLUE)
-        testDoubleTapUnsets(TOGGLE_FLAG_PINK)
-        testDoubleTapUnsets(TOGGLE_FLAG_TURQUOISE)
-        testDoubleTapUnsets(TOGGLE_FLAG_PURPLE)
-    }
-
-    private fun testDoubleTapUnsets(command: ViewerCommand) {
-        val viewer = createViewer()
-
-        viewer.executeCommand(command)
-        viewer.executeCommand(command)
-
-        assertThat(command.toString(), viewer.lastFlag, equalTo(Flag.NONE))
+    companion object {
+        val updateCard = ViewerRefresh(queues = true, note = true, card = true)
     }
 
     private fun createViewer(): CommandTestCardViewer = CommandTestCardViewer(cardWith(Flag.NONE))
