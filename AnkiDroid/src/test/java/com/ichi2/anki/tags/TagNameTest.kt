@@ -3,9 +3,7 @@
 package com.ichi2.anki.tags
 
 import com.ichi2.testutils.JvmTest
-import com.ichi2.testutils.rules.IcuCaseFoldingRule
 import com.ichi2.testutils.withViewModel
-import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -13,9 +11,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class TagNameTest : JvmTest() {
-    @get:Rule
-    val caseFolding = IcuCaseFoldingRule()
-
     @Test
     fun `equivalent names persist collapse changes using the tree spelling`() =
         runTest {
