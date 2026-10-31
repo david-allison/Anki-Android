@@ -16,6 +16,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.annotation.VisibleForTesting
 import com.google.android.material.color.MaterialColors
+import com.ichi2.anki.common.noteeditor.FieldText
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.servicelayer.NoteService
@@ -213,12 +214,12 @@ class FieldEditText :
     }
 
     companion object {
-        val NEW_LINE: String = System.getProperty("line.separator")!!
+        val NEW_LINE: String = FieldText.newLine
 
         /** Converts stored `<br>` HTML line breaks to [NEW_LINE], matching [setContent]'s handling. */
         fun convertBrToNewline(
             content: String,
             replaceNewLine: Boolean,
-        ): String = if (replaceNewLine) content.replace("<br(\\s*/*)>".toRegex(), NEW_LINE) else content
+        ): String = FieldText.toEditor(content, replaceNewLine)
     }
 }
