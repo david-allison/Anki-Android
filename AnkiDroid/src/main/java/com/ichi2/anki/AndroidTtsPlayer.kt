@@ -47,7 +47,7 @@ class AndroidTtsPlayer(
     private var currentTts: TextToSpeech? = null
 
     /** Flyweight pattern for an empty bundle */
-    private val bundleFlyweight = Bundle()
+    private val bundleFlyweight by lazy { Bundle() }
 
     private val ttsCompletedChannel: Channel<TtsCompletionStatus> = Channel()
 
@@ -55,7 +55,7 @@ class AndroidTtsPlayer(
     private var currentUtterance: String? = null
 
     /** Shared across every engine instance: playback is serialized, so a single channel suffices */
-    private val utteranceProgressListener =
+    private val utteranceProgressListener by lazy {
         object : UtteranceProgressListenerCompat() {
             override fun onStart(utteranceId: String?) {
                 // handle calling .stopPlaying() BEFORE onStart() is called
@@ -84,6 +84,7 @@ class AndroidTtsPlayer(
                 scope.launch(Dispatchers.IO) { ttsCompletedChannel.send(TtsCompletionStatus.failure(error)) }
             }
         }
+    }
 
     suspend fun init(scope: CoroutineScope) {
         this.scope = scope
