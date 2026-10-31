@@ -8,12 +8,12 @@ import android.view.View
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.FieldEditLine
 import com.ichi2.anki.NoteEditorFragment
+import com.ichi2.anki.common.noteeditor.NoteDraftFields
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.Notetypes
 import com.ichi2.utils.MapUtil.getKeyByValue
-import kotlin.math.min
 
 /** Responsible for recreating EditFieldLines after NoteEditor operations
  * This primarily exists so we can use saved instance state to repopulate the dynamically created FieldEditLine
@@ -23,12 +23,7 @@ class FieldState private constructor(
 ) {
     private var customViewIds: List<Int>? = null
 
-    // Values beyond the current type's field count, retained until the draft is saved or discarded.
-    private var hiddenFieldValues: List<String> = emptyList()
-
-    /** All draft values, including fields temporarily hidden by a smaller note type. */
-    val currentFieldValues: List<String>
-        get() = editor.currentFieldStrings.map { it.orEmpty() } + hiddenFieldValues
+    internal val draft = NoteDraftFields()
 
     fun loadFieldEditLines(type: FieldChangeType): List<FieldEditLine> {
         val fieldEditLines: List<FieldEditLine> =
@@ -52,11 +47,8 @@ class FieldState private constructor(
             }
         }
         if (type.type == Type.CHANGE_FIELD_COUNT) {
-            val fieldValues = currentFieldValues
-            for (i in 0 until min(fieldValues.size, fieldEditLines.size)) {
-                fieldEditLines[i].setContent(fieldValues[i], type.replaceNewlines)
-            }
-            hiddenFieldValues = fieldValues.drop(fieldEditLines.size)
+            val retainedValues = draft.resize(editor.currentFieldStrings.map { it.orEmpty() }, fieldEditLines.size)
+            retainedValues.forEachIndexed { index, value -> fieldEditLines[index].setContent(value, type.replaceNewlines) }
         } else if (type.type != Type.INIT) {
             clearHiddenFields()
         }
@@ -94,18 +86,18 @@ class FieldState private constructor(
 
     fun setInstanceState(savedInstanceState: Bundle?) {
         customViewIds = savedInstanceState?.getIntegerArrayList("customViewIds")
-        hiddenFieldValues = savedInstanceState?.getStringArrayList("hiddenFieldValues").orEmpty()
+        draft.hiddenValues = savedInstanceState?.getStringArrayList("hiddenFieldValues").orEmpty()
     }
 
     fun saveInstanceState(outState: Bundle) {
         // Visible values are already saved by the field views; only save the hidden tail here.
-        if (hiddenFieldValues.isNotEmpty()) {
-            outState.putStringArrayList("hiddenFieldValues", ArrayList(hiddenFieldValues))
+        if (draft.hiddenValues.isNotEmpty()) {
+            outState.putStringArrayList("hiddenFieldValues", ArrayList(draft.hiddenValues))
         }
     }
 
     fun clearHiddenFields() {
-        hiddenFieldValues = emptyList()
+        draft.clearHiddenFields()
     }
 
     /** How fields should be changed when the UI is rebuilt  */

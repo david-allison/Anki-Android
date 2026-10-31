@@ -90,6 +90,7 @@ import com.ichi2.anki.common.destinations.DeferredNavigation
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.common.destinations.toBundle
+import com.ichi2.anki.common.noteeditor.FieldText
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.common.utils.HashUtil
@@ -236,13 +237,6 @@ class NoteEditorFragment :
     private var isTagsEdited = false
     private var isFieldEdited = false
     private var addNoteJob = RunOnlyOnce(scope = lifecycleScope)
-
-    /**
-     * The field values of a new note immediately after they were last (re)populated -
-     * e.g. after a sticky field was carried over from the previous note. Used so
-     * [hasUnsavedChanges] can tell sticky-carried-over content apart from an actual edit.
-     */
-    private var addNoteFieldBaseline: List<String> = emptyList()
 
     private val getColUnsafe: Collection
         get() = CollectionManager.getColUnsafe()
@@ -595,7 +589,7 @@ class NoteEditorFragment :
         try {
             setupEditor(getColUnsafe, savedInstanceState)
             if (addNote) {
-                savedInstanceState?.getStringArrayList("addNoteFieldBaseline")?.let { addNoteFieldBaseline = it }
+                savedInstanceState?.getStringArrayList("addNoteFieldBaseline")?.let { fieldState.draft.baseline = it }
             }
         } catch (ex: RuntimeException) {
             Timber.w(ex, "setupEditor")
@@ -629,7 +623,7 @@ class NoteEditorFragment :
         savedInstanceState.putBoolean("addNote", addNote)
         if (addNote) {
             savedInstanceState.putBoolean("isFieldEdited", isFieldEdited)
-            savedInstanceState.putStringArrayList("addNoteFieldBaseline", ArrayList(addNoteFieldBaseline))
+            savedInstanceState.putStringArrayList("addNoteFieldBaseline", ArrayList(fieldState.draft.baseline))
         }
         savedInstanceState.putLong("did", deckId)
         selectedNoteTypeId?.let { savedInstanceState.putLong("noteTypeId", it) }
@@ -1205,17 +1199,12 @@ class NoteEditorFragment :
         fun fieldsEdited(): Boolean {
             // Editing an existing note: Check to see if the fields are changed
             if (!addNote) {
-                fun normalizeNewlines(s: String) =
-                    convertToHtmlNewline(s, replaceNewlines = true)
-                        .replace("<br(\\s*/*)>".toRegex(), "<br>")
-
                 val currentStrings = editFields!!.map { it.text?.toString() ?: "" }
-                val originalStrings = editorNote!!.fields.toList()
-                return currentStrings.map(::normalizeNewlines) != originalStrings.map(::normalizeNewlines)
+                return FieldText.hasChanges(currentStrings, editorNote!!.fields.toList())
             }
 
             if (!isFieldEdited) return false
-            return fieldState.currentFieldValues != addNoteFieldBaseline
+            return fieldState.draft.hasChanges(currentFieldStrings.map { it.orEmpty() })
         }
 
         // changed note type?
@@ -2254,7 +2243,7 @@ class NoteEditorFragment :
                 editFields!!.forEach { it.setText("") }
                 updateFieldsFromStickyText()
                 if (addNote) {
-                    addNoteFieldBaseline = editFields!!.map { it.text?.toString() ?: "" }
+                    fieldState.draft.baseline = editFields!!.map { it.text?.toString() ?: "" }
                 }
             }
         } else {
@@ -2263,20 +2252,12 @@ class NoteEditorFragment :
                 // Keep the baseline for hidden fields as well as visible ones. Only visible
                 // values pass through setContent(), so only normalize those baseline values.
                 if (addNote) {
-                    addNoteFieldBaseline =
-                        List(maxOf(editFields!!.size, addNoteFieldBaseline.size)) { i ->
-                            val old = addNoteFieldBaseline.getOrElse(i) { "" }
-                            if (i < editFields!!.size) {
-                                FieldEditText.convertBrToNewline(old, changeType.replaceNewlines)
-                            } else {
-                                old
-                            }
-                        }
+                    fieldState.draft.normalizeBaseline(editFields!!.size, changeType.replaceNewlines)
                 }
             } else {
                 updateFieldsFromStickyText()
                 if (addNote) {
-                    addNoteFieldBaseline = editFields!!.map { it.text?.toString() ?: "" }
+                    fieldState.draft.baseline = editFields!!.map { it.text?.toString() ?: "" }
                 }
             }
         }
