@@ -23,9 +23,12 @@ import com.ichi2.anki.OptionalPermissionSet
 import com.ichi2.anki.common.permissions.LEGACY_POST_NOTIFICATIONS
 import com.ichi2.anki.common.permissions.MANAGE_EXTERNAL_STORAGE
 import com.ichi2.anki.common.permissions.NotificationPermissionPrompt
+import com.ichi2.anki.common.permissions.POST_NOTIFICATIONS
+import com.ichi2.anki.common.permissions.PermissionSettingsScreen
 import com.ichi2.anki.common.permissions.canPostNotifications
 import com.ichi2.anki.common.permissions.canRequestPermission
 import com.ichi2.anki.common.permissions.hasPermission
+import com.ichi2.anki.common.permissions.permissionSettingsScreen
 import com.ichi2.anki.common.permissions.requestPermissionOrOpenSettings
 import com.ichi2.anki.common.permissions.showNotificationPermissionPromptIfNeeded
 import com.ichi2.anki.common.utils.android.isRobolectric
@@ -41,7 +44,7 @@ import kotlin.reflect.KMutableProperty0
 
 object Permissions {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    val notificationsPermission: String = Manifest.permission.POST_NOTIFICATIONS
+    val notificationsPermission: String = POST_NOTIFICATIONS
 
     /**
      * Returns whether AnkiDroid is able to request a permission from the user.
@@ -303,13 +306,9 @@ object Permissions {
      * Can be null to open the generic app settings screen.
      */
     fun Fragment.openAppSettingsScreenForPermission(permission: String?) {
-        when {
-            ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) && (permission == notificationsPermission)) ||
-                permission == LEGACY_POST_NOTIFICATIONS ->
-                openAppNotificationsSettingsScreen()
-
-            // Else, default to opening the root page of the app settings screen
-            else -> openAppSettingsScreen()
+        when (permissionSettingsScreen(permission, Build.VERSION.SDK_INT)) {
+            PermissionSettingsScreen.NOTIFICATIONS -> openAppNotificationsSettingsScreen()
+            PermissionSettingsScreen.APPLICATION -> openAppSettingsScreen()
         }
     }
 
