@@ -85,6 +85,8 @@ fun Project.registerJvmUnitTestTask(
                 includeCategories(*original.includeTags.toTypedArray())
                 excludeCategories(*original.excludeTags.toTypedArray())
             }
+            // Only Android test classes remain here; reuse their SDK sandboxes across more classes.
+            aggregate.forkEvery = 80
         }
         native.filter.isFailOnNoMatchingTests = false
         native.failOnNoDiscoveredTests.set(false)
