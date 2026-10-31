@@ -2,30 +2,19 @@
 
 package com.ichi2.utils
 
-import android.annotation.SuppressLint
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.common.utils.ext.deepClone
 import com.ichi2.anki.common.utils.ext.deepClonedInto
 import com.ichi2.anki.common.utils.ext.fromMap
-import com.ichi2.testutils.EmptyApplication
 import org.intellij.lang.annotations.Language
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * This black box test was written without inspecting the non-free org.json sourcecode.
  */
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
-// TODO: move to common test
-@SuppressLint("CheckResult") // many usages: checking exceptions
+@Suppress("CheckResult") // many usages: checking exceptions
 class JSONObjectTest {
     @Language("JSON")
     private val correctJsonBasic = """{"key1":"value1"}"""

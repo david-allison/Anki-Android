@@ -23,6 +23,7 @@ dependencies {
     compileOnly(libs.json)
 
     // test dependencies
+    testImplementation(testFixtures(project(":common")))
     testImplementation(libs.hamcrest)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit5)
@@ -30,7 +31,9 @@ dependencies {
     testImplementation(libs.junit.vintage.engine)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.json)
+    // Preserve Android JSON coercion and null behavior without Robolectric.
+    testCompileOnly(libs.json)
+    testRuntimeOnly(libs.android.json)
 
     // testFixtures dependencies
     testFixturesImplementation(project(":common"))

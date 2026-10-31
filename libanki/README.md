@@ -9,7 +9,8 @@ backend and require neither an Android runtime nor Robolectric. The backend's JV
 JAR supplies the API; Android database and cursor adapters live in the Android modules.
 
 `org.json` is a compile-only dependency in production so Android applications use the
-platform implementation. JVM consumers must provide their own JSON implementation.
+platform implementation. JVM consumers must provide their own JSON implementation. Tests use the standalone
+Android JSON implementation to retain Android null and coercion behavior without an SDK.
 
 ## Aims
 
