@@ -17,12 +17,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CommonString
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.browser.IdsFile
 import com.ichi2.anki.libanki.testutils.ext.newNote
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.utils.ext.requireParcelable
+import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.ParametersUtils
 import com.ichi2.testutils.RecyclerViewUtils
 import com.ichi2.testutils.parcelledCopy
@@ -41,6 +43,7 @@ import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.hamcrest.Matchers.lessThan
 import org.junit.Assert
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.robolectric.Robolectric
@@ -55,6 +58,8 @@ import kotlin.test.assertTrue
 import com.ichi2.anki.common.android.R as CommonR
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = EmptyApplication::class)
+@Category(EmptyApplicationCategory::class)
 class TagsDialogTest : RobolectricTest() {
     @Test
     fun `confirming removal of a parent does not preserve its display state`() {
