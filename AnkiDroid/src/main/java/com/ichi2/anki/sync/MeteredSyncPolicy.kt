@@ -49,14 +49,11 @@ object MeteredSyncPolicy {
         onConfirmationRequired: () -> Unit,
         onConfirm: (permission: MeteredSyncPermission) -> Unit,
     ) {
-        if (skipPrompt) {
-            onConfirm(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME)
-            return
-        }
-        if (!shouldBlock()) {
-            onConfirm(MeteredSyncPermission.USE_PREFERENCES)
-            return
-        }
-        onConfirmationRequired()
+        confirmMeteredSync(
+            skipPrompt = skipPrompt,
+            shouldBlock = ::shouldBlock,
+            onConfirmationRequired = onConfirmationRequired,
+            onConfirm = onConfirm,
+        )
     }
 }
