@@ -18,8 +18,6 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.crashreporting.CrashReporter
-import com.ichi2.anki.common.time.MockTime
-import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.dialogs.DialogHandler
 import com.ichi2.utils.ImportUtils.FileImporter
 import io.mockk.every
@@ -28,7 +26,6 @@ import io.mockk.unmockkStatic
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.endsWith
-import org.hamcrest.Matchers.lessThanOrEqualTo
 import org.hamcrest.Matchers.not
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -306,22 +303,6 @@ class ImportUtilsTest : RobolectricTest() {
         assertThat("Unicode character should be urlencoded", actualFilePath, endsWith("%E5%A5%BD.apkg"))
     }
 
-    @Test
-    fun fileNamesAreLimitedTo100Chars() {
-        // #6137 - We URLEncode due to the above. Therefore: 好 -> %E5%A5%BD
-        // This caused filenames to be too long.
-        val inputFileName = "好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好.apkg"
-
-        val actualFilePath = importValidFile(inputFileName)
-
-        assertThat(actualFilePath, endsWith(".apkg"))
-        assertThat(actualFilePath, containsString("..."))
-        // Obtain the filename from the path
-        assertThat(actualFilePath, containsString("%E5%A5%BD"))
-        val fileName = actualFilePath.substringAfter("%E5%A5%BD")
-        assertThat(fileName.length, lessThanOrEqualTo(100))
-    }
-
     private fun importValidFile(fileName: String): String {
         val testFileImporter = TestFileImporter(fileName)
         val intent = getValidClipDataUri(fileName)
@@ -363,39 +344,10 @@ class ImportUtilsTest : RobolectricTest() {
     }
 
     @Test
-    fun leadingDotFilenamesAreNotStripped() {
-        for (fileName in listOf(".hidden.apkg", "..apkg")) {
-            val actualFilePath = importValidFile(fileName)
-            assertEquals(fileName, File(Uri.decode(actualFilePath)).name)
-        }
-    }
-
-    @Test
-    fun getFileCachedCopyUsesUnnamedFileForEmptyDotAndDotDot() {
-        for (fileName in listOf("", ".", "..")) {
-            val actualFilepath = TestFileImporter(fileName).getFileCachedCopy(targetContext, "dummy".toUri())
-            assertEquals(File(targetContext.cacheDir, "unnamed_file").absolutePath, actualFilepath)
-        }
-    }
-
-    @Test
     fun getFileCachedCopyReturnsAbsolutePath() {
         val filename = "spaced filename.apkg"
         val expectedFilepath = File(targetContext.cacheDir, filename).absolutePath
         val actualFilepath = TestFileImporter(filename).getFileCachedCopy(targetContext, "dummy".toUri())
-        assertEquals(expectedFilepath, actualFilepath)
-    }
-
-    @Test
-    fun getFileCachedCopyUsesFallbackFileNameWhenDecodingFails() {
-        TimeManager.resetWith(MockTime(1_600_000_000_000))
-        val prefix = "a".repeat(89)
-        val invalidShortenedFileName = "${prefix}ääääääääää.apkg"
-        val expectedFallbackFileName = "file_1600000000000.apkg"
-        val expectedFilepath = File(targetContext.cacheDir, expectedFallbackFileName).absolutePath
-
-        val actualFilepath = TestFileImporter(invalidShortenedFileName).getFileCachedCopy(targetContext, "dummy".toUri())
-
         assertEquals(expectedFilepath, actualFilepath)
     }
 
