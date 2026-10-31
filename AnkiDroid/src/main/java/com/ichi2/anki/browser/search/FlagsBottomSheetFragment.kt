@@ -19,6 +19,8 @@ import com.ichi2.anki.Flag
 import com.ichi2.anki.R
 import com.ichi2.anki.databinding.FragmentBottomSheetListBinding
 import com.ichi2.anki.databinding.ItemBrowserFilterBottomSheetBinding
+import com.ichi2.anki.drawableRes
+import com.ichi2.anki.queryDisplayNames
 import com.ichi2.anki.utils.ext.behavior
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.parcelize.Parcelize
