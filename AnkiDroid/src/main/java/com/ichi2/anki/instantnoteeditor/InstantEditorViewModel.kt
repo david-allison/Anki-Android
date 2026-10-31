@@ -14,14 +14,14 @@ import com.ichi2.anki.NoteFieldsCheckResult
 import com.ichi2.anki.OnErrorListener
 import com.ichi2.anki.checkNoteFieldsResponse
 import com.ichi2.anki.common.crashreporting.CrashReportService
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.common.utils.ext.replaceWith
 import com.ichi2.anki.instantnoteeditor.InstantNoteEditorActivity.DialogType
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.observability.undoableOp
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.utils.ext.getAllClozeTextFields
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow

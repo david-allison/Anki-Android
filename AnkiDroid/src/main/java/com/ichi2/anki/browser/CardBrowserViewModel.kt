@@ -33,6 +33,8 @@ import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.destinations.CardInfoDestination
 import com.ichi2.anki.common.destinations.CardInfoDestination.EntryPoint
 import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.common.storage.IdSnapshotFile
 import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
@@ -56,8 +58,6 @@ import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.model.SortType
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.preferences.SharedPreferencesProvider
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.ViewModelSavedStateHandle
 import com.ichi2.anki.utils.ext.getCardOrNull

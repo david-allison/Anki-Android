@@ -47,6 +47,7 @@ import com.ichi2.anki.browser.RepositionCardsRequest.NoRepositionableCardsError
 import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
 import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.common.storage.IdSnapshotFile
 import com.ichi2.anki.common.utils.ext.ifNotZero
 import com.ichi2.anki.common.utils.ext.ignoreAccentsInSearch
@@ -71,7 +72,6 @@ import com.ichi2.anki.noteeditor.toIntent
 import com.ichi2.anki.observability.ensureNoOpsExecuted
 import com.ichi2.anki.observability.ensureOpWithHandler
 import com.ichi2.anki.observability.ensureOpsExecuted
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.anki.servicelayer.NoteService
 import com.ichi2.anki.setFlagFilterSync
 import com.ichi2.anki.settings.Prefs

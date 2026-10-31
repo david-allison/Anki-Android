@@ -33,6 +33,7 @@ import com.ichi2.anki.CustomActionModeCallback
 import com.ichi2.anki.R
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.destinations.navigate
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.databinding.ActivityInstantNoteEditorBinding
@@ -44,7 +45,6 @@ import com.ichi2.anki.dialogs.startDeckSelection
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.model.SelectableDeck
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.anki.progress.observeProgress
 import com.ichi2.anki.servicelayer.NoteService
 import com.ichi2.anki.startup.ensureStorageIsReady

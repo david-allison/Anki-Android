@@ -35,6 +35,7 @@ import com.ichi2.anki.common.destinations.DeckOptionsDestination
 import com.ichi2.anki.common.destinations.DeferredNavigation
 import com.ichi2.anki.common.destinations.PreferencesDestination
 import com.ichi2.anki.common.destinations.toIntent
+import com.ichi2.anki.common.progress.ProgressAmount
 import com.ichi2.anki.common.utils.android.isRobolectric
 import com.ichi2.anki.dialogs.databaseErrorDialogs
 import com.ichi2.anki.exception.CollectionLockedException
@@ -581,8 +582,8 @@ data class ProgressContext(
     var progress: Progress = Progress.getDefaultInstance(),
     var text: String? = null,
     /** If set, shows a progress bar with `current` of `max` complete. */
-    var amount: Amount? = null,
-    val formatAmount: (Amount) -> String = { (current, max) -> "$current/$max" },
+    var amount: ProgressAmount? = null,
+    val formatAmount: (ProgressAmount) -> String = { (current, max) -> "$current/$max" },
     /** Separator between [text] and [amount] */
     val separator: String = " ",
 ) {
@@ -612,17 +613,6 @@ data class ProgressContext(
                 },
             )
     }
-
-    /**
-     * Represents a progress value and a maximum limit.
-     *
-     * @see ProgressContext
-     */
-    // values are 'Long' as this can represent bytes.
-    data class Amount(
-        val current: Long,
-        val max: Long,
-    )
 }
 
 /**

@@ -6,9 +6,9 @@ import androidx.lifecycle.ViewModelStore
 import anki.scheduler.CardAnswer.Rating
 import app.cash.turbine.test
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.observability.ensureOpsExecuted
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.JvmTest
 import com.ichi2.testutils.withNullCollection
 import kotlinx.coroutines.CoroutineScope

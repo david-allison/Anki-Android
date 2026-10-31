@@ -6,12 +6,12 @@ package com.ichi2.anki.instanteditor
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.ichi2.anki.CollectionManager
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.instantnoteeditor.InstantEditorProgress
 import com.ichi2.anki.instantnoteeditor.InstantEditorViewModel
 import com.ichi2.anki.instantnoteeditor.InstantNoteEditorActivity
 import com.ichi2.anki.instantnoteeditor.SaveNoteResult
 import com.ichi2.anki.libanki.testutils.AnkiTest
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.JvmTest
 import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertEquals

@@ -11,10 +11,10 @@ import anki.backend.backendError
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.backend.DatabaseCorruption
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.dialogs.DatabaseErrorDialog
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.addNotetypeLegacy
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.anki.throwOnShowError
 import io.mockk.every
 import io.mockk.mockkStatic

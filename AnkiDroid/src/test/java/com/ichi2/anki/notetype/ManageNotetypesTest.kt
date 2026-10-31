@@ -10,7 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.dialogs.LoadingDialogFragment
-import com.ichi2.anki.progress.ViewModelProgress
+import com.ichi2.anki.common.progress.ViewModelProgress
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle

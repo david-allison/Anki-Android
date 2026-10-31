@@ -17,9 +17,9 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.instantnoteeditor.InstantEditorViewModel
 import com.ichi2.anki.instantnoteeditor.InstantNoteEditorActivity
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.withCollectionAccessOn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.android.asCoroutineDispatcher

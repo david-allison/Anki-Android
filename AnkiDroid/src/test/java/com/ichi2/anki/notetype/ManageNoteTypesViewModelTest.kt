@@ -4,12 +4,12 @@ package com.ichi2.anki.notetype
 
 import anki.notetypes.StockNotetype
 import app.cash.turbine.test
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.exception.CombinedException
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.getNotetypeNameIdUseCount
 import com.ichi2.anki.libanki.removeNotetype
 import com.ichi2.anki.notetype.ManageNoteTypesState.UserMessage
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.JvmTest
 import io.mockk.every
 import io.mockk.mockkStatic
