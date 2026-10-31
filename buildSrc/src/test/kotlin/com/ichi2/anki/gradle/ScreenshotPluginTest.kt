@@ -5,6 +5,7 @@ package com.ichi2.anki.gradle
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -14,6 +15,62 @@ import java.io.File
 class ScreenshotPluginTest {
     @TempDir
     lateinit var projectDir: File
+
+    @Test
+    fun `normal unit tests never construct excluded screenshot runners`() {
+        writeFixture()
+        writeFile(
+            "src/test/java/com/ichi2/anki/ScreenshotTestCategory.java",
+            "package com.ichi2.anki; public interface ScreenshotTestCategory {}",
+        )
+        writeFile(
+            "src/test/java/regression/NormalTest.java",
+            """
+            package regression;
+            public class NormalTest {
+                @org.junit.jupiter.api.Test void normal() {}
+            }
+            """.trimIndent(),
+        )
+        writeFile(
+            "src/test/java/regression/DiscoveryGuardScreenshotTest.java",
+            """
+            package regression;
+            import java.nio.file.Files;
+            import java.nio.file.Path;
+            import org.junit.experimental.categories.Category;
+            import org.junit.runner.Description;
+            import org.junit.runner.Runner;
+            import org.junit.runner.RunWith;
+            import org.junit.runner.notification.RunNotifier;
+
+            @Category(com.ichi2.anki.ScreenshotTestCategory.class)
+            @RunWith(DiscoveryGuardScreenshotTest.DiscoveryGuard.class)
+            public class DiscoveryGuardScreenshotTest {
+                public static class DiscoveryGuard extends Runner {
+                    private final Class<?> type;
+                    public DiscoveryGuard(Class<?> type) throws Exception {
+                        this.type = type;
+                        Files.writeString(Path.of("screenshot-runner-created.txt"), "discovered");
+                    }
+                    public Description getDescription() { return Description.createSuiteDescription(type); }
+                    public void run(RunNotifier notifier) {}
+                }
+            }
+            """.trimIndent(),
+        )
+        writeFile("changed.txt", "false")
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withTestKitDir(File("build/test-kit").absoluteFile)
+            .withPluginClasspath()
+            .withArguments("testDebugUnitTest", "--configuration-cache", "--stacktrace")
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":testDebugUnitTest")?.outcome, result.output)
+        assertFalse(File(projectDir, "screenshot-runner-created.txt").exists(), result.output)
+    }
 
     @Test
     fun `matching screenshots clear previous diffs including cached results`() {
@@ -91,6 +148,7 @@ class ScreenshotPluginTest {
             }
             dependencies {
                 testImplementation libs.junit.jupiter
+                testImplementation libs.junit.vintage.engine
                 testRuntimeOnly libs.junit.platform.launcher
             }
             tasks.withType(Test).configureEach {
