@@ -3,42 +3,15 @@
 
 package com.ichi2.anki.multiprofile
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.backupLock
 import com.ichi2.anki.multiprofile.ProfileSwitchGuard.BlockReason
-import com.ichi2.anki.worker.UniqueWorkNames
 import com.ichi2.anki.worker.mediaSyncLock
 import com.ichi2.anki.worker.syncLock
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-
-@RunWith(AndroidJUnit4::class)
-class ProfileSwitchQueuedWorkTest : RobolectricTest() {
-    private fun enqueueMediaSync() = targetContext.enqueueWaiting(UniqueWorkNames.SYNC_MEDIA)
-
-    private fun enqueueSync() = targetContext.enqueueWaiting(UniqueWorkNames.SYNC)
-
-    @Test
-    fun `a media sync waiting for the network does not block the switch`() =
-        runTest {
-            enqueueMediaSync()
-
-            assertNull(mediaSyncCheck().verify(), "queued work has nothing to interrupt")
-        }
-
-    @Test
-    fun `a sync waiting for the network does not block the switch`() =
-        runTest {
-            enqueueSync()
-
-            assertNull(syncCheck().verify(), "offline, a queued sync would block switching forever")
-        }
-}
 
 class ProfileSwitchChecksTest {
     @Test

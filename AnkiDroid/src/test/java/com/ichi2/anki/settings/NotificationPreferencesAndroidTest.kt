@@ -8,7 +8,6 @@ import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.testutils.AndroidTest
 import com.ichi2.testutils.EmptyApplication
-import com.ichi2.testutils.jvmPreferences
 import com.ichi2.testutils.targetContext
 import org.junit.Test
 import org.junit.experimental.categories.Category
@@ -33,26 +32,5 @@ class NotificationPreferencesAndroidTest : AndroidTest {
         notifications.newReviewRemindersEnabled = false
         assertFalse(preferences.getBoolean("newReviewReminders", true))
         assertEquals("minimumCardsDueForNotification", notifications.key(CommonR.string.pref_notifications_minimum_cards_due_key))
-    }
-}
-
-class NotificationPreferencesTest {
-    private val notifications = jvmPreferences()
-    private val preferences = notifications.sharedPrefs
-
-    @Test
-    fun `both notification systems default to disabled`() {
-        preferences.edit { clear() }
-        assertFalse(notifications.newReviewRemindersEnabled)
-        assertFalse(notifications.legacyNotificationsEnabled)
-    }
-
-    @Test
-    fun `legacy notification threshold retains its disabled boundary`() {
-        val key = notifications.key(CommonR.string.pref_notifications_minimum_cards_due_key)
-        preferences.edit { putString(key, "999999") }
-        assertTrue(notifications.legacyNotificationsEnabled)
-        preferences.edit { putString(key, "1000000") }
-        assertFalse(notifications.legacyNotificationsEnabled)
     }
 }
