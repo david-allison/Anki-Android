@@ -39,19 +39,22 @@ private const val REMINDER_TAG = "Reminders"
  * Users may find describing issues on forums difficult beyond "I didn't get a notification".
  * This small set of logs is persisted to a file and is intended to aid in bug reporting and diagnosis.
  *
- * @param context Used to locate the log file.
+ * @param directory Directory in which to persist the log file.
  */
 @SuppressLint("LogNotTimber")
 class ReminderLogTree(
-    context: Context,
+    directory: File,
+    private val reportWarning: (String, Throwable?) -> Unit = { message, cause -> Log.w(REMINDER_TAG, message, cause) },
 ) : Timber.Tree() {
+    constructor(context: Context) : this(context.noBackupFilesDir)
+
     /**
      * We store the log file in [Context.getNoBackupFilesDir], which requires no permission on any build flavor, is
      * never reclaimed by the OS when storage is low, and is excluded from device backups: the log describes the
      * behavior of alarms on *this* device, so entries restored from another device would be misleading.
      */
     @VisibleForTesting
-    val logFile = File(context.noBackupFilesDir, LOG_FILE_NAME)
+    val logFile = File(directory, LOG_FILE_NAME)
 
     private val scope: CoroutineScope = applicationScope
 
@@ -91,7 +94,7 @@ class ReminderLogTree(
             try {
                 if (logFile.exists()) logFile.readText() else null
             } catch (e: IOException) {
-                Log.w(REMINDER_TAG, "Failed to read review reminder log", e)
+                reportWarning("Failed to read review reminder log", e)
                 null
             }
         }
@@ -145,7 +148,7 @@ class ReminderLogTree(
             trimIfNeeded()
             FileOutputStream(logFile, true).use { it.write(line.toByteArray()) }
         } catch (e: IOException) {
-            Log.w(REMINDER_TAG, "Failed to write to review reminder log", e)
+            reportWarning("Failed to write to review reminder log", e)
         }
     }
 
@@ -165,7 +168,7 @@ class ReminderLogTree(
 
         if (renameTemporaryFile(temporaryFile, logFile)) return
         temporaryFile.delete()
-        Log.w(REMINDER_TAG, "Failed to atomically truncate review reminder log; rewriting it in place")
+        reportWarning("Failed to atomically truncate review reminder log; rewriting it in place", null)
         logFile.writeBytes(trimmedBytes)
     }
 
