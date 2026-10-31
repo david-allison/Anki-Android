@@ -180,6 +180,7 @@ import com.ichi2.anki.receiver.SdCardReceiver
 import com.ichi2.anki.reviewreminders.ReviewReminderScope
 import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
 import com.ichi2.anki.reviewreminders.ScheduleRemindersFragment
+import com.ichi2.anki.servicelayer.PreferenceUpgradeService
 import com.ichi2.anki.servicelayer.ScopedStorageService
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.settings.enums.DayTheme
@@ -1976,14 +1977,14 @@ open class DeckPicker :
             val current = VersionUtils.pkgVersionCode
             Timber.i("Current AnkiDroid version: %s", current)
             val previous: Long =
-                if (preferences.contains(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION)) {
+                if (preferences.contains(PreferenceUpgradeService.PREF_LAST_UPGRADE_VERSION)) {
                     // Upgrading currently installed app
-                    viewModel.getPreviousVersion(preferences, current)
+                    PreferenceUpgradeService.getPreviousVersion(preferences, current)
                 } else {
                     // Fresh install
                     current
                 }
-            preferences.edit { putLong(DeckPickerViewModel.PREF_LAST_UPGRADE_VERSION, current) }
+            preferences.edit { putLong(PreferenceUpgradeService.PREF_LAST_UPGRADE_VERSION, current) }
 
             val upgradedPreferences = InitialActivity.upgradePreferences(this, previous)
             // Integrity check loads asynchronously and then restart deck picker when finished
