@@ -4,7 +4,6 @@ package com.ichi2.anki.browser.search
 
 import anki.search.SearchNode
 import anki.search.searchNode
-import com.ichi2.anki.CollectionManager.TR
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -12,6 +11,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import net.ankiweb.rsdroid.Translations
 
 /**
  * Available card states to select for searches.
@@ -49,15 +49,14 @@ enum class CardState(
      *
      * `CardState.New` => `"New"`
      */
-    val label: String
-        get() =
-            when (this) {
-                New -> TR.statisticsCountsNewCards()
-                Learning -> TR.statisticsCountsLearningCards()
-                Review -> TR.browsingSidebarCardStateReview()
-                Buried -> TR.statisticsCountsBuriedCards()
-                Suspended -> TR.browsingSuspended()
-            }
+    fun label(translations: Translations): String =
+        when (this) {
+            New -> translations.statisticsCountsNewCards()
+            Learning -> translations.statisticsCountsLearningCards()
+            Review -> translations.browsingSidebarCardStateReview()
+            Buried -> translations.statisticsCountsBuriedCards()
+            Suspended -> translations.browsingSuspended()
+        }
 
     /**
      * Creates a [SearchNode.CardState] for use in a [SearchNode].

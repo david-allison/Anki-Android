@@ -2,21 +2,19 @@
 
 package com.ichi2.anki.browser.search
 
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
-import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import com.ichi2.anki.libanki.DeckNameId
 import com.ichi2.anki.libanki.NoteTypeNameID
 import com.ichi2.anki.libanki.exception.InvalidSearchException
 import com.ichi2.anki.libanki.testutils.AnkiTest
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import kotlin.test.assertFailsWith
 
 /** Tests for [SearchRequest] */
-class SearchRequestTest : JvmTest() {
+class SearchRequestTest : InMemoryAnkiTest() {
     @Test
     fun `search string generation - empty`() {
         val entry = SearchRequest(query = "")
@@ -83,7 +81,7 @@ class SearchRequestTest : JvmTest() {
         )
 
     /**
-     * Builds a valid [SearchHistoryEntry]
+     * Builds a valid [SearchRequest]
      *
      * Use [complexRequest] if you don't need a valid entry, as this method performs DB access
      */
@@ -105,11 +103,10 @@ class SearchRequestTest : JvmTest() {
 }
 
 context(test: AnkiTest)
-fun SearchRequest.toValidSearchString(): String =
+private fun SearchRequest.toValidSearchString(): String =
     with(test.col) {
         return this@toValidSearchString.toSearchString().getOrThrow().value
     }
 
-suspend fun SearchRequest.toSearchString(): String? = withCol { toSearchString() }.getOrNull()?.value
-
-suspend fun SearchRequest.toSearchStringResult(): Result<SearchString> = withCol { toSearchString() }
+context(test: AnkiTest)
+private fun SearchRequest.toSearchStringResult(): Result<SearchString> = with(test.col) { toSearchString() }
