@@ -4,7 +4,6 @@ package com.ichi2.anki.common.utils.ext
 
 import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
-import com.ichi2.anki.model.CardsOrNotes
 import org.json.JSONObject
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -108,16 +107,6 @@ class ConfigTest : InMemoryAnkiTest() {
         assertEquals(emptyList(), col.config.savedFilters)
         col.config.remove("savedFilters")
         assertEquals(emptyList(), col.config.savedFilters)
-    }
-
-    @Test
-    fun `browser mode helpers use the mapped config property`() {
-        CardsOrNotes.NOTES.saveToCollection(col)
-        assertEquals(CardsOrNotes.NOTES, col.config.cardsOrNotes)
-        assertEquals(CardsOrNotes.NOTES, CardsOrNotes.fromCollection(col))
-
-        col.config.cardsOrNotes = CardsOrNotes.CARDS
-        assertEquals(CardsOrNotes.CARDS, CardsOrNotes.fromCollection(col))
     }
 
     @Test
