@@ -3,33 +3,46 @@
 package com.ichi2.anki.previewer
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.lifecycle.ViewModelStore
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.NotetypeFile
 import com.ichi2.testutils.JvmTest
 import com.ichi2.testutils.common.Flaky
 import com.ichi2.testutils.common.OS
+import com.ichi2.testutils.jvmCardMediaPlayerFactory
 import io.mockk.coEvery
 import io.mockk.spyk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
 import kotlin.test.assertNotEquals
 
-@RunWith(AndroidJUnit4::class)
 class TemplatePreviewerViewModelTest : JvmTest() {
+    private val viewModels = ViewModelStore()
+    private var viewModelId = 0
+
+    @After
+    override fun tearDown() {
+        try {
+            viewModels.clear()
+        } finally {
+            super.tearDown()
+        }
+    }
+
     @get:Rule
     val tempDirectory = TemporaryFolder()
 
     private fun createViewModel(arguments: TemplatePreviewerArguments): TemplatePreviewerViewModel {
         val savedStateHandle = SavedStateHandle(mapOf(TemplatePreviewerFragment.ARG_KEY to arguments))
-        val viewModel = TemplatePreviewerViewModel(savedStateHandle)
+        val viewModel = TemplatePreviewerViewModel(savedStateHandle, mediaPlayerFactory = jvmCardMediaPlayerFactory)
+        viewModels.put("template-${viewModelId++}", viewModel)
         return spyk(viewModel).apply {
             // the default implementation requires the Collection media directory,
             // which needs a Robolectric setup with CollectionStorageMode.IN_MEMORY_WITH_MEDIA or ON_DISK

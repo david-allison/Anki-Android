@@ -2,16 +2,10 @@
 
 package com.ichi2.anki.utils.ext
 
-import android.util.JsonWriter
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
-import com.ichi2.testutils.EmptyApplication
+import com.google.gson.stream.JsonWriter
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import java.io.IOException
 import java.io.StringWriter
 import java.io.Writer
@@ -20,9 +14,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class JsonWriterTest {
     @Test
     fun `JSON values round trip through streaming serialization`() {
