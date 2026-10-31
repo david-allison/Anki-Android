@@ -51,6 +51,7 @@ import com.ichi2.anki.preferences.PreferenceTestUtils
 import com.ichi2.anki.reviewer.ActionButtonStatus
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.snackbar.showSnackbar
+import com.ichi2.anki.utils.OnlyOnce
 import com.ichi2.testutils.RecordingInputMethodManager
 import com.ichi2.testutils.common.Flaky
 import com.ichi2.testutils.common.OS
@@ -382,29 +383,26 @@ class ReviewerTest : RobolectricTest() {
 
             advanceRobolectricLooper()
 
-            equalFirstField(cards[0], reviewer.currentCard!!)
-            reviewer.answerCard(Rating.AGAIN)
+            assertCurrentCardIs(reviewer, cards[0])
+            answerCardAndWait(reviewer, Rating.AGAIN)
             advanceRobolectricLooper()
 
-            equalFirstField(cards[1], reviewer.currentCard!!)
-            reviewer.answerCard(Rating.AGAIN)
+            assertCurrentCardIs(reviewer, cards[1])
+            answerCardAndWait(reviewer, Rating.AGAIN)
             advanceRobolectricLooper()
 
             undo(reviewer)
             advanceRobolectricLooper()
 
-            equalFirstField(cards[1], reviewer.currentCard!!)
-            reviewer.answerCard(Rating.GOOD)
+            assertCurrentCardIs(reviewer, cards[1])
+            answerCardAndWait(reviewer, Rating.GOOD)
             advanceRobolectricLooper()
 
-            equalFirstField(cards[2], reviewer.currentCard!!)
+            assertCurrentCardIs(reviewer, cards[2])
             time.addM(2)
-            reviewer.answerCard(Rating.GOOD)
+            answerCardAndWait(reviewer, Rating.GOOD)
             advanceRobolectricLooper()
-            equalFirstField(
-                cards[0],
-                reviewer.currentCard!!,
-            ) // This failed in #6898 because this card was not in the queue
+            assertCurrentCardIs(reviewer, cards[0]) // Issue 6898: this card was not in the queue
         }
 
     @Test
@@ -531,8 +529,8 @@ class ReviewerTest : RobolectricTest() {
         assertThat("Unexpected card ord", ord + 1, not(equalTo(i)))
     }
 
-    private fun undo(reviewer: Reviewer) {
-        reviewer.undo()
+    private suspend fun undo(reviewer: Reviewer) {
+        reviewer.undo().join()
     }
 
     @Suppress("SameParameterValue")
@@ -567,16 +565,30 @@ class ReviewerTest : RobolectricTest() {
     ) {
         assertCurrentOrdIs(r, i)
 
-        r.answerCard(Rating.GOOD)
+        answerCardAndWait(r, Rating.GOOD)
+    }
 
-        advanceRobolectricLooper()
+    private fun answerCardAndWait(
+        reviewer: Reviewer,
+        rating: Rating,
+    ) {
+        reviewer.answerCard(rating)
+        advanceRobolectricLooperUntil { OnlyOnce.Method.ANSWER_CARD !in OnlyOnce.pendingMethods }
+    }
+
+    private fun assertCurrentCardIs(
+        reviewer: Reviewer,
+        expected: Card,
+    ) {
+        advanceRobolectricLooperUntil { reviewer.currentCard?.id == expected.id }
+        equalFirstField(expected, reviewer.currentCard!!)
     }
 
     private fun assertCurrentOrdIs(
         r: Reviewer,
         i: Int,
     ) {
-        advanceRobolectricLooper()
+        advanceRobolectricLooperUntil { r.currentCard?.ord?.plus(1) == i }
         val ord = r.currentCard!!.ord
 
         assertThat("Unexpected card ord", ord + 1, equalTo(i))
