@@ -244,6 +244,23 @@ open class AnkiDroidApp :
         setupCustomFieldFilters()
     }
 
+    /** Logs process diagnostics independently of UI dependency initialization. */
+    protected open fun logStartupDebugInfo() {
+        applicationScope.launch {
+            Timber.i("AnkiDroidApp: listing debug info")
+            Timber.i(DebugInfoService.getDebugInfo(this@AnkiDroidApp))
+        }
+    }
+
+    /** Starts process maintenance after logging is available. */
+    protected open fun startProcessMaintenance() {
+        launchPreviousAnrReporting()
+        ProfileManager.attachError?.let {
+            Timber.w(it, "Failed to load the profile environment, running on the base context")
+        }
+        launchCacheCleanup()
+    }
+
     override fun onTerminate() {
         // WARN: onTerminate is not called on production Android devices, only emulated environments
 
@@ -394,21 +411,14 @@ open class AnkiDroidApp :
     context(_: CrashReportingContext)
     private fun launchStartupLogging() {
         setup("launchStartupLogging") {
-            applicationScope.launch {
-                Timber.i("AnkiDroidApp: listing debug info")
-                Timber.i(DebugInfoService.getDebugInfo(this@AnkiDroidApp))
-            }
+            logStartupDebugInfo()
         }
     }
 
     /** Starts maintenance and diagnostics which must not run in the ACRA sender process. */
     private fun setupMainProcessMaintenance() {
         setup("setupMainProcessMaintenance") {
-            launchPreviousAnrReporting()
-            ProfileManager.attachError?.let {
-                Timber.w(it, "Failed to load the profile environment, running on the base context")
-            }
-            launchCacheCleanup()
+            startProcessMaintenance()
             if (AdaptionUtil.isUserATestClient) {
                 showThemedToast(applicationContext, getString(CommonString.user_is_a_robot), false)
             }
