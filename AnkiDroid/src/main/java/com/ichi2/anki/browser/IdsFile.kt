@@ -71,8 +71,8 @@ class IdsFile(
     }
 }
 
-/** Attempt to delete the associated [IdsFile] and logs the result */
-fun IdsFile.removeSafely(owner: String) {
+/** Attempt to delete the associated snapshot and log the result. */
+fun IdSnapshotFile.removeSafely(owner: String) {
     runCatching { delete() }
         .onFailure { throwable ->
             Timber.w(
