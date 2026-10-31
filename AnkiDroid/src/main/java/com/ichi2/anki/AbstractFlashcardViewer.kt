@@ -71,7 +71,6 @@ import anki.collection.OpChanges
 import anki.scheduler.CardAnswer.Rating
 import com.drakeet.drawer.FullDraggableContainer
 import com.google.android.material.snackbar.Snackbar
-import com.ichi2.anki.AbstractFlashcardViewer.Signal.Companion.toSignal
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.android.AnkiShakeDetector
@@ -102,6 +101,8 @@ import com.ichi2.anki.cardviewer.handledGamepadKeyUp
 import com.ichi2.anki.common.android.animationDisabled
 import com.ichi2.anki.common.android.animationEnabled
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.common.cardviewer.ViewerSignal
+import com.ichi2.anki.common.cardviewer.ViewerSignal.Companion.toSignal
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.destinations.PreferencesDestination
 import com.ichi2.anki.common.destinations.navigate
@@ -2344,46 +2345,6 @@ abstract class AbstractFlashcardViewer :
         recreateWebView()
     }
 
-    /** Signals from a WebView represent actions with no parameters  */
-    enum class Signal {
-        /** A signal which we did not know how to handle  */
-        SIGNAL_UNHANDLED,
-
-        /** A known signal which should perform a noop  */
-        SIGNAL_NOOP,
-        TYPE_FOCUS,
-
-        /** Tell the app that we no longer want to focus the WebView and should instead return keyboard focus to a
-         * native answer input method.  */
-        RELINQUISH_FOCUS,
-        SHOW_ANSWER,
-        ANSWER_ORDINAL_1,
-        ANSWER_ORDINAL_2,
-        ANSWER_ORDINAL_3,
-        ANSWER_ORDINAL_4,
-        ;
-
-        companion object {
-            fun String.toSignal(): Signal {
-                when (this) {
-                    "signal:typefocus" -> return TYPE_FOCUS
-                    "signal:relinquishFocus" -> return RELINQUISH_FOCUS
-                    "signal:show_answer" -> return SHOW_ANSWER
-                    "signal:answer_ease1" -> return ANSWER_ORDINAL_1
-                    "signal:answer_ease2" -> return ANSWER_ORDINAL_2
-                    "signal:answer_ease3" -> return ANSWER_ORDINAL_3
-                    "signal:answer_ease4" -> return ANSWER_ORDINAL_4
-                    else -> {}
-                }
-                if (this.startsWith("signal:answer_ease")) {
-                    Timber.w("Unhandled signal: ease value: %s", this)
-                    return SIGNAL_NOOP
-                }
-                return SIGNAL_UNHANDLED // unknown, or not a signal.
-            }
-        }
-    }
-
     inner class CardViewerWebClient internal constructor(
         private val resourceHandler: ViewerResourceHandler,
         private val onPageFinishedCallback: OnPageFinishedCallback? = null,
@@ -2526,17 +2487,17 @@ abstract class AbstractFlashcardViewer :
             }
 
             when (url.toSignal()) {
-                Signal.SIGNAL_UNHANDLED -> {}
-                Signal.SIGNAL_NOOP -> return true
-                Signal.TYPE_FOCUS -> return true
+                ViewerSignal.SIGNAL_UNHANDLED -> {}
+                ViewerSignal.SIGNAL_NOOP -> return true
+                ViewerSignal.TYPE_FOCUS -> return true
 
-                Signal.RELINQUISH_FOCUS -> {
+                ViewerSignal.RELINQUISH_FOCUS -> {
                     // #5811 - The WebView could be focused via mouse. Allow components to return focus to Android.
                     focusAnswerCompletionField()
                     return true
                 }
 
-                Signal.SHOW_ANSWER -> {
+                ViewerSignal.SHOW_ANSWER -> {
                     // display answer when showAnswer() called from card.js
                     if (!displayAnswer) {
                         displayCardAnswer()
@@ -2544,22 +2505,22 @@ abstract class AbstractFlashcardViewer :
                     return true
                 }
 
-                Signal.ANSWER_ORDINAL_1 -> {
+                ViewerSignal.ANSWER_ORDINAL_1 -> {
                     flipOrAnswerCard(Rating.AGAIN)
                     return true
                 }
 
-                Signal.ANSWER_ORDINAL_2 -> {
+                ViewerSignal.ANSWER_ORDINAL_2 -> {
                     flipOrAnswerCard(Rating.HARD)
                     return true
                 }
 
-                Signal.ANSWER_ORDINAL_3 -> {
+                ViewerSignal.ANSWER_ORDINAL_3 -> {
                     flipOrAnswerCard(Rating.GOOD)
                     return true
                 }
 
-                Signal.ANSWER_ORDINAL_4 -> {
+                ViewerSignal.ANSWER_ORDINAL_4 -> {
                     flipOrAnswerCard(Rating.EASY)
                     return true
                 }

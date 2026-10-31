@@ -14,8 +14,6 @@ import androidx.test.filters.SdkSuppress
 import anki.config.ConfigKey
 import anki.scheduler.CardAnswer.Rating
 import com.ichi2.anki.AbstractFlashcardViewer.Companion.toAnimationTransition
-import com.ichi2.anki.AbstractFlashcardViewer.Signal
-import com.ichi2.anki.AbstractFlashcardViewer.Signal.Companion.toSignal
 import com.ichi2.anki.AnkiActivity.Companion.EXTRA_FINISH_ANIMATION
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.cardviewer.Gesture
@@ -47,9 +45,6 @@ import org.hamcrest.Matchers.nullValue
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.robolectric.Robolectric
@@ -57,7 +52,6 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import timber.log.Timber
 import java.util.Locale
-import java.util.stream.Stream
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -153,15 +147,6 @@ class AbstractFlashcardViewerTest : RobolectricTest() {
         advanceRobolectricLooper()
         targetContext.assertNoActivityStarted()
         assertEquals(viewer.getString(CommonString.activity_start_failed), viewer.snackbarText)
-    }
-
-    @ParameterizedTest
-    @MethodSource("getSignalFromUrlTest_args")
-    fun getSignalFromUrlTest(
-        url: String,
-        signal: Signal,
-    ) {
-        assertEquals(url.toSignal(), signal)
     }
 
     @Test
@@ -426,21 +411,6 @@ class AbstractFlashcardViewerTest : RobolectricTest() {
         advanceRobolectricLooper()
         advanceRobolectricLooper()
         return multimediaController
-    }
-
-    companion object {
-        @JvmStatic // required for @MethodSource
-        fun getSignalFromUrlTest_args() =
-            Stream.of(
-                Arguments.of("signal:show_answer", Signal.SHOW_ANSWER),
-                Arguments.of("signal:typefocus", Signal.TYPE_FOCUS),
-                Arguments.of("signal:relinquishFocus", Signal.RELINQUISH_FOCUS),
-                Arguments.of("signal:answer_ease1", Signal.ANSWER_ORDINAL_1),
-                Arguments.of("signal:answer_ease2", Signal.ANSWER_ORDINAL_2),
-                Arguments.of("signal:answer_ease3", Signal.ANSWER_ORDINAL_3),
-                Arguments.of("signal:answer_ease4", Signal.ANSWER_ORDINAL_4),
-                Arguments.of("signal:answer_ease0", Signal.SIGNAL_NOOP),
-            )
     }
 }
 
