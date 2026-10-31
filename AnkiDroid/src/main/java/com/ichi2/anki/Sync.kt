@@ -13,6 +13,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CollectionManager.withColExclusive
+import com.ichi2.anki.common.progress.ProgressAmount
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.dialogs.SyncErrorDialog
 import com.ichi2.anki.observability.ChangeManager.notifySubscribersAllValuesChanged
@@ -248,7 +249,7 @@ private suspend fun handleNormalSync(
 
 private fun fullDownloadProgress(title: String): ProgressContext.() -> Unit =
     {
-        fun Progress.FullSync.toAmount() = ProgressContext.Amount(transferred.toLong(), total.toLong())
+        fun Progress.FullSync.toAmount() = ProgressAmount(transferred.toLong(), total.toLong())
 
         text = title
         if (progress.hasFullSync() && progress.fullSync.total > 0) {

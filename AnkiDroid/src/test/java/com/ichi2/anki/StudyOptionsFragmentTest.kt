@@ -23,12 +23,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager.TR
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.databinding.FragmentStudyOptionsBinding
 import com.ichi2.anki.libanki.Consts.DEFAULT_DECK_ID
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.observability.undoableOp
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.testutils.ext.menu
 import com.ichi2.testutils.ext.triggerDeckNotFoundInLimitsMap

@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.slf4j.api)
     api(libs.commons.collections4) // UniqueArrayList exposes SetUniqueList in its API.
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.gson) // Streaming JSON snapshots without an Android runtime.
 
     // sealedSubclasses in AnalyticsEventTest needs full reflection

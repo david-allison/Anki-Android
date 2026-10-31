@@ -4,6 +4,7 @@
 package com.ichi2.anki.progress
 
 import com.ichi2.anki.ProgressContext
+import com.ichi2.anki.common.progress.ProgressScope
 import com.ichi2.anki.withProgress
 import kotlinx.coroutines.CoroutineScope
 import net.ankiweb.rsdroid.Backend

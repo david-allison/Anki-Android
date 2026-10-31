@@ -12,6 +12,8 @@ import anki.notetypes.Notetype
 import anki.notetypes.StockNotetype
 import anki.notetypes.copy
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.exception.CombinedException
 import com.ichi2.anki.exception.ReportableException
 import com.ichi2.anki.libanki.Collection
@@ -29,8 +31,6 @@ import com.ichi2.anki.notetype.ManageNoteTypesState.FieldsEditor
 import com.ichi2.anki.notetype.ManageNoteTypesState.UserMessage
 import com.ichi2.anki.notetype.NoteTypeItemState.Companion.asModel
 import com.ichi2.anki.observability.undoableOp
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow

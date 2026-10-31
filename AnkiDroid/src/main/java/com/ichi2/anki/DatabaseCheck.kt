@@ -6,11 +6,12 @@ package com.ichi2.anki
 import anki.collection.Progress
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.common.progress.ProgressAmount
 
 fun DeckPicker.handleDatabaseCheck() {
     fun Progress.DatabaseCheck.toAmount() =
         if (stageTotal > 0) {
-            ProgressContext.Amount(stageCurrent.toLong(), stageTotal.toLong())
+            ProgressAmount(stageCurrent.toLong(), stageTotal.toLong())
         } else {
             null
         }
