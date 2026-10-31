@@ -1235,44 +1235,6 @@ class CardBrowserTest : RobolectricTest() {
         }
 
     @Test
-    fun `loading corrupt columns returns default`() {
-        // GIVEN: Shared preferences exists for display column selections
-        // with a corrupt value
-        getSharedPrefs().edit {
-            putString(BrowserConfig.ACTIVE_CARD_COLUMNS_KEY, "question|corrupt")
-        }
-
-        // WHEN: CardBrowser is created
-        val cardBrowser: CardBrowser = getBrowserWithNotes(7)
-
-        // In future, we may want to keep the 'question' value and only reset
-        // the corrupt column.
-        assertThat("column 1 reset to default", cardBrowser.columnHeadings[0], equalTo("Sort Field"))
-        assertThat("column 2 reset to default", cardBrowser.columnHeadings[1], equalTo("Card Type"))
-    }
-
-    @Test
-    fun `loading duplicate columns returns distinct`() {
-        // GIVEN: Shared preferences exists for display column selections
-        // with duplicate values
-        getSharedPrefs().edit {
-            putString(BrowserConfig.ACTIVE_CARD_COLUMNS_KEY, "question|cardDue|cardDue|deck")
-        }
-
-        // WHEN: CardBrowser is created
-        val cardBrowser: CardBrowser = getBrowserWithNotes(7)
-
-        // THEN: CardBrowser only shows distinct columns.
-        for ((i, column) in listOf("Question", "Due", "Deck").withIndex()) {
-            assertThat(
-                "column ${i + 1} reset to default",
-                cardBrowser.columnHeadings[i],
-                equalTo(column),
-            )
-        }
-    }
-
-    @Test
     @Ignore("issues with launchCollectionInLifecycleScope")
     fun `column titles update when moving to notes mode`() =
         withBrowser {

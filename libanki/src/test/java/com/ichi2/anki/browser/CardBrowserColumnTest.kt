@@ -2,16 +2,15 @@
 
 package com.ichi2.anki.browser
 
-import com.ichi2.testutils.JvmTest
+import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import timber.log.Timber
 import kotlin.test.assertNotNull
 
 /** @see CardBrowserColumn */
 @RunWith(Parameterized::class)
-class CardBrowserColumnTest : JvmTest() {
+class CardBrowserColumnTest : InMemoryAnkiTest() {
     companion object {
         @Parameterized.Parameters(name = "{0}")
         @JvmStatic // required for initParameters
@@ -28,7 +27,6 @@ class CardBrowserColumnTest : JvmTest() {
     @Test
     fun ensureAllColumnsMapped() {
         val collectionColumns = col.backend.allBrowserColumns()
-        Timber.w("%s", collectionColumns.joinToString { it.key })
         assertNotNull(collectionColumns.find(column))
     }
 }
