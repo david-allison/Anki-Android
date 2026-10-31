@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2026 Ashish Yadav <mailtoashish693@gmail.com>
 
-package com.ichi2.anki.progress
+package com.ichi2.anki.common.progress
 
-import com.ichi2.anki.ProgressContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.atomic.AtomicLong
@@ -12,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
  * Progress state shared by a ViewModel and its UI.
  *
  * [M] is the ViewModel's message type: a domain value (typically an enum) which the UI maps
- * to display text in [observeProgress]. This keeps Android resources out of the ViewModel.
+ * to display text. This keeps Android resources out of the ViewModel.
  *
  * Concurrent [withProgress] calls are supported: the flow stays [Active][ViewModelProgress.Active]
  * until every call finishes. The displayed message/amount comes from whichever op was last to
@@ -30,15 +29,14 @@ class ProgressManager<M : Any> {
     private val nextOpId = AtomicLong(0)
 
     /**
-     * Mutable per-op state. Mirrors [ProgressContext]'s `var`-field style so updates
-     * don't allocate. The instance is reused across updates and only the map entry
+     * Mutable per-op state so updates don't allocate. The instance is reused across updates and only the map entry
      * is re-inserted (to move it to the "latest" position).
      */
     private class Op<M : Any>(
         var message: M?,
-        var amount: ProgressContext.Amount?,
+        var amount: ProgressAmount?,
         val onCancel: (() -> Unit)?,
-        val formatAmount: (ProgressContext.Amount) -> String,
+        val formatAmount: (ProgressAmount) -> String,
         val separator: String,
     )
 
@@ -47,7 +45,7 @@ class ProgressManager<M : Any> {
      *
      * @param message initial message, or null for no text.
      * @param onCancel if non-null, the dialog becomes cancellable and this runs when dismissed.
-     * @param formatAmount / [separator] control how [ProgressContext.Amount] is rendered.
+     * @param formatAmount / [separator] control how [ProgressAmount] is rendered.
      *   See the class KDoc for how these combine across concurrent ops.
      *
      * TODO: [formatAmount], [separator] and [onCancel]-derived cancellability are
@@ -58,7 +56,7 @@ class ProgressManager<M : Any> {
     suspend fun <T> withProgress(
         message: M? = null,
         onCancel: (() -> Unit)? = null,
-        formatAmount: (ProgressContext.Amount) -> String =
+        formatAmount: (ProgressAmount) -> String =
             { (current, max) -> "$current/$max" },
         separator: String = " ",
         block: suspend ProgressScope<M>.() -> T,
@@ -97,7 +95,7 @@ class ProgressManager<M : Any> {
     internal fun updateOp(
         opId: Long,
         message: M?,
-        amount: ProgressContext.Amount?,
+        amount: ProgressAmount?,
     ) {
         synchronized(lock) {
             val op = activeOps[opId] ?: return
@@ -142,7 +140,7 @@ class ProgressScope<M : Any> internal constructor(
     /** A null [message] keeps the current one. */
     fun updateProgress(
         message: M? = null,
-        amount: ProgressContext.Amount? = null,
+        amount: ProgressAmount? = null,
     ) {
         manager.updateOp(opId, message = message, amount = amount)
     }

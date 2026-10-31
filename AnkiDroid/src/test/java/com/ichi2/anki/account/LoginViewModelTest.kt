@@ -9,7 +9,7 @@ import anki.sync.SyncAuth
 import anki.sync.SyncLoginRequest
 import anki.sync.syncAuth
 import com.ichi2.anki.RobolectricTest
-import com.ichi2.anki.progress.ViewModelProgress
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.testutils.rules.BackendOverrideRule
 import com.ichi2.testutils.withQueuedCollectionAccess

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2026 Ashish Yadav <mailtoashish693@gmail.com>
 
-package com.ichi2.anki.progress
+package com.ichi2.anki.common.progress
 
-import com.ichi2.anki.ProgressContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -14,6 +14,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProgressManagerTest {
     @Test
     fun `initial state is Idle`() {
@@ -105,7 +106,7 @@ class ProgressManagerTest {
                 assertIs<ViewModelProgress.Active<String>>(initialState)
                 assertEquals("Starting", initialState.message)
 
-                val testAmount = ProgressContext.Amount(current = 5, max = 10)
+                val testAmount = ProgressAmount(current = 5, max = 10)
                 updateProgress(message = "Step 2", amount = testAmount)
 
                 val updatedState = manager.progress.value
@@ -122,7 +123,7 @@ class ProgressManagerTest {
             val message = "Processing"
 
             manager.withProgress(message = message) {
-                val amount = ProgressContext.Amount(current = 1, max = 2)
+                val amount = ProgressAmount(current = 1, max = 2)
                 updateProgress(amount = amount)
 
                 val state = manager.progress.value
