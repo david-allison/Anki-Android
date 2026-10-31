@@ -6,4 +6,4 @@ The standard `:AnkiDroid:testPlayDebugUnitTest` command runs both JVM and Androi
 
 Run only the JVM group with `:AnkiDroid:testPlayDebugJvmUnitTest`. Other debug flavors have corresponding tasks.
 
-Use `src/test/java` for tests that need Robolectric, Android lifecycle behavior, or Android resources. JVM tests may mock Android types supplied by the SDK stubs.
+Use JUnit 4 in `src/test/java` for tests that need Robolectric, Android lifecycle behavior, or Android resources. The JVM group supports JUnit 4 and Jupiter; put Jupiter tests in `src/testJvm/java`. JVM tests may mock Android types supplied by the SDK stubs.
