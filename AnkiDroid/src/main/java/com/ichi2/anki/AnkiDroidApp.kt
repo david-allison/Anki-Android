@@ -346,7 +346,8 @@ open class AnkiDroidApp :
         }
     }
 
-    private fun setupCrashReporting() {
+    /** Installs process crash reporting before analytics and logging handlers are chained. */
+    protected open fun setupCrashReporting() {
         setup("setupCrashReporting") {
             initializeAcraCrashReporter()
         }

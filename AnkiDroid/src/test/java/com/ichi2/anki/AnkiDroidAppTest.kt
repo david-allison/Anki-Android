@@ -31,6 +31,7 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import leakcanary.AppWatcher
+import org.acra.ACRA
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -83,6 +84,7 @@ class AnkiDroidAppTest {
 
     @Test
     fun reportingDoesNotThrowException() {
+        assertTrue("Production application startup must initialize ACRA", ACRA.isInitialised)
         assertDoesNotThrow { sendExceptionReport("Test", "AnkiDroidAppTest") }
     }
 
