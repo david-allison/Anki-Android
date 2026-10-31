@@ -32,9 +32,9 @@ class CardTemplateNotetype(
     private var originalTemplateOrds: ArrayList<CardOrdinal?> = notetype.templates.mapTo(ArrayList()) { it.ord }
     private var deletedTemplateOrds = ArrayList<CardOrdinal>()
 
-    fun toBundle(): Bundle =
+    fun toBundle(cacheDirectory: File = appContext.cacheDir): Bundle =
         Bundle().apply {
-            putString(STATE_EDITED_NOTE_TYPE_FILENAME, saveTempNoteType(appContext, notetype))
+            putString(STATE_EDITED_NOTE_TYPE_FILENAME, saveTempNoteType(cacheDirectory, notetype))
             putSerializable(STATE_ORIGINAL_TEMPLATE_ORDS, originalTemplateOrds)
             putSerializable(STATE_DELETED_TEMPLATE_ORDS, deletedTemplateOrds)
         }
