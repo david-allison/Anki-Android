@@ -8,6 +8,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.view.isVisible
 import com.ichi2.anki.Flag
 import com.ichi2.anki.R
+import com.ichi2.anki.drawableRes
 
 /** Handles the star and flag marker for the card viewer  */
 class CardMarker(

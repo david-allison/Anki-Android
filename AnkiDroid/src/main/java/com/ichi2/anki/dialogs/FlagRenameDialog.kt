@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.Flag
 import com.ichi2.anki.databinding.DialogRenameFlagBinding
+import com.ichi2.anki.drawableRes
+import com.ichi2.anki.queryDisplayNames
 import com.ichi2.utils.customView
 import com.ichi2.utils.title
 import kotlinx.coroutines.launch
