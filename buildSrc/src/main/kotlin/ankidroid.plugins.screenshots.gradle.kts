@@ -60,6 +60,10 @@ tasks.withType<Test>().configureEach {
             excludeTags("com.ichi2.anki.ScreenshotTestCategory")
         }
     }
+    if (!screenshotRun) {
+        // Avoid constructing screenshot runners and expanding their parameters before tag filtering.
+        exclude("**/*ScreenshotTest.class", "**/*ScreenshotTest\$*.class")
+    }
     if (screenshotRun && name == "test${variant}UnitTest") {
         dependsOn(cleanScreenshotDiffs)
         // Keep comparisons available even when verification fails.
