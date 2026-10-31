@@ -791,6 +791,7 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.android.image.cropper)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.gson) // Streaming note type snapshots without an Android runtime.
     implementation(libs.seismic)
     implementation(libs.process.phoenix)
 

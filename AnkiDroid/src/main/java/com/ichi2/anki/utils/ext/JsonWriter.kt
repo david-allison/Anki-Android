@@ -2,7 +2,7 @@
 
 package com.ichi2.anki.utils.ext
 
-import android.util.JsonWriter
+import com.google.gson.stream.JsonWriter
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
