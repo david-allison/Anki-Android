@@ -2,7 +2,7 @@
 
 package com.ichi2.anki.browser
 
-import com.ichi2.anki.progress.ViewModelProgress
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.testutils.withCollectionAccessOn
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async

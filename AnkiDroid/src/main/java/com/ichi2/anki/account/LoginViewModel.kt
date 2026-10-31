@@ -11,9 +11,9 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.cancelSync
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.getEndpoint
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.sync.SyncAuth
 import com.ichi2.anki.utils.MessageQueue

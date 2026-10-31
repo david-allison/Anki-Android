@@ -15,6 +15,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.coroutineScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ichi2.anki.AnkiActivity
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.dialogs.LoadingDialogFragment
 import com.ichi2.anki.dialogs.showLoadingDialog
 import kotlinx.coroutines.Dispatchers

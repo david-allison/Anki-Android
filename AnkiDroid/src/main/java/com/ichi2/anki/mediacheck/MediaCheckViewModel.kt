@@ -8,9 +8,9 @@ import androidx.lifecycle.viewModelScope
 import anki.media.CheckMediaResponse
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.common.annotations.NeedsTest
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.observability.undoableOp
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.utils.MessageQueue
 import com.ichi2.anki.utils.MessageQueue.MessageId
 import kotlinx.coroutines.CancellationException

@@ -3,7 +3,7 @@
 package com.ichi2.anki.mediacheck
 
 import app.cash.turbine.test
-import com.ichi2.anki.progress.ViewModelProgress
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.testutils.OnDiskJvmTest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

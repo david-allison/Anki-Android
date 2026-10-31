@@ -5,8 +5,8 @@ package com.ichi2.anki
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.ichi2.anki.CollectionManager.TR
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.deckpicker.DeckPickerProgress
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.BackupManagerTestUtilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher

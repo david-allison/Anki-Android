@@ -24,6 +24,8 @@ import com.ichi2.anki.StoragePermissionSet
 import com.ichi2.anki.common.destinations.BrowserDestination
 import com.ichi2.anki.common.destinations.DeckOptionsDestination
 import com.ichi2.anki.common.destinations.NoteEditorDestination
+import com.ichi2.anki.common.progress.HasProgress
+import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.common.utils.ext.schedulerVersion
 import com.ichi2.anki.configureRenderingMode
 import com.ichi2.anki.isLoggedIn
@@ -40,8 +42,6 @@ import com.ichi2.anki.millisecondsSinceLastSyncAttempt
 import com.ichi2.anki.notetype.ManageNoteTypesDestination
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.performBackupInBackground
-import com.ichi2.anki.progress.HasProgress
-import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.reviewreminders.ScheduleRemindersDestination
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.sync.MeteredSyncPolicy

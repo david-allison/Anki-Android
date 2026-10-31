@@ -21,6 +21,7 @@ import com.ichi2.anki.InitialActivity
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.StoragePermissionSet
 import com.ichi2.anki.common.preferences.sharedPrefs
+import com.ichi2.anki.common.progress.ViewModelProgress
 import com.ichi2.anki.common.storage.CollectionHelper
 import com.ichi2.anki.common.storage.StorageDecision
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.DeleteDeckConfirmationRequest
@@ -29,7 +30,6 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.emptyCids
 import com.ichi2.anki.observability.ensureOpsExecuted
-import com.ichi2.anki.progress.ViewModelProgress
 import com.ichi2.testutils.JvmTest
 import com.ichi2.testutils.publicCollectionPath
 import com.ichi2.testutils.rules.BackendOverrideRule
