@@ -3,17 +3,10 @@
 
 package com.ichi2.anki.reviewreminders
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.util.Log
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.MAX_LINE_LENGTH
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.TRIM_TARGET_BYTES
 import com.ichi2.anki.reviewreminders.ReminderLogTree.Companion.TRIM_TRIGGER_BYTES
 import com.ichi2.testutils.rules.MainDispatcherRule
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.endsWith
@@ -36,27 +29,18 @@ class ReminderLogTreeTest {
     val mainDispatcher = MainDispatcherRule()
 
     @get:Rule
-    val tempFolder = TemporaryFolder()
+    val logDirectory = TemporaryFolder()
 
     private lateinit var tree: ReminderLogTree
+    private var previousTrees = emptyList<Timber.Tree>()
     private val temporaryFile: File
         get() = File(tree.logFile.parentFile, "${tree.logFile.name}.tmp")
 
     @Before
-    @SuppressLint("LogNotTimber") // Mock the Android logging used internally by ReminderLogTree.
     fun setUp() {
-        mockkStatic(Log::class)
-        every { Log.w(any(), any<String>()) } returns 0
-        every { Log.w(any(), any<String>(), any<Throwable>()) } returns 0
-        val context =
-            mockk<Context> {
-                every { noBackupFilesDir } returns tempFolder.root
-            }
-        // Own the tree: application initialization may have planted zero or multiple reminder trees.
-        Timber.forest().filterIsInstance<ReminderLogTree>().forEach(Timber::uproot)
-        tree = ReminderLogTree(context).also { Timber.plant(it) }
-        tree.logFile.delete()
-        temporaryFile.delete()
+        previousTrees = Timber.forest()
+        Timber.uprootAll()
+        tree = ReminderLogTree(logDirectory.root, reportWarning = { _, _ -> }).also { Timber.plant(it) }
     }
 
     @After
@@ -65,7 +49,8 @@ class ReminderLogTreeTest {
             Timber.uproot(tree)
             awaitLogWrites()
         } finally {
-            unmockkStatic(Log::class)
+            Timber.uprootAll()
+            previousTrees.forEach(Timber::plant)
         }
     }
 
