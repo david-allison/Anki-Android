@@ -3,25 +3,25 @@
 
 package com.ichi2.anki.reviewreminders
 
-import androidx.core.content.edit
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.time.MockTime
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.settings.Prefs
+import com.ichi2.testutils.JvmPreferencesRule
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import java.util.Calendar
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-@RunWith(AndroidJUnit4::class)
-class ReviewReminderTest : RobolectricTest() {
+class ReviewReminderTest {
+    @get:Rule
+    val preferences = JvmPreferencesRule()
+
     companion object {
         /**
          * A mock time for a consistent date and a specific time: noon in the local time zone (not UTC! this is required because
@@ -42,18 +42,12 @@ class ReviewReminderTest : RobolectricTest() {
     }
 
     @Before
-    override fun setUp() {
-        super.setUp()
+    fun setUp() {
         Prefs.reviewReminderNextFreeId = 0
-        ReviewRemindersDatabase.remindersSharedPrefs.edit { clear() }
     }
 
     @After
-    override fun tearDown() {
-        super.tearDown()
-        Prefs.reviewReminderNextFreeId = 0
-        ReviewRemindersDatabase.remindersSharedPrefs.edit { clear() }
-    }
+    fun resetTime() = TimeManager.reset()
 
     @Test
     fun `getAndIncrementNextFreeReminderId should increment IDs correctly`() {
