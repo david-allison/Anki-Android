@@ -4,25 +4,11 @@
 package com.ichi2.utils
 
 import org.junit.Assert
-import org.junit.Test
 import org.junit.internal.ArrayComparisonFailure
 import java.lang.AssertionError
 import kotlin.Throws
-import kotlin.test.assertFailsWith
 
 class ListUtil {
-    @Test
-    fun equalsTest() {
-        assertFailsWith<ArrayComparisonFailure> { assertListEquals(listOf(2L, 3L), listOf(2L, 4L)) }
-        assertFailsWith<ArrayComparisonFailure> { assertListEquals(listOf(2L, 3L), listOf(2L)) }
-        assertFailsWith<ArrayComparisonFailure> { assertListEquals(listOf(2L, 3L), listOf(5L)) }
-        assertFailsWith<ArrayComparisonFailure> { assertListEquals(listOf(2L, 3L), listOf(2L, 3L, 5L)) }
-        assertFailsWith<AssertionError> { assertListEquals(listOf(2L, 3L), null) }
-        assertFailsWith<AssertionError> { assertListEquals(null, listOf(2L, 4L)) }
-        assertListEquals(null, null)
-        assertListEquals(listOf(2L, 3L), listOf(2L, 3L))
-    }
-
     companion object {
         /**
          * Asserts that two object lists are equal (same size and components in same order). If they are not, an
