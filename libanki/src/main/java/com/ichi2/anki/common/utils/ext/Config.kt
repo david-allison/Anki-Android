@@ -16,8 +16,6 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Decks.Companion.CURRENT_DECK
 import org.json.JSONObject
 
-// TODO: Extract module-specific config to modules (when they exist).
-
 /**
  * When enabled, simple text searches automatically ignore accents.
  *
@@ -65,7 +63,7 @@ val Config.showRemainingDueCounts by jsonConfigProperty<Boolean>("dueCounts").or
 val Config.fsrsEnabled by jsonConfigProperty("fsrs", missingValue = false)
 
 /** User-defined flag labels, keyed by the flag number as a string. */
-// TODO: Strongly type FlagLabels in anki-common
+// TODO: Strongly type FlagLabels
 var Config.flagLabels by ConfigProperty(
     // Construct a fresh object on each read, including when the stored value is invalid.
     read = { getObject("flagLabels", JSONObject()) },
