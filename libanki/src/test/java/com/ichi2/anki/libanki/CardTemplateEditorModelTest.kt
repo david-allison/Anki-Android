@@ -5,7 +5,6 @@ package com.ichi2.anki.libanki
 
 import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
 import com.ichi2.anki.libanki.utils.append
-import com.ichi2.anki.libanki.utils.remove
 import org.junit.Assert
 import org.junit.Test
 
@@ -56,14 +55,10 @@ class CardTemplateEditorModelTest : InMemoryAnkiTest() {
         }
 
     private fun CardTemplateEditorModel.appendTemplate(name: String) {
-        notetype.templates.append(Notetypes.newTemplate(name))
-        Notetypes._updateTemplOrds(notetype)
-        addNewTemplate()
+        addNewTemplate(Notetypes.newTemplate(name))
     }
 
     private fun CardTemplateEditorModel.deleteTemplate(ordinal: Int) {
         removeTemplate(ordinal)
-        notetype.templates.remove(getTemplate(ordinal))
-        Notetypes._updateTemplOrds(notetype)
     }
 }
