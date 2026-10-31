@@ -7,6 +7,8 @@ import anki.collection.OpChanges
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
 import com.ichi2.anki.asyncIO
+import com.ichi2.anki.cardviewer.CardMediaPlayer
+import com.ichi2.anki.cardviewer.CardMediaPlayerFactory
 import com.ichi2.anki.cardviewer.SingleCardSide
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.destinations.NoteEditorDestination
@@ -30,7 +32,8 @@ class PreviewerViewModel(
     savedStateHandle: ViewModelSavedStateHandle,
     @VisibleForTesting val selectedCardIds: List<Long>,
     initialIndex: Int,
-) : CardViewerViewModel(savedStateHandle),
+    mediaPlayerFactory: CardMediaPlayerFactory = ::CardMediaPlayer,
+) : CardViewerViewModel(savedStateHandle, mediaPlayerFactory),
     ChangeManager.Subscriber {
     val currentIndex =
         savedStateHandle.getMutableStateFlow(

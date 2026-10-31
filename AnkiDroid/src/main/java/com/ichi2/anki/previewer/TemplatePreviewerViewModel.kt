@@ -11,6 +11,8 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.NotetypeFile
 import com.ichi2.anki.asyncIO
+import com.ichi2.anki.cardviewer.CardMediaPlayer
+import com.ichi2.anki.cardviewer.CardMediaPlayerFactory
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardOrdinal
@@ -32,7 +34,11 @@ import org.jetbrains.annotations.VisibleForTesting
 
 class TemplatePreviewerViewModel(
     savedStateHandle: SavedStateHandle,
-) : CardViewerViewModel(savedStateHandle) {
+    mediaPlayerFactory: CardMediaPlayerFactory,
+) : CardViewerViewModel(savedStateHandle, mediaPlayerFactory) {
+    // AndroidX's default factory requires the Java-visible SavedStateHandle constructor.
+    constructor(savedStateHandle: SavedStateHandle) : this(savedStateHandle, ::CardMediaPlayer)
+
     private val notetype: NotetypeJson
     private val fillEmpty: Boolean
     private val isCloze: Boolean
