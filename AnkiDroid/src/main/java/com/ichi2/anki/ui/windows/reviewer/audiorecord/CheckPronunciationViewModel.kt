@@ -24,9 +24,10 @@ class CheckPronunciationViewModel(
     audioRecorder: AudioRecorder = AudioRecorder(appContext),
     createPlayer: () -> Player = { VoicePlayer.createExoPlayer(appContext) },
     recordingsDirectory: File = VoiceRecorder.recordingsDirectory(appContext),
+    loadSource: (Player, File) -> Unit = VoicePlayer::loadRecordingSource,
 ) : ViewModel() {
     private val recorder = VoiceRecorder(audioRecorder, recordingsDirectory, viewModelScope)
-    private val player = VoicePlayer(viewModelScope, createPlayer)
+    private val player = VoicePlayer(viewModelScope, createPlayer, loadSource)
 
     init {
         addCloseable(player)
