@@ -3,20 +3,16 @@
 package com.ichi2.anki.ui.windows.reviewer.whiteboard
 
 import android.view.MotionEvent
-import android.view.MotionEvent.PointerCoords
-import android.view.MotionEvent.PointerProperties
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class MultiTouchDetectorTest {
     private lateinit var detector: MultiTouchDetector
     private val mockScrollListener: OnScrollByListener = mock()
@@ -110,65 +106,15 @@ class MultiTouchDetectorTest {
         count: Int,
         y1: Float,
         y2: Float,
-    ): MotionEvent {
-        val p1 =
-            PointerProperties().apply {
-                id = 0
-                toolType = MotionEvent.TOOL_TYPE_FINGER
-            }
-        val p2 =
-            PointerProperties().apply {
-                id = 1
-                toolType = MotionEvent.TOOL_TYPE_FINGER
-            }
-        val p3 =
-            PointerProperties().apply {
-                id = 2
-                toolType = MotionEvent.TOOL_TYPE_FINGER
-            }
-
-        val c1 =
-            PointerCoords().apply {
-                x = 10f
-                y = y1
-                pressure = 1f
-                size = 1f
-            }
-        val c2 =
-            PointerCoords().apply {
-                x = 20f
-                y = y2
-                pressure = 1f
-                size = 1f
-            }
-        val c3 =
-            PointerCoords().apply {
-                x = 10f
-                y = y1
-                pressure = 1f
-                size = 1f
-            }
-
-        val properties = arrayOf(p1, p2, p3).take(count).toTypedArray()
-        val coordinates = arrayOf(c1, c2, c3).take(count).toTypedArray()
-
-        return MotionEvent.obtain(
-            0L,
-            0L,
-            action,
-            count,
-            properties,
-            coordinates,
-            0,
-            0,
-            1.0f,
-            1.0f,
-            0,
-            0,
-            0,
-            0,
-        )
-    }
+    ): MotionEvent =
+        mock {
+            on { pointerCount } doReturn count
+            on { actionMasked } doReturn action
+            on { getX(0) } doReturn 10f
+            on { getX(1) } doReturn 20f
+            on { getY(0) } doReturn y1
+            on { getY(1) } doReturn y2
+        }
 
     companion object {
         private const val TOUCH_SLOP = 10
