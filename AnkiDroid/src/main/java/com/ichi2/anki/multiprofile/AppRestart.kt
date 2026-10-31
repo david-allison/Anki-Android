@@ -4,7 +4,6 @@
 package com.ichi2.anki.multiprofile
 
 import android.content.Context
-import androidx.annotation.VisibleForTesting
 import androidx.work.WorkManager
 import androidx.work.await
 import com.ichi2.anki.CollectionManager
@@ -15,7 +14,6 @@ import com.ichi2.anki.worker.UniqueWorkNames
 import com.ichi2.anki.worker.mediaSyncLock
 import com.ichi2.anki.worker.syncLock
 import com.jakewharton.processphoenix.ProcessPhoenix
-import kotlinx.coroutines.sync.Mutex
 import timber.log.Timber
 import java.io.File
 
@@ -28,36 +26,22 @@ import java.io.File
  */
 suspend fun safeRestartApp(context: Context) {
     Timber.i("Restarting the app")
-    syncLock.holdUnlessThrows {
-        WorkManager.getInstance(context).run {
-            cancelUniqueWork(UniqueWorkNames.SYNC).await()
-            cancelUniqueWork(UniqueWorkNames.SYNC_MEDIA).await()
-        }
-        mediaSyncLock.holdUnlessThrows {
-            backupLock.holdUnlessThrows {
-                CollectionManager.ensureClosed()
-                ProcessPhoenix.triggerRebirth(context, LauncherDestination.toIntent(context))
+    restartAfterBackgroundWork(
+        syncLock = syncLock,
+        mediaSyncLock = mediaSyncLock,
+        backupLock = backupLock,
+        cancelSyncWork = {
+            WorkManager.getInstance(context).run {
+                cancelUniqueWork(UniqueWorkNames.SYNC).await()
+                cancelUniqueWork(UniqueWorkNames.SYNC_MEDIA).await()
             }
-        }
-    }
-}
-
-/** Holds this lock while [block] runs, and keeps holding it unless [block] throws. */
-private suspend inline fun Mutex.holdUnlessThrows(block: () -> Unit) {
-    lock()
-    var returned = false
-    try {
-        block()
-        returned = true
-    } finally {
-        if (!returned) unlock()
-    }
+        },
+        closeCollection = { CollectionManager.ensureClosed() },
+        restart = { ProcessPhoenix.triggerRebirth(context, LauncherDestination.toIntent(context)) },
+    )
 }
 
 /** True in the short-lived ProcessPhoenix process, which only relaunches the app. */
 fun isPhoenixProcess(): Boolean = isPhoenixProcessName(currentProcessName())
-
-@VisibleForTesting
-internal fun isPhoenixProcessName(name: String?): Boolean = name?.endsWith(":phoenix") == true
 
 private fun currentProcessName(): String? = runCatching { File("/proc/self/cmdline").readText().trim { it <= ' ' } }.getOrNull()

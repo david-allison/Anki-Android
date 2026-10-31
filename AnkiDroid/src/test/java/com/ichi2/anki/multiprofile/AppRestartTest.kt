@@ -19,10 +19,7 @@ import com.ichi2.anki.worker.UniqueWorkNames
 import com.ichi2.anki.worker.mediaSyncLock
 import com.ichi2.anki.worker.syncLock
 import com.jakewharton.processphoenix.PhoenixActivity
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -33,7 +30,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
@@ -129,28 +125,6 @@ class AppRestartTest : RobolectricTest() {
         }
 
     @Test
-    fun `a cancelled restart releases only the locks it took`() =
-        runTest {
-            backupLock.lock()
-            val restart = launch { safeRestartApp(context) }
-            advanceUntilIdle()
-
-            restart.cancelAndJoin()
-
-            assertFalse(syncLock.isLocked, "a cancelled restart must not leave syncing blocked")
-            assertFalse(mediaSyncLock.isLocked, "a cancelled restart must not leave media syncing blocked")
-            assertTrue(backupLock.isLocked, "the backup that is still writing holds it")
-        }
-
-    @Test
-    fun `restart keeps the locks until the process is killed`() =
-        runTest {
-            safeRestartApp(context)
-
-            backgroundWorkLocks.forEach { assertTrue(it.isLocked, "work must not start before ProcessPhoenix kills the process") }
-        }
-
-    @Test
     fun `restart releases the locks if it cannot hand over to ProcessPhoenix`() =
         runTest {
             val refusesActivities =
@@ -162,39 +136,4 @@ class AppRestartTest : RobolectricTest() {
 
             backgroundWorkLocks.forEach { assertFalse(it.isLocked, "a failed restart must not leave sync and backup blocked") }
         }
-
-    private suspend fun TestScope.assertRestartWaitsFor(
-        lock: Mutex,
-        why: String,
-    ) {
-        lock.lock()
-        val restart = launch { safeRestartApp(context) }
-
-        advanceUntilIdle()
-        assertNull(startedActivities().peekNextStartedActivity(), why)
-
-        lock.unlock()
-        restart.join()
-        assertNotNull(relaunchIntent(), "the restart must go ahead once the work has finished")
-    }
-
-    @Test
-    fun `restart waits for a backup that is still writing`() =
-        runTest { assertRestartWaitsFor(backupLock, "killing the process mid-write can leave a truncated backup") }
-
-    @Test
-    fun `restart waits for a sync that started after the checks passed`() =
-        runTest { assertRestartWaitsFor(syncLock, "a sync can start between the checks and the restart") }
-
-    @Test
-    fun `restart waits for a media sync that started after the checks passed`() =
-        runTest { assertRestartWaitsFor(mediaSyncLock, "a media sync can start between the checks and the restart") }
-
-    @Test
-    fun `only the ProcessPhoenix process is recognised as it`() {
-        assertTrue(isPhoenixProcessName("com.ichi2.anki:phoenix"))
-        assertFalse(isPhoenixProcessName("com.ichi2.anki"))
-        assertFalse(isPhoenixProcessName("com.ichi2.anki:acra"))
-        assertFalse(isPhoenixProcessName(null))
-    }
 }
