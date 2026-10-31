@@ -11,7 +11,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.PendingIntentCompat
 import androidx.core.content.getSystemService
-import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonPlurals
 import com.ichi2.anki.CommonPreferenceKey
 import com.ichi2.anki.CommonString
@@ -19,31 +18,22 @@ import com.ichi2.anki.DeckPicker
 import com.ichi2.anki.IntentHandler
 import com.ichi2.anki.NotificationChannel
 import com.ichi2.anki.R
-import com.ichi2.anki.canUserAccessDeck
 import com.ichi2.anki.common.android.AnkiBroadcastReceiver
 import com.ichi2.anki.common.annotations.LegacyNotifications
 import com.ichi2.anki.common.preferences.sharedPrefs
-import com.ichi2.anki.common.utils.ext.allDecksCounts
 import com.ichi2.anki.libanki.Decks
-import com.ichi2.anki.libanki.EpochMilliseconds
-import com.ichi2.anki.libanki.Utils
-import com.ichi2.anki.libanki.sched.Counts
 import com.ichi2.anki.preferences.PENDING_NOTIFICATIONS_ONLY
 import com.ichi2.anki.reviewreminders.ReviewReminder
 import com.ichi2.anki.reviewreminders.ReviewReminderAlarmManager
 import com.ichi2.anki.reviewreminders.ReviewReminderId
 import com.ichi2.anki.reviewreminders.ReviewReminderScope
-import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
 import com.ichi2.anki.reviewreminders.reminderLogPrefix
 import com.ichi2.anki.runGloballyWithTimeout
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.ext.getParcelableCompat
 import com.ichi2.utils.LanguageUtil.withUnicodeIsolation
 import com.ichi2.widget.WidgetStatus
-import net.ankiweb.rsdroid.BackendException
 import timber.log.Timber
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -57,10 +47,7 @@ import com.ichi2.anki.common.android.R as CommonR
  * This service can be triggered in one of two possible ways, depending on whether the notification
  * being fired is a recurring notification or a one-time snoozed notification. See [NotificationServiceAction].
  *
- * TODO: Rename and reorganize the (handle/send/fire)ReviewReminderNotification functions for better readability and separation of concerns.
- * These three verbs are way too similar. The "send" method should be split into "validate" and "hydrate". "send" sometimes aborts and does nothing.
- * The distinction between "handle" and "send" should be made more clear. All uses of "fire" in the codebase, including in documentation,
- * should be aligned to mean "trigger the OS display unconditionally."
+ * [ReviewReminderNotifier] validates delivery and counts cards; this receiver renders and posts Android notifications.
  */
 class NotificationService : AnkiBroadcastReceiver() {
     companion object {
@@ -110,61 +97,22 @@ class NotificationService : AnkiBroadcastReceiver() {
             reviewReminderScope: ReviewReminderScope,
             isRecurringNotification: Boolean,
         ) {
-            val reminderForNotification =
-                if (isRecurringNotification) {
-                    ReviewRemindersDatabase.retrieveRefreshedReminder(
-                        reviewReminderId,
-                        reviewReminderScope,
+            ReviewReminderNotifier(
+                scheduleNext = { reminder ->
+                    ReviewReminderAlarmManager.scheduleReviewReminderNotification(
+                        context,
+                        reminder,
+                        attemptImmediateNotification = false,
                     )
-                } else {
-                    ReviewRemindersDatabase.getRemindersForScope(reviewReminderScope)[reviewReminderId]
-                }
-            if (reminderForNotification == null) {
-                Timber.i(
-                    "${reminderLogPrefix(reviewReminderId)} skip: Aborting notification for review reminder " +
-                        "${reviewReminderId.value} (recurring: $isRecurringNotification) due to database validation failure.",
-                )
-                return
-            }
-            if (!reminderForNotification.enabled) {
-                // This should never happen for recurring notifications because disabling a reminder should cancel all of its notification alarms, but we check just in case
-                // It can happen for snoozed notifications if the user disables the reminder after snoozing it
-                Timber.i(
-                    "${reminderLogPrefix(reviewReminderId)} skip: Aborting notification for review reminder " +
-                        "${reviewReminderId.value} (recurring: $isRecurringNotification) because the reminder is disabled.",
-                )
-                return
-            }
-
-            if (isRecurringNotification) {
-                Timber.d("Scheduling next review reminder notification for review reminder $reviewReminderId")
-                // Because this scheduling is already the result of a notification, we do not trigger an immediate notification
-                ReviewReminderAlarmManager.scheduleReviewReminderNotification(
-                    context,
-                    reminderForNotification,
-                    attemptImmediateNotification = false,
-                )
-            }
-
-            // Send the notification
-            try {
-                sendReviewReminderNotification(context, reminderForNotification)
-            } catch (e: BackendException) {
-                // This may occur if the collection is blocked, in which case we should fail gracefully
-                Timber.w(e, "${reminderLogPrefix(reviewReminderId)} Aborted review reminder notification due to backend exception")
-            } catch (e: CancellationException) {
-                Timber.w(
-                    e,
-                    "${reminderLogPrefix(reviewReminderId)} Aborted review reminder notification due to cancellation exception",
-                )
-                throw e // Rethrow to propagate to parent coroutine
-            }
+                },
+                sendNotification = { reminder, dueCardsTotal ->
+                    sendReviewReminderNotification(context, reminder, dueCardsTotal)
+                },
+            ).notify(reviewReminderId, reviewReminderScope, isRecurringNotification)
         }
 
         /**
-         * (Attempts to) send a notification for a review reminder.
-         * Specifically, performs validation and content + description hydration, then triggers the firing of the notification.
-         * May abort sending the notification depending on certain fields of the review reminder.
+         * Builds translated content and posts a notification validated by [ReviewReminderNotifier].
          *
          * Does not handle scheduling the next occurrence of the notification if the review reminder is recurring; that is handled by [handleReviewReminderNotification].
          * Does not handle big-picture validation of the review reminder (i.e. is it in the database, is it enabled);
@@ -173,51 +121,8 @@ class NotificationService : AnkiBroadcastReceiver() {
         private suspend fun sendReviewReminderNotification(
             context: Context,
             reviewReminder: ReviewReminder,
+            dueCardsTotal: Int,
         ) {
-            Timber.i("${reminderLogPrefix(reviewReminder.id)} sendReviewReminderNotification for ${reviewReminder.id.value}")
-            Timber.v("Review reminder: $reviewReminder")
-
-            if (reviewReminder.scope is ReviewReminderScope.DeckSpecific) {
-                val isDeckAccessible = canUserAccessDeck(reviewReminder.scope.did)
-                if (!isDeckAccessible) {
-                    Timber.i("${reminderLogPrefix(reviewReminder.id)} skip: Deck with ID ${reviewReminder.scope.did} not found, aborting")
-                    return
-                }
-            }
-
-            // Cancel if the user wants notifications to only fire if no reviews have been done today AND there has been a review today
-            if (reviewReminder.onlyNotifyIfNoReviews && wasScopeReviewedToday(reviewReminder.scope)) {
-                Timber.i("${reminderLogPrefix(reviewReminder.id)} skip: Aborting notification due to onlyNotifyIfNoReviews")
-                return
-            }
-
-            val dueCardsCount =
-                when (reviewReminder.scope) {
-                    is ReviewReminderScope.Global -> withCol { sched.allDecksCounts() }
-                    is ReviewReminderScope.DeckSpecific -> {
-                        val deckNode = withCol { sched.deckDueTree().find(reviewReminder.scope.did) }
-                        if (deckNode == null) {
-                            Timber.e(
-                                "${reminderLogPrefix(reviewReminder.id)} Aborting notification: " +
-                                    "deck ${reviewReminder.scope.did} is not in the deck tree",
-                            )
-                            return
-                        }
-                        Counts(new = deckNode.newCount, lrn = deckNode.lrnCount, rev = deckNode.revCount)
-                    }
-                }
-            val dueCardsTotal = dueCardsCount.count()
-            val consideredCardsCount = reviewReminder.thresholdFilter.filterCounts(dueCardsCount)
-            val consideredCardsTotal = consideredCardsCount.count()
-
-            if (consideredCardsTotal < reviewReminder.cardTriggerThreshold.threshold) {
-                Timber.i(
-                    "${reminderLogPrefix(reviewReminder.id)} skip: Aborting notification due to cardTriggerThreshold " +
-                        "(due: $dueCardsCount, considered: $consideredCardsCount, threshold: ${reviewReminder.cardTriggerThreshold.threshold})",
-                )
-                return
-            }
-
             val onClickIntent =
                 when (reviewReminder.scope) {
                     is ReviewReminderScope.Global -> Intent(context, DeckPicker::class.java)
@@ -309,52 +214,6 @@ class NotificationService : AnkiBroadcastReceiver() {
                         "aborting review reminder notification",
                 )
             }
-        }
-
-        /**
-         * Checks if a deck, or any decks, have been reviewed since the latest day cutoff.
-         * Used for the "only notify me if no reviews have been done today" review reminder feature.
-         */
-        private suspend fun wasScopeReviewedToday(scope: ReviewReminderScope): Boolean {
-            // Handles the global and deck-specific scope cases separately.
-            // Checks for existence rather than counting to increase efficiency.
-            val queryResult =
-                when (scope) {
-                    is ReviewReminderScope.Global ->
-                        withCol {
-                            val startOfToday: EpochMilliseconds = sched.dayCutoff * 1000 - 1.days.inWholeMilliseconds
-                            // For each card in the user's collection, retrieve and JOIN information about its review history
-                            // Then check if there exists at least one card with a review log entry after the start of today
-                            val query = """
-                        SELECT EXISTS (
-                            SELECT 1
-                            FROM cards
-                            JOIN revlog ON revlog.cid = cards.id
-                            WHERE revlog.id > ?
-                        )
-                    """
-                            db.queryScalar(query, startOfToday)
-                        }
-                    is ReviewReminderScope.DeckSpecific ->
-                        withCol {
-                            val startOfToday: EpochMilliseconds = sched.dayCutoff * 1000 - 1.days.inWholeMilliseconds
-                            // Essentially the same as above, but only check through cards in the provided deck or its subdecks,
-                            // including cards temporarily moved into a filtered deck (whose home deck is stored in odid)
-                            // Deck IDs are numbers, so building the IN list from them is safe
-                            val deckIds = Utils.ids2str(decks.deckAndChildIds(scope.did))
-                            val query = """
-                        SELECT EXISTS (
-                            SELECT 1
-                            FROM cards
-                            JOIN revlog ON revlog.cid = cards.id
-                            WHERE revlog.id > ?
-                            AND (cards.did IN $deckIds OR cards.odid IN $deckIds)
-                        )
-                    """
-                            db.queryScalar(query, startOfToday)
-                        }
-                }
-            return (queryResult == 1)
         }
 
         /** The id of the notification for due cards.  */
