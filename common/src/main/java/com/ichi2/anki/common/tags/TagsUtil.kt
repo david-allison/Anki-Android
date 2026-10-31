@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2021 Tarek Mohamed Abdalla <tarekkma@gmail.com>
 
-package com.ichi2.utils
+package com.ichi2.anki.common.tags
 
 import java.util.stream.Collectors
 

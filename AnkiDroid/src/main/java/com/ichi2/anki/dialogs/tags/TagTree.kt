@@ -3,7 +3,8 @@
 
 package com.ichi2.anki.dialogs.tags
 
-import com.ichi2.utils.TagsUtil
+import com.ichi2.anki.common.tags.TagsList
+import com.ichi2.anki.common.tags.TagsUtil
 import java.util.Locale
 import java.util.Stack
 import java.util.TreeSet

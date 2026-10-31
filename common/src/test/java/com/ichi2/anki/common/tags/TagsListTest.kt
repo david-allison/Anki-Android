@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: Copyright (c) 2021 Tarek Mohamed Abdalla <tarekkma@gmail.com>
 
-package com.ichi2.anki.dialogs.tags
+package com.ichi2.anki.common.tags
 
-import com.ichi2.testutils.assertFalse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -505,14 +505,14 @@ class TagsListTest {
 
         assertTrue(tags.hasSelectedDescendants("b"))
         assertTrue(tags.hasSelectedDescendants("b::CHILD"))
-        assertFalse(actual = tags.hasSelectedDescendants("B::childish"))
+        assertFalse(tags.hasSelectedDescendants("B::childish"))
 
         tags.uncheck("b::child::LEAF")
-        assertFalse(actual = tags.hasSelectedDescendants("B::child"))
+        assertFalse(tags.hasSelectedDescendants("B::child"))
         assertTrue(tags.hasSelectedDescendants("B"))
 
         tags.uncheck("B::childish")
-        assertFalse(actual = tags.hasSelectedDescendants("B"))
+        assertFalse(tags.hasSelectedDescendants("B"))
         assertTrue(tags.hasSelectedDescendants("Bother"))
     }
 
