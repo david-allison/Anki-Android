@@ -2,17 +2,13 @@
 
 package com.ichi2.anki.cardviewer
 
-import android.content.SharedPreferences
-import android.content.res.Resources
 import androidx.annotation.VisibleForTesting
-import com.ichi2.anki.CollectionManager
-import com.ichi2.anki.CommonString
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.Collection
-import com.ichi2.anki.servicelayer.LanguageHint
-import com.ichi2.anki.servicelayer.LanguageHintService.languageHint
+import com.ichi2.anki.libanki.keyboardLanguageHint
 import org.intellij.lang.annotations.Language
-import timber.log.Timber
+import org.slf4j.LoggerFactory
+import java.util.Locale
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -52,14 +48,14 @@ class TypeAnswer(
     var size = 0
         private set
 
-    var languageHint: LanguageHint? = null
+    var languageHint: Locale? = null
         private set
 
     /**
      * Optional warning for when a typed answer can't be displayed
      *
      * * empty card
-     * * unknown field specified [CommonString.unknown_type_field_warning]
+     * * unknown field specified in the template
      * */
     var warning: String? = null
         private set
@@ -79,7 +75,7 @@ class TypeAnswer(
     fun updateInfo(
         col: Collection,
         card: Card,
-        res: Resources,
+        unknownFieldWarning: (String) -> String,
     ) {
         combining = true
         noSuggest = false
@@ -105,7 +101,7 @@ class TypeAnswer(
                 }
                 font = fld.font
                 size = fld.fontSize
-                languageHint = fld.languageHint
+                languageHint = fld.keyboardLanguageHint
                 break
             }
         }
@@ -113,9 +109,9 @@ class TypeAnswer(
             null -> {
                 warning =
                     if (clozeIdx != 0) {
-                        CollectionManager.TR.cardTemplateRenderingEmptyFront()
+                        col.tr.cardTemplateRenderingEmptyFront()
                     } else {
-                        res.getString(CommonString.unknown_type_field_warning, fldTag)
+                        unknownFieldWarning(fldTag)
                     }
             }
             "" -> {
@@ -180,12 +176,15 @@ class TypeAnswer(
      *
      * @return The formatted answer text with `[[type:(.+?)]]` replaced with HTML
      */
-    fun filterAnswer(answer: String): String {
+    fun filterAnswer(
+        answer: String,
+        compareAnswer: (String, String, Boolean) -> String,
+    ): String {
         val userAnswer = input
         val correctAnswer = correct
-        Timber.d("correct answer = %s", correctAnswer)
-        Timber.d("user answer = %s", userAnswer)
-        return filterAnswer(answer, userAnswer, correctAnswer ?: "")
+        logger.debug("correct answer = {}", correctAnswer)
+        logger.debug("user answer = {}", userAnswer)
+        return filterAnswer(answer, userAnswer, correctAnswer ?: "", compareAnswer)
     }
 
     /**
@@ -200,6 +199,7 @@ class TypeAnswer(
         answer: String,
         userAnswer: String,
         correctAnswer: String,
+        compareAnswer: (String, String, Boolean) -> String,
     ): String {
         val m: Matcher = PATTERN.matcher(answer)
         val sb = StringBuilder()
@@ -208,20 +208,16 @@ class TypeAnswer(
             @Language("HTML") html: String,
         ) = sb.append(html)
 
-        val comparisonText = CollectionManager.compareAnswer(correctAnswer, userAnswer, combining)
+        val comparisonText = compareAnswer(correctAnswer, userAnswer, combining)
         append(Matcher.quoteReplacement(comparisonText))
         return m.replaceAll(sb.toString())
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(TypeAnswer::class.java)
+
         /** Regular expression in card data for a 'type answer' after processing has occurred */
         val PATTERN: Pattern = Pattern.compile("\\[\\[type:(.+?)]]")
-
-        fun createInstance(preferences: SharedPreferences): TypeAnswer =
-            TypeAnswer(
-                useInputTag = preferences.getBoolean("useInputTag", false),
-                autoFocus = preferences.getBoolean("autoFocusTypeInAnswer", true),
-            )
 
         /**
          * Return the correct answer to use for {{type::cloze::NN}} fields.
