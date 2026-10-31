@@ -7,8 +7,6 @@ import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.browser.search.toMap
 import com.ichi2.anki.common.utils.ConfigProperty
 import com.ichi2.anki.common.utils.configProperty
-import com.ichi2.anki.common.utils.ext.AddingDefaultsMode.DECIDE_BY_NOTE_TYPE
-import com.ichi2.anki.common.utils.ext.AddingDefaultsMode.USE_CURRENT_DECK
 import com.ichi2.anki.common.utils.jsonConfigProperty
 import com.ichi2.anki.common.utils.orDefault
 import com.ichi2.anki.libanki.BrowserConfig
@@ -18,29 +16,7 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.Decks.Companion.CURRENT_DECK
 import org.json.JSONObject
 
-/**
- * How the initial deck and note type are chosen when adding a note.
- *
- * @see USE_CURRENT_DECK
- * @see DECIDE_BY_NOTE_TYPE
- */
-enum class AddingDefaultsMode {
-    /** Start with the selected study deck and its remembered note type. */
-    USE_CURRENT_DECK,
-
-    /** Start with the current note type and its remembered destination deck. */
-    DECIDE_BY_NOTE_TYPE,
-}
-
 // TODO: Extract module-specific config to modules (when they exist).
-
-/**
- * @see AddingDefaultsMode
- */
-var Config.addingDefaultsMode by configProperty(ConfigKey.Bool.ADDING_DEFAULTS_TO_CURRENT_DECK).mapped(
-    decode = { if (it) USE_CURRENT_DECK else DECIDE_BY_NOTE_TYPE },
-    encode = { it == USE_CURRENT_DECK },
-)
 
 /**
  * When enabled, simple text searches automatically ignore accents.

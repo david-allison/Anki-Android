@@ -97,10 +97,7 @@ import com.ichi2.anki.common.utils.HashUtil
 import com.ichi2.anki.common.utils.android.digit
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
-import com.ichi2.anki.common.utils.ext.AddingDefaultsMode
-import com.ichi2.anki.common.utils.ext.addingDefaultsMode
 import com.ichi2.anki.common.utils.ext.getParcelableExtraCompat
-import com.ichi2.anki.common.utils.ext.ifZero
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
 import com.ichi2.anki.common.utils.ext.pasteImagesAsPng
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
@@ -124,6 +121,7 @@ import com.ichi2.anki.libanki.Field
 import com.ichi2.anki.libanki.Fields
 import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.Note.ClozeUtils
+import com.ichi2.anki.libanki.NoteEditorSelection
 import com.ichi2.anki.libanki.NoteTypeId
 import com.ichi2.anki.libanki.NotetypeJson
 import com.ichi2.anki.libanki.Notetypes
@@ -774,24 +772,16 @@ class NoteEditorFragment :
         }
 
         if (addNote) {
-            // Initialize both selections from the same defaults
-            // https://github.com/ankitects/anki/blob/754ce3a25f608010c0249e074e5d7fe95bda035f/qt/aqt/addcards_legacy.py#L91-L108
-            val defaults = col.defaultsForAdding()
-            if (selectedNoteTypeId?.let { col.notetypes.get(it) } == null) {
-                selectedNoteTypeId = defaults.notetypeId
-            }
-            // A restored selection takes precedence over the original launch destination.
-            deckId = deckId.ifZero { requireArguments().getLong(EXTRA_DID) }
-            if (deckId == 0L && caller == NoteEditorCaller.NOTEEDITOR_INTENT_ADD &&
-                col.config.addingDefaultsMode == AddingDefaultsMode.USE_CURRENT_DECK
-            ) {
-                // Sharing has its own destination; adding notes must not change the study deck.
-                deckId = Prefs.lastSharedDeckId
-            }
-            val deck = col.decks.getLegacy(deckId)
-            if (deck == null || deck.isFiltered) {
-                deckId = defaults.deckId
-            }
+            val selection =
+                NoteEditorSelection.forAdding(
+                    col = col,
+                    currentDeckId = deckId,
+                    launchDeckId = requireArguments().getLong(EXTRA_DID),
+                    currentNoteTypeId = selectedNoteTypeId,
+                    sharedDeckId = if (caller == NoteEditorCaller.NOTEEDITOR_INTENT_ADD) Prefs.lastSharedDeckId else 0,
+                )
+            deckId = selection.deckId
+            selectedNoteTypeId = selection.noteTypeId
         } else {
             // When editing we always have a valid currentEditCard. Check to see if it's from a normal
             // deck or a filtered deck(in which case use it's original did or revert to 'Default')
@@ -2678,14 +2668,13 @@ class NoteEditorFragment :
             return
         }
 
-        if (getColUnsafe.notetypes.get(newId) == null) {
+        val selection = NoteEditorSelection(deckId, editorNote!!.noteTypeId).changeNoteType(getColUnsafe, newId)
+        if (selection.noteTypeId != newId) {
             Timber.w("New note type %s not found, not changing note type", newId)
             return
         }
-
-        selectedNoteTypeId = newId
-        // Preserves the editor's deck when the new note type has no remembered destination.
-        getColUnsafe.defaultDeckForNoteType(newId)?.let { deckId = it }
+        selectedNoteTypeId = selection.noteTypeId
+        deckId = selection.deckId
 
         refreshNoteData(FieldChangeType.changeFieldCount(shouldReplaceNewlines()))
         setDuplicateFieldStyles()
