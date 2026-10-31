@@ -50,6 +50,7 @@ import net.ankiweb.rsdroid.Translations
 import net.ankiweb.rsdroid.exceptions.BackendIoException
 import net.ankiweb.rsdroid.exceptions.BackendSyncException
 import timber.log.Timber
+import java.io.File
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -432,7 +433,9 @@ object CollectionManager {
         }
     }
 
-    fun getCollectionDirectory() = CollectionHelper.getCurrentAnkiDroidDirectory(appContext.sharedPrefs())
+    fun getCollectionDirectory(): File =
+        (collectionFilesTestOverride as? CollectionFiles.FolderBasedCollection)?.colDb?.parentFile
+            ?: CollectionHelper.getCurrentAnkiDroidDirectory(appContext.sharedPrefs())
 
     /** Ensures the AnkiDroid directory is created, then returns the path to the
      * folder and the name of the collection file inside it. */
