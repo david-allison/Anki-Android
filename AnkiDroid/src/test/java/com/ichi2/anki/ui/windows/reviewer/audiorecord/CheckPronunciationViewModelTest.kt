@@ -3,9 +3,7 @@
 package com.ichi2.anki.ui.windows.reviewer.audiorecord
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModelStore
-import androidx.media3.common.MediaItem
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -14,6 +12,7 @@ import com.ichi2.anki.recorder.MediaRecorderStub
 import com.ichi2.anki.recorder.PlayerStub
 import com.ichi2.anki.recorder.VoiceRecorder
 import com.ichi2.testutils.rules.MainDispatcherRule
+import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -29,17 +28,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-@RunWith(AndroidJUnit4::class)
-class CheckPronunciationViewModelTest {
+abstract class CheckPronunciationViewModelTestBase {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @get:Rule
     val recordingsFolder = TemporaryFolder()
 
-    private val mediaRecorderStub = MediaRecorderStub()
-    private val playerStub = PlayerStub()
-    private val viewModelStore = ViewModelStore()
+    protected val mediaRecorderStub = MediaRecorderStub()
+    protected val playerStub = PlayerStub()
+    protected val viewModelStore = ViewModelStore()
 
     @Before
     fun installMediaRecorder() {
@@ -51,6 +49,42 @@ class CheckPronunciationViewModelTest {
         mediaRecorderStub.uninstall()
     }
 
+    private val recorderContext = mockk<Context>()
+
+    protected fun runViewModelTest(testBody: suspend TestScope.(CheckPronunciationViewModel) -> Unit) =
+        runTest {
+            val viewModel =
+                CheckPronunciationViewModel(
+                    AudioRecorder(recorderContext),
+                    playerStub.factory,
+                    recordingsFolder.root,
+                    loadSource = playerStub.loadSource,
+                ).also { viewModelStore.put(VIEW_MODEL_KEY, it) }
+            try {
+                testBody(viewModel)
+            } finally {
+                viewModelStore.clear()
+            }
+        }
+
+    protected fun CheckPronunciationViewModel.record(): File {
+        onRecordingStarted()
+        onRecordingCompleted()
+        return mediaRecorderStub.outputFiles.last()
+    }
+
+    protected fun CheckPronunciationViewModel.recordAndPlay(): File =
+        record().also {
+            onPlayOrReplay()
+            playerStub.ready()
+        }
+
+    companion object {
+        const val VIEW_MODEL_KEY = "checkPronunciation"
+    }
+}
+
+class CheckPronunciationViewModelTest : CheckPronunciationViewModelTestBase() {
     @Test
     fun `onRecordingCompleted should make playback visible`() =
         runViewModelTest { viewModel ->
@@ -77,7 +111,7 @@ class CheckPronunciationViewModelTest {
             viewModel.onPlayOrReplay()
             playerStub.ready()
 
-            verify { playerStub.player.setMediaItem(MediaItem.fromUri(Uri.fromFile(recording))) }
+            assertEquals(listOf(recording), playerStub.sourceFiles)
             assertTrue(viewModel.isPlayingFlow.first(), "playing")
             assertEquals(3000, viewModel.playbackProgressBarMaxFlow.first(), "progress bar max")
         }
@@ -102,7 +136,7 @@ class CheckPronunciationViewModelTest {
             viewModel.onPlayOrReplay()
             viewModel.onPlayOrReplay()
 
-            verify(exactly = 1) { playerStub.player.setMediaItem(any()) }
+            assertEquals(1, playerStub.sourceFiles.size, "source loads")
             verify(exactly = 1) { playerStub.player.prepare() }
         }
 
@@ -130,7 +164,7 @@ class CheckPronunciationViewModelTest {
             viewModel.onPlayOrReplay()
 
             assertTrue(viewModel.isPlayingFlow.first(), "playing")
-            verify(exactly = 1) { playerStub.player.setMediaItem(any()) }
+            assertEquals(1, playerStub.sourceFiles.size, "source loads")
         }
 
     @Test
@@ -177,7 +211,7 @@ class CheckPronunciationViewModelTest {
             assertFalse(viewModel.isPlayingFlow.first(), "playing after the error")
             viewModel.onPlayOrReplay()
 
-            verify(exactly = 2) { playerStub.player.setMediaItem(any()) }
+            assertEquals(2, playerStub.sourceFiles.size, "source loads")
         }
 
     @Test
@@ -292,7 +326,10 @@ class CheckPronunciationViewModelTest {
             assertFalse(viewModel.isPlaybackVisibleFlow.value, "no playback for a failed recording")
             assertFalse(mediaRecorderStub.outputFiles.single().exists(), "the empty file is deleted")
         }
+}
 
+@RunWith(AndroidJUnit4::class)
+class CheckPronunciationStorageAndroidTest : CheckPronunciationViewModelTestBase() {
     @Test
     fun `recordings are stored outside the cache`() =
         runTest {
@@ -308,35 +345,4 @@ class CheckPronunciationViewModelTest {
                 viewModelStore.clear()
             }
         }
-
-    private fun runViewModelTest(testBody: suspend TestScope.(CheckPronunciationViewModel) -> Unit) =
-        runTest {
-            val viewModel =
-                CheckPronunciationViewModel(
-                    AudioRecorder(ApplicationProvider.getApplicationContext()),
-                    playerStub.factory,
-                    recordingsFolder.root,
-                ).also { viewModelStore.put(VIEW_MODEL_KEY, it) }
-            try {
-                testBody(viewModel)
-            } finally {
-                viewModelStore.clear()
-            }
-        }
-
-    private fun CheckPronunciationViewModel.record(): File {
-        onRecordingStarted()
-        onRecordingCompleted()
-        return mediaRecorderStub.outputFiles.last()
-    }
-
-    private fun CheckPronunciationViewModel.recordAndPlay(): File =
-        record().also {
-            onPlayOrReplay()
-            playerStub.ready()
-        }
-
-    companion object {
-        private const val VIEW_MODEL_KEY = "checkPronunciation"
-    }
 }
