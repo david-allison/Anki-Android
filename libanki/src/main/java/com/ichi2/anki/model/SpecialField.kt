@@ -3,8 +3,6 @@
 package com.ichi2.anki.model
 
 import androidx.annotation.VisibleForTesting
-import com.ichi2.anki.cardviewer.SingleCardSide
-import com.ichi2.anki.cardviewer.SingleCardSide.FRONT
 
 /**
  * Special fields allow a card template to use properties of the current card/note
@@ -93,10 +91,10 @@ object SpecialFields {
     /**
      * Returns all available special fields in an order suitable for displaying to a user
      */
-    fun all(side: SingleCardSide) =
+    fun all(onAnswerSide: Boolean) =
         ALL.filter { field ->
             when {
-                field == FrontSide && side == FRONT -> false
+                field == FrontSide && !onAnswerSide -> false
                 else -> true
             }
         }

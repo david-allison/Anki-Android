@@ -30,7 +30,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.ichi2.anki.CardTemplateEditor
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.Flag
 import com.ichi2.anki.R
 import com.ichi2.anki.common.android.databinding.DialogGenericRecyclerViewBinding
 import com.ichi2.anki.databinding.DialogInsertFieldBinding
@@ -41,7 +40,8 @@ import com.ichi2.anki.dialogs.InsertFieldDialogViewModel.Companion.ARG_REQUEST_K
 import com.ichi2.anki.dialogs.InsertFieldDialogViewModel.Tab
 import com.ichi2.anki.launchCatchingViewTask
 import com.ichi2.anki.model.SpecialField
-import com.ichi2.anki.model.SpecialFields
+import com.ichi2.anki.model.SpecialFieldText
+import com.ichi2.anki.model.descriptionHtml
 import com.ichi2.anki.utils.ext.requireString
 import com.ichi2.themes.Themes
 import dev.androidbroadcast.vbpd.viewBinding
@@ -260,50 +260,22 @@ class InsertFieldDialog : DialogFragment(R.layout.dialog_insert_field) {
 fun SpecialField.buildDescription(
     context: Context,
     metadata: InsertFieldMetadata,
-): Spanned {
-    fun buildSuffix(value: String?): String {
-        if (value == null) return ""
-        return context.getString(CommonString.special_field_example_suffix, value)
-    }
-    return when (this) {
-        SpecialFields.FrontSide -> context.getString(CommonString.special_field_front_side_help)
-        SpecialFields.Deck ->
-            context.getString(CommonString.special_field_deck_help, buildSuffix(metadata.deck))
-
-        SpecialFields.Subdeck ->
-            context.getString(CommonString.special_field_subdeck_help, buildSuffix(metadata.subdeck))
-        SpecialFields.Flag -> {
-            val code = metadata.flag ?: "N"
-            context.getString(
-                CommonString.special_field_flag_help,
-                if (code == "N") "flag$code" else "<b>flag$code</b>",
-                "<b>$code</b>",
-                Flag.entries.minOf { it.code }.toString(),
-                Flag.entries.maxOf { it.code }.toString(),
-            )
-        }
-        SpecialFields.Tags -> {
-            val tags = if (metadata.tags.isNullOrBlank()) null else metadata.tags
-            context.getString(CommonString.special_field_tags_help, buildSuffix(tags))
-        }
-        SpecialFields.CardId ->
-            context.getString(CommonString.special_field_card_id_help, buildSuffix(metadata.cardId?.toString()))
-
-        SpecialFields.CardTemplate ->
-            context.getString(
-                CommonString.special_field_card_help,
-                buildSuffix(metadata.cardTemplateName),
-            )
-
-        SpecialFields.NoteType ->
-            context.getString(
-                CommonString.special_field_type_help,
-                buildSuffix(metadata.noteTypeName),
-            )
-        // this shouldn't happen
-        else -> ""
+): Spanned =
+    descriptionHtml(metadata) { key, args ->
+        val resource =
+            when (key) {
+                SpecialFieldText.EXAMPLE_SUFFIX -> CommonString.special_field_example_suffix
+                SpecialFieldText.FRONT_SIDE_HELP -> CommonString.special_field_front_side_help
+                SpecialFieldText.DECK_HELP -> CommonString.special_field_deck_help
+                SpecialFieldText.SUBDECK_HELP -> CommonString.special_field_subdeck_help
+                SpecialFieldText.FLAG_HELP -> CommonString.special_field_flag_help
+                SpecialFieldText.TAGS_HELP -> CommonString.special_field_tags_help
+                SpecialFieldText.CARD_ID_HELP -> CommonString.special_field_card_id_help
+                SpecialFieldText.CARD_HELP -> CommonString.special_field_card_help
+                SpecialFieldText.TYPE_HELP -> CommonString.special_field_type_help
+            }
+        context.getString(resource, *args.toTypedArray())
     }.parseAsHtml(HtmlCompat.FROM_HTML_MODE_LEGACY)
-}
 
 context(dialog: InsertFieldDialog)
 private val Tab.title: String

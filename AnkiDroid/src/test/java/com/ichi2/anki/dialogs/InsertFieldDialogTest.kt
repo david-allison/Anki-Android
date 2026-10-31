@@ -94,16 +94,32 @@ class InsertFieldDialogTest : RobolectricTest() {
     }
 
     @Test
-    fun `all special fields have a descriptions`() {
-        val allSpecialFields = SpecialFields.ALL
+    fun `special field descriptions use the supplied examples`() {
+        `all special fields have a descriptions`()
+        `{{Type}} description uses note type name`()
+        `{{Card}} description uses card template name`()
+        `{{CardFlag}} description with missing flag`()
+        `{{CardFlag}} description with flag`()
+        `{{Tags}} description uses tags if set`()
+        `{{Tags}} description if tags is blank`()
+        `{{Tags}} description if tags is null`()
+        `{{CardID}} description if ID null`()
+        `{{CardID}} description if ID is set`()
+        `{{Deck}} description if not set`()
+        `{{Deck}} description if set`()
+        `{{Subdeck}} description if not set`()
+        `{{Subdeck}} description if set`()
+    }
+
+    private fun `all special fields have a descriptions`() {
+        val allSpecialFields = SpecialFields.all(onAnswerSide = true)
 
         for (field in allSpecialFields) {
             assertThat(field.buildDescription(), not(emptyString()))
         }
     }
 
-    @Test
-    fun `{{Type}} description uses note type name`() {
+    private fun `{{Type}} description uses note type name`() {
         val metadata = metadata.copy(noteTypeName = "A")
 
         assertThat(
@@ -112,8 +128,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Card}} description uses card template name`() {
+    private fun `{{Card}} description uses card template name`() {
         val metadata = metadata.copy(cardTemplateName = "B")
 
         assertThat(
@@ -124,8 +139,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{CardFlag}} description with missing flag`() {
+    private fun `{{CardFlag}} description with missing flag`() {
         assertThat(
             SpecialFields.Flag.buildDescription(
                 metadata.copy(flag = null),
@@ -134,8 +148,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{CardFlag}} description with flag`() {
+    private fun `{{CardFlag}} description with flag`() {
         assertThat(
             SpecialFields.Flag.buildDescription(
                 metadata.copy(flag = 3),
@@ -156,8 +169,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Tags}} description uses tags if set`() {
+    private fun `{{Tags}} description uses tags if set`() {
         val metadata = metadata.copy(tags = "one two")
         assertThat(
             SpecialFields.Tags.buildDescription(metadata),
@@ -165,8 +177,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Tags}} description if tags is blank`() {
+    private fun `{{Tags}} description if tags is blank`() {
         val metadata = metadata.copy(tags = " ")
         assertThat(
             SpecialFields.Tags.buildDescription(metadata),
@@ -174,8 +185,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Tags}} description if tags is null`() {
+    private fun `{{Tags}} description if tags is null`() {
         val metadata = metadata.copy(tags = null)
         assertThat(
             SpecialFields.Tags.buildDescription(metadata),
@@ -187,8 +197,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{CardID}} description if ID null`() {
+    private fun `{{CardID}} description if ID null`() {
         val metadata = metadata.copy(cardId = null)
         assertThat(
             SpecialFields.CardId.buildDescription(metadata),
@@ -196,8 +205,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{CardID}} description if ID is set`() {
+    private fun `{{CardID}} description if ID is set`() {
         val metadata = metadata.copy(cardId = 1767778189)
         assertThat(
             SpecialFields.CardId.buildDescription(metadata),
@@ -205,8 +213,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Deck}} description if not set`() {
+    private fun `{{Deck}} description if not set`() {
         val metadata = metadata.copy(deck = null)
         assertThat(
             SpecialFields.Deck.buildDescription(metadata),
@@ -214,8 +221,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Deck}} description if set`() {
+    private fun `{{Deck}} description if set`() {
         val metadata = metadata.copy(deck = "aa::bb")
         assertThat(
             SpecialFields.Deck.buildDescription(metadata),
@@ -223,8 +229,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Subdeck}} description if not set`() {
+    private fun `{{Subdeck}} description if not set`() {
         val metadata = metadata.copy(deck = null)
         assertThat(
             SpecialFields.Subdeck.buildDescription(metadata),
@@ -232,8 +237,7 @@ class InsertFieldDialogTest : RobolectricTest() {
         )
     }
 
-    @Test
-    fun `{{Subdeck}} description if set`() {
+    private fun `{{Subdeck}} description if set`() {
         val metadata = metadata.copy(deck = "aa::bb")
         assertThat(
             SpecialFields.Subdeck.buildDescription(metadata),
