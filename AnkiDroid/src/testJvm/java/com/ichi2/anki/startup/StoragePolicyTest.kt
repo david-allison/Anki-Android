@@ -3,20 +3,11 @@
 package com.ichi2.anki.startup
 
 import android.annotation.SuppressLint
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.StoragePermissionSet
 import com.ichi2.anki.common.storage.AnkiDroidFolder
-import com.ichi2.testutils.EmptyApplication
 import org.junit.Test
-import org.junit.experimental.categories.Category
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = EmptyApplication::class)
-@Category(EmptyApplicationCategory::class)
 class StoragePolicyTest {
     /** The folder persisted on startup for each [StoragePermissionSet], with and without its permissions */
     @SuppressLint("NewApi") // EXTERNAL_MANAGER requires R: only the declared policy is tested
