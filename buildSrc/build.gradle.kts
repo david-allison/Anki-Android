@@ -31,6 +31,8 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Integration fixtures can each launch a nested Gradle build with two workers.
+    maxParallelForks = minOf(2, gradle.startParameter.maxWorkerCount)
     // Show nested Gradle build failures from TestKit in CI logs.
     testLogging.exceptionFormat = TestExceptionFormat.FULL
     // Rerun the path guard if the app build file is moved.
