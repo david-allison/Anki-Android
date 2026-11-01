@@ -203,10 +203,9 @@ class NotificationServiceTest : RobolectricTest() {
     fun `receiving intent with corrupt extras should reschedule all reminders`() =
         runTest {
             coEvery { ReviewReminderAlarmManager.scheduleAllEnabledReviewReminderNotifications(any()) } returns Unit
-            val corruptExtras =
-                mockk<Bundle> {
-                    every { getParcelable(any(), any<Class<Parcelable>>()) } throws BadParcelableException("corrupt")
-                }
+            val corruptExtras = mockk<Bundle>()
+            every { corruptExtras.hint(Parcelable::class).getParcelable(any(), any<Class<Parcelable>>()) } throws
+                BadParcelableException("corrupt")
             val intent =
                 mockk<Intent> {
                     every { action } returns NotificationService.NotificationServiceAction.ScheduleRecurringNotifications.actionString
