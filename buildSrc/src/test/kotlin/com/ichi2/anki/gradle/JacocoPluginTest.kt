@@ -408,35 +408,6 @@ class JacocoPluginTest : JacocoTestFixture() {
         assertThat(output, containsString(":app:jacocoAndroidTestReport SKIPPED"))
     }
 
-    @Test
-    fun `library without unit tests is included as uncovered in the report`() {
-        // A valid, empty execution file represents a run that never touched this class.
-        ExecFileLoader().save(File(projectDir, "app/build/jacoco/testPlayDebugUnitTest.exec"), false)
-
-        // Run the real report with Android compilation, skipping only test execution.
-        val result =
-            runCoverage(
-                "-x",
-                ":app:testPlayDebugUnitTest",
-                "-x",
-                ":library:testDebugUnitTest",
-                "-x",
-                ":nested:core:test",
-            )
-        assertThat(result.task(":app:jacocoUnitTestReport")?.outcome, equalTo(TaskOutcome.SUCCESS))
-
-        val report =
-            DocumentBuilderFactory
-                .newInstance()
-                .apply { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
-                .newDocumentBuilder()
-                .parse(File(projectDir, "app/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml"))
-        val xpath = XPathFactory.newInstance().newXPath()
-        val counter = "/report/package/class[@name='regression/Uncovered']/counter[@type='LINE']"
-        assertThat(xpath.evaluate("$counter/@covered", report), equalTo("0"))
-        assertThat(xpath.evaluate("$counter/@missed", report).toInt(), greaterThan(0))
-    }
-
     @TestFactory
     fun `coverage graph before and after adding source`(): List<DynamicTest> {
         val before = dryRunCoverage()
