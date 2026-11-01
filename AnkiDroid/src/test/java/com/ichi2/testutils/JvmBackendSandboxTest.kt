@@ -10,6 +10,7 @@ import com.google.protobuf.GeneratedMessageLite
 import com.ichi2.anki.RobolectricTest
 import net.ankiweb.rsdroid.NativeMethods
 import net.ankiweb.rsdroid.testing.RustBackendLoader
+import org.jsoup.Jsoup
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -29,6 +30,8 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertSame(NativeMethods::class.java.classLoader, RustBackendLoader::class.java.classLoader)
         assertFalse(Empty::class.java.classLoader is SandboxClassLoader)
         assertFalse(GeneratedMessageLite::class.java.classLoader is SandboxClassLoader)
+        assertFalse(Jsoup::class.java.classLoader is SandboxClassLoader)
+        assertEquals("front", Jsoup.parse("<b>front</b>").text())
         assertTrue(PreviewTranslations::class.java.classLoader is SandboxClassLoader)
         assertTrue(GeneratedTranslations::class.java.classLoader is SandboxClassLoader)
         assertEquals(0, col.noteCount())

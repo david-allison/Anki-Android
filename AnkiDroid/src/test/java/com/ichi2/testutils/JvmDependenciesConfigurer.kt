@@ -33,6 +33,7 @@ class JvmDependenciesConfigurer
             // Mockito accepts the sandbox's Class objects; its JVM engine need not be reloaded.
             builder.doNotAcquirePackage("org.mockito.")
             builder.doNotAcquirePackage("io.mockk.")
+            builder.doNotAcquirePackage("org.jsoup.")
         }
 
         companion object {
