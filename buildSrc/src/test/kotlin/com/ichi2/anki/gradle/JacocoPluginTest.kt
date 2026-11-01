@@ -167,5 +167,6 @@ class JacocoPluginTest : JacocoTestFixture() {
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
             .withArguments("--configuration-cache", "--stacktrace", *arguments)
+            .withTestDaemonJvm()
             .build()
 }

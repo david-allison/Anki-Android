@@ -68,6 +68,7 @@ class JacocoAgentTest : JacocoTestFixture() {
                 .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withPluginClasspath()
                 .withArguments(*taskPaths.toTypedArray(), "--configuration-cache", "--stacktrace")
+                .withTestDaemonJvm()
                 .build()
         for (task in taskPaths) {
             assertThat(result.task(task)?.outcome, equalTo(TaskOutcome.SUCCESS))
