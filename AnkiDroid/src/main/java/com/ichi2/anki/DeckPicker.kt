@@ -1148,12 +1148,14 @@ open class DeckPicker :
                 override val requiredPermissions: StoragePermissionSet
                     get() = permissions
 
-                override val preferences: SharedPreferences
-                    get() = context.sharedPrefs()
-
                 override fun decideStorageIfUndecided() = InitialActivity.decideStorageIfUndecided(context)
 
-                override fun initializeAnkiDroidFolder(): Boolean = CollectionHelper.isCurrentAnkiDroidDirAccessible(context)
+                override fun getStartupFailure() =
+                    InitialActivity.getStartupFailureType(context.sharedPrefs()) {
+                        CollectionHelper.isCurrentAnkiDroidDirAccessible(context)
+                    }
+
+                override fun configureRenderingMode() = com.ichi2.anki.configureRenderingMode()
             }
 
         viewModel.handleStartup(environment = environment)
