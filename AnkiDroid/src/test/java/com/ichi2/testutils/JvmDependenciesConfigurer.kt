@@ -11,8 +11,8 @@ import java.io.File
 import java.util.jar.JarFile
 import javax.inject.Inject
 
-/** Share the JVM-only JNI bridge; collection handles and app state remain in each sandbox. */
-class JvmBackendConfigurer
+/** Reuse JVM dependencies while keeping Android types and app state in their SDK sandboxes. */
+class JvmDependenciesConfigurer
     @Inject
     constructor(
         shadowProviders: ShadowProviders,
@@ -30,6 +30,8 @@ class JvmBackendConfigurer
             // while leaving translations (and their Robolectric shadows) sandbox-specific.
             builder.doNotAcquirePackage("com.google.protobuf.")
             wireMessageClasses.forEach(builder::doNotAcquireClass)
+            // Mockito accepts the sandbox's Class objects; its JVM engine need not be reloaded.
+            builder.doNotAcquirePackage("org.mockito.")
         }
 
         companion object {
