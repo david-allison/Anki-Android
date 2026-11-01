@@ -10,11 +10,14 @@ import org.hamcrest.Matchers.hasItems
 import org.hamcrest.Matchers.greaterThan
 import org.jacoco.core.tools.ExecFileLoader
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.TestFactory
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathFactory
 
+// Start the multi-module build early so it can progress alongside the smaller fixtures.
+@Order(0)
 class JacocoAgentTest : JacocoTestFixture() {
     @TestFactory
     fun `unit agents and empty execution data report`(): List<DynamicTest> {
