@@ -11,28 +11,14 @@ import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.not
 import org.jacoco.core.tools.ExecFileLoader
+import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathFactory
 
 class JacocoPluginTest : JacocoTestFixture() {
-    @Test
-    fun `report covers runtime modules and skips empty library test tasks`() {
-        val output = dryRunCoverage()
-
-        for (module in listOf("app", "library", "nested/core", "empty")) {
-            assertThat(output, containsString("$module/src/main/kotlin"))
-        }
-        assertThat(output, not(containsString("tooling/src/main")))
-
-        assertThat(output, containsString(":app:testPlayDebugUnitTest SKIPPED"))
-        assertThat(output, containsString(":library:testDebugUnitTest SKIPPED"))
-        assertThat(output, containsString(":nested:core:test SKIPPED"))
-        assertThat(output, not(containsString(":empty:testDebugUnitTest")))
-        assertThat(output, not(containsString(":tooling:test")))
-    }
-
     @Test
     fun `coverage reports do not realize unrelated tasks`() {
         // AGP 9.5 registers Compose Preview tasks that fail during configuration
@@ -82,17 +68,32 @@ class JacocoPluginTest : JacocoTestFixture() {
         assertThat(xpath.evaluate("$counter/@missed", report).toInt(), greaterThan(0))
     }
 
-    @Test
-    fun `adding the first test in a custom source root updates the cached task graph`() {
+    @TestFactory
+    fun `coverage graph before and after adding source`(): List<DynamicTest> {
         val before = dryRunCoverage()
-        assertThat(before, not(containsString(":empty:testDebugUnitTest")))
-
         val cached = dryRunCoverage()
-        assertThat(cached, containsString("Reusing configuration cache."))
-
         writeFile("empty/custom-tests/ExampleTest.kt", "class ExampleTest")
-        val after = dryRunCoverage()
-        assertThat(after, containsString(":empty:testDebugUnitTest SKIPPED"))
+        val added = dryRunCoverage()
+
+        // Retain independent reported checks while sharing their identical initial graph.
+        return listOf(
+            DynamicTest.dynamicTest("report covers runtime modules and skips empty library test tasks") {
+                for (module in listOf("app", "library", "nested/core", "empty")) {
+                    assertThat(before, containsString("$module/src/main/kotlin"))
+                }
+                assertThat(before, not(containsString("tooling/src/main")))
+                assertThat(before, containsString(":app:testPlayDebugUnitTest SKIPPED"))
+                assertThat(before, containsString(":library:testDebugUnitTest SKIPPED"))
+                assertThat(before, containsString(":nested:core:test SKIPPED"))
+                assertThat(before, not(containsString(":empty:testDebugUnitTest")))
+                assertThat(before, not(containsString(":tooling:test")))
+            },
+            DynamicTest.dynamicTest("adding the first test in a custom source root updates the cached task graph") {
+                assertThat(before, not(containsString(":empty:testDebugUnitTest")))
+                assertThat(cached, containsString("Reusing configuration cache."))
+                assertThat(added, containsString(":empty:testDebugUnitTest SKIPPED"))
+            },
+        )
     }
 
     @Test
