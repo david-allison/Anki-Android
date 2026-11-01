@@ -83,8 +83,7 @@ class BackendTempLibraryServiceTest {
             buildscript { dependencies { classpath files(new URI('$productionClasses')) } }
             apply plugin: 'java'
             dependencies {
-                testImplementation libs.junit.jupiter
-                testRuntimeOnly libs.junit.platform.launcher
+                testImplementation libs.junit.vintage.engine
             }
             def service = gradle.sharedServices.registerIfAbsent('backendTempLibraries', BackendTempLibraryService) {
                 parameters.warnAboveBytes.set(0L)
@@ -94,7 +93,7 @@ class BackendTempLibraryServiceTest {
                 classpath = sourceSets.test.runtimeClasspath
             }
             tasks.withType(Test).configureEach {
-                useJUnitPlatform()
+                useJUnit()
                 jvmArgs '-XX:TieredStopAtLevel=1', '-XX:ReservedCodeCacheSize=240m'
                 BackendTempLibraryServiceKt.reportBackendTempLibraries(delegate, service)
                 systemProperty 'java.io.tmpdir', file('worker-temp').absolutePath
@@ -107,9 +106,9 @@ class BackendTempLibraryServiceTest {
             """
             import java.nio.file.Files;
             import java.nio.file.Path;
-            import org.junit.jupiter.api.Test;
-            class FixtureTest {
-                @Test void leavesLibrary() throws Exception {
+            import org.junit.Test;
+            public class FixtureTest {
+                @Test public void leavesLibrary() throws Exception {
                     Files.writeString(Path.of(System.getProperty("java.io.tmpdir"),
                         "librsdroid-${"a".repeat(40)}-1.dylib"), "library");
                     if (Boolean.getBoolean("fixture.fail")) throw new AssertionError("intentional fixture failure");
