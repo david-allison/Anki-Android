@@ -2,11 +2,7 @@
 
 package com.ichi2.anki.cardviewer
 
-import android.content.Context
 import androidx.annotation.CheckResult
-import com.ichi2.anki.cardviewer.CardTemplate.Companion.TEMPLATE_FILE
-import com.ichi2.anki.utils.ext.convertToString
-import java.io.IOException
 
 /**
  * Full HTML to be displayed in a WebView
@@ -17,9 +13,9 @@ value class RenderedCard(
 )
 
 /**
- * The static, global AnkiDroid template for rendering a card: [TEMPLATE_FILE]
+ * The static HTML template for rendering a card.
  *
- * Handles loading the file from disk and replacements of sections of dynamic content
+ * Replaces the style, script, class, and content sections.
  */
 class CardTemplate(
     template: String,
@@ -61,19 +57,5 @@ class CardTemplate(
         } catch (ex: StringIndexOutOfBoundsException) {
             throw IllegalStateException("The card template had replacement string order, or content changed", ex)
         }
-    }
-
-    companion object {
-        private const val TEMPLATE_FILE = "card_template.html"
-
-        /**
-         * Load the template for the card
-         *
-         * @throws IOException failure to read [TEMPLATE_FILE]
-         */
-        fun load(context: Context) =
-            CardTemplate(
-                template = context.assets.open(TEMPLATE_FILE).convertToString(),
-            )
     }
 }
