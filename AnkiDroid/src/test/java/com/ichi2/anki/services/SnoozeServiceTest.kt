@@ -12,7 +12,6 @@ import android.os.BadParcelableException
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.core.content.edit
-import androidx.core.content.getSystemService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.android.AlarmManagement
@@ -22,6 +21,7 @@ import com.ichi2.anki.reviewreminders.ReviewReminder
 import com.ichi2.anki.reviewreminders.ReviewReminderScope
 import com.ichi2.anki.reviewreminders.ReviewReminderTime
 import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
+import com.ichi2.testutils.mockSystemService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
@@ -69,8 +69,8 @@ class SnoozeServiceTest : RobolectricTest() {
         context = mockk(relaxed = true)
         alarmManager = mockk(relaxed = true)
         notificationManager = mockk(relaxed = true)
-        every { context.getSystemService<AlarmManager>() } returns alarmManager
-        every { context.getSystemService<NotificationManager>() } returns notificationManager
+        context.mockSystemService(AlarmManager::class, alarmManager)
+        context.mockSystemService(NotificationManager::class, notificationManager)
 
         reviewReminder = ReviewReminder.createReviewReminder(time = ReviewReminderTime(20, 0))
         reviewReminder.latestNotifTime = mockTime.intTimeMS() // Ensure the reminder is ready to have its future instance scheduled
@@ -160,10 +160,9 @@ class SnoozeServiceTest : RobolectricTest() {
     @SuppressLint("NewApi") // Bundle.getParcelable(String, Class) requires API 33: Robolectric runs at API 36
     @Test
     fun `receiving intent with corrupt extras should ignore snooze request`() {
-        val corruptExtras =
-            mockk<Bundle> {
-                every { getParcelable(any(), any<Class<Parcelable>>()) } throws BadParcelableException("corrupt")
-            }
+        val corruptExtras = mockk<Bundle>()
+        every { corruptExtras.hint(Parcelable::class).getParcelable(any(), any<Class<Parcelable>>()) } throws
+            BadParcelableException("corrupt")
         val intent = mockk<Intent> { every { extras } returns corruptExtras }
 
         SnoozeService().onReceive(context, intent)

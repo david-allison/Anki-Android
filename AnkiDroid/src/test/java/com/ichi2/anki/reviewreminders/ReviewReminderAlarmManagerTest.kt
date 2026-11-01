@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.PendingIntentCompat
 import androidx.core.content.edit
-import androidx.core.content.getSystemService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.android.AlarmManagement
@@ -18,6 +17,7 @@ import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.services.NotificationService.Companion.EXTRA_REVIEW_REMINDER_ID
 import com.ichi2.anki.services.NotificationService.Companion.EXTRA_REVIEW_REMINDER_SCOPE
 import com.ichi2.anki.utils.ext.getParcelableCompat
+import com.ichi2.testutils.mockSystemService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -62,7 +62,7 @@ class ReviewReminderAlarmManagerTest : RobolectricTest() {
         super.setUp()
         context = mockk(relaxed = true)
         alarmManager = mockk(relaxed = true)
-        every { context.getSystemService<AlarmManager>() } returns alarmManager
+        context.mockSystemService(AlarmManager::class, alarmManager)
 
         reviewReminder = ReviewReminder.createReviewReminder(time = ReviewReminderTime(20, 0))
         reviewReminder.latestNotifTime = mockTime.intTimeMS() // Ensure the reminder is ready to have its future instance scheduled
