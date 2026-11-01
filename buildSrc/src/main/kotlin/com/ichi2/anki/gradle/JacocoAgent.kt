@@ -23,6 +23,14 @@ fun Project.configureJacocoAgent() {
         val jacoco = extensions.getByType(JacocoTaskExtension::class.java)
         jacoco.isIncludeNoLocationClasses = true
         jacoco.includes = includes
-        jacoco.excludes = listOf("jdk.internal.*")
+        jacoco.excludes =
+            listOf(
+                "jdk.internal.*",
+                "*Test",
+                "*Test\$*",
+                "*TestKt*",
+                "com.ichi2.testutils.*",
+                "com.ichi2.anki.libanki.testutils.*",
+            )
     }
 }
