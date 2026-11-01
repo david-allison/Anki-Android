@@ -3,24 +3,28 @@
 package com.ichi2.anki.deckpicker
 
 import androidx.lifecycle.ViewModelStore
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CollectionManager
-import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.FlattenedDeckList
 import com.ichi2.anki.exception.CollectionLockedException
+import com.ichi2.anki.libanki.CollectionFiles
+import com.ichi2.testutils.JvmTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import net.ankiweb.rsdroid.Backend
 import org.junit.After
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
+import org.junit.rules.TemporaryFolder
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
-@RunWith(AndroidJUnit4::class)
-class DeckPickerCollectionLockTest : RobolectricTest() {
-    override fun getCollectionStorageMode() = CollectionStorageMode.ON_DISK
+class DeckPickerCollectionLockTest : JvmTest() {
+    @get:Rule(order = 0)
+    val directory = TemporaryFolder()
+
+    override val collectionFiles: CollectionFiles
+        get() = CollectionFiles.FolderBasedCollection(directory.root)
 
     private val viewModels = ViewModelStore()
     private val viewModel by lazy {
@@ -28,8 +32,12 @@ class DeckPickerCollectionLockTest : RobolectricTest() {
     }
 
     @After
-    fun clearViewModels() {
-        viewModels.clear()
+    override fun tearDown() {
+        try {
+            viewModels.clear()
+        } finally {
+            super.tearDown()
+        }
     }
 
     @Test
