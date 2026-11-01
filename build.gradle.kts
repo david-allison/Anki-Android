@@ -88,6 +88,9 @@ subprojects {
         // Keep backend behavior deterministic in Android and JVM tests alike.
         environment("ANKI_TEST_MODE", "1")
         maxHeapSize = "${unitTestForkMaxHeapGb}g"
+        // Use the first-tier JIT compiler for short-lived test workers.
+        // Retain the normal 240 MiB code cache; first-tier compilation otherwise reduces it to 48 MiB.
+        jvmArgs("-XX:TieredStopAtLevel=1", "-XX:ReservedCodeCacheSize=240m")
         useJUnitPlatform()
         testLogging {
             events("failed", "skipped")
