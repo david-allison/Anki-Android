@@ -21,6 +21,9 @@ import javax.xml.xpath.XPathFactory
 class JacocoAgentTest : JacocoTestFixture() {
     @TestFactory
     fun `unit agents and empty execution data report`(): List<DynamicTest> {
+        // The graph fixture needs a Kotlin source to detect its JVM test task. This fixture
+        // supplies real Java tests below, so the placeholder must not start a Kotlin compiler.
+        check(File(projectDir, "nested/core/src/test/kotlin/ExampleTest.kt").delete())
         val modules = mapOf("app" to "CoveredApp", "library" to "CoveredLibrary", "nested/core" to "CoveredCore")
         for ((module, className) in modules) {
             writeFile(
@@ -113,6 +116,7 @@ class JacocoAgentTest : JacocoTestFixture() {
 
         return listOf(
             DynamicTest.dynamicTest("unit agents retain production classes without instrumenting tests and dependencies") {
+                assertThat(result.task(":nested:core:compileTestKotlin")?.outcome, equalTo(TaskOutcome.NO_SOURCE))
                 for (task in taskPaths) {
                     assertThat(result.task(task)?.outcome, equalTo(TaskOutcome.SUCCESS))
                 }
