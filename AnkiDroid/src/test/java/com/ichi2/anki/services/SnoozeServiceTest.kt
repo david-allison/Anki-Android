@@ -7,7 +7,6 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.content.edit
-import androidx.core.content.getSystemService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.android.AlarmManagement
@@ -17,7 +16,7 @@ import com.ichi2.anki.reviewreminders.ReviewReminder
 import com.ichi2.anki.reviewreminders.ReviewReminderScope
 import com.ichi2.anki.reviewreminders.ReviewReminderTime
 import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
-import io.mockk.every
+import com.ichi2.testutils.mockSystemService
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -64,8 +63,8 @@ class SnoozeServiceTest : RobolectricTest() {
         context = mockk(relaxed = true)
         alarmManager = mockk(relaxed = true)
         notificationManager = mockk(relaxed = true)
-        every { context.getSystemService<AlarmManager>() } returns alarmManager
-        every { context.getSystemService<NotificationManager>() } returns notificationManager
+        context.mockSystemService(AlarmManager::class, alarmManager)
+        context.mockSystemService(NotificationManager::class, notificationManager)
 
         reviewReminder = ReviewReminder.createReviewReminder(time = ReviewReminderTime(20, 0))
         reviewReminder.latestNotifTime = mockTime.intTimeMS() // Ensure the reminder is ready to have its future instance scheduled
