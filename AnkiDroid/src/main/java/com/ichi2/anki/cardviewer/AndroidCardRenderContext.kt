@@ -6,6 +6,7 @@ import android.content.Context
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.reviewer.ReviewerCustomFonts
+import com.ichi2.anki.utils.ext.convertToString
 
 /** Loads the Android resources and preferences used by the card renderer. */
 fun createCardRenderContext(
@@ -15,5 +16,6 @@ fun createCardRenderContext(
 ): CardRenderContext {
     val preferences = context.sharedPrefs()
     val appearance = CardAppearance.create(ReviewerCustomFonts(), preferences, context.resources.configuration.fontScale)
-    return CardRenderContext.create(col, typeAnswer, appearance, CardTemplate.load(context))
+    val template = CardTemplate(context.assets.open("card_template.html").convertToString())
+    return CardRenderContext.create(col, typeAnswer, appearance, template)
 }
