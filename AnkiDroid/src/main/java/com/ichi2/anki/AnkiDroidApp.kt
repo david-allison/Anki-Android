@@ -524,9 +524,14 @@ open class AnkiDroidApp :
             } else {
                 // Register for notifications
                 Timber.i("AnkiDroidApp: Starting Services")
-                notifications.observeForever { NotificationService.triggerNotificationFor(context) }
+                observeLegacyNotifications(context)
             }
         }
+
+    /** Connects legacy widget updates to process-wide notification delivery. */
+    protected open fun observeLegacyNotifications(context: Context) {
+        notifications.observeForever { NotificationService.triggerNotificationFor(context) }
+    }
 
     private fun setupAppLifecycleObserver() =
         setup("setupAppLifecycleObserver") {

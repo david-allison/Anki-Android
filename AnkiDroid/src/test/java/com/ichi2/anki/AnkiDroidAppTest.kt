@@ -2,9 +2,11 @@
 
 package com.ichi2.anki
 
+import android.app.NotificationManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
+import android.os.Looper
 import androidx.core.content.edit
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleRegistry
@@ -16,6 +18,7 @@ import com.ichi2.anki.browser.IdsFile
 import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.crashreporting.CrashReportService.sendExceptionReport
 import com.ichi2.anki.common.crashreporting.CrashReporter
+import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.multimedia.MultimediaArgsStorage
 import com.ichi2.anki.multiprofile.ProfileManager
@@ -37,6 +40,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
@@ -86,6 +90,21 @@ class AnkiDroidAppTest {
     fun reportingDoesNotThrowException() {
         assertTrue("Production application startup must initialize ACRA", ACRA.isInitialised)
         assertDoesNotThrow { sendExceptionReport("Test", "AnkiDroidAppTest") }
+    }
+
+    @Test
+    fun `application observes legacy widget notification updates`() {
+        val application = ApplicationProvider.getApplicationContext<AnkiDroidApp>()
+        application.sharedPrefs().edit {
+            putString(application.getString(CommonPreferenceKey.pref_notifications_minimum_cards_due_key), "0")
+        }
+
+        application.scheduleNotification()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val manager = assertNotNull(application.getSystemService(NotificationManager::class.java))
+        val notification = assertNotNull(shadowOf(manager).getNotification(1))
+        assertEquals(NotificationChannel.GENERAL.id, notification.channelId)
     }
 
     @Test

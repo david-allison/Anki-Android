@@ -44,6 +44,8 @@ class RobolectricTestApplication : AnkiDroidApp() {
 
     override fun setupTextToSpeech() = Unit
 
+    override fun observeLegacyNotifications(context: Context) = Unit
+
     override fun onTerminate() {
         try {
             super.onTerminate()
