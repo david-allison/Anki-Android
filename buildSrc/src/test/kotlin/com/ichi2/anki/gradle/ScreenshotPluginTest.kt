@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Order
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
@@ -18,8 +19,8 @@ class ScreenshotPluginTest {
     @TempDir
     lateinit var projectDir: File
 
-    @Test
-    fun `normal unit tests never construct excluded screenshot runners`() {
+    @TestFactory
+    fun `normal discovery and screenshot comparison`(): List<DynamicTest> {
         writeFixture()
         writeFile(
             "src/test/java/com/ichi2/anki/ScreenshotTestCategory.java",
@@ -63,7 +64,7 @@ class ScreenshotPluginTest {
         )
         writeFile("changed.txt", "false")
 
-        val result = GradleRunner.create()
+        val normalResult = GradleRunner.create()
             .withProjectDir(projectDir)
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
@@ -71,13 +72,9 @@ class ScreenshotPluginTest {
             .withTestDaemonJvm()
             .build()
 
-        assertEquals(TaskOutcome.SUCCESS, result.task(":testDebugUnitTest")?.outcome, result.output)
-        assertFalse(File(projectDir, "screenshot-runner-created.txt").exists(), result.output)
-    }
-
-    @Test
-    fun `matching screenshots clear previous diffs including cached results`() {
-        writeFixture()
+        val normalOutcome = normalResult.task(":testDebugUnitTest")?.outcome
+        val runnerCreatedDuringNormalTests = File(projectDir, "screenshot-runner-created.txt").exists()
+        val comparisonChecks = mutableListOf<() -> Unit>()
         // Preserve baselines not exercised by this run, even inside a directory named 'diffs'.
         // Populate that directory up front so creating it cannot change the comparison's cache key.
         val baselines = mapOf("Example/screen.png" to "baseline", "Example/diffs/other.png" to "unselected baseline")
@@ -100,17 +97,33 @@ class ScreenshotPluginTest {
             listOf(true, false).forEach { changed ->
                 writeFile("changed.txt", changed.toString())
                 val result = runner.build()
-                assertEquals(outcome, result.task(":testDebugUnitTest")?.outcome, result.output)
+                val actualOutcome = result.task(":testDebugUnitTest")?.outcome
                 val expectedDiffs = if (changed) diffs else emptyMap()
-                listOf("outputs/roborazzi", "intermediates/roborazzi").forEach { directory ->
-                    assertEquals(baselines + expectedDiffs, fileContents(directory), "$directory: $outcome, changed=$changed")
-                }
-                if (outcome == TaskOutcome.FROM_CACHE) {
-                    assertTrue(result.output.contains("Reusing configuration cache."))
-                    assertEquals(expectedDiffs.filterKeys { it.endsWith("_compare.png") }, fileContents("reports/screenshot-diffs"))
+                val actualFiles = listOf("outputs/roborazzi", "intermediates/roborazzi").associateWith(::fileContents)
+                val reportFiles = fileContents("reports/screenshot-diffs")
+                // Snapshot each state before the next build changes it. Assertions remain
+                // separately reported while the five builds reuse one compiled project.
+                comparisonChecks += {
+                    assertEquals(outcome, actualOutcome, result.output)
+                    actualFiles.forEach { (directory, contents) ->
+                        assertEquals(baselines + expectedDiffs, contents, "$directory: $outcome, changed=$changed")
+                    }
+                    if (outcome == TaskOutcome.FROM_CACHE) {
+                        assertTrue(result.output.contains("Reusing configuration cache."))
+                        assertEquals(expectedDiffs.filterKeys { it.endsWith("_compare.png") }, reportFiles)
+                    }
                 }
             }
         }
+        return listOf(
+            DynamicTest.dynamicTest("normal unit tests never construct excluded screenshot runners") {
+                assertEquals(TaskOutcome.SUCCESS, normalOutcome, normalResult.output)
+                assertFalse(runnerCreatedDuringNormalTests, normalResult.output)
+            },
+            DynamicTest.dynamicTest("matching screenshots clear previous diffs including cached results") {
+                comparisonChecks.forEach { it() }
+            },
+        )
     }
 
     private fun fileContents(directory: String): Map<String, String> {
