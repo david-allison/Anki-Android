@@ -83,7 +83,7 @@ class JacocoAgentTest : JacocoTestFixture() {
                 .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withPluginClasspath()
                 .withArguments(*taskPaths.toTypedArray(), "--parallel", "--configuration-cache", "--stacktrace")
-                .withTestDaemonJvm()
+                .withTestDaemonJvm(Integer.getInteger("ankidroid.testkit.agentMaxWorkers", 1))
                 .build()
         for (task in taskPaths) {
             assertThat(result.task(task)?.outcome, equalTo(TaskOutcome.SUCCESS))

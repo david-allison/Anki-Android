@@ -34,8 +34,10 @@ tasks.test {
     // Use the first-tier JIT compiler for short-lived test workers.
     // Retain the normal 240 MiB code cache; first-tier compilation otherwise reduces it to 48 MiB.
     jvmArgs("-XX:TieredStopAtLevel=1", "-XX:ReservedCodeCacheSize=240m")
-    // Integration fixtures can each launch a nested Gradle build with two workers.
-    maxParallelForks = minOf(2, gradle.startParameter.maxWorkerCount)
+    // Three fixture builds can progress independently. Normal fixtures use one nested worker;
+    // the single multi-module agent fixture can use a fourth slot when the budget permits it.
+    maxParallelForks = minOf(3, gradle.startParameter.maxWorkerCount)
+    systemProperty("ankidroid.testkit.agentMaxWorkers", if (gradle.startParameter.maxWorkerCount >= 4) 2 else 1)
     // Show nested Gradle build failures from TestKit in CI logs.
     testLogging.exceptionFormat = TestExceptionFormat.FULL
     // Rerun the path guard if the app build file is moved.
