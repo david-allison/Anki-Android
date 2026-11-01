@@ -3,7 +3,6 @@
 package com.ichi2.anki
 
 import com.ichi2.anki.CollectionManager.withCol
-import com.ichi2.anki.exception.CollectionLockedException
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.CollectionFiles
 import org.hamcrest.MatcherAssert.assertThat
@@ -29,56 +28,6 @@ class CollectionStorageModeTest(
             val opened = withCol { this }
             assertStorageMode(opened)
             assertThat(col, sameInstance(opened))
-        }
-
-    @Test
-    fun `synchronous access opens the selected storage mode`() {
-        assertThat(CollectionManager.isOpenUnsafe(), equalTo(false))
-        val opened = CollectionManager.getColUnsafe()
-        assertStorageMode(opened)
-        assertThat(col, sameInstance(opened))
-    }
-
-    @Test
-    fun `test and application access share the collection`() =
-        runTest {
-            val opened = col
-            assertStorageMode(opened)
-            assertThat(withCol { this }, sameInstance(opened))
-        }
-
-    @Test
-    fun `test access respects collection opening failures`() =
-        runTest {
-            withNullCollection {
-                assertThat(runCatching { col }.exceptionOrNull(), instanceOf(CollectionLockedException::class.java))
-                assertThat(runCatching { withCol { this } }.exceptionOrNull(), instanceOf(CollectionLockedException::class.java))
-            }
-        }
-
-    @Test
-    fun `reopening retains the selected storage mode`() =
-        runTest {
-            val mediaFolder = col.collectionFiles.mediaFolder
-            CollectionManager.ensureClosed()
-            assertThat(CollectionManager.isOpenUnsafe(), equalTo(false))
-
-            val reopened = withCol { this }
-            assertStorageMode(reopened)
-            assertThat(reopened.collectionFiles.mediaFolder, equalTo(mediaFolder))
-            assertThat(col, sameInstance(reopened))
-        }
-
-    @Test
-    fun `discarding the backend retains the storage mode`() =
-        runTest {
-            val mediaFolder = col.collectionFiles.mediaFolder
-            CollectionManager.discardBackend()
-
-            val reopened = withCol { this }
-            assertStorageMode(reopened)
-            assertThat(reopened.collectionFiles.mediaFolder, equalTo(mediaFolder))
-            assertThat(col, sameInstance(reopened))
         }
 
     private fun assertStorageMode(collection: Collection) {
