@@ -9,6 +9,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.greaterThan
+import org.hamcrest.Matchers.hasItems
 import org.hamcrest.Matchers.not
 import org.jacoco.core.tools.ExecFileLoader
 import org.junit.jupiter.api.BeforeEach
@@ -38,6 +39,63 @@ class JacocoPluginTest {
         writeFile("nested/core/src/test/kotlin/ExampleTest.kt", "class ExampleTest")
         // Resources alone must not cause a unit-test task to be scheduled.
         writeFile("empty/src/test/resources/example.txt", "Not a test source")
+    }
+
+    @Test
+    fun `unit agent retains app and vendored classes without instrumenting dependencies`() {
+        writeFile(
+            "app/src/main/java/com/ichi2/anki/coverage/CoveredApp.java",
+            "package com.ichi2.anki.coverage; public class CoveredApp { public static int value() { return 7; } }",
+        )
+        writeFile(
+            "app/src/main/java/androidx/drawerlayout/widget/ClosableDrawerLayout.java",
+            "package androidx.drawerlayout.widget; public class ClosableDrawerLayout { public static int value() { return 9; } }",
+        )
+        writeFile(
+            "app/src/test/java/org/robolectric/coverage/Dependency.java",
+            "package org.robolectric.coverage; public class Dependency { public static int value() { return 11; } }",
+        )
+        writeFile(
+            "app/src/test/java/regression/CoverageTest.java",
+            """
+            package regression;
+            public class CoverageTest {
+                @org.junit.Test public void executesAppAndDependencies() {
+                    org.junit.Assert.assertEquals(7, com.ichi2.anki.coverage.CoveredApp.value());
+                    org.junit.Assert.assertEquals(9, androidx.drawerlayout.widget.ClosableDrawerLayout.value());
+                    org.junit.Assert.assertEquals(11, org.robolectric.coverage.Dependency.value());
+                }
+            }
+            """.trimIndent(),
+        )
+        File(projectDir, "app/build.gradle").appendText(
+            """
+
+            dependencies { testImplementation libs.junit.vintage.engine }
+            tasks.withType(Test).configureEach { useJUnit() }
+            """.trimIndent(),
+        )
+
+        val result =
+            GradleRunner
+                .create()
+                .withProjectDir(projectDir)
+                .withTestKitDir(File("build/test-kit").absoluteFile)
+                .withPluginClasspath()
+                .withArguments(":app:testPlayDebugUnitTest", "--configuration-cache", "--stacktrace")
+                .build()
+        assertThat(result.task(":app:testPlayDebugUnitTest")?.outcome, equalTo(TaskOutcome.SUCCESS))
+
+        val coverage = ExecFileLoader().apply { load(File(projectDir, "app/build/jacoco/testPlayDebugUnitTest.exec")) }
+        val coveredNames =
+            coverage.executionDataStore.contents
+                .filter { it.probes.any { covered -> covered } }
+                .map { it.name }
+        assertThat(
+            coveredNames,
+            hasItems("com/ichi2/anki/coverage/CoveredApp", "androidx/drawerlayout/widget/ClosableDrawerLayout"),
+        )
+        assertThat(coveredNames.any { it.startsWith("org/robolectric/") }, equalTo(false))
     }
 
     @Test
