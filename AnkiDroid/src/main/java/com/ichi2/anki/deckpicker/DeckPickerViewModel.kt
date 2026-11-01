@@ -2,7 +2,6 @@
 
 package com.ichi2.anki.deckpicker
 
-import android.content.SharedPreferences
 import android.os.Build
 import androidx.annotation.CheckResult
 import androidx.lifecycle.ViewModel
@@ -26,7 +25,6 @@ import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.progress.HasProgress
 import com.ichi2.anki.common.progress.ProgressManager
 import com.ichi2.anki.common.utils.ext.schedulerVersion
-import com.ichi2.anki.configureRenderingMode
 import com.ichi2.anki.isLoggedIn
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.CardId
@@ -692,7 +690,7 @@ class DeckPickerViewModel :
                     withContext(Dispatchers.IO) {
                         // Once we have permissions, we know the `StorageDecision`
                         environment.decideStorageIfUndecided()
-                        InitialActivity.getStartupFailureType(environment.preferences, environment::initializeAnkiDroidFolder)
+                        environment.getStartupFailure()
                     }
                 if (failure != null) {
                     flowOfStartupResponse.value = StartupResponse.FatalError(failure)
@@ -701,7 +699,7 @@ class DeckPickerViewModel :
 
                 // successful startup
 
-                configureRenderingMode()
+                environment.configureRenderingMode()
                 viewModelScope.launch(Dispatchers.IO) { loadDeckList() }
 
                 flowOfStartupResponse.value = StartupResponse.Success
@@ -713,9 +711,6 @@ class DeckPickerViewModel :
 
         val requiredPermissions: StoragePermissionSet
 
-        /** The preferences of the (profile) context the collection path is read from */
-        val preferences: SharedPreferences
-
         /**
          * Persists the collection path if the user has not decided yet; no-op otherwise.
          *
@@ -726,7 +721,11 @@ class DeckPickerViewModel :
          */
         fun decideStorageIfUndecided()
 
-        fun initializeAnkiDroidFolder(): Boolean
+        /** Opens the collection and checks the profile's Android storage after permissions are granted. */
+        fun getStartupFailure(): InitialActivity.StartupFailure?
+
+        /** Applies platform rendering defaults after the startup checks succeed. */
+        fun configureRenderingMode()
     }
 
     /** Represents [dueTree] as a list */

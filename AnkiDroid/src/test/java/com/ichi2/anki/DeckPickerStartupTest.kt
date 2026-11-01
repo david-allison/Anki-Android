@@ -2,7 +2,6 @@
 
 package com.ichi2.anki
 
-import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -85,13 +84,12 @@ class DeckPickerStartupTest : RobolectricTest() {
                 doCallRealMethod().whenever(viewModel).handleStartup(any())
                 viewModel.handleStartup(
                     object : AnkiDroidEnvironment by environment {
-                        override val preferences: SharedPreferences
-                            get() {
-                                check(releaseStartup.await(10.seconds.inWholeMilliseconds, TimeUnit.MILLISECONDS)) {
-                                    "The background startup check was not released"
-                                }
-                                return environment.preferences
+                        override fun getStartupFailure(): InitialActivity.StartupFailure? {
+                            check(releaseStartup.await(10.seconds.inWholeMilliseconds, TimeUnit.MILLISECONDS)) {
+                                "The background startup check was not released"
                             }
+                            return environment.getStartupFailure()
+                        }
                     },
                 )
             }.whenever(viewModel).handleStartup(any())
