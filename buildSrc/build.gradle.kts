@@ -31,6 +31,9 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Use the first-tier JIT compiler for short-lived test workers.
+    // Retain the normal 240 MiB code cache; first-tier compilation otherwise reduces it to 48 MiB.
+    jvmArgs("-XX:TieredStopAtLevel=1", "-XX:ReservedCodeCacheSize=240m")
     // Integration fixtures can each launch a nested Gradle build with two workers.
     maxParallelForks = minOf(2, gradle.startParameter.maxWorkerCount)
     // Show nested Gradle build failures from TestKit in CI logs.
