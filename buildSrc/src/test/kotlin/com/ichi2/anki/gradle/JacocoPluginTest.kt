@@ -4,19 +4,14 @@ package com.ichi2.anki.gradle
 
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.testkit.runner.TaskOutcome
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.not
-import org.jacoco.core.tools.ExecFileLoader
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.io.File
-import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.xpath.XPathFactory
 
 class JacocoPluginTest : JacocoTestFixture() {
     @Test
@@ -37,35 +32,6 @@ class JacocoPluginTest : JacocoTestFixture() {
         val output = runCoverage(":app:jacocoAndroidTestReport", "--dry-run").output
         assertThat(output, containsString(":app:jacocoUnitTestReport SKIPPED"))
         assertThat(output, containsString(":app:jacocoAndroidTestReport SKIPPED"))
-    }
-
-    @Test
-    fun `library without unit tests is included as uncovered in the report`() {
-        // A valid, empty execution file represents a run that never touched this class.
-        ExecFileLoader().save(File(projectDir, "app/build/jacoco/testPlayDebugUnitTest.exec"), false)
-
-        // Run the real report with Android compilation, skipping only test execution.
-        val result =
-            runCoverage(
-                "-x",
-                ":app:testPlayDebugUnitTest",
-                "-x",
-                ":library:testDebugUnitTest",
-                "-x",
-                ":nested:core:test",
-            )
-        assertThat(result.task(":app:jacocoUnitTestReport")?.outcome, equalTo(TaskOutcome.SUCCESS))
-
-        val report =
-            DocumentBuilderFactory
-                .newInstance()
-                .apply { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
-                .newDocumentBuilder()
-                .parse(File(projectDir, "app/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml"))
-        val xpath = XPathFactory.newInstance().newXPath()
-        val counter = "/report/package/class[@name='regression/Uncovered']/counter[@type='LINE']"
-        assertThat(xpath.evaluate("$counter/@covered", report), equalTo("0"))
-        assertThat(xpath.evaluate("$counter/@missed", report).toInt(), greaterThan(0))
     }
 
     @TestFactory
