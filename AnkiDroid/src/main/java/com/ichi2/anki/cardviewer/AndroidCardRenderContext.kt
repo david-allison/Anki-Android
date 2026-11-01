@@ -15,7 +15,7 @@ fun createCardRenderContext(
     typeAnswer: TypeAnswer,
 ): CardRenderContext {
     val preferences = context.sharedPrefs()
-    val appearance = CardAppearance.create(ReviewerCustomFonts(), preferences, context.resources.configuration.fontScale)
+    val appearance = createCardAppearance(ReviewerCustomFonts(), preferences, context.resources.configuration.fontScale)
     val template = CardTemplate(context.assets.open("card_template.html").convertToString())
     return CardRenderContext.create(col, typeAnswer, appearance, template)
 }

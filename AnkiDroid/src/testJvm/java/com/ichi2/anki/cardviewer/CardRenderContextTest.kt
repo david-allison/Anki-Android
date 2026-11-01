@@ -59,7 +59,7 @@ class CardRenderContextTest : JvmTest() {
         val preferences = SPMockBuilder().createSharedPreferences()
         val typeAnswer = TypeAnswer(useInputTag = false, autoFocus = true)
         typeAnswer.updateInfo(col, card) { error("Unexpected missing field: $it") }
-        val appearance = CardAppearance.create(ReviewerCustomFonts(), preferences, fontScale = 1f)
+        val appearance = createCardAppearance(ReviewerCustomFonts(), preferences, fontScale = 1f)
         val template = CardTemplate(File("src/main/assets/card_template.html").readText())
         return CardRenderContext.create(col, typeAnswer, appearance, template).renderCard(col, card, SingleCardSide.FRONT).html
     }
