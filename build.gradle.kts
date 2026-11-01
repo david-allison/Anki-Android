@@ -126,10 +126,10 @@ subprojects {
                         robolectricDependencies.get().asFile.absolutePath,
                     )
 
-                    val robolectricFonts =
-                        files(project(":AnkiDroid").layout.buildDirectory.dir("robolectric-fonts"))
-                            .builtBy(":AnkiDroid:robolectricFontCache")
-                    it.classpath = files(robolectricFonts, it.classpath)
+                    val robolectricNativeResources =
+                        files(project(":AnkiDroid").layout.buildDirectory.dir("robolectric-native-resources"))
+                            .builtBy(":AnkiDroid:robolectricNativeResourceCache")
+                    it.classpath = files(robolectricNativeResources, it.classpath)
 
                     it.minHeapSize = "1g"
                     it.configureRobolectricJvm()

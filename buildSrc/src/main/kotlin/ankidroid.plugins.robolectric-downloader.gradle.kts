@@ -59,14 +59,15 @@ val robolectricSdkDownload =
         destinationFile = layout.buildDirectory.file("robolectric-deps.properties")
     }
 
-// Each sandbox copies these fonts into its own native runtime directory. Keep the exact bundled
-// resources on a directory classpath entry so those copies do not repeatedly decompress the jar.
-val robolectricFontCache =
-    tasks.register<Sync>("robolectricFontCache") {
+// Each sandbox copies these resources into its own native runtime directory. Keep the exact
+// bundled bytes on a directory classpath entry to avoid repeatedly decompressing their jars.
+val robolectricNativeResourceCache =
+    tasks.register<Sync>("robolectricNativeResourceCache") {
         group = "Dependencies"
-        description = "Extracts Robolectric's bundled fonts for reuse by test sandboxes"
-        into(layout.buildDirectory.dir("robolectric-fonts"))
-        include("fonts/**")
+        description = "Extracts Robolectric's bundled native resources for reuse by test sandboxes"
+        into(layout.buildDirectory.dir("robolectric-native-resources"))
+        // SDK-specific ICU paths must remain distinct; never replace one SDK's data with another's.
+        duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 
 configurations.matching { it.name == "playDebugUnitTestRuntimeClasspath" }.all {
@@ -78,8 +79,10 @@ configurations.matching { it.name == "playDebugUnitTestRuntimeClasspath" }.all {
         }.files
     // Capture the service rather than the script's Project in the lazy archive provider.
     val archives = objects.newInstance<RobolectricArchiveServices>().archives
-    robolectricFontCache.configure {
-        from(nativeRuntime.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) })
+    robolectricNativeResourceCache.configure {
+        from(nativeRuntime.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) }) {
+            include("fonts/**", "icu/**", "hyphen-data/**")
+        }
     }
 }
 
@@ -92,6 +95,16 @@ robolectricAndroidSdkVersions.forEach { robolectricSdkVersion ->
     // the jar file
     val sdkConfig = configurations.create(version)
     dependencies.add(version, "org.robolectric:android-all-instrumented:$version")
+
+    // Android 15+ obtains ICU data from its SDK jar instead of nativeruntime-dist.
+    if (robolectricSdkVersion.getValue("androidVersion").substringBefore('.').toInt() >= 15) {
+        robolectricNativeResourceCache.configure {
+            val archives = objects.newInstance<RobolectricArchiveServices>().archives
+            from(sdkConfig.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) }) {
+                include("icu/**")
+            }
+        }
+    }
 
     robolectricSdkDownload.configure {
         inputs.files(sdkConfig).withPropertyName(version)
