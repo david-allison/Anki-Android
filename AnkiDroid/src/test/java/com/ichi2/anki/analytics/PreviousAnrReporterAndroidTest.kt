@@ -15,6 +15,7 @@ import com.ichi2.anki.common.crashreporting.CrashReportService
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.multiprofile.ProfileContextWrapper
 import com.ichi2.anki.multiprofile.ProfileId
+import com.ichi2.testutils.mockSystemService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -58,7 +59,7 @@ class PreviousAnrReporterAndroidTest {
         every { context.getSharedPreferences(any(), Context.MODE_PRIVATE) } answers {
             application.getSharedPreferences(firstArg(), Context.MODE_PRIVATE)
         }
-        every { context.getSystemService(ActivityManager::class.java) } returns manager
+        context.mockSystemService(ActivityManager::class, manager)
         val packageManager = spyk(application.packageManager)
         val packageName = application.packageName
         every { context.packageManager } returns packageManager

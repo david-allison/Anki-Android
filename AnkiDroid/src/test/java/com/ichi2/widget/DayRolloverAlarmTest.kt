@@ -4,10 +4,10 @@ package com.ichi2.widget
 
 import android.app.AlarmManager
 import android.content.Context
-import androidx.core.content.getSystemService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.common.android.AlarmManagement
+import com.ichi2.testutils.mockSystemService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
@@ -25,7 +25,7 @@ class DayRolloverAlarmTest : RobolectricTest() {
     private val alarmManager: AlarmManager = mockk(relaxed = true)
 
     init {
-        every { mockContext.getSystemService<AlarmManager>() } returns alarmManager
+        mockContext.mockSystemService(AlarmManager::class, alarmManager)
     }
 
     @After

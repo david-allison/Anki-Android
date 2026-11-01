@@ -32,6 +32,7 @@ class JvmDependenciesConfigurer
             wireMessageClasses.forEach(builder::doNotAcquireClass)
             // Mockito accepts the sandbox's Class objects; its JVM engine need not be reloaded.
             builder.doNotAcquirePackage("org.mockito.")
+            builder.doNotAcquirePackage("io.mockk.")
         }
 
         companion object {
