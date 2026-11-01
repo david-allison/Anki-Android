@@ -42,7 +42,7 @@ class JacocoPluginTest {
     }
 
     @Test
-    fun `unit agent retains app and vendored classes without instrumenting dependencies`() {
+    fun `unit agent retains production classes without instrumenting tests and dependencies`() {
         writeFile(
             "app/src/main/java/com/ichi2/anki/coverage/CoveredApp.java",
             "package com.ichi2.anki.coverage; public class CoveredApp { public static int value() { return 7; } }",
@@ -56,14 +56,26 @@ class JacocoPluginTest {
             "package org.robolectric.coverage; public class Dependency { public static int value() { return 11; } }",
         )
         writeFile(
-            "app/src/test/java/regression/CoverageTest.java",
+            "app/src/main/java/com/ichi2/anki/coverage/TestUtilsKt.java",
+            "package com.ichi2.anki.coverage; public class TestUtilsKt { public static int value() { return 13; } }",
+        )
+        writeFile(
+            "app/src/test/java/com/ichi2/testutils/CoverageFixture.java",
+            "package com.ichi2.testutils; public class CoverageFixture { public static int value() { return 17; } }",
+        )
+        writeFile(
+            "app/src/test/java/com/ichi2/anki/coverage/CoverageTest.java",
             """
-            package regression;
+            package com.ichi2.anki.coverage;
             public class CoverageTest {
+                static class Nested { static int value() { return 19; } }
                 @org.junit.Test public void executesAppAndDependencies() {
                     org.junit.Assert.assertEquals(7, com.ichi2.anki.coverage.CoveredApp.value());
                     org.junit.Assert.assertEquals(9, androidx.drawerlayout.widget.ClosableDrawerLayout.value());
                     org.junit.Assert.assertEquals(11, org.robolectric.coverage.Dependency.value());
+                    org.junit.Assert.assertEquals(13, TestUtilsKt.value());
+                    org.junit.Assert.assertEquals(17, com.ichi2.testutils.CoverageFixture.value());
+                    org.junit.Assert.assertEquals(19, Nested.value());
                 }
             }
             """.trimIndent(),
@@ -95,7 +107,10 @@ class JacocoPluginTest {
             coveredNames,
             hasItems("com/ichi2/anki/coverage/CoveredApp", "androidx/drawerlayout/widget/ClosableDrawerLayout"),
         )
+        assertThat(coveredNames, hasItems("com/ichi2/anki/coverage/TestUtilsKt"))
         assertThat(coveredNames.any { it.startsWith("org/robolectric/") }, equalTo(false))
+        assertThat(coveredNames.any { it.startsWith("com/ichi2/anki/coverage/CoverageTest") }, equalTo(false))
+        assertThat(coveredNames.any { it.startsWith("com/ichi2/testutils/") }, equalTo(false))
     }
 
     @Test

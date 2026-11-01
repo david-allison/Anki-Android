@@ -43,7 +43,15 @@ tasks.withType<Test>().configureEach {
     // Match repository package families, including our vendored drawer-layout class.
     // Instrumenting SDKs and test frameworks adds work without contributing to our reports.
     jacoco.includes = listOf("com.ichi2.*", "dev.androidbroadcast.vbpd.*", "androidx.drawerlayout.widget.*")
-    jacoco.excludes = listOf("jdk.internal.*")
+    jacoco.excludes =
+        listOf(
+            "jdk.internal.*",
+            "*Test",
+            "*Test\$*",
+            "*TestKt*",
+            "com.ichi2.testutils.*",
+            "com.ichi2.anki.libanki.testutils.*",
+        )
 }
 
 // source: https://medium.com/jamf-engineering/android-kotlin-code-coverage-with-jacoco-sonar-and-gradle-plugin-6-x-3933ed503a6e
