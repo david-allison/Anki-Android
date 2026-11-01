@@ -91,6 +91,8 @@ subprojects {
         // Use the first-tier JIT compiler for short-lived test workers.
         // Retain the normal 240 MiB code cache; first-tier compilation otherwise reduces it to 48 MiB.
         jvmArgs("-XX:TieredStopAtLevel=1", "-XX:ReservedCodeCacheSize=240m")
+        // Let mocking frameworks attach within this test JVM instead of launching a helper JVM.
+        systemProperty("jdk.attach.allowAttachSelf", "true")
         useJUnitPlatform()
         testLogging {
             events("failed", "skipped")
