@@ -76,9 +76,8 @@ import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.android.AnkiShakeDetector
 import com.ichi2.anki.android.back.exitViaDoubleTapBackCallback
 import com.ichi2.anki.backend.stripHTMLAndSpecialFields
-import com.ichi2.anki.cardviewer.AndroidCardRenderContext
-import com.ichi2.anki.cardviewer.AndroidCardRenderContext.Companion.createInstance
 import com.ichi2.anki.cardviewer.CardMediaPlayer
+import com.ichi2.anki.cardviewer.CardRenderContext
 import com.ichi2.anki.cardviewer.Gesture
 import com.ichi2.anki.cardviewer.GestureProcessor
 import com.ichi2.anki.cardviewer.JavascriptEvaluator
@@ -95,6 +94,7 @@ import com.ichi2.anki.cardviewer.TypeAnswer
 import com.ichi2.anki.cardviewer.TypeAnswerWebView
 import com.ichi2.anki.cardviewer.ViewerCommand
 import com.ichi2.anki.cardviewer.ViewerRefresh
+import com.ichi2.anki.cardviewer.createCardRenderContext
 import com.ichi2.anki.cardviewer.createInstance
 import com.ichi2.anki.cardviewer.handledGamepadKeyDown
 import com.ichi2.anki.cardviewer.handledGamepadKeyUp
@@ -222,7 +222,7 @@ abstract class AbstractFlashcardViewer :
     internal var typeAnswer: TypeAnswer? = null
 
     /** Generates HTML content  */
-    private var cardRenderContext: AndroidCardRenderContext? = null
+    private var cardRenderContext: CardRenderContext? = null
 
     // Default short animation duration, provided by Android framework
     private var shortAnimDuration = 0
@@ -594,7 +594,7 @@ abstract class AbstractFlashcardViewer :
         registerReceiver()
         restoreCollectionPreferences(col)
         initLayout()
-        cardRenderContext = createInstance(this, col, typeAnswer!!)
+        cardRenderContext = createCardRenderContext(this, col, typeAnswer!!)
 
         // Initialize text-to-speech. This is an asynchronous operation.
         tts.initialize(this, ReadTextListener())

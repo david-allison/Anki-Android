@@ -37,7 +37,7 @@ class CardTextScaleTest : RobolectricTest() {
         }
         for (fontScale in listOf(0.85f, 1f, 1.3f)) {
             val context = contextWithFontScale(fontScale)
-            val renderer = AndroidCardRenderContext.createInstance(context, col, TypeAnswer.createInstance(preferences))
+            val renderer = createCardRenderContext(context, col, TypeAnswer.createInstance(preferences))
             val html = renderer.renderCard(col, card, SingleCardSide.FRONT).html
 
             assertEquals(fontScale.toDouble(), cssZoom(html, "html"), 0.000001)
