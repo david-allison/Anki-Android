@@ -36,7 +36,7 @@ import org.acra.config.ToastConfigurationBuilder
 import org.acra.sender.HttpSender
 import timber.log.Timber
 
-private object AcraCrashReporter : CrashReporter {
+internal object AcraCrashReporter : CrashReporter {
     /** Our ACRA configurations, initialized during Application.onCreate()  */
     @JvmStatic
     private var logcatArgs =
