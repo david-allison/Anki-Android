@@ -9,13 +9,11 @@
 
 import com.android.build.api.dsl.LibraryExtension
 import com.ichi2.anki.gradle.configureAndroidLint
-import com.ichi2.anki.gradle.configureJacocoAgent
 import com.ichi2.anki.gradle.libsVersionFor
-import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 
 plugins {
     id("com.android.library")
-    jacoco
+    id("ankidroid.plugins.jacoco-agent")
 }
 
 extensions.configure<LibraryExtension> {
@@ -45,14 +43,6 @@ if (path != ":vbpd") {
 
 // Configure jacoco so module unit tests produce .exec files that
 // AnkiDroid's jacocoUnitTestReport aggregates across modules.
-val jacocoToolVersion = libsVersionFor("jacoco")
-
-extensions.configure<JacocoPluginExtension> {
-    toolVersion = jacocoToolVersion
-}
-// Robolectric loads classes without a code location; record hits on them in each suite's report.
-configureJacocoAgent()
-
 extensions.configure<LibraryExtension> {
-    testCoverage.jacocoVersion = jacocoToolVersion
+    testCoverage.jacocoVersion = libsVersionFor("jacoco")
 }
