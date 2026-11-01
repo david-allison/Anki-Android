@@ -3,16 +3,13 @@
 
 package com.ichi2.preferences
 
-import com.ichi2.preferences.IncrementerNumberRangePreferenceCompat.Companion.ValidationResult
-import com.ichi2.preferences.IncrementerNumberRangePreferenceCompat.Companion.validate
+import com.ichi2.preferences.NumberRangeInput.ValidationResult
+import com.ichi2.preferences.NumberRangeInput.validate
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.IsEqual
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
-class IncrementerNumberRangePreferenceCompatTest {
+class NumberRangeInputTest {
     @Test
     fun testValidationLogic() {
         val min = 30
