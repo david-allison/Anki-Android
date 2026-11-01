@@ -32,6 +32,8 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertFalse(GeneratedMessageLite::class.java.classLoader is SandboxClassLoader)
         assertFalse(Jsoup::class.java.classLoader is SandboxClassLoader)
         assertEquals("front", Jsoup.parse("<b>front</b>").text())
+        assertFalse(Class.forName("com.google.common.collect.ImmutableList").classLoader is SandboxClassLoader)
+        assertFalse(Class.forName("com.google.common.util.concurrent.ListenableFuture").classLoader is SandboxClassLoader)
         assertTrue(PreviewTranslations::class.java.classLoader is SandboxClassLoader)
         assertTrue(GeneratedTranslations::class.java.classLoader is SandboxClassLoader)
         assertEquals(0, col.noteCount())
