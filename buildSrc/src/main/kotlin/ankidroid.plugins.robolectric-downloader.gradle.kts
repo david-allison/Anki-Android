@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.WriteProperties
+import javax.inject.Inject
+
+interface RobolectricArchiveServices {
+    @get:Inject
+    val archives: ArchiveOperations
+}
 
 /*
  * Downloads android-all-instrumented dependencies into Gradle's cache for offline Robolectric.
@@ -49,6 +58,30 @@ val robolectricSdkDownload =
         description = "Downloads Robolectric SDKs and writes their cached paths for offline tests"
         destinationFile = layout.buildDirectory.file("robolectric-deps.properties")
     }
+
+// Each sandbox copies these fonts into its own native runtime directory. Keep the exact bundled
+// resources on a directory classpath entry so those copies do not repeatedly decompress the jar.
+val robolectricFontCache =
+    tasks.register<Sync>("robolectricFontCache") {
+        group = "Dependencies"
+        description = "Extracts Robolectric's bundled fonts for reuse by test sandboxes"
+        into(layout.buildDirectory.dir("robolectric-fonts"))
+        include("fonts/**")
+    }
+
+configurations.matching { it.name == "playDebugUnitTestRuntimeClasspath" }.all {
+    val nativeRuntime =
+        incoming.artifactView {
+            componentFilter {
+                it is ModuleComponentIdentifier && it.group == "org.robolectric" && it.module.startsWith("nativeruntime-dist")
+            }
+        }.files
+    // Capture the service rather than the script's Project in the lazy archive provider.
+    val archives = objects.newInstance<RobolectricArchiveServices>().archives
+    robolectricFontCache.configure {
+        from(nativeRuntime.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) })
+    }
+}
 
 // Use separate configurations so Gradle retains every SDK version instead of selecting the newest.
 robolectricAndroidSdkVersions.forEach { robolectricSdkVersion ->
