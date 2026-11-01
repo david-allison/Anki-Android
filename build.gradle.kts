@@ -6,7 +6,6 @@ import com.ichi2.anki.gradle.BackendTempLibraryService
 import com.ichi2.anki.gradle.GitHubActionsTestListener
 import com.ichi2.anki.gradle.TestSummaryService
 import com.ichi2.anki.gradle.configureRobolectricJvm
-import com.ichi2.anki.gradle.configureMockingAgent
 import com.ichi2.anki.gradle.registerJacocoLibraryVariants
 import com.ichi2.anki.gradle.reportBackendTempLibraries
 import com.slack.keeper.optInToKeeper
@@ -87,7 +86,6 @@ subprojects {
         }
     }
 
-    configureMockingAgent()
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     configure<KtlintExtension> {
         version.set(ktlintVersion)
