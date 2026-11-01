@@ -10,6 +10,8 @@ import org.gradle.api.tasks.testing.Test
  * See https://robolectric.org/getting-started/#running-with-java-17-and-higher
  */
 fun Test.configureRobolectricJvm() {
+    // Use JVM security providers; provider-specific tests can opt into @ConscryptMode(ON).
+    systemProperty("robolectric.conscryptMode", "OFF")
     jvmArgs(
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
