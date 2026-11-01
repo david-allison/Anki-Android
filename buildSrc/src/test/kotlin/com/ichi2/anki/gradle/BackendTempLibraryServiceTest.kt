@@ -95,6 +95,7 @@ class BackendTempLibraryServiceTest {
             }
             tasks.withType(Test).configureEach {
                 useJUnitPlatform()
+                jvmArgs '-XX:TieredStopAtLevel=1', '-XX:ReservedCodeCacheSize=240m'
                 BackendTempLibraryServiceKt.reportBackendTempLibraries(delegate, service)
                 systemProperty 'java.io.tmpdir', file('worker-temp').absolutePath
                 systemProperty 'fixture.fail', providers.gradleProperty('failTests').getOrElse('false')
