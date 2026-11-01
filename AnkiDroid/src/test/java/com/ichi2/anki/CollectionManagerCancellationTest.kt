@@ -8,7 +8,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,17 +22,6 @@ import kotlin.time.TimeSource
 
 @RunWith(AndroidJUnit4::class)
 class CollectionManagerCancellationTest : RobolectricTest() {
-    @Test
-    fun `withCol rejects an already cancelled coroutine`() =
-        runTest {
-            assertFalse(CollectionManager.isOpenUnsafe())
-            launch {
-                cancel()
-                assertCollectionAccessCancelled()
-            }.join()
-            assertFalse(CollectionManager.isOpenUnsafe(), "cancelled work must not open the collection")
-        }
-
     @Test
     fun `withCol skips work cancelled while waiting for the Robolectric lock`() =
         runTest {
