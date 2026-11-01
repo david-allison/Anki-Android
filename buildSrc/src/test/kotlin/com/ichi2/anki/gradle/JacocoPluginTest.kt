@@ -122,6 +122,7 @@ class JacocoPluginTest : JacocoTestFixture() {
                 .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withPluginClasspath()
                 .withArguments(":app:testPlayDebugUnitTest", "--configuration-cache", "--stacktrace")
+                .withTestDaemonJvm()
                 .build()
         assertThat(result.task(":app:testPlayDebugUnitTest")?.outcome, equalTo(TaskOutcome.SUCCESS))
 
@@ -267,5 +268,6 @@ class JacocoPluginTest : JacocoTestFixture() {
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
             .withArguments("--configuration-cache", "--stacktrace", *arguments)
+            .withTestDaemonJvm()
             .build()
 }

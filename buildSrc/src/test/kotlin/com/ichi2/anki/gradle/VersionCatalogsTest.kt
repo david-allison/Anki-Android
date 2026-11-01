@@ -45,6 +45,7 @@ class VersionCatalogsTest {
                 .withProjectDir(projectDir)
                 .withTestKitDir(File(projectDir, "test-kit"))
                 .withArguments("showTargetSdk", "--offline", "--stacktrace")
+                .withTestDaemonJvm()
 
         catalog.writeText("[versions]\ntargetSdk = \"36\"\n")
         val firstBuild = runner.build().output
