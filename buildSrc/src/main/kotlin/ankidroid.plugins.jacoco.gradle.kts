@@ -2,24 +2,10 @@
 
 import com.ichi2.anki.gradle.assertNonzeroAndroidTestCoverage
 import com.ichi2.anki.gradle.registerJacocoCoverageReports
-import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.gradle.api.tasks.testing.Test
-import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
-import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import java.util.Properties
 
-apply(plugin = "jacoco")
-
-val jacocoVersion: String =
-    extensions
-        .getByType(VersionCatalogsExtension::class.java)
-        .named("libs")
-        .findVersion("jacoco")
-        .get()
-        .requiredVersion
-
-configure<JacocoPluginExtension> {
-    toolVersion = jacocoVersion
+plugins {
+    id("ankidroid.plugins.jacoco-agent")
 }
 
 fun getLocalProperties(): Properties {
@@ -36,15 +22,6 @@ fun getLocalProperties(): Properties {
 
 val openReportRequested = project.hasProperty("open-report")
 val linuxHtmlCmd: String? = getLocalProperties()["linux-html-cmd"]?.toString()
-
-tasks.withType<Test>().configureEach {
-    val jacoco = the<JacocoTaskExtension>()
-    jacoco.isIncludeNoLocationClasses = true
-    // Match repository package families, including our vendored drawer-layout class.
-    // Instrumenting SDKs and test frameworks adds work without contributing to our reports.
-    jacoco.includes = listOf("com.ichi2.*", "dev.androidbroadcast.vbpd.*", "androidx.drawerlayout.widget.*")
-    jacoco.excludes = listOf("jdk.internal.*")
-}
 
 // source: https://medium.com/jamf-engineering/android-kotlin-code-coverage-with-jacoco-sonar-and-gradle-plugin-6-x-3933ed503a6e
 val fileFilter =
