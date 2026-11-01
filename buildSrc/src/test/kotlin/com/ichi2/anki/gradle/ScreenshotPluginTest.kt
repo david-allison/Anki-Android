@@ -66,6 +66,7 @@ class ScreenshotPluginTest {
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
             .withArguments("testDebugUnitTest", "--configuration-cache", "--stacktrace")
+            .withTestDaemonJvm()
             .build()
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":testDebugUnitTest")?.outcome, result.output)
@@ -90,6 +91,7 @@ class ScreenshotPluginTest {
                 .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withPluginClasspath()
                 .withArguments("compareScreenshots", "-Pscreenshot", "--build-cache", "--configuration-cache", "--stacktrace")
+                .withTestDaemonJvm()
 
         // Run changed → matching once normally, then repeat with both results restored from cache.
         listOf(TaskOutcome.SUCCESS, TaskOutcome.FROM_CACHE).forEach { outcome ->
