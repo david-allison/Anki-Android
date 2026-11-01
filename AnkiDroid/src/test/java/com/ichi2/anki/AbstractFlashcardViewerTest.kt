@@ -29,6 +29,7 @@ import com.ichi2.anki.reviewer.AutomaticAnswer
 import com.ichi2.anki.reviewer.AutomaticAnswerAction
 import com.ichi2.anki.reviewer.AutomaticAnswerSettings
 import com.ichi2.anki.servicelayer.LanguageHintService
+import com.ichi2.anki.utils.OnlyOnce
 import com.ichi2.testutils.assertNoActivityStarted
 import com.ichi2.testutils.common.Flaky
 import com.ichi2.testutils.common.OS
@@ -270,7 +271,6 @@ class AbstractFlashcardViewerTest : RobolectricTest() {
     }
 
     @Test
-    @Flaky(OS.ALL, "executeCommand(FLIP_OR_ANSWER_EASE4) cannot be awaited")
     fun typedLanguageIsSet() =
         runTest {
             val withLanguage = col.createBasicTypingNoteType("a")
@@ -280,13 +280,18 @@ class AbstractFlashcardViewerTest : RobolectricTest() {
             LanguageHintService.setLanguageHintForField(col.notetypes, withLanguage, typedField, Locale.JAPANESE)
 
             addNoteUsingNoteTypeName(withLanguage.name, "ichi", "ni")
-            addNoteUsingNoteTypeName(normal.name, "one", "two")
+            val nextCardId = addNoteUsingNoteTypeName(normal.name, "one", "two").firstCard().id
             val viewer = getViewer(false)
 
             assertThat("A note type with a language hint (japanese) should use it", viewer.hintLocale, equalTo("ja"))
 
             viewer.executeCommand(ViewerCommand.ANSWER_EASY)
             viewer.executeCommand(ViewerCommand.ANSWER_EASY)
+            advanceRobolectricLooperUntil {
+                viewer.currentCard?.id == nextCardId &&
+                    viewer.cardContent?.contains("one") == true &&
+                    OnlyOnce.Method.ANSWER_CARD !in OnlyOnce.pendingMethods
+            }
 
             assertThat("A default note type should have no preference", viewer.hintLocale, nullValue())
         }
