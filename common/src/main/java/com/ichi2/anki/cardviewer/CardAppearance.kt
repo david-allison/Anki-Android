@@ -2,12 +2,8 @@
 
 package com.ichi2.anki.cardviewer
 
-import android.content.SharedPreferences
 import androidx.annotation.CheckResult
 import com.ichi2.anki.reviewer.ReviewerCustomFonts
-import com.ichi2.anki.settings.enums.DayTheme
-import com.ichi2.anki.settings.enums.NightTheme
-import com.ichi2.themes.Themes.currentTheme
 
 /** Responsible for calculating CSS and element styles and modifying content on a flashcard  */
 class CardAppearance(
@@ -16,6 +12,7 @@ class CardAppearance(
     private val imageZoom: Int,
     private val centerVertically: Boolean,
     private val fontScale: Float,
+    private val themeClasses: () -> String,
 ) {
     /** Below could be in a better abstraction.  */
     fun appendCssStyle(style: StringBuilder) {
@@ -36,27 +33,12 @@ class CardAppearance(
     }
 
     @CheckResult
-    fun getCssClasses(): String {
-        val cardClass = StringBuilder()
-        if (centerVertically) {
-            cardClass.append(" vertically_centered")
+    fun getCssClasses(): String =
+        buildString {
+            if (centerVertically) append(" vertically_centered")
+            // Resolve the theme when rendering so an existing appearance follows theme changes.
+            append(themeClasses())
         }
-        if (currentTheme is NightTheme) {
-            // Enable the night-mode class
-            cardClass.append(" night_mode nightMode")
-
-            // Emit the dark_mode selector to allow dark theme overrides
-            if (currentTheme == NightTheme.DARK) {
-                cardClass.append(" ankidroid_dark_mode")
-            }
-        } else {
-            // Emit the plain_mode selector to allow plain theme overrides
-            if (currentTheme == DayTheme.PLAIN) {
-                cardClass.append(" ankidroid_plain_mode")
-            }
-        }
-        return cardClass.toString()
-    }
 
     val style: String
         get() {
@@ -70,17 +52,6 @@ class CardAppearance(
 
     companion object {
         private val nightModeClassRegex = Regex("\\.night(?:_m|M)ode\\b")
-
-        fun create(
-            customFonts: ReviewerCustomFonts,
-            preferences: SharedPreferences,
-            fontScale: Float,
-        ): CardAppearance {
-            val cardZoom = preferences.getInt("cardZoom", 100)
-            val imageZoom = preferences.getInt("imageZoom", 100)
-            val centerVertically = preferences.getBoolean("centerVertically", false)
-            return CardAppearance(customFonts, cardZoom, imageZoom, centerVertically, fontScale)
-        }
 
         fun fixBoldStyle(content: String): String {
             // In order to display the bold style correctly, we have to change
