@@ -9,11 +9,15 @@ import android.os.Looper
 import androidx.activity.result.ActivityResult
 import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.EmptyApplicationCategory
+import com.ichi2.testutils.AndroidTest
+import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.ShadowFileProviderPathStrategy
+import com.ichi2.testutils.targetContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -26,9 +30,10 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 @RunWith(AndroidJUnit4::class)
-@Config(shadows = [ShadowFileProviderPathStrategy::class])
+@Config(application = EmptyApplication::class, shadows = [ShadowFileProviderPathStrategy::class])
+@Category(EmptyApplicationCategory::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class ExternalImageEditorResultTest : RobolectricTest(loadBackend = false) {
+class ExternalImageEditorResultTest : AndroidTest {
     private val editedImage = editorResultImageBytes()
     private lateinit var editor: ExternalImageEditor
     private lateinit var resultProvider: EditorResultProvider
