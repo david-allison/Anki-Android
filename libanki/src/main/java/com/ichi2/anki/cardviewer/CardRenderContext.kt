@@ -7,10 +7,12 @@ import com.ichi2.anki.common.utils.ext.hideAudioPlayButtons
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardOrdinal
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.SoundOrVideoTag
 import com.ichi2.anki.libanki.TemplateManager.TemplateRenderContext.TemplateRenderOutput
 import com.ichi2.anki.libanki.template.MathJax
 import com.ichi2.anki.multimedia.expandSounds
-import timber.log.Timber
+import org.slf4j.LoggerFactory
+import java.io.File
 
 /**
  * Holds the card appearance and collection settings used to render HTML
@@ -22,6 +24,8 @@ class CardRenderContext(
     private val cardAppearance: CardAppearance,
     private val cardTemplate: CardTemplate,
     private val showAudioPlayButtons: Boolean,
+    private val compareAnswer: (String, String, Boolean) -> String,
+    private val classifyMedia: (SoundOrVideoTag, File) -> SoundOrVideoTag.Type,
 ) {
     /**
      * Renders card content and appearance settings to produce a [RenderedCard]
@@ -65,8 +69,8 @@ class CardRenderContext(
             }
         val cardClass = cardAppearance.getCardClass(ord + 1) + if (requiresMathjax) " mathjax-needs-to-render" else ""
 
-        Timber.v("content card = \n %s", content)
-        Timber.v("::style:: / %s", style)
+        logger.trace("content card = \n {}", content)
+        logger.trace("::style:: / {}", style)
 
         return cardTemplate.render(content, style, script, cardClass)
     }
@@ -90,7 +94,7 @@ class CardRenderContext(
     ): String =
         when (side) {
             SingleCardSide.FRONT -> typeAnswer.filterQuestion(content)
-            SingleCardSide.BACK -> typeAnswer.filterAnswer(content)
+            SingleCardSide.BACK -> typeAnswer.filterAnswer(content, compareAnswer)
         }
 
     private fun expandSounds(
@@ -105,16 +109,28 @@ class CardRenderContext(
             renderOutput,
             showAudioPlayButtons,
             mediaDir,
+            classifyMedia,
         )
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(CardRenderContext::class.java)
+
         fun create(
             col: Collection,
             typeAnswer: TypeAnswer,
             cardAppearance: CardAppearance,
             cardTemplate: CardTemplate,
+            compareAnswer: (String, String, Boolean) -> String,
+            classifyMedia: (SoundOrVideoTag, File) -> SoundOrVideoTag.Type,
         ): CardRenderContext =
-            CardRenderContext(typeAnswer, cardAppearance, cardTemplate, showAudioPlayButtons = !col.config.hideAudioPlayButtons)
+            CardRenderContext(
+                typeAnswer,
+                cardAppearance,
+                cardTemplate,
+                showAudioPlayButtons = !col.config.hideAudioPlayButtons,
+                compareAnswer,
+                classifyMedia,
+            )
     }
 }
