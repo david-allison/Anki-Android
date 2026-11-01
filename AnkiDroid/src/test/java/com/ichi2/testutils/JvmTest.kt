@@ -18,6 +18,8 @@ import org.junit.Before
 import org.junit.Rule
 
 open class JvmTest : InMemoryAnkiTest() {
+    override val openCollectionBeforeTest: Boolean = false
+
     /** Allows [com.ichi2.testutils.common.Flaky] to annotate tests in subclasses */
     @get:Rule
     val ignoreFlakyTests = IgnoreFlakyTestsInCIRule()

@@ -23,6 +23,9 @@ private val logger = LoggerFactory.getLogger(InMemoryAnkiTest::class.java)
 
 @Suppress("RestrictedApi", "VisibleForTests")
 abstract class InMemoryAnkiTest : AnkiTest {
+    /** Some app tests exercise state without ever needing a collection. */
+    protected open val openCollectionBeforeTest: Boolean = true
+
     @get:Rule
     val testName = TestName()
 
@@ -47,10 +50,8 @@ abstract class InMemoryAnkiTest : AnkiTest {
         TimeManager.resetWith(MockTime(2020, 7, 7, 7, 0, 0, 0, 10))
 
         maybeSetupBackend()
-        // access 'col' ensuring that it's set up using the correct CollectionManager
-        // PERF: This makes tests which do not need the collection less efficient, as this
-        // opens a collection
-        ensureCollectionLoadIsSynchronous()
+        // Collection tests retain eager setup; app fixtures can open it on first access.
+        if (openCollectionBeforeTest) ensureCollectionLoadIsSynchronous()
     }
 
     @After
