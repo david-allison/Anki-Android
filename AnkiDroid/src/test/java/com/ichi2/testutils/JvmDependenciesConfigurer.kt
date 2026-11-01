@@ -34,6 +34,7 @@ class JvmDependenciesConfigurer
             builder.doNotAcquirePackage("org.mockito.")
             builder.doNotAcquirePackage("io.mockk.")
             builder.doNotAcquirePackage("org.jsoup.")
+            builder.doNotAcquirePackage("com.google.common.")
         }
 
         companion object {
