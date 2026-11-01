@@ -37,15 +37,17 @@ tasks.test {
     // Schedule independent fixture methods together, including methods from the same class.
     // One JVM shares the TestKit client; each method owns a fresh @TempDir project.
     maxParallelForks = 1
-    val fixtureParallelism = minOf(3, gradle.startParameter.maxWorkerCount)
+    val fixtureParallelism = minOf(2, gradle.startParameter.maxWorkerCount)
     systemProperty("junit.jupiter.execution.parallel.enabled", "true")
     systemProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
     systemProperty("junit.jupiter.execution.parallel.mode.classes.default", "concurrent")
     systemProperty("junit.jupiter.execution.parallel.config.strategy", "fixed")
     systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", fixtureParallelism)
     systemProperty("junit.jupiter.execution.parallel.config.fixed.max-pool-size", fixtureParallelism)
-    // Normal fixtures use one nested worker; the single agent fixture can use a fourth slot.
-    systemProperty("ankidroid.testkit.agentMaxWorkers", if (gradle.startParameter.maxWorkerCount >= 4) 2 else 1)
+    systemProperty("junit.jupiter.testclass.order.default", "org.junit.jupiter.api.ClassOrderer\$OrderAnnotation")
+    // Normal fixtures use one nested worker. Reserve the remaining slots for the single agent
+    // fixture, whose three modules can test independently, without increasing the worker budget.
+    systemProperty("ankidroid.testkit.agentMaxWorkers", minOf(3, gradle.startParameter.maxWorkerCount - fixtureParallelism + 1))
     // Show nested Gradle build failures from TestKit in CI logs.
     testLogging.exceptionFormat = TestExceptionFormat.FULL
     // Rerun the path guard if the app build file is moved.
