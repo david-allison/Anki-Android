@@ -58,6 +58,7 @@ class DeckMenuStateTest : JvmTest() {
     @Test
     fun `subdecks count toward search icon visibility`() =
         runTest {
+            col
             viewModel.refreshMenuState()
             assertFalse(viewModel.optionsMenuState!!.searchIcon)
 
