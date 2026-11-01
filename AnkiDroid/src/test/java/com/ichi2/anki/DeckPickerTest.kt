@@ -170,6 +170,7 @@ class DeckPickerTest : RobolectricTest() {
         deckPicker {
             advanceRobolectricLooperUntil { deckPickerBinding.decks.adapter?.itemCount == 1 }
             shadowOf(this).clearNextStartedActivities()
+            advanceRobolectricLooperUntil { viewModel.flowOfStudyDeck.subscriptionCount.value > 0 }
 
             assertTrue(onKeyUp(KeyEvent.KEYCODE_S, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_S)))
             advanceRobolectricLooperUntil { snackbarText == getString(CommonString.empty_deck) }
@@ -187,6 +188,7 @@ class DeckPickerTest : RobolectricTest() {
         deckPicker {
             advanceRobolectricLooperUntil { deckPickerBinding.decks.adapter?.itemCount == 2 }
             shadowOf(this).clearNextStartedActivities()
+            advanceRobolectricLooperUntil { viewModel.flowOfStudyDeck.subscriptionCount.value > 0 }
 
             assertTrue(onKeyUp(KeyEvent.KEYCODE_S, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_S)))
             advanceRobolectricLooperUntil { shadowOf(this).peekNextStartedActivity() != null }
