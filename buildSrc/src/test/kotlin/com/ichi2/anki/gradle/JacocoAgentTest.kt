@@ -13,7 +13,7 @@ import java.io.File
 
 class JacocoAgentTest : JacocoTestFixture() {
     @Test
-    fun `unit agents retain repository and vendored classes without instrumenting dependencies`() {
+    fun `unit agents retain production classes without instrumenting tests and dependencies`() {
         val modules = mapOf("app" to "CoveredApp", "library" to "CoveredLibrary", "nested/core" to "CoveredCore")
         for ((module, className) in modules) {
             writeFile(
@@ -24,6 +24,14 @@ class JacocoAgentTest : JacocoTestFixture() {
                 "$module/src/test/java/org/robolectric/coverage/Dependency.java",
                 "package org.robolectric.coverage; public class Dependency { public static int value() { return 11; } }",
             )
+            writeFile(
+                "$module/src/main/java/com/ichi2/anki/coverage/TestUtilsKt.java",
+                "package com.ichi2.anki.coverage; public class TestUtilsKt { public static int value() { return 13; } }",
+            )
+            writeFile(
+                "$module/src/test/java/com/ichi2/testutils/CoverageFixture.java",
+                "package com.ichi2.testutils; public class CoverageFixture { public static int value() { return 17; } }",
+            )
             val vendoredCheck =
                 if (module == "app") {
                     "org.junit.Assert.assertEquals(9, androidx.drawerlayout.widget.ClosableDrawerLayout.value());"
@@ -31,13 +39,17 @@ class JacocoAgentTest : JacocoTestFixture() {
                     ""
                 }
             writeFile(
-                "$module/src/test/java/regression/CoverageTest.java",
+                "$module/src/test/java/com/ichi2/anki/coverage/CoverageTest.java",
                 """
-                package regression;
+                package com.ichi2.anki.coverage;
                 public class CoverageTest {
+                    static class Nested { static int value() { return 19; } }
                     @org.junit.Test public void executesRepositoryAndDependencies() {
                         org.junit.Assert.assertEquals(7, com.ichi2.anki.coverage.$className.value());
                         org.junit.Assert.assertEquals(11, org.robolectric.coverage.Dependency.value());
+                        org.junit.Assert.assertEquals(13, TestUtilsKt.value());
+                        org.junit.Assert.assertEquals(17, com.ichi2.testutils.CoverageFixture.value());
+                        org.junit.Assert.assertEquals(19, Nested.value());
                         $vendoredCheck
                     }
                 }
@@ -78,10 +90,13 @@ class JacocoAgentTest : JacocoTestFixture() {
             val coverage = ExecFileLoader().apply { load(File(projectDir, "$module/build/jacoco/${taskNames.getValue(module)}.exec")) }
             val coveredNames = coverage.executionDataStore.contents.filter { it.probes.any { covered -> covered } }.map { it.name }
             assertThat(coveredNames, hasItems("com/ichi2/anki/coverage/$className"))
+            assertThat(coveredNames, hasItems("com/ichi2/anki/coverage/TestUtilsKt"))
             if (module == "app") {
                 assertThat(coveredNames, hasItems("androidx/drawerlayout/widget/ClosableDrawerLayout"))
             }
             assertThat(coveredNames.any { it.startsWith("org/robolectric/") }, equalTo(false))
+            assertThat(coveredNames.any { it.startsWith("com/ichi2/anki/coverage/CoverageTest") }, equalTo(false))
+            assertThat(coveredNames.any { it.startsWith("com/ichi2/testutils/") }, equalTo(false))
         }
     }
 
