@@ -5,7 +5,7 @@ package com.ichi2.anki.gradle
 import org.gradle.testkit.runner.GradleRunner
 
 /** Use first-tier compilation for short fixture builds, retaining Gradle's default memory limits. */
-fun GradleRunner.withTestDaemonJvm(): GradleRunner {
+fun GradleRunner.withTestDaemonJvm(maxWorkers: Int = 1): GradleRunner {
     val options =
         listOf(
             "-Xms256m",
@@ -15,5 +15,5 @@ fun GradleRunner.withTestDaemonJvm(): GradleRunner {
             "-XX:TieredStopAtLevel=1",
             "-XX:ReservedCodeCacheSize=240m",
         ).joinToString(" ")
-    return withArguments(arguments + "-Dorg.gradle.jvmargs=$options")
+    return withArguments(arguments + listOf("--max-workers=$maxWorkers", "-Dorg.gradle.jvmargs=$options"))
 }
