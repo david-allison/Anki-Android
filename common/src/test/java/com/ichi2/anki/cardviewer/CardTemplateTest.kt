@@ -2,7 +2,6 @@
 
 package com.ichi2.anki.cardviewer
 
-import android.annotation.SuppressLint
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.intellij.lang.annotations.Language
@@ -33,7 +32,7 @@ class CardTemplateTest {
     }
 
     @Test
-    @SuppressLint("CheckResult") //  .render
+    @Suppress("CheckResult") //  .render
     fun stressTest() {
         // At length = 10000000
         // ~500ms before
