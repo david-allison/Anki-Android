@@ -4,8 +4,10 @@ package com.ichi2.anki.cardviewer
 
 import anki.config.ConfigKey
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
+import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CollectionFiles
+import com.ichi2.anki.multimedia.getTagType
 import com.ichi2.anki.reviewer.ReviewerCustomFonts
 import com.ichi2.testutils.JvmTest
 import org.hamcrest.MatcherAssert.assertThat
@@ -61,6 +63,15 @@ class CardRenderContextTest : JvmTest() {
         typeAnswer.updateInfo(col, card) { error("Unexpected missing field: $it") }
         val appearance = createCardAppearance(ReviewerCustomFonts(), preferences, fontScale = 1f)
         val template = CardTemplate(File("src/main/assets/card_template.html").readText())
-        return CardRenderContext.create(col, typeAnswer, appearance, template).renderCard(col, card, SingleCardSide.FRONT).html
+        return CardRenderContext
+            .create(
+                col,
+                typeAnswer,
+                appearance,
+                template,
+                compareAnswer = CollectionManager::compareAnswer,
+                classifyMedia = { tag, directory -> tag.getTagType(directory) },
+            ).renderCard(col, card, SingleCardSide.FRONT)
+            .html
     }
 }

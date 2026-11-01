@@ -5,24 +5,18 @@
 package com.ichi2.anki.multimedia
 
 import com.ichi2.anki.CollectionManager
-import com.ichi2.anki.common.utils.htmlEncode
 import com.ichi2.anki.compat.CompatHelper
 import com.ichi2.anki.libanki.AvRef
 import com.ichi2.anki.libanki.AvTag
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.Sound
 import com.ichi2.anki.libanki.Sound.AV_PLAYLINK_RE
-import com.ichi2.anki.libanki.Sound.replaceAvRefsWith
 import com.ichi2.anki.libanki.SoundOrVideoTag
 import com.ichi2.anki.libanki.SoundOrVideoTag.Type
-import com.ichi2.anki.libanki.TTSTag
 import com.ichi2.anki.libanki.TemplateManager.TemplateRenderContext.TemplateRenderOutput
-import com.ichi2.anki.libanki.getFileUri
 import com.ichi2.anki.utils.CollectionPreferences
-import org.intellij.lang.annotations.Language
 import org.jetbrains.annotations.VisibleForTesting
 import java.io.File
-import java.nio.file.Paths
 
 /**
  * Takes content with [AvRef]s and expands them to reference the media file
@@ -34,62 +28,12 @@ import java.nio.file.Paths
  *
  * @return content with [AvRef]s replaced with HTML to play the file
  */
-@Suppress("HtmlUnknownAttribute", "HtmlDeprecatedAttribute")
 fun expandSounds(
     content: String,
     renderOutput: TemplateRenderOutput,
     showAudioPlayButtons: Boolean,
     mediaDir: File,
-) = replaceAvRefsWith(content, renderOutput) { tag, playTag ->
-
-    fun AvRef.asHtmlAudio(): String {
-        if (!showAudioPlayButtons) return ""
-        val playsound = "playsound:${this.side}:${this.index}"
-
-        @Language("HTML")
-        val result = """<a class="replay-button soundLink" href=$playsound><span>
-                        <svg class="playImage" viewBox="0 0 64 64" version="1.1">
-                            <circle cx="32" cy="32" r="29" fill="lightgrey"/>
-                            <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z" fill="black"/>Replay
-                        </svg>
-                    </span></a>"""
-        return result
-    }
-
-    fun SoundOrVideoTag.asHtmlVideo(): String {
-        val filename = this.filename
-        val path = Paths.get(mediaDir.absolutePath, filename).toString()
-        val uri = getFileUri(path)
-
-        val playsound = "${playTag.side}:${playTag.index}"
-
-        val onEnded = """window.location.href = "videoended:$playsound";"""
-        val onPause = """if (this.currentTime != this.duration) { window.location.href = "videopause:$playsound"; }"""
-
-        // TODO: Make the loading screen nicer if the video doesn't autoplay
-        @Language("HTML")
-        val result =
-            """<video
-                    | src="$uri"
-                    | controls
-                    | data-file="${filename.htmlEncode()}"
-                    | onended='$onEnded'
-                    | onpause='$onPause'
-                    | data-play="$playsound" controlsList="nodownload"></video>
-            """.trimMargin()
-        return result
-    }
-
-    when (tag) {
-        is TTSTag -> playTag.asHtmlAudio()
-        is SoundOrVideoTag -> {
-            when (tag.getTagType(mediaDir)) {
-                Type.AUDIO -> playTag.asHtmlAudio()
-                Type.VIDEO -> tag.asHtmlVideo()
-            }
-        }
-    }
-}
+): String = expandSounds(content, renderOutput, showAudioPlayButtons, mediaDir) { tag, directory -> tag.getTagType(directory) }
 
 /** Extract av tag from playsound:q:x link */
 suspend fun getAvTag(
