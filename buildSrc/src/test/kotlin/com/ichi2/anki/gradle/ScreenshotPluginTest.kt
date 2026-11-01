@@ -7,11 +7,13 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 /** Test of `ankidroid.plugins.screenshots.gradle.kts` */
+@Order(1)
 class ScreenshotPluginTest {
     @TempDir
     lateinit var projectDir: File
