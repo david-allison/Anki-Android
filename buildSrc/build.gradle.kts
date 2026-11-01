@@ -34,9 +34,17 @@ tasks.test {
     // Use the first-tier JIT compiler for short-lived test workers.
     // Retain the normal 240 MiB code cache; first-tier compilation otherwise reduces it to 48 MiB.
     jvmArgs("-XX:TieredStopAtLevel=1", "-XX:ReservedCodeCacheSize=240m")
-    // Three fixture builds can progress independently. Normal fixtures use one nested worker;
-    // the single multi-module agent fixture can use a fourth slot when the budget permits it.
-    maxParallelForks = minOf(3, gradle.startParameter.maxWorkerCount)
+    // Schedule independent fixture methods together, including methods from the same class.
+    // One JVM shares the TestKit client; each method owns a fresh @TempDir project.
+    maxParallelForks = 1
+    val fixtureParallelism = minOf(3, gradle.startParameter.maxWorkerCount)
+    systemProperty("junit.jupiter.execution.parallel.enabled", "true")
+    systemProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
+    systemProperty("junit.jupiter.execution.parallel.mode.classes.default", "concurrent")
+    systemProperty("junit.jupiter.execution.parallel.config.strategy", "fixed")
+    systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", fixtureParallelism)
+    systemProperty("junit.jupiter.execution.parallel.config.fixed.max-pool-size", fixtureParallelism)
+    // Normal fixtures use one nested worker; the single agent fixture can use a fourth slot.
     systemProperty("ankidroid.testkit.agentMaxWorkers", if (gradle.startParameter.maxWorkerCount >= 4) 2 else 1)
     // Show nested Gradle build failures from TestKit in CI logs.
     testLogging.exceptionFormat = TestExceptionFormat.FULL
