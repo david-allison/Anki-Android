@@ -43,7 +43,7 @@ class VersionCatalogsTest {
             GradleRunner
                 .create()
                 .withProjectDir(projectDir)
-                .withTestKitDir(File(projectDir, "test-kit"))
+                .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withArguments("showTargetSdk", "--offline", "--stacktrace")
                 .withTestDaemonJvm()
 
