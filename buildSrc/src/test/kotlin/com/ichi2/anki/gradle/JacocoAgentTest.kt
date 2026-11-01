@@ -82,7 +82,7 @@ class JacocoAgentTest : JacocoTestFixture() {
                 .withProjectDir(projectDir)
                 .withTestKitDir(File("build/test-kit").absoluteFile)
                 .withPluginClasspath()
-                .withArguments(*taskPaths.toTypedArray(), "--configuration-cache", "--stacktrace")
+                .withArguments(*taskPaths.toTypedArray(), "--parallel", "--configuration-cache", "--stacktrace")
                 .withTestDaemonJvm()
                 .build()
         for (task in taskPaths) {
