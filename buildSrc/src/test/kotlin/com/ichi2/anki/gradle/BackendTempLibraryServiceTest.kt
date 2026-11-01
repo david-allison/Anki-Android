@@ -54,7 +54,7 @@ class BackendTempLibraryServiceTest {
                 "--configuration-cache",
                 "--stacktrace",
                 "-Djava.io.tmpdir=${File(projectDir, "daemon-temp")}",
-            )
+            ).withTestDaemonJvm()
 
     private fun writeFixture() {
         File(projectDir, "daemon-temp").mkdirs()

@@ -66,6 +66,7 @@ class ScreenshotPluginTest {
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
             .withArguments("testDebugUnitTest", "--configuration-cache", "--stacktrace")
+            .withTestDaemonJvm()
             .build()
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":testDebugUnitTest")?.outcome, result.output)
@@ -116,6 +117,7 @@ class ScreenshotPluginTest {
             .withTestKitDir(File("build/test-kit").absoluteFile)
             .withPluginClasspath()
             .withArguments(*arguments, "-Pscreenshot", "--build-cache", "--configuration-cache", "--stacktrace")
+            .withTestDaemonJvm()
 
     private fun fileContents(directory: String): Map<String, String> {
         val root = File(projectDir, "build/$directory")
