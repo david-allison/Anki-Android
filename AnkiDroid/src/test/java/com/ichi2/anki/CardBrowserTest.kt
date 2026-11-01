@@ -2,6 +2,7 @@
 
 package com.ichi2.anki
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
@@ -141,6 +142,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Random
+import kotlin.reflect.KFunction2
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -452,9 +454,10 @@ class CardBrowserTest : RobolectricTest() {
 
     @Test
     fun startupFromCardBrowserActionItemShouldEndActivityIfNoPermissions() {
+        val storagePermissions: KFunction2<Context, Boolean, Boolean> = ::grantedStoragePermissions
         try {
             mockkStatic(::isRunningAsUnitTest)
-            mockkStatic("com.ichi2.anki.common.storage.LegacyStorageKt")
+            mockkStatic(storagePermissions)
 
             every { grantedStoragePermissions(any(), any()) } returns false
             every { isRunningAsUnitTest } returns false
@@ -466,7 +469,7 @@ class CardBrowserTest : RobolectricTest() {
             assertThat("Activity should be finishing", cardBrowser.isFinishing)
         } finally {
             unmockkStatic(::isRunningAsUnitTest)
-            unmockkStatic("com.ichi2.anki.common.storage.LegacyStorageKt")
+            unmockkStatic(storagePermissions)
         }
     }
 
