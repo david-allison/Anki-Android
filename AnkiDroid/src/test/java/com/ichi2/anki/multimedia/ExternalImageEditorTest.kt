@@ -9,9 +9,12 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.common.utils.ext.getParcelableExtraCompat
+import com.ichi2.testutils.AndroidTest
+import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.ShadowFileProviderPathStrategy
+import com.ichi2.testutils.targetContext
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
@@ -20,14 +23,16 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Before
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
-@Config(shadows = [ShadowFileProviderPathStrategy::class])
-class ExternalImageEditorTest : RobolectricTest(loadBackend = false) {
+@Config(application = EmptyApplication::class, shadows = [ShadowFileProviderPathStrategy::class])
+@Category(EmptyApplicationCategory::class)
+class ExternalImageEditorTest : AndroidTest {
     private lateinit var editor: ExternalImageEditor
 
     @Before

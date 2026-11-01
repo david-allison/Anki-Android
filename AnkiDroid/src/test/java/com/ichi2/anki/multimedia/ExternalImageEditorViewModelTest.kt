@@ -11,20 +11,24 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewModelScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ichi2.anki.EmptyApplicationCategory
 import com.ichi2.anki.RobolectricTest
+import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.ShadowFileProviderPathStrategy
 import kotlinx.coroutines.job
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Before
 import org.junit.Test
+import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.test.assertContentEquals
 
 @RunWith(AndroidJUnit4::class)
-@Config(shadows = [ShadowFileProviderPathStrategy::class])
+@Config(application = EmptyApplication::class, shadows = [ShadowFileProviderPathStrategy::class])
+@Category(EmptyApplicationCategory::class)
 class ExternalImageEditorViewModelTest : RobolectricTest(loadBackend = false) {
     private val editedImage = editorResultImageBytes()
 
