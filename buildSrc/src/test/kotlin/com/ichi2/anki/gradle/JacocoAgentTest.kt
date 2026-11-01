@@ -67,7 +67,10 @@ class JacocoAgentTest : JacocoTestFixture() {
 
                 $agentPlugin
                 dependencies { testImplementation libs.junit.vintage.engine }
-                tasks.withType(Test).configureEach { useJUnit() }
+                tasks.withType(Test).configureEach {
+                    useJUnit()
+                    jvmArgs '-XX:TieredStopAtLevel=1', '-XX:ReservedCodeCacheSize=240m'
+                }
                 """.trimIndent(),
             )
         }

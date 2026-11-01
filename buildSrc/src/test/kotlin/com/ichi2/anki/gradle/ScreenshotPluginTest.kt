@@ -154,6 +154,7 @@ class ScreenshotPluginTest {
                 testRuntimeOnly libs.junit.platform.launcher
             }
             tasks.withType(Test).configureEach {
+                jvmArgs '-XX:TieredStopAtLevel=1', '-XX:ReservedCodeCacheSize=240m'
                 inputs.file('changed.txt')
             }
             """.trimIndent(),
