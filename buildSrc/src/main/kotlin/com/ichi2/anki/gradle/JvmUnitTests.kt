@@ -2,10 +2,12 @@
 
 package com.ichi2.anki.gradle
 
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.internal.tasks.testing.filter.DefaultTestFilter
+import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.TestDescriptor
 import org.gradle.api.tasks.testing.TestListener
@@ -16,7 +18,10 @@ import java.io.File
 import java.io.Serializable
 
 /** Run src/testJvm tests without Robolectric while retaining the normal aggregate test command. */
-fun Project.registerJvmUnitTests(robolectricVersion: String) {
+fun Project.registerJvmUnitTests(
+    robolectricVersion: String,
+    assetPatterns: List<String> = emptyList(),
+) {
     val jupiterTest =
         Regex("(?:import\\s+|@)org\\.junit\\.jupiter\\.(?:api\\.(?:Test(?:Factory|Template)?|RepeatedTest|Nested)|params\\.ParameterizedTest)\\b")
     val misplacedTests =
@@ -41,6 +46,18 @@ fun Project.registerJvmUnitTests(robolectricVersion: String) {
         val aggregateName = "test${variantName}UnitTest"
         val nativeName = "test${variantName}JvmUnitTest"
         registerJvmUnitTestTask(aggregateName, nativeName, patterns, robolectricVersion, androidTestsUseJUnit4 = true)
+        if (assetPatterns.isNotEmpty()) {
+            // Use the same merged assets as the Android variant, without an AssetManager.
+            val assets = tasks.register<Sync>("prepare${variantName}JvmTestAssets") {
+                from(variant.artifacts.get(SingleArtifact.ASSETS))
+                include(assetPatterns)
+                inputs.property("assetPatterns", assetPatterns)
+                into(layout.buildDirectory.dir("generated/jvm-test-assets/${variant.name}"))
+            }
+            tasks.named(nativeName, Test::class.java).configure {
+                classpath = files(assets, classpath)
+            }
+        }
     }
 }
 
