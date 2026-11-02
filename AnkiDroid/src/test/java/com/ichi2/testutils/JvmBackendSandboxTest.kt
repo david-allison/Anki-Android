@@ -40,6 +40,12 @@ class JvmBackendSandboxTest : RobolectricTest() {
     fun `SDK sandboxes share the JNI bridge and keep independent collections`() {
         assertTrue(javaClass.classLoader is SandboxClassLoader)
         assertFalse(NativeMethods::class.java.classLoader is SandboxClassLoader)
+        assertFalse(Class.forName("com.ichi2.testutils.nativefiles.NativeResourceFiles").classLoader is SandboxClassLoader)
+        val loaderBytes =
+            requireNotNull(
+                javaClass.classLoader?.getResourceAsStream("org/robolectric/nativeruntime/DefaultNativeRuntimeLoader.class"),
+            ).use { it.readBytes() }
+        assertTrue(String(loaderBytes, Charsets.ISO_8859_1).contains("com/ichi2/testutils/nativefiles/NativeResourceFiles"))
         assertSame(NativeMethods::class.java.classLoader, RustBackendLoader::class.java.classLoader)
         for (library in listOf(
             "native/linux/x86_64/librobolectric-nativeruntime.so",

@@ -76,6 +76,7 @@ androidxWebkit = "1.16.0"
 androidxWork = "2.12.0"
 # https://github.com/ankidroid/Anki-Android-Backend/
 ankiBackend = '0.1.76-anki26.09.3' # Also update expectedPolicy in PageWebViewClientAssetTest
+asm = "9.10.1"
 autoService = "1.1.1"
 autoServiceAnnotations = "1.1.1"
 # https://github.com/skydoves/ColorPickerView/releases
@@ -93,6 +94,7 @@ espresso = '3.7.0'
 # https://github.com/criticalAY/google-analytics-kt
 googleAnalyticsKt = "1.2.1"
 gson = "2.11.0"
+guava = "33.6.0-jre"
 hamcrest = "3.0"
 imageCropper = "4.7.0"
 jacoco = "0.8.14"
@@ -230,6 +232,8 @@ androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
 hamcrest-library = { module = "org.hamcrest:hamcrest-library", version.ref = "hamcrest" }
 ivanshafran-shared-preferences-mock = { module = "io.github.ivanshafran:shared-preferences-mock", version.ref = "sharedPreferencesMock" }

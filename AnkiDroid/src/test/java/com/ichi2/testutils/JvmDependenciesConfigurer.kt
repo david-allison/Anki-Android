@@ -43,6 +43,7 @@ class JvmDependenciesConfigurer
             builder.doNotAcquirePackage("io.mockk.")
             builder.doNotAcquirePackage("org.jsoup.")
             builder.doNotAcquirePackage("com.google.common.")
+            builder.doNotAcquirePackage("com.ichi2.testutils.nativefiles.")
             // Gson's JVM streaming and reflection adapters accept the caller's Class objects.
             builder.doNotAcquirePackage("com.google.gson.")
             // This artifact contains JVM collection implementations, including Compose's maps.

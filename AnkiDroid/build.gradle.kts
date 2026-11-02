@@ -858,6 +858,7 @@ dependencies {
     // when Robolectric or targetSdk changes. See the instructions in that plugin.
     testImplementation(libs.robolectric)
     testImplementation(libs.gson)
+    testImplementation(libs.guava)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.arch.core.testing)
     testImplementation(libs.androidx.test.junit)
