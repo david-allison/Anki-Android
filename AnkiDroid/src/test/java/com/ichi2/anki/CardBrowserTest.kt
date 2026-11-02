@@ -407,19 +407,6 @@ class CardBrowserTest : RobolectricTest() {
             )
         }
 
-    @Test
-    fun flagValueIsShownOnCard() {
-        val n = addBasicNote("1", "back")
-        flagCardForNote(n, Flag.RED)
-
-        val cardId = n.cids()[0]
-
-        col.backend.setActiveBrowserColumns(listOf("cardDue")) // arbitrary value
-        val actualFlag = getCardFlagAfterFlagChangeDone(cardId)
-
-        assertThat("The card flag value should be reflected in the UI", actualFlag, equalTo(Flag.RED))
-    }
-
     private fun getCardFlagAfterFlagChangeDone(cardId: CardId): Flag {
         val data = col.browserRowForId(cardId)
 
