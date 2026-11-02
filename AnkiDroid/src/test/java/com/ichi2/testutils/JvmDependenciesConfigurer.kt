@@ -3,6 +3,7 @@
 package com.ichi2.testutils
 
 import anki.generic.Empty
+import kotlinx.serialization.KSerializer
 import org.robolectric.config.AndroidConfigurer
 import org.robolectric.internal.bytecode.InstrumentationConfiguration
 import org.robolectric.internal.bytecode.Interceptors
@@ -30,6 +31,9 @@ class JvmDependenciesConfigurer
             // Stateful backends and the Android translation provider stay sandbox-specific.
             builder.doNotAcquirePackage("com.google.protobuf.")
             generatedBackendClasses.forEach(builder::doNotAcquireClass)
+            // Core uses ClassValue/soft-reference serializer caches on the host JVM. JSON's
+            // descriptor caches and each app's generated serializers remain SDK-specific.
+            serializationCoreClasses.forEach(builder::doNotAcquireClass)
             // Mockito accepts the sandbox's Class objects; its JVM engine need not be reloaded.
             builder.doNotAcquirePackage("org.mockito.")
             builder.doNotAcquirePackage("io.mockk.")
@@ -39,9 +43,17 @@ class JvmDependenciesConfigurer
 
         companion object {
             private val generatedBackendClasses: List<String> =
+                classesInPackage(Empty::class.java, "anki/")
+            private val serializationCoreClasses: List<String> =
+                classesInPackage(KSerializer::class.java, "kotlinx/serialization/")
+
+            private fun classesInPackage(
+                type: Class<*>,
+                packagePath: String,
+            ): List<String> =
                 File(
                     requireNotNull(
-                        Empty::class.java.protectionDomain
+                        type.protectionDomain
                             ?.codeSource
                             ?.location,
                     ).toURI(),
@@ -50,7 +62,7 @@ class JvmDependenciesConfigurer
                         if (source.isDirectory) {
                             File(
                                 source,
-                                "anki",
+                                packagePath,
                             ).walkTopDown().filter { it.isFile }.map { it.relativeTo(source).invariantSeparatorsPath }.toList()
                         } else {
                             JarFile(source).use { jar ->
@@ -62,7 +74,7 @@ class JvmDependenciesConfigurer
                             }
                         }
                     entries
-                        .filter { it.startsWith("anki/") && it.endsWith(".class") }
+                        .filter { it.startsWith(packagePath) && it.endsWith(".class") }
                         .map { it.removeSuffix(".class").replace('/', '.') }
                 }
         }
