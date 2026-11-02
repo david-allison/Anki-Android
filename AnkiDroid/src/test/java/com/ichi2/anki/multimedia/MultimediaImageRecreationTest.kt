@@ -24,7 +24,7 @@ import kotlin.test.assertNull
 
 @RunWith(AndroidJUnit4::class)
 @Config(shadows = [ShadowFileProviderPathStrategy::class])
-class MultimediaImageRecreationTest : RobolectricTest(loadBackend = false) {
+class MultimediaImageRecreationTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     @get:Rule
     val composeRule = createComposeRule()
 

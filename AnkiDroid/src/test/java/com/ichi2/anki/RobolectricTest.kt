@@ -87,10 +87,12 @@ import com.ichi2.testutils.Robolectric as RobolectricActivities
 
 /**
  * @param loadBackend Disable for tests which do not use the native backend.
+ * @param initializeWorkManager Disable for UI fixtures which never enqueue background work.
  */
 @Config(application = RobolectricTestApplication::class)
 open class RobolectricTest(
     private val loadBackend: Boolean = true,
+    private val initializeWorkManager: Boolean = true,
 ) : AnkiTest,
     AndroidTest {
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
@@ -167,13 +169,15 @@ open class RobolectricTest(
 
         validateRunWithAnnotationPresent()
 
-        val config =
-            Configuration
-                .Builder()
-                .setExecutor(SynchronousExecutor())
-                .build()
+        if (initializeWorkManager) {
+            val config =
+                Configuration
+                    .Builder()
+                    .setExecutor(SynchronousExecutor())
+                    .build()
 
-        WorkManagerTestInitHelper.initializeTestWorkManager(targetContext, config)
+            WorkManagerTestInitHelper.initializeTestWorkManager(targetContext, config)
+        }
 
         CollectionManager.closeCollectionBlocking()
 
@@ -242,7 +246,7 @@ open class RobolectricTest(
 
             TimeManager.reset()
         }
-        WorkManagerTestInitHelper.closeWorkDatabase()
+        if (initializeWorkManager) WorkManagerTestInitHelper.closeWorkDatabase()
         Dispatchers.resetMain()
         ioDispatcher = Dispatchers.IO
         runBlocking { CollectionManager.discardBackend() }

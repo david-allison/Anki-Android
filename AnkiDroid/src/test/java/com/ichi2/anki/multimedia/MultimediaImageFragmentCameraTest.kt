@@ -32,7 +32,7 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 @Config(shadows = [ShadowFileProviderPathStrategy::class])
-class MultimediaImageFragmentCameraTest : RobolectricTest(loadBackend = false) {
+class MultimediaImageFragmentCameraTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     @get:Rule
     val composeRule = createEmptyComposeRule()
 
