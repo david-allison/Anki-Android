@@ -35,13 +35,15 @@ class JacocoPluginTest : JacocoTestFixture() {
     }
 
     @TestFactory
-    fun `coverage graph before and after adding source`(): List<DynamicTest> {
+    fun `coverage graph before and after adding and removing source`(): List<DynamicTest> {
         val before = dryRunCoverage()
         val cached = dryRunCoverage()
         writeFile("empty/custom-tests/ExampleTest.kt", "class ExampleTest")
         val added = dryRunCoverage()
+        assertThat(File(projectDir, "empty/custom-tests/ExampleTest.kt").delete(), equalTo(true))
+        val removed = dryRunCoverage()
 
-        // Retain independent reported checks while sharing their identical initial graph.
+        // Retain independent reported checks while the graph changes share one fixture.
         return listOf(
             DynamicTest.dynamicTest("report covers runtime modules and skips empty library test tasks") {
                 for (module in listOf("app", "library", "nested/core", "empty")) {
@@ -59,18 +61,11 @@ class JacocoPluginTest : JacocoTestFixture() {
                 assertThat(cached, containsString("Reusing configuration cache."))
                 assertThat(added, containsString(":empty:testDebugUnitTest SKIPPED"))
             },
+            DynamicTest.dynamicTest("removing the last test updates the cached task graph") {
+                assertThat(added, containsString(":empty:testDebugUnitTest SKIPPED"))
+                assertThat(removed, not(containsString(":empty:testDebugUnitTest")))
+            },
         )
-    }
-
-    @Test
-    fun `removing the last test updates the cached task graph`() {
-        writeFile("empty/custom-tests/ExampleTest.kt", "class ExampleTest")
-        val before = dryRunCoverage()
-        assertThat(before, containsString(":empty:testDebugUnitTest SKIPPED"))
-
-        assertThat(File(projectDir, "empty/custom-tests/ExampleTest.kt").delete(), equalTo(true))
-        val after = dryRunCoverage()
-        assertThat(after, not(containsString(":empty:testDebugUnitTest")))
     }
 
     private fun dryRunCoverage(): String = runCoverage("--dry-run").output
@@ -84,5 +79,4 @@ class JacocoPluginTest : JacocoTestFixture() {
             .withArguments(":app:jacocoUnitTestReport", "--configuration-cache", "--stacktrace", *arguments)
             .withTestDaemonJvm()
             .build()
-
 }
