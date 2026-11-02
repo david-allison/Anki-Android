@@ -31,7 +31,6 @@ import anki.scheduler.CustomStudyRequest.Cram.CramKind
 import anki.scheduler.copy
 import anki.scheduler.customStudyRequest
 import anki.search.SearchNode
-import anki.search.searchNode
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonPlurals
@@ -39,7 +38,6 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
 import com.ichi2.anki.asyncIO
-import com.ichi2.anki.browser.search.CardState
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.dp
@@ -556,23 +554,6 @@ class CustomStudyDialog : AnalyticsDialogFragment() {
         binding.detailsEditText2.moveCursorToEnd()
     }
 
-    /**
-     * Whether there are new cards added within [days] days in the deck for previewing.
-     *
-     * Mirrors the upstream logic:
-     * [https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py](https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py)
-     */
-    private suspend fun hasPreviewCards(days: Int): Boolean =
-        withCol {
-            val search =
-                listOf(
-                    searchNode { deck = decks.name(viewModel.deckId) },
-                    CardState.New.toSearchNode(),
-                    searchNode { addedInDays = days },
-                )
-            findCards(buildSearchString(search)).isNotEmpty()
-        }
-
     /** Enables 'Create' only if some cards would be reviewed ahead/previewed by [days] */
     private suspend fun updateCreateButtonState(
         dialog: AlertDialog,
@@ -593,24 +574,12 @@ class CustomStudyDialog : AnalyticsDialogFragment() {
         }
         val hasCards =
             when (selectedSubDialog) {
-                STUDY_PREVIEW -> hasPreviewCards(days)
-                else -> hasCardsDueWithin(days)
+                STUDY_PREVIEW -> viewModel.hasPreviewCards(days)
+                else -> viewModel.hasCardsDueWithin(days)
             }
         binding.detailsEditText2Layout.error = if (hasCards) null else TR.customStudyNoCardsMatchedTheCriteriaYou()
         dialog.positiveButton.isEnabled = hasCards
     }
-
-    /** Whether the deck has cards due in the next [days] days, as 'review ahead' would select them */
-    private suspend fun hasCardsDueWithin(days: Int): Boolean =
-        withCol {
-            val search =
-                listOf(
-                    SearchNode.newBuilder().setDeck(decks.name(viewModel.deckId)).build(),
-                    // prop:due<=days
-                    SearchNode.newBuilder().setDueInDays(days).build(),
-                )
-            findCards(buildSearchString(search)).isNotEmpty()
-        }
 
     // TODO cram kind and the included/excluded tags lists are only relevant for STUDY_TAGS and
     //  should be included in the option to not leak in the method's api

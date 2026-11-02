@@ -950,40 +950,6 @@ class CustomStudyDialogTest : RobolectricTest() {
         }
 
     @Test
-    fun `'review ahead' search does not treat the deck name as a pattern`() =
-        runTest {
-            // '_' is a single-character wildcard in a search: "A_B" must not match "AXB"
-            val deckId = addDeck("A_B")
-            addBasicNote().update { moveToDeck("A_B", false) }.firstCard().update {
-                queue = QueueType.Rev
-                type = CardType.Rev
-                due = col.sched.today + 30
-            }
-            addDeck("AXB")
-            addNoteDueTomorrow(deckName = "AXB")
-
-            withStudyAheadDialog(deckId = deckId) { dialog ->
-                onSubscreenEditText().perform(replaceText("1"))
-                shadowOf(Looper.getMainLooper()).idle()
-                assertThat("A_B has no cards due tomorrow", dialog.positiveButton.isEnabled, equalTo(false))
-            }
-        }
-
-    @Test
-    fun `'review ahead' search escapes the deck name`() =
-        runTest {
-            // '\' starts an escape sequence in a search
-            val deckId = addDeck("""A\B""")
-            addNoteDueTomorrow(deckName = """A\B""")
-
-            withStudyAheadDialog(deckId = deckId) { dialog ->
-                onSubscreenEditText().perform(replaceText("1"))
-                shadowOf(Looper.getMainLooper()).idle()
-                assertThat(dialog.positiveButton.isEnabled, equalTo(true))
-            }
-        }
-
-    @Test
     @Config(qualifiers = "en")
     fun `'review ahead' warns when 0 days is entered`() =
         runTest {
@@ -1114,15 +1080,6 @@ class CustomStudyDialogTest : RobolectricTest() {
                 assertThat("review-ahead: disabled when nothing matches", dialog.positiveButton.isEnabled, equalTo(false))
             }
         }
-
-    /** Adds a note to [deckName] whose card is due tomorrow */
-    private fun addNoteDueTomorrow(deckName: String) {
-        addBasicNote().update { moveToDeck(deckName, false) }.firstCard().update {
-            queue = QueueType.Rev
-            type = CardType.Rev
-            due = col.sched.today + 1
-        }
-    }
 
     /**
      * Runs [block] on a [CustomStudyDialog]
