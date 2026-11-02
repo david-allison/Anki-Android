@@ -133,7 +133,9 @@ subprojects {
                             .builtBy(":AnkiDroid:robolectricNativeResourceCache")
                     it.classpath = files(robolectricNativeResources, it.classpath)
 
-                    it.minHeapSize = "1g"
+                    // Small suites need not commit a full GiB before allocating test data.
+                    // Workers can still grow to the same maximum heap above.
+                    it.minHeapSize = "256m"
                     it.configureRobolectricJvm()
                 }
 
