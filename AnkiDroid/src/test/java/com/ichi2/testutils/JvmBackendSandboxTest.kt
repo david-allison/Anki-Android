@@ -9,6 +9,7 @@ import anki.generic.Empty
 import anki.i18n.GeneratedTranslations
 import anki.i18n.PreviewTranslations
 import com.google.protobuf.GeneratedMessageLite
+import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -48,6 +49,13 @@ class JvmBackendSandboxTest : RobolectricTest() {
         }
         assertFalse(Empty::class.java.classLoader is SandboxClassLoader)
         assertFalse(GeneratedMessageLite::class.java.classLoader is SandboxClassLoader)
+        assertFalse(R.string::class.java.classLoader is SandboxClassLoader)
+        assertFalse(R.id::class.java.classLoader is SandboxClassLoader)
+        assertTrue(android.R.attr::class.java.classLoader is SandboxClassLoader)
+        assertTrue(androidx.appcompat.R.attr::class.java.classLoader is SandboxClassLoader)
+        assertTrue(androidx.appcompat.R.styleable::class.java.classLoader is SandboxClassLoader)
+        assertEquals("app_name", targetContext.resources.getResourceEntryName(R.string.app_name))
+        assertTrue(targetContext.getString(R.string.app_name).contains("AnkiDroid"))
         assertFalse(Jsoup::class.java.classLoader is SandboxClassLoader)
         assertEquals("front", Jsoup.parse("<b>front</b>").text())
         assertFalse(Class.forName("com.google.common.collect.ImmutableList").classLoader is SandboxClassLoader)
