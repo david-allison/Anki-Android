@@ -29,6 +29,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.internal.bytecode.SandboxClassLoader
+import java.io.File
 import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -49,6 +50,18 @@ class JvmBackendSandboxTest : RobolectricTest() {
             ).use { it.readBytes() }
         assertTrue(String(loaderBytes, Charsets.ISO_8859_1).contains("com/ichi2/testutils/nativefiles/NativeResourceFiles"))
         assertSame(NativeMethods::class.java.classLoader, RustBackendLoader::class.java.classLoader)
+        val backendArchive =
+            File(
+                requireNotNull(
+                    RustBackendLoader::class.java.protectionDomain
+                        ?.codeSource
+                        ?.location,
+                ).toURI(),
+            )
+        if (backendArchive.name.removePrefix("jetified-").startsWith("anki-android-backend-testing-")) {
+            val library = System.mapLibraryName("rsdroid")
+            assertEquals("file", requireNotNull(RustBackendLoader::class.java.getResource("/$library")).protocol)
+        }
         for (library in listOf(
             "native/linux/x86_64/librobolectric-nativeruntime.so",
             "native/mac/aarch64/librobolectric-nativeruntime.dylib",

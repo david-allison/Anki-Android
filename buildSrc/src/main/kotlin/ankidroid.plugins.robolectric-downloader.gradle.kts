@@ -84,11 +84,25 @@ configurations.matching { it.name == "playDebugUnitTestRuntimeClasspath" }.all {
                 it is ModuleComponentIdentifier && it.group == "org.robolectric" && it.module.startsWith("nativeruntime-dist")
             }
         }.files
+    val backendRuntime =
+        incoming.artifactView {
+            componentFilter {
+                it is ModuleComponentIdentifier && it.group == "io.github.david-allison" && it.module == "anki-android-backend-testing"
+            }
+        }.files
     // Capture the service rather than the script's Project in the lazy archive provider.
     val archives = objects.newInstance<RobolectricArchiveServices>().archives
     robolectricNativeResourceCache.configure {
         from(nativeRuntime.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) }) {
             include(nativeRuntimeResourceIncludes)
+        }
+        // The loader still checksums and loads its normal private/cached copy. Avoid inflating
+        // these published resources again in every worker. Local backend JARs keep their own
+        // resource lookup; Sync removes the published files when that artifact is absent.
+        val backendLibraries = listOf("librsdroid.dylib", "librsdroid.so", "rsdroid.dll")
+        inputs.property("backendNativeLibraryResourceIncludes", backendLibraries)
+        from(backendRuntime.elements.map { artifacts -> artifacts.map { archives.zipTree(it.asFile) } }) {
+            include(backendLibraries)
         }
     }
 }
