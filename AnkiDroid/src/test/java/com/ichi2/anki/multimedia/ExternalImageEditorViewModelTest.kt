@@ -29,7 +29,7 @@ import kotlin.test.assertContentEquals
 @RunWith(AndroidJUnit4::class)
 @Config(application = EmptyApplication::class, shadows = [ShadowFileProviderPathStrategy::class])
 @Category(EmptyApplicationCategory::class)
-class ExternalImageEditorViewModelTest : RobolectricTest(loadBackend = false) {
+class ExternalImageEditorViewModelTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     private val editedImage = editorResultImageBytes()
 
     @Before
