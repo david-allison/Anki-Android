@@ -9,6 +9,10 @@ import anki.i18n.GeneratedTranslations
 import anki.i18n.PreviewTranslations
 import com.google.protobuf.GeneratedMessageLite
 import com.ichi2.anki.RobolectricTest
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import net.ankiweb.rsdroid.Backend
 import net.ankiweb.rsdroid.BackendFactory
 import net.ankiweb.rsdroid.NativeMethods
@@ -19,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.internal.bytecode.SandboxClassLoader
+import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
@@ -44,6 +49,13 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertTrue(Backend::class.java.classLoader is SandboxClassLoader)
         assertTrue(BackendFactory::class.java.classLoader is SandboxClassLoader)
         assertTrue(Translations::class.java.classLoader is SandboxClassLoader)
+        assertFalse(KSerializer::class.java.classLoader is SandboxClassLoader)
+        assertTrue(Json::class.java.classLoader is SandboxClassLoader)
+        assertTrue(SdkValue.serializer()::class.java.classLoader is SandboxClassLoader)
+        val values = listOf(SdkValue(Build.VERSION.SDK_INT))
+        val serializer = serializer(typeOf<List<SdkValue>>())
+        val json = Json.encodeToString(serializer, values)
+        assertEquals(values, Json.decodeFromString(serializer, json))
         assertEquals(0, col.noteCount())
         val version = "sdk${Build.VERSION.SDK_INT}"
         assertTrue(col.tr.aboutVersion(version).contains(version))
@@ -52,4 +64,9 @@ class JvmBackendSandboxTest : RobolectricTest() {
 
         assertEquals(1, col.noteCount())
     }
+
+    @Serializable
+    private data class SdkValue(
+        val sdk: Int,
+    )
 }
