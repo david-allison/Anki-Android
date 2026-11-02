@@ -3,6 +3,7 @@
 package com.ichi2.testutils
 
 import anki.generic.Empty
+import com.ichi2.anki.R
 import kotlinx.serialization.KSerializer
 import org.robolectric.config.AndroidConfigurer
 import org.robolectric.internal.bytecode.InstrumentationConfiguration
@@ -31,6 +32,9 @@ class JvmDependenciesConfigurer
             // Stateful backends and the Android translation provider stay sandbox-specific.
             builder.doNotAcquirePackage("com.google.protobuf.")
             generatedBackendClasses.forEach(builder::doNotAcquireClass)
+            // The APK fixes these app/library IDs. Attribute aliases and styleable arrays can
+            // refer to Android's R.attr fields, so they must still resolve within each SDK.
+            resourceIdClasses.forEach(builder::doNotAcquireClass)
             // Core uses ClassValue/soft-reference serializer caches on the host JVM. JSON's
             // descriptor caches and each app's generated serializers remain SDK-specific.
             serializationCoreClasses.forEach(builder::doNotAcquireClass)
@@ -48,6 +52,10 @@ class JvmDependenciesConfigurer
                 classesInPackage(Empty::class.java, "anki/")
             private val serializationCoreClasses: List<String> =
                 classesInPackage(KSerializer::class.java, "kotlinx/serialization/")
+            private val resourceIdClasses: List<String> =
+                classesInPackage(R::class.java, "").filter {
+                    it.substringAfterLast('.').startsWith("R\$") && it.substringAfterLast('$') !in setOf("attr", "styleable")
+                }
 
             private fun classesInPackage(
                 type: Class<*>,
