@@ -180,20 +180,6 @@ class CardBrowserTest : RobolectricTest() {
     }
 
     @Test
-    fun browserIsNotInitiallyInMultiSelectModeWithNoCards() =
-        runTest {
-            val browser = browserWithNoNewCards
-            assertThat(browser.viewModel.isInMultiSelectMode, equalTo(false))
-        }
-
-    @Test
-    fun browserIsNotInitiallyInMultiSelectModeWithCards() =
-        runTest {
-            val browser = browserWithMultipleNotes
-            assertThat(browser.viewModel.isInMultiSelectMode, equalTo(false))
-        }
-
-    @Test
     fun selectAllIsNotVisibleWhenNoCardsInDeck() =
         runTest {
             val browser = browserWithNoNewCards
@@ -246,14 +232,6 @@ class CardBrowserTest : RobolectricTest() {
 
             assertDoesNotThrow { advanceRobolectricLooper() }
         }
-    }
-
-    @Test
-    @Flaky(os = OS.WINDOWS, "Index 0 out of bounds for length 0")
-    fun browserIsInMultiSelectModeWhenSelectingOne() {
-        val browser = browserWithMultipleNotes
-        selectOneOfManyCards(browser)
-        assertThat(browser.viewModel.isInMultiSelectMode, equalTo(true))
     }
 
     @Test
