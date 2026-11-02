@@ -3,11 +3,11 @@
 
 package com.ichi2.preferences
 
-import android.content.Context
 import android.widget.EditText
 import androidx.preference.PreferenceDialogFragmentCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.EmptyApplicationCategory
+import com.ichi2.anki.R
 import com.ichi2.testutils.AndroidTest
 import com.ichi2.testutils.EmptyApplication
 import com.ichi2.testutils.targetContext
@@ -20,43 +20,31 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.experimental.categories.Category
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 @Config(application = EmptyApplication::class)
 @Category(EmptyApplicationCategory::class)
 class NumberRangePreferenceCompatTest : AndroidTest {
-    private val preference = TestableNumberRangePreferenceCompat(targetContext)
     private val preferenceMock: NumberRangePreferenceCompat = mockk(relaxed = true)
 
     @Test
-    fun getValidatedRangeFromIntWithinRangeReturnsInput() {
-        preference.setMinValue(0)
-        assertThat(preference.getValidatedRangeFromInt(50), equalTo(50))
-    }
+    @Suppress("DEPRECATION") // Matches the ARSC-backed attribute setup in SliderPreferenceTest.
+    fun `XML bounds are passed to the JVM input policy`() {
+        val attrs =
+            Robolectric
+                .buildAttributeSet()
+                .addAttribute(R.attr.min, "10")
+                .addAttribute(R.attr.max, "20")
+                .build()
+        val preference = NumberRangePreferenceCompat(targetContext, attrs)
 
-    @Test
-    fun getValidatedRangeFromIntBelowMinReturnsMin() {
-        preference.setMinValue(10)
         assertThat(preference.getValidatedRangeFromInt(5), equalTo(10))
-    }
-
-    @Test
-    fun getValidatedRangeFromStringEmptyStringReturnsMin() {
-        preference.setMinValue(5)
-        assertThat(preference.getValidatedRangeFromString(""), equalTo(5))
-    }
-
-    @Test
-    fun getValidatedRangeFromStringValidNumberReturnsValidatedNumber() {
-        preference.setMinValue(0)
-        assertThat(preference.getValidatedRangeFromString("50"), equalTo(50))
-    }
-
-    @Test
-    fun getValidatedRangeFromStringInvalidNumberReturnsMin() {
-        preference.setMinValue(5)
-        assertThat(preference.getValidatedRangeFromString("abc"), equalTo(5))
+        assertThat(preference.getValidatedRangeFromInt(25), equalTo(20))
+        assertThat(preference.getValidatedRangeFromString("15"), equalTo(15))
+        assertThat(preference.getValidatedRangeFromString(""), equalTo(10))
+        assertThat(preference.getValidatedRangeFromString("abc"), equalTo(10))
     }
 
     @Test
@@ -110,16 +98,5 @@ class NumberRangePreferenceCompatTest : AndroidTest {
         dialogFragment.editText = editText
 
         return dialogFragment
-    }
-
-    // Test subclass to allow setting min value for testing
-    private class TestableNumberRangePreferenceCompat(
-        context: Context,
-    ) : NumberRangePreferenceCompat(context) {
-        fun setMinValue(value: Int) {
-            min = value
-        }
-
-        override fun callChangeListener(newValue: Any?): Boolean = true
     }
 }
