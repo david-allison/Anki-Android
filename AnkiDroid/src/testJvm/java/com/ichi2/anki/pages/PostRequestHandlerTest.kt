@@ -3,18 +3,14 @@
 
 package com.ichi2.anki.pages
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ichi2.anki.RobolectricTest
 import com.ichi2.testutils.HamcrestUtils.containsInAnyOrder
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.not
 import org.junit.Test
-import org.junit.runner.RunWith
 import java.io.InputStreamReader
 
-@RunWith(AndroidJUnit4::class)
-class PostRequestHandlerTest : RobolectricTest() {
+class PostRequestHandlerTest {
     // ts_funcs.txt includes imports from every upstream route, including routes outside SvelteKitPage.
     // Exclude only functions whose callers are confined to routes AnkiDroid does not expose.
     // Call sites checked against Anki 26.09.3: https://github.com/ankitects/anki/tree/26.09.3/ts
@@ -88,7 +84,7 @@ class PostRequestHandlerTest : RobolectricTest() {
      * Auto-generated list of all TypeScript funcs created & packaged during backend build
      */
     private val typescriptFunctionsUsedByBackend: List<String> =
-        InputStreamReader(targetContext.assets.open("backend/ts_funcs.txt")).use {
+        InputStreamReader(requireNotNull(javaClass.getResourceAsStream("/backend/ts_funcs.txt"))).use {
             it.readLines().also { lines ->
                 assertThat("Stored Typescript functions", lines, not(empty()))
             }
