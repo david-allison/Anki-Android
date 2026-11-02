@@ -26,7 +26,7 @@ import com.ichi2.anki.common.android.R as CommonR
 @RunWith(AndroidJUnit4::class)
 @Config(application = EmptyApplication::class)
 @Category(EmptyApplicationCategory::class)
-class TagsArrayAdapterSelectionTest : RobolectricTest(loadBackend = false) {
+class TagsArrayAdapterSelectionTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     private inner class TagSelection(
         val tags: TagsList,
         val recycler: RecyclerView,
