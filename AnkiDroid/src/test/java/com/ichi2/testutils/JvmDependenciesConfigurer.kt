@@ -26,10 +26,10 @@ class JvmDependenciesConfigurer
             // loaded by the same classloader, rather than copied and loaded again for every SDK.
             builder.doNotAcquireClass("net.ankiweb.rsdroid.NativeMethods")
             builder.doNotAcquirePackage("net.ankiweb.rsdroid.testing.")
-            // Generated wire messages are immutable JVM values. Share their protobuf schemas too,
-            // while leaving translations (and their Robolectric shadows) sandbox-specific.
+            // Generated contracts, wire messages and preview strings use only JVM values.
+            // Stateful backends and the Android translation provider stay sandbox-specific.
             builder.doNotAcquirePackage("com.google.protobuf.")
-            wireMessageClasses.forEach(builder::doNotAcquireClass)
+            generatedBackendClasses.forEach(builder::doNotAcquireClass)
             // Mockito accepts the sandbox's Class objects; its JVM engine need not be reloaded.
             builder.doNotAcquirePackage("org.mockito.")
             builder.doNotAcquirePackage("io.mockk.")
@@ -38,7 +38,7 @@ class JvmDependenciesConfigurer
         }
 
         companion object {
-            private val wireMessageClasses: List<String> =
+            private val generatedBackendClasses: List<String> =
                 File(
                     requireNotNull(
                         Empty::class.java.protectionDomain
@@ -63,7 +63,6 @@ class JvmDependenciesConfigurer
                         }
                     entries
                         .filter { it.startsWith("anki/") && it.endsWith(".class") }
-                        .filterNot { it.startsWith("anki/i18n/GeneratedTranslations") || it.startsWith("anki/i18n/PreviewTranslations") }
                         .map { it.removeSuffix(".class").replace('/', '.') }
                 }
         }
