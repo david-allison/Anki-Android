@@ -65,11 +65,18 @@ fun Project.registerJvmUnitTestTask(
         native.classpath = aggregate.classpath.filter { file -> !isRobolectricRuntime(file, robolectricVersion) }
         native.include(patterns)
         native.javaLauncher.set(aggregate.javaLauncher)
-        native.maxParallelForks = aggregate.maxParallelForks
+        // JVM-only cases can share backend and mocking-engine startup in one worker.
+        native.maxParallelForks = if (androidTestsUseJUnit4) 1 else aggregate.maxParallelForks
         native.minHeapSize = aggregate.minHeapSize
         native.maxHeapSize = aggregate.maxHeapSize
         native.setJvmArgs(aggregate.jvmArgs)
         native.systemProperties = aggregate.systemProperties.filterKeys { !it.startsWith("robolectric") }
+        if (androidTestsUseJUnit4) {
+            val parallelism = minOf(4, gradle.startParameter.maxWorkerCount)
+            native.systemProperty("junit.jupiter.execution.parallel.config.strategy", "fixed")
+            native.systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", parallelism)
+            native.systemProperty("junit.jupiter.execution.parallel.config.fixed.max-pool-size", parallelism)
+        }
         native.environment(aggregate.environment)
         val original = aggregate.options as JUnitPlatformOptions
         native.useJUnitPlatform {
