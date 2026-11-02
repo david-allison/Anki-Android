@@ -110,7 +110,10 @@ sealed interface Binding {
         val unicodeCharacter: BindingUnicodeCharacter,
         override val modifierKeys: ModifierKeys = AppDefinedModifierKeys.allowShift(),
     ) : KeyBinding {
-        override fun toDisplayString(context: Context): String =
+        override fun toDisplayString(context: Context): String = toDisplayString()
+
+        /** A Unicode binding's label depends only on its character and modifiers. */
+        fun toDisplayString(): String =
             buildString {
                 append(KEY_PREFIX)
                 append(' ')
