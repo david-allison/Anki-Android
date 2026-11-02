@@ -1343,7 +1343,17 @@ class CardBrowserViewModel(
     suspend fun filterByTags(
         selectedTags: List<String>,
         cardState: CardStateFilter,
+        useStructuredFilters: Boolean = false,
     ) {
+        if (useStructuredFilters) {
+            val currentSearch = searchRequestFlow.value
+            launchSearchForCards(
+                currentSearch.copy(filters = currentSearch.filters.copy(tags = selectedTags)),
+                forceRefresh = false,
+                feedbackMode = BrowserSearchFeedbackMode.SEARCH_RESULTS,
+            )
+            return
+        }
         val searchString =
             withCol {
                 SearchRequest(
