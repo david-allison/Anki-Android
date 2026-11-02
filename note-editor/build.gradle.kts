@@ -7,6 +7,10 @@ plugins {
     id("ankidroid.android.compose")
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnit()
+}
+
 configure<LibraryExtension> {
     namespace = "com.ichi2.anki.noteeditor"
 }
