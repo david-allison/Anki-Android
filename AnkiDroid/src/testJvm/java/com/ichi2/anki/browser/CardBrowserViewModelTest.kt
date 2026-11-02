@@ -71,6 +71,8 @@ import com.ichi2.anki.servicelayer.NoteService
 import com.ichi2.anki.setFlagFilterSync
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.ext.defaultBrowserSearch
+import com.ichi2.testutils.common.Flaky
+import com.ichi2.testutils.common.OS
 import com.ichi2.testutils.createTransientDirectory
 import com.ichi2.testutils.ext.reopenWithLanguage
 import kotlinx.coroutines.CancellationException
@@ -111,6 +113,29 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CardBrowserViewModelTest : JvmCardBrowserViewModelTestBase() {
+    @Test
+    fun browserIsNotInitiallyInMultiSelectModeWithNoCards() =
+        runViewModelTest {
+            assertEquals(0, rowCount)
+            assertThat(isInMultiSelectMode, equalTo(false))
+        }
+
+    @Test
+    fun browserIsNotInitiallyInMultiSelectModeWithCards() =
+        runViewModelTest(notes = 3) {
+            assertEquals(3, rowCount)
+            assertThat(isInMultiSelectMode, equalTo(false))
+        }
+
+    @Test
+    @Flaky(os = OS.WINDOWS, "Index 0 out of bounds for length 0")
+    fun browserIsInMultiSelectModeWhenSelectingOne() =
+        runViewModelTest(notes = 3) {
+            handleRowLongPress(getRowAtPosition(0).toRowSelection()).join()
+
+            assertThat(isInMultiSelectMode, equalTo(true))
+        }
+
     @Test
     fun `delete search history - Issue 14989`() =
         runViewModelTest {
