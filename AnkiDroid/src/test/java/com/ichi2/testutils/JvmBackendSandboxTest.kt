@@ -37,6 +37,14 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertTrue(javaClass.classLoader is SandboxClassLoader)
         assertFalse(NativeMethods::class.java.classLoader is SandboxClassLoader)
         assertSame(NativeMethods::class.java.classLoader, RustBackendLoader::class.java.classLoader)
+        for (library in listOf(
+            "native/linux/x86_64/librobolectric-nativeruntime.so",
+            "native/mac/aarch64/librobolectric-nativeruntime.dylib",
+            "native/mac/x86_64/librobolectric-nativeruntime.dylib",
+            "native/windows/x86_64/robolectric-nativeruntime.dll",
+        )) {
+            assertEquals("file", requireNotNull(javaClass.classLoader?.getResource(library)).protocol)
+        }
         assertFalse(Empty::class.java.classLoader is SandboxClassLoader)
         assertFalse(GeneratedMessageLite::class.java.classLoader is SandboxClassLoader)
         assertFalse(Jsoup::class.java.classLoader is SandboxClassLoader)
