@@ -22,6 +22,8 @@ import net.ankiweb.rsdroid.BackendFactory
 import net.ankiweb.rsdroid.NativeMethods
 import net.ankiweb.rsdroid.Translations
 import net.ankiweb.rsdroid.testing.RustBackendLoader
+import org.apache.commons.collections4.list.SetUniqueList
+import org.apache.commons.io.FileUtils
 import org.jsoup.Jsoup
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,6 +80,18 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertTrue(Json::class.java.classLoader is SandboxClassLoader)
         assertTrue(SdkValue.serializer()::class.java.classLoader is SandboxClassLoader)
         val values = listOf(SdkValue(Build.VERSION.SDK_INT))
+        assertFalse(SetUniqueList::class.java.classLoader is SandboxClassLoader)
+        val uniqueValues = SetUniqueList.setUniqueList(mutableListOf<SdkValue>())
+        assertTrue(uniqueValues.add(values.single()))
+        assertFalse(uniqueValues.add(values.single()))
+        assertSame(values.single(), uniqueValues.single())
+        assertFalse(FileUtils::class.java.classLoader is SandboxClassLoader)
+        val originalFile = tempFolder.newFile().apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val copiedFile = tempFolder.newFile()
+        FileUtils.copyFile(originalFile, copiedFile)
+        assertTrue(FileUtils.contentEquals(originalFile, copiedFile))
+        copiedFile.writeBytes(byteArrayOf(3, 2, 1))
+        assertFalse(FileUtils.contentEquals(originalFile, copiedFile))
         assertFalse(Gson::class.java.classLoader is SandboxClassLoader)
         val gson = Gson()
         assertEquals(values.single(), gson.fromJson(gson.toJson(values.single()), SdkValue::class.java))
