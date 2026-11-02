@@ -913,4 +913,4 @@ dependencies {
     testFixturesImplementation(libs.kotlinx.coroutines.core)
 }
 
-registerJvmUnitTests(libs.versions.robolectric.get())
+registerJvmUnitTests(libs.versions.robolectric.get(), assetPatterns = listOf("backend/ts_funcs.txt"))
