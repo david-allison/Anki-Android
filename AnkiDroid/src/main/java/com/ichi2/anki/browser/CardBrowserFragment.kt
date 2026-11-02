@@ -1910,22 +1910,7 @@ class CardBrowserFragment :
         selectedTags: List<String>,
         cardState: CardStateFilter,
     ) = launchCatchingTask {
-        if (useNewTaggingLogic) {
-            val updatedSearch =
-                activityViewModel.searchRequestFlow.value.copy(
-                    filters =
-                        activityViewModel.searchRequestFlow.value.filters.copy(
-                            tags = selectedTags,
-                        ),
-                )
-            activityViewModel.launchSearchForCards(
-                updatedSearch,
-                forceRefresh = false,
-                feedbackMode = BrowserSearchFeedbackMode.SEARCH_RESULTS,
-            )
-        } else {
-            activityViewModel.filterByTags(selectedTags, cardState)
-        }
+        activityViewModel.filterByTags(selectedTags, cardState, useStructuredFilters = useNewTaggingLogic)
     }
 
     fun prepareForUndoableOperation() {
