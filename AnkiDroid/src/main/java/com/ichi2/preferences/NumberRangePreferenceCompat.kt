@@ -15,7 +15,6 @@ import androidx.preference.EditTextPreferenceDialogFragmentCompat
 import com.ichi2.anki.R
 import com.ichi2.anki.utils.getFormattedStringOrPlurals
 import com.ichi2.utils.numberRangeTitle
-import timber.log.Timber
 
 open class NumberRangePreferenceCompat
     @JvmOverloads // fixes: Error inflating class com.ichi2.preferences.NumberRangePreferenceCompat
@@ -73,14 +72,7 @@ open class NumberRangePreferenceCompat
          * @param input Integer to validate.
          * @return The input value within acceptable range.
          */
-        fun getValidatedRangeFromInt(input: Int): Int {
-            if (input < min) {
-                return min
-            } else if (input > max) {
-                return max
-            }
-            return input
-        }
+        fun getValidatedRangeFromInt(input: Int): Int = NumberRangeInput.clamp(input, min, max)
 
         /**
          * Return the string as an int with the number rounded to the nearest bound if it is outside of the acceptable
@@ -89,17 +81,7 @@ open class NumberRangePreferenceCompat
          * @param input User input in text editor.
          * @return The input value within acceptable range.
          */
-        fun getValidatedRangeFromString(input: String): Int =
-            if (input.isEmpty()) {
-                min
-            } else {
-                try {
-                    getValidatedRangeFromInt(input.toInt())
-                } catch (e: NumberFormatException) {
-                    Timber.w(e)
-                    min
-                }
-            }
+        fun getValidatedRangeFromString(input: String): Int = NumberRangeInput.clamp(input, min, max)
 
         /**
          * Get the persisted value held by this preference.
