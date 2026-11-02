@@ -38,16 +38,22 @@ class NativeResourceFilesTest {
     fun `existing destinations and append modes retain their stream semantics`() {
         val source = File(directory, "source").apply { writeText("resource") }
         for (append in listOf(false, true)) {
-            val destination = File(directory, "destination-$append").apply { writeText("before") }
-            val modes = if (append) arrayOf(FileWriteMode.APPEND) else emptyArray()
-            val copied =
-                NativeResourceFiles
-                    .asByteSource(
-                        source.toURI().toURL(),
-                    ).copyTo(NativeResourceFiles.asByteSink(destination, *modes))
+            for (initial in listOf("", "before")) {
+                val destination = File(directory, "destination-$append-${initial.length}").apply { writeText(initial) }
+                val modes = if (append) arrayOf(FileWriteMode.APPEND) else emptyArray()
+                destination.inputStream().use { openDestination ->
+                    val copied =
+                        NativeResourceFiles
+                            .asByteSource(
+                                source.toURI().toURL(),
+                            ).copyTo(NativeResourceFiles.asByteSink(destination, *modes))
 
-            assertEquals(8L, copied)
-            assertEquals(if (append) "beforeresource" else "resource", destination.readText())
+                    val expected = if (append) initial + "resource" else "resource"
+                    assertEquals(8L, copied)
+                    assertEquals(expected, destination.readText())
+                    assertEquals(expected, openDestination.readBytes().decodeToString())
+                }
+            }
         }
     }
 

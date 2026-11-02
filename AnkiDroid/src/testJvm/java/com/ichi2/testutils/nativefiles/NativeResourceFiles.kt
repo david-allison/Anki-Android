@@ -7,6 +7,8 @@ import com.google.common.io.ByteSource
 import com.google.common.io.FileWriteMode
 import com.google.common.io.Resources
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -25,9 +27,12 @@ object NativeResourceFiles {
             override fun copyTo(sink: ByteSink): Long {
                 val fileSink = sink as? ResourceFileSink
                 val source = localFile(url)
-                if (source != null && fileSink != null && fileSink.isFreshDestination() && Files.isRegularFile(source)) {
-                    Files.copy(source, fileSink.file.toPath(), REPLACE_EXISTING)
-                    return fileSink.file.length()
+                if (source != null && fileSink != null && Files.isRegularFile(source)) {
+                    if (fileSink.isFreshDestination()) {
+                        Files.copy(source, fileSink.file.toPath(), REPLACE_EXISTING)
+                        return fileSink.file.length()
+                    }
+                    if (fileSink.canOverwriteExisting()) return copyIntoExisting(source, fileSink.file)
                 }
                 return delegate.copyTo(sink)
             }
@@ -38,6 +43,26 @@ object NativeResourceFiles {
         file: File,
         vararg modes: FileWriteMode,
     ): ByteSink = ResourceFileSink(file, modes)
+
+    /** Keep the existing inode: Robolectric creates its empty library file before copying. */
+    private fun copyIntoExisting(
+        source: Path,
+        destination: File,
+    ): Long =
+        FileInputStream(source.toFile()).use { input ->
+            FileOutputStream(destination).use { output ->
+                val size = input.channel.size()
+                var copied = 0L
+                while (copied < size) {
+                    val count = input.channel.transferTo(copied, size - copied, output.channel)
+                    if (count == 0L) break
+                    copied += count
+                }
+                // A provider may decline channel transfer; also consume any bytes added meanwhile.
+                input.channel.position(copied)
+                copied + input.copyTo(output)
+            }
+        }
 
     private fun localFile(url: URL): Path? =
         if (url.protocol == "file" && url.authority.isNullOrEmpty() && url.query == null && url.ref == null) {
@@ -56,6 +81,8 @@ object NativeResourceFiles {
                 .asByteSink(file, *modes)
 
         override fun openStream() = delegate.openStream()
+
+        fun canOverwriteExisting() = !append && Files.isRegularFile(file.toPath(), NOFOLLOW_LINKS)
 
         fun isFreshDestination() =
             !append && !Files.exists(file.toPath(), NOFOLLOW_LINKS) && file.absoluteFile.parentFile?.isDirectory == true
