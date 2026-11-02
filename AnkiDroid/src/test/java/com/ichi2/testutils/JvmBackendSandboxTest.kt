@@ -3,6 +3,7 @@
 package com.ichi2.testutils
 
 import android.os.Build
+import androidx.collection.MutableScatterMap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.generic.Empty
 import anki.i18n.GeneratedTranslations
@@ -61,6 +62,10 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertTrue(Json::class.java.classLoader is SandboxClassLoader)
         assertTrue(SdkValue.serializer()::class.java.classLoader is SandboxClassLoader)
         val values = listOf(SdkValue(Build.VERSION.SDK_INT))
+        assertFalse(MutableScatterMap::class.java.classLoader is SandboxClassLoader)
+        val map = MutableScatterMap<String, SdkValue>()
+        map["sdk"] = values.single()
+        assertEquals(values.single(), map["sdk"])
         val serializer = serializer(typeOf<List<SdkValue>>())
         val json = Json.encodeToString(serializer, values)
         assertEquals(values, Json.decodeFromString(serializer, json))
