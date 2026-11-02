@@ -9,6 +9,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnit()
+}
+
 configure<LibraryExtension> {
     // code should live inside com.ichi2.anki
     // namespace must be unique for resources generation.
