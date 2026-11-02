@@ -2,13 +2,17 @@
 
 package com.ichi2.testutils
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.generic.Empty
 import anki.i18n.GeneratedTranslations
 import anki.i18n.PreviewTranslations
 import com.google.protobuf.GeneratedMessageLite
 import com.ichi2.anki.RobolectricTest
+import net.ankiweb.rsdroid.Backend
+import net.ankiweb.rsdroid.BackendFactory
 import net.ankiweb.rsdroid.NativeMethods
+import net.ankiweb.rsdroid.Translations
 import net.ankiweb.rsdroid.testing.RustBackendLoader
 import org.jsoup.Jsoup
 import org.junit.Test
@@ -34,9 +38,15 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertEquals("front", Jsoup.parse("<b>front</b>").text())
         assertFalse(Class.forName("com.google.common.collect.ImmutableList").classLoader is SandboxClassLoader)
         assertFalse(Class.forName("com.google.common.util.concurrent.ListenableFuture").classLoader is SandboxClassLoader)
-        assertTrue(PreviewTranslations::class.java.classLoader is SandboxClassLoader)
-        assertTrue(GeneratedTranslations::class.java.classLoader is SandboxClassLoader)
+        assertFalse(PreviewTranslations::class.java.classLoader is SandboxClassLoader)
+        assertFalse(GeneratedTranslations::class.java.classLoader is SandboxClassLoader)
+        assertEquals("Edit", PreviewTranslations.studyingEdit())
+        assertTrue(Backend::class.java.classLoader is SandboxClassLoader)
+        assertTrue(BackendFactory::class.java.classLoader is SandboxClassLoader)
+        assertTrue(Translations::class.java.classLoader is SandboxClassLoader)
         assertEquals(0, col.noteCount())
+        val version = "sdk${Build.VERSION.SDK_INT}"
+        assertTrue(col.tr.aboutVersion(version).contains(version))
 
         addBasicNote("front", "back")
 
