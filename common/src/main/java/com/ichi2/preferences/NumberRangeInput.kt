@@ -1,8 +1,42 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: Copyright (c) 2013 Houssam Salem <houssam.salem.au@gmail.com>
 
 package com.ichi2.preferences
 
-internal object NumberRangeInput {
+import org.slf4j.LoggerFactory
+
+object NumberRangeInput {
+    private val logger = LoggerFactory.getLogger(NumberRangeInput::class.java)
+
+    /** Clamp the input to the preference bounds. */
+    fun clamp(
+        input: Int,
+        min: Int,
+        max: Int,
+    ): Int =
+        when {
+            input < min -> min
+            input > max -> max
+            else -> input
+        }
+
+    /** Blank or unparsable input falls back to the lower bound. */
+    fun clamp(
+        input: String,
+        min: Int,
+        max: Int,
+    ): Int =
+        if (input.isEmpty()) {
+            min
+        } else {
+            try {
+                clamp(input.toInt(), min, max)
+            } catch (e: NumberFormatException) {
+                logger.warn("Invalid number range preference input", e)
+                min
+            }
+        }
+
     enum class ValidationResult {
         VALID,
         INVALID,
