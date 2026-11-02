@@ -46,6 +46,9 @@ class JvmDependenciesConfigurer
             builder.doNotAcquirePackage("com.ichi2.testutils.nativefiles.")
             // Gson's JVM streaming and reflection adapters accept the caller's Class objects.
             builder.doNotAcquirePackage("com.google.gson.")
+            // Commons file/collection operations accept JDK objects and SDK-owned values.
+            builder.doNotAcquirePackage("org.apache.commons.io.")
+            builder.doNotAcquirePackage("org.apache.commons.collections4.")
             // This artifact contains JVM collection implementations, including Compose's maps.
             builder.doNotAcquirePackage("androidx.collection.")
             // Persistent containers and their JVM preconditions carry no Compose snapshot state.
