@@ -1859,6 +1859,52 @@ class CardBrowserViewModelTest : JvmCardBrowserViewModelTestBase() {
         }
 
     @Test
+    fun tagWithBracketsDisplaysProperly() {
+        val note = addBasicNote("Hello", "World")
+        note.addTag("sketchy::(1)")
+        note.flush()
+        addBasicNote("unmatched", "card")
+
+        runViewModelTest {
+            val unfilteredSearch = searchRequestFlow.value
+            for (structured in listOf(false, true)) {
+                launchSearchForCards(unfilteredSearch, forceRefresh = true).join()
+                waitForSearchResults()
+                assertEquals(2, rowCount)
+
+                filterByTags(listOf("sketchy::(1)"), CardStateFilter.ALL_CARDS, useStructuredFilters = structured)
+                waitForSearchResults()
+
+                assertEquals(1, rowCount, "tagged card should be returned (structured=$structured)")
+                assertEquals(note.firstCard().id, cards.single().requireCardId(cardsOrNotes))
+            }
+        }
+    }
+
+    @Test
+    fun `structured tag filtering preserves the current query and other filters`() {
+        addBasicNote("matching").update { tags = mutableListOf("new") }
+        addBasicNote("different").update { tags = mutableListOf("new") }
+
+        runViewModelTest {
+            val search =
+                searchRequestFlow.value.copy(
+                    query = "matching",
+                    filters = searchRequestFlow.value.filters.copy(tags = listOf("old"), flags = listOf(Flag.NONE)),
+                )
+            launchSearchForCards(search, forceRefresh = false)
+            waitForSearchResults()
+            assertEquals(0, rowCount)
+
+            filterByTags(listOf("new"), CardStateFilter.ALL_CARDS, useStructuredFilters = true)
+            waitForSearchResults()
+
+            assertEquals(search.copy(filters = search.filters.copy(tags = listOf("new"))), searchRequestFlow.value)
+            assertEquals(1, rowCount)
+        }
+    }
+
+    @Test
     fun `accented tags are searchable if ignoring accents`() {
         addBasicNote().update { tags = mutableListOf("être") }
         addBasicNote("hello").update { tags = mutableListOf("être") }

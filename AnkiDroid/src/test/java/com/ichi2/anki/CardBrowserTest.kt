@@ -633,19 +633,6 @@ class CardBrowserTest : RobolectricTest() {
         assertThat("finishing the restored browser deletes its inherited snapshot", file.exists(), equalTo(false))
     }
 
-    @Test
-    fun tagWithBracketsDisplaysProperly() =
-        runTest {
-            val n = addBasicNote("Hello", "World")
-            n.addTag("sketchy::(1)")
-            n.flush()
-
-            val b = browserWithNoNewCards
-            b.filterByTagSync("sketchy::(1)")
-
-            assertThat("tagged card should be returned", b.viewModel.rowCount, equalTo(1))
-        }
-
     /** 7420  */
     @Test
     fun addCardDeckISetIfDeckIsSelected() =
@@ -2103,11 +2090,6 @@ val CardBrowser.lastDeckId
 
 suspend fun CardBrowser.searchCardsSync(query: String) {
     searchCards(query)
-    viewModel.searchJob?.join()
-}
-
-suspend fun CardBrowser.filterByTagSync(vararg tags: String) {
-    cardBrowserFragment.filterByTag(*tags)
     viewModel.searchJob?.join()
 }
 
