@@ -45,6 +45,10 @@ class JvmDependenciesConfigurer
             builder.doNotAcquirePackage("com.google.common.")
             // This artifact contains JVM collection implementations, including Compose's maps.
             builder.doNotAcquirePackage("androidx.collection.")
+            // Persistent containers and their JVM preconditions carry no Compose snapshot state.
+            // SnapshotStateList and the rest of the runtime still belong to their SDK.
+            builder.doNotAcquirePackage("androidx.compose.runtime.external.kotlinx.collections.immutable.")
+            builder.doNotAcquireClass("androidx.compose.runtime.PreconditionsKt")
         }
 
         companion object {
