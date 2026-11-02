@@ -5,7 +5,10 @@ package com.ichi2.anki.dialogs.customstudy
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import anki.scheduler.CustomStudyRequest.Cram.CramKind
+import anki.search.SearchNode
+import anki.search.searchNode
 import com.ichi2.anki.CollectionManager.withCol
+import com.ichi2.anki.browser.search.CardState
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDefaults.Companion.toDomainModel
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Deck
@@ -68,6 +71,35 @@ class CustomStudyViewModel(
         // Default may also be hidden while cardCount still includes its borrowed cards.
         sched.deckTree(includeCounts = false).find(deckId) != null &&
             decks.cardCount(deckId, includeSubdecks = true) > 0
+
+    /**
+     * Whether there are new cards added within [days] days in the deck for previewing.
+     *
+     * Mirrors the upstream logic:
+     * [https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py](https://github.com/ankitects/anki/blob/main/qt/aqt/customstudy.py)
+     */
+    suspend fun hasPreviewCards(days: Int): Boolean =
+        withCol {
+            val search =
+                listOf(
+                    searchNode { deck = decks.name(deckId) },
+                    CardState.New.toSearchNode(),
+                    searchNode { addedInDays = days },
+                )
+            findCards(buildSearchString(search)).isNotEmpty()
+        }
+
+    /** Whether the deck has cards due in the next [days] days, as 'review ahead' would select them */
+    suspend fun hasCardsDueWithin(days: Int): Boolean =
+        withCol {
+            val search =
+                listOf(
+                    SearchNode.newBuilder().setDeck(decks.name(deckId)).build(),
+                    // prop:due<=days
+                    SearchNode.newBuilder().setDueInDays(days).build(),
+                )
+            findCards(buildSearchString(search)).isNotEmpty()
+        }
 
     /*
      * Translates the user's selection into a specific study type.
