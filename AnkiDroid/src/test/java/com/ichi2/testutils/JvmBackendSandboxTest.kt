@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.generic.Empty
 import anki.i18n.GeneratedTranslations
 import anki.i18n.PreviewTranslations
+import com.google.gson.Gson
 import com.google.protobuf.GeneratedMessageLite
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
@@ -71,6 +72,9 @@ class JvmBackendSandboxTest : RobolectricTest() {
         assertTrue(Json::class.java.classLoader is SandboxClassLoader)
         assertTrue(SdkValue.serializer()::class.java.classLoader is SandboxClassLoader)
         val values = listOf(SdkValue(Build.VERSION.SDK_INT))
+        assertFalse(Gson::class.java.classLoader is SandboxClassLoader)
+        val gson = Gson()
+        assertEquals(values.single(), gson.fromJson(gson.toJson(values.single()), SdkValue::class.java))
         assertFalse(MutableScatterMap::class.java.classLoader is SandboxClassLoader)
         val map = MutableScatterMap<String, SdkValue>()
         map["sdk"] = values.single()
