@@ -63,11 +63,13 @@ val robolectricSdkDownload =
 
 // Each sandbox copies these resources into its own native runtime directory. Keep the exact
 // bundled bytes on a directory classpath entry to avoid repeatedly decompressing their jars.
+val nativeRuntimeResourceIncludes = listOf("fonts/**", "icu/**", "hyphen-data/**", "native/**")
 val robolectricNativeResourceCache =
     tasks.register<Sync>("robolectricNativeResourceCache") {
         group = "Dependencies"
         description = "Extracts Robolectric's bundled native resources for reuse by test sandboxes"
         into(layout.buildDirectory.dir("robolectric-native-resources"))
+        inputs.property("nativeRuntimeResourceIncludes", nativeRuntimeResourceIncludes)
         // SDK-specific ICU paths must remain distinct; never replace one SDK's data with another's.
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
@@ -83,7 +85,7 @@ configurations.matching { it.name == "playDebugUnitTestRuntimeClasspath" }.all {
     val archives = objects.newInstance<RobolectricArchiveServices>().archives
     robolectricNativeResourceCache.configure {
         from(nativeRuntime.elements.map { artifacts -> archives.zipTree(artifacts.single().asFile) }) {
-            include("fonts/**", "icu/**", "hyphen-data/**")
+            include(nativeRuntimeResourceIncludes)
         }
     }
 }
