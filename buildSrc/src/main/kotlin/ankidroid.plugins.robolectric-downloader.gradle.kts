@@ -6,12 +6,15 @@ import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.WriteProperties
 import com.ichi2.anki.gradle.StoreRobolectricSdk
 import com.ichi2.anki.gradle.libsVersionFor
+import com.ichi2.anki.gradle.configureRobolectricNativeCopies
 import javax.inject.Inject
 
 interface RobolectricArchiveServices {
     @get:Inject
     val archives: ArchiveOperations
 }
+
+configureRobolectricNativeCopies()
 
 /*
  * Downloads android-all-instrumented dependencies into Gradle's cache for offline Robolectric.

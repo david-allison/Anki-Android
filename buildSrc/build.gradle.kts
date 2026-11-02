@@ -15,6 +15,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.asm)
     // Needed by precompiled script plugins that apply `com.android.library`.
     // Pins AGP/KGP transitively, so call sites need `id("com.android.library")` etc. with no version.
     implementation("com.android.tools.build:gradle:${libs.versions.androidGradlePlugin.get()}")
