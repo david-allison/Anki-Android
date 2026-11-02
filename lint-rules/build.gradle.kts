@@ -7,9 +7,7 @@ val gradleTestMaxParallelForks = rootProject.extra["gradleTestMaxParallelForks"]
 tasks.withType<Test>().configureEach {
     // Every detector test uses JUnit 4, including the lint infrastructure's TestCase base.
     useJUnit()
-    // Each worker starts its own Kotlin/UAST environment. Share that startup across classes
-    // while retaining two independent workers for the detector suites.
-    maxParallelForks = minOf(2, gradleTestMaxParallelForks)
+    maxParallelForks = gradleTestMaxParallelForks
 }
 
 dependencies {
