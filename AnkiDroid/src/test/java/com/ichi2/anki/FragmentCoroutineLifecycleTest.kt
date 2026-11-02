@@ -33,7 +33,10 @@ import kotlin.test.assertTrue
 class FragmentCoroutineLifecycleTest(
     private val fixture: FragmentLifecycleFixture,
 ) : RobolectricTest() {
-    override fun getCollectionStorageMode() = CollectionStorageMode.ON_DISK
+    // Lifecycle checks need a live collection. File maintenance screens additionally
+    // need the actual database and media files they inspect.
+    override fun getCollectionStorageMode() =
+        if (fixture.requiresCollectionFile) CollectionStorageMode.ON_DISK else CollectionStorageMode.IN_MEMORY_NO_FOLDERS
 
     /**
      * Validates a normal startup path, and that there are no active coroutines after onDestroy().
