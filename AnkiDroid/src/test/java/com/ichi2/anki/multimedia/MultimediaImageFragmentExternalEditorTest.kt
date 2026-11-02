@@ -55,7 +55,7 @@ import kotlin.test.assertContentEquals
 
 @RunWith(AndroidJUnit4::class)
 @Config(shadows = [ShadowFileProviderPathStrategy::class, ShadowPreviewTranslations::class])
-class MultimediaImageFragmentExternalEditorTest : RobolectricTest(loadBackend = false) {
+class MultimediaImageFragmentExternalEditorTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     @get:Rule
     val composeRule = createEmptyComposeRule()
 

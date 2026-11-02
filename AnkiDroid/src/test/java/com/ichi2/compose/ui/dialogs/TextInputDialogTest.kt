@@ -54,7 +54,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
-class TextInputDialogTest : RobolectricTest(loadBackend = false) {
+class TextInputDialogTest : RobolectricTest(loadBackend = false, initializeWorkManager = false) {
     @get:Rule
     val compose = createComposeRule()
 
