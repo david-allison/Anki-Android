@@ -39,6 +39,8 @@ class JvmDependenciesConfigurer
             builder.doNotAcquirePackage("io.mockk.")
             builder.doNotAcquirePackage("org.jsoup.")
             builder.doNotAcquirePackage("com.google.common.")
+            // This artifact contains JVM collection implementations, including Compose's maps.
+            builder.doNotAcquirePackage("androidx.collection.")
         }
 
         companion object {
