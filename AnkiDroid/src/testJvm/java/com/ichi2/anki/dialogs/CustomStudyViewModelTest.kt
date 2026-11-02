@@ -9,8 +9,11 @@ import anki.scheduler.customStudyDefaultsResponse
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.dialogs.customstudy.CustomStudyCardState
 import com.ichi2.anki.dialogs.customstudy.CustomStudyViewModel
+import com.ichi2.anki.libanki.CardType
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.Consts
+import com.ichi2.anki.libanki.DeckId
+import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.libanki.sched.Scheduler
 import com.ichi2.testutils.JvmTest
 import io.mockk.every
@@ -69,6 +72,43 @@ class CustomStudyViewModelTest : JvmTest() {
 
         assertThat(viewModel.selectedKind, equalTo(CramKind.CRAM_KIND_NEW))
     }
+
+    @Test
+    fun `'review ahead' search does not treat the deck name as a pattern`() =
+        runTest {
+            // '_' is a single-character wildcard in a search: "A_B" must not match "AXB"
+            val deckId = addDeck("A_B")
+            addBasicNote().update { moveToDeck("A_B", false) }.firstCard().update {
+                queue = QueueType.Rev
+                type = CardType.Rev
+                due = col.sched.today + 30
+            }
+            addDeck("AXB")
+            addNoteDueTomorrow(deckName = "AXB")
+
+            assertThat("A_B has no cards due tomorrow", viewModel(deckId).hasCardsDueWithin(1), equalTo(false))
+        }
+
+    @Test
+    fun `'review ahead' search escapes the deck name`() =
+        runTest {
+            // '\' starts an escape sequence in a search
+            val deckId = addDeck("""A\B""")
+            addNoteDueTomorrow(deckName = """A\B""")
+
+            assertThat(viewModel(deckId).hasCardsDueWithin(1), equalTo(true))
+        }
+
+    /** Adds a note to [deckName] whose card is due tomorrow */
+    private fun addNoteDueTomorrow(deckName: String) {
+        addBasicNote().update { moveToDeck(deckName, false) }.firstCard().update {
+            queue = QueueType.Rev
+            type = CardType.Rev
+            due = col.sched.today + 1
+        }
+    }
+
+    private fun viewModel(deckId: DeckId) = CustomStudyViewModel(SavedStateHandle(mapOf(CustomStudyViewModel.ARG_DECK_ID to deckId)))
 
     private fun mockCollectionWithSchedulerReturning(response: CustomStudyDefaultsResponse): Collection {
         val tree = col.sched.deckTree(includeCounts = false)
