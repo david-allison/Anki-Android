@@ -4,6 +4,8 @@
 package com.ichi2.anki.libanki
 
 import anki.scheduler.CardAnswer.Rating
+import anki.search.BrowserRow.Color
+import com.ichi2.anki.Flag
 import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.libanki.exception.ConfirmModSchemaException
 import com.ichi2.anki.libanki.testutils.InMemoryAnkiTest
@@ -24,6 +26,15 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
 class CardTest : InMemoryAnkiTest() {
+    @Test
+    fun flagValueIsShownOnCard() {
+        val card = addBasicNote("1", "back").firstCard()
+        col.setUserFlagForCards(listOf(card.id), Flag.RED.code)
+        col.backend.setActiveBrowserColumns(listOf("cardDue"))
+
+        assertEquals(Color.COLOR_FLAG_RED, col.browserRowForId(card.id).color)
+    }
+
     @Test
     fun test_toString() {
         val output = addBasicNote().firstCard().toString()
