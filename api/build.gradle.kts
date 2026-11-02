@@ -6,6 +6,10 @@ plugins {
     id("maven-publish")
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnit()
+}
+
 group = "com.ichi2.anki"
 version = "2.0.0"
 
