@@ -5,6 +5,9 @@ package com.ichi2.anki.reviewer
 import android.view.KeyEvent
 import com.ichi2.anki.cardviewer.Gesture
 import com.ichi2.anki.reviewer.Binding.KeyCode
+import com.ichi2.anki.reviewer.Binding.ModifierKeys.Companion.alt
+import com.ichi2.anki.reviewer.Binding.ModifierKeys.Companion.ctrl
+import com.ichi2.anki.reviewer.Binding.ModifierKeys.Companion.shift
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Assert.assertEquals
@@ -14,6 +17,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import kotlin.reflect.KFunction1
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BindingTest {
@@ -125,6 +129,33 @@ class BindingTest {
         assertEquals(one.hashCode(), two.hashCode())
     }
 
+    @Test
+    fun testKeycodeToString() {
+        assertEquals(BindingTest.KEY_PREFIX + "87", KeyCode(KeyEvent.KEYCODE_MEDIA_NEXT).toString())
+        assertEquals(BindingTest.KEY_PREFIX + "Ctrl+88", KeyCode(KeyEvent.KEYCODE_MEDIA_PREVIOUS, ctrl()).toString())
+        assertEquals(BindingTest.KEY_PREFIX + "Shift+25", KeyCode(KeyEvent.KEYCODE_VOLUME_DOWN, shift()).toString())
+        assertEquals(BindingTest.KEY_PREFIX + "Alt+24", KeyCode(KeyEvent.KEYCODE_VOLUME_UP, alt()).toString())
+    }
+
+    @Test
+    fun `deserialization rejects the preference separator`() {
+        assertNull(Binding.fromString("✅|"))
+        assertNull(Binding.fromString("✅Ctrl+|"))
+    }
+
+    @Test
+    fun `unicode display unwraps the character`() {
+        val binding = Binding.UnicodeCharacter(BindingUnicodeCharacter('Ä'), BindingTest.allModifierKeys())
+
+        assertEquals("⌨ Ctrl+Alt+Shift+Ä", binding.toDisplayString())
+    }
+
+    @Test
+    fun `motion event serde`() {
+        assertEquals(axis(Axis.X, 1.0f), axisBindingFromString("0 1.0"))
+        assertEquals(axis(Axis.Y, -1.0f), axisBindingFromString("1 -1.0"))
+    }
+
     private fun testModifierKeys(
         name: String,
         event: KFunction1<KeyEvent, Boolean>,
@@ -183,3 +214,10 @@ class BindingTest {
         }
     }
 }
+
+private fun axis(
+    axis: Axis,
+    fl: Float,
+) = Binding.AxisButtonBinding(axis, fl)
+
+private fun axisBindingFromString(suffix: String) = Binding.fromString(BindingTest.JOYSTICK_PREFIX + suffix)
