@@ -4,6 +4,8 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.file.ArchiveOperations
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.WriteProperties
+import com.ichi2.anki.gradle.StoreRobolectricSdk
+import com.ichi2.anki.gradle.libsVersionFor
 import javax.inject.Inject
 
 interface RobolectricArchiveServices {
@@ -35,21 +37,21 @@ interface RobolectricArchiveServices {
 val robolectricAndroidSdkVersions =
     listOf(
 //        mapOf("androidVersion" to "6.0.1_r3", "frameworkSdkBuildVersion" to "r1"),
-        mapOf("androidVersion" to "7.0.0_r1", "frameworkSdkBuildVersion" to "r1"),
-        mapOf("androidVersion" to "7.1.0_r7", "frameworkSdkBuildVersion" to "r1"),
+        mapOf("sdk" to "24", "androidVersion" to "7.0.0_r1", "frameworkSdkBuildVersion" to "r1"),
+        mapOf("sdk" to "25", "androidVersion" to "7.1.0_r7", "frameworkSdkBuildVersion" to "r1"),
 //        mapOf("androidVersion" to "8.0.0_r4", "frameworkSdkBuildVersion" to "r1"),
-        mapOf("androidVersion" to "8.1.0", "frameworkSdkBuildVersion" to "4611349"),
-        mapOf("androidVersion" to "9", "frameworkSdkBuildVersion" to "4913185-2"),
-        mapOf("androidVersion" to "10", "frameworkSdkBuildVersion" to "5803371"),
-        mapOf("androidVersion" to "11", "frameworkSdkBuildVersion" to "6757853"),
-        mapOf("androidVersion" to "12", "frameworkSdkBuildVersion" to "7732740"),
-        mapOf("androidVersion" to "12.1", "frameworkSdkBuildVersion" to "8229987"),
-        mapOf("androidVersion" to "13", "frameworkSdkBuildVersion" to "9030017"),
-        mapOf("androidVersion" to "14", "frameworkSdkBuildVersion" to "10818077"),
-        mapOf("androidVersion" to "15", "frameworkSdkBuildVersion" to "13954326"),
+        mapOf("sdk" to "27", "androidVersion" to "8.1.0", "frameworkSdkBuildVersion" to "4611349"),
+        mapOf("sdk" to "28", "androidVersion" to "9", "frameworkSdkBuildVersion" to "4913185-2"),
+        mapOf("sdk" to "29", "androidVersion" to "10", "frameworkSdkBuildVersion" to "5803371"),
+        mapOf("sdk" to "30", "androidVersion" to "11", "frameworkSdkBuildVersion" to "6757853"),
+        mapOf("sdk" to "31", "androidVersion" to "12", "frameworkSdkBuildVersion" to "7732740"),
+        mapOf("sdk" to "32", "androidVersion" to "12.1", "frameworkSdkBuildVersion" to "8229987"),
+        mapOf("sdk" to "33", "androidVersion" to "13", "frameworkSdkBuildVersion" to "9030017"),
+        mapOf("sdk" to "34", "androidVersion" to "14", "frameworkSdkBuildVersion" to "10818077"),
+        mapOf("sdk" to "35", "androidVersion" to "15", "frameworkSdkBuildVersion" to "13954326"),
         // TODO: check TarArchiveInputStream.forEachEntry when this is updated
-        mapOf("androidVersion" to "16", "frameworkSdkBuildVersion" to "13921718"), // current targetSdk
-        mapOf("androidVersion" to "17", "frameworkSdkBuildVersion" to "15733970"),
+        mapOf("sdk" to "36", "androidVersion" to "16", "frameworkSdkBuildVersion" to "13921718"),
+        mapOf("sdk" to "37", "androidVersion" to "17", "frameworkSdkBuildVersion" to "15733970"),
     )
 
 val robolectricSdkDownload =
@@ -106,16 +108,26 @@ robolectricAndroidSdkVersions.forEach { robolectricSdkVersion ->
         }
     }
 
+    val downloadedJar = layout.file(sdkConfig.elements.map { it.single().asFile })
+    // Most tests use targetSdk. Prepare only that SDK to keep the extra disk space bounded.
+    // Preserve android-all's filename because Robolectric also uses it to locate native resources.
+    val sdkJar =
+        if (robolectricSdkVersion.getValue("sdk") == libsVersionFor("targetSdk")) {
+            tasks.register<StoreRobolectricSdk>("storeRobolectricDefaultSdk") {
+                group = "Dependencies"
+                description = "Prepares uncompressed SDK entries for reuse by test sandboxes"
+                sourceJar.set(downloadedJar)
+                outputJar.set(layout.buildDirectory.file("robolectric-sdks/android-all-instrumented-$version.jar"))
+            }.flatMap { it.outputJar }
+        } else {
+            downloadedJar
+        }
+
     robolectricSdkDownload.configure {
-        inputs.files(sdkConfig).withPropertyName(version)
+        inputs.file(sdkJar).withPropertyName(version)
         property(
             "org.robolectric:android-all-instrumented:$version",
-            sdkConfig.elements.map {
-                it
-                    .iterator()
-                    .next()
-                    .asFile.absolutePath
-            },
+            sdkJar.map { it.asFile.absolutePath },
         )
     }
 }
