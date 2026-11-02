@@ -30,6 +30,7 @@ class FragmentLifecycleFixture(
     private val name: String,
     val host: Class<out AnkiActivity> = AnkiActivity::class.java,
     val hasFragmentView: Boolean = true,
+    val requiresCollectionFile: Boolean = false,
     val create: RobolectricTest.() -> Fragment,
 ) {
     enum class Transition { REMOVE, DESTROY_VIEW, RECREATE_VIEW }
@@ -52,8 +53,8 @@ fun fragmentLifecycleFixtures(): List<FragmentLifecycleFixture> =
         FragmentLifecycleFixture("FilteredDeckOptions") {
             FilteredDeckOptionsFragment()
         },
-        FragmentLifecycleFixture("MediaCheck") { MediaCheckFragment() },
-        FragmentLifecycleFixture("ManageSpace") { ManageSpaceFragment() },
+        FragmentLifecycleFixture("MediaCheck", requiresCollectionFile = true) { MediaCheckFragment() },
+        FragmentLifecycleFixture("ManageSpace", requiresCollectionFile = true) { ManageSpaceFragment() },
         FragmentLifecycleFixture("ChangeNoteType") {
             ChangeNoteTypeDialog.newInstance(listOf(addBasicNote().id))
         },
