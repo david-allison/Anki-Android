@@ -110,6 +110,32 @@ class BindingTest {
     }
 
     @Test
+    fun testFromString() {
+        val character = BindingUnicodeCharacter('Ä')
+        assertEquals(Binding.unicode(character), Binding.fromString(BindingTest.UNICODE_PREFIX + "Ä"))
+        assertEquals(Binding.unicode(character, ctrl()), Binding.fromString(BindingTest.UNICODE_PREFIX + "Ctrl+Ä"))
+        assertEquals(Binding.unicode(character, shift()), Binding.fromString(BindingTest.UNICODE_PREFIX + "Shift+Ä"))
+        assertEquals(Binding.unicode(character, alt()), Binding.fromString(BindingTest.UNICODE_PREFIX + "Alt+Ä"))
+        assertEquals(
+            KeyCode(KeyEvent.KEYCODE_MEDIA_NEXT),
+            Binding.fromString(BindingTest.KEY_PREFIX + KeyEvent.KEYCODE_MEDIA_NEXT.toString()),
+        )
+        assertEquals(
+            KeyCode(KeyEvent.KEYCODE_MEDIA_PREVIOUS, ctrl()),
+            Binding.fromString(BindingTest.KEY_PREFIX + "Ctrl+" + KeyEvent.KEYCODE_MEDIA_PREVIOUS.toString()),
+        )
+        assertEquals(
+            KeyCode(KeyEvent.KEYCODE_VOLUME_DOWN, shift()),
+            Binding.fromString(BindingTest.KEY_PREFIX + "Shift+" + KeyEvent.KEYCODE_VOLUME_DOWN.toString()),
+        )
+        assertEquals(
+            KeyCode(KeyEvent.KEYCODE_VOLUME_UP, alt()),
+            Binding.fromString(BindingTest.KEY_PREFIX + "Alt+" + KeyEvent.KEYCODE_VOLUME_UP.toString()),
+        )
+        assertEquals(Binding.gesture(Gesture.TAP_TOP), Binding.fromString(BindingTest.GESTURE_PREFIX + Gesture.TAP_TOP.name))
+    }
+
+    @Test
     fun testGestureToString() {
         assertEquals(GESTURE_PREFIX + "TAP_TOP", Binding.gesture(Gesture.TAP_TOP).toString())
     }
