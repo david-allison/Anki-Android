@@ -31,10 +31,12 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import kotlin.test.assertNull
+import kotlin.time.Duration.Companion.seconds
 
 /** Exercise the actual accessibility tree and soft keyboard, including Compose virtual nodes. */
 @RunWith(AndroidJUnit4::class)
@@ -188,6 +190,24 @@ class BackupPickerTest {
         }
 
     @Test
+    @SuppressLint("DiscouragedApi")
+    fun imeAllowsTheKeyboardBeforeThePickerOpens() {
+        assumeTrue(device.executeShellCommand("dumpsys input_method").contains(IME_SHOW_WITH_HARD_KEYBOARD))
+        val previous = device.executeShellCommand("settings get secure show_ime_with_hard_keyboard").trim()
+        try {
+            device.executeShellCommand("settings put secure show_ime_with_hard_keyboard 0")
+            waitUntil(timeout = 20.seconds, message = { "The IME did not apply show_ime_with_hard_keyboard 0" }) {
+                imeHidesWithHardKeyboard()
+            }
+            withPicker { _, _, _ ->
+                assertFalse("The IME still hides its keyboard while a hardware keyboard is attached", imeHidesWithHardKeyboard())
+            }
+        } finally {
+            restoreShowImeWithHardKeyboard(previous)
+        }
+    }
+
+    @Test
     fun recreationRestoresUnconfirmedTextAndSelection() =
         withPicker { scenario, _, _ ->
             replaceText("123")
@@ -278,6 +298,9 @@ class BackupPickerTest {
         val previous = device.executeShellCommand("settings get secure show_ime_with_hard_keyboard").trim()
         device.executeShellCommand("settings put secure show_ime_with_hard_keyboard 1")
         try {
+            waitUntil(timeout = 20.seconds, message = { "The IME did not apply show_ime_with_hard_keyboard 1" }) {
+                !imeHidesWithHardKeyboard()
+            }
             val intent = PreferencesActivity.getIntent(context, BackupLimitsSettingsFragment::class)
             ActivityScenario.launch<PreferencesActivity>(intent).use { scenario ->
                 lateinit var preference: IncrementerNumberRangePreferenceCompat
@@ -300,15 +323,27 @@ class BackupPickerTest {
                 block(scenario, preference, dialog)
             }
         } finally {
-            device.executeShellCommand(
-                if (previous ==
-                    "null"
-                ) {
-                    "settings delete secure show_ime_with_hard_keyboard"
-                } else {
-                    "settings put secure show_ime_with_hard_keyboard $previous"
-                },
-            )
+            restoreShowImeWithHardKeyboard(previous)
         }
+    }
+
+    @SuppressLint("DiscouragedApi")
+    private fun imeHidesWithHardKeyboard() = device.executeShellCommand("dumpsys input_method").contains("${IME_SHOW_WITH_HARD_KEYBOARD}1")
+
+    @SuppressLint("DiscouragedApi")
+    private fun restoreShowImeWithHardKeyboard(previous: String) {
+        device.executeShellCommand(
+            if (previous ==
+                "null"
+            ) {
+                "settings delete secure show_ime_with_hard_keyboard"
+            } else {
+                "settings put secure show_ime_with_hard_keyboard $previous"
+            },
+        )
+    }
+
+    private companion object {
+        const val IME_SHOW_WITH_HARD_KEYBOARD = "mShowImeWithHardKeyboard="
     }
 }
