@@ -7,9 +7,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.sync.SyncAuth
 import anki.sync.SyncStatusResponse
 import anki.sync.syncStatusResponse
+import com.ichi2.anki.CollectionSyncResult
 import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.AutomaticSyncAction
+import com.ichi2.anki.deckpicker.DeckPickerViewModel.StartupAction
 import com.ichi2.anki.setLastSyncTimeToNow
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.utils.NetworkUtils
@@ -17,12 +19,16 @@ import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import net.ankiweb.rsdroid.Backend
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class AutomaticSyncActionTest : RobolectricTest() {
@@ -86,6 +92,73 @@ class AutomaticSyncActionTest : RobolectricTest() {
 
                 assertEquals(AutomaticSyncAction.COLLECTION, viewModel.automaticSyncAction())
                 assertEquals(0L, Prefs.lastSyncTime)
+            }
+        }
+
+    @Test
+    fun `startup prompts for backup without starting disabled sync`() =
+        runTest {
+            getPreferences().edit { putBoolean(getResourceString(R.string.automatic_sync_choice_key), false) }
+
+            assertEquals(
+                StartupAction.SHOW_BACKUP_PROMPT,
+                viewModel.finishStartup(
+                    syncMedia = { error("Unexpected media sync") },
+                    syncCollection = { error("Unexpected collection sync") },
+                ),
+            )
+        }
+
+    @Test
+    fun `startup schedules media before prompting for backup`() =
+        runTest {
+            every { backend.syncStatus(any<SyncAuth>()) } returns SyncStatusResponse.getDefaultInstance()
+            var mediaScheduled = false
+
+            val action =
+                viewModel.finishStartup(
+                    syncMedia = { mediaScheduled = true },
+                    syncCollection = { error("Unexpected collection sync") },
+                )
+
+            assertTrue(mediaScheduled)
+            assertEquals(StartupAction.SHOW_BACKUP_PROMPT, action)
+        }
+
+    @Test
+    fun `startup waits for foreground collection sync to finish`() =
+        runTest {
+            val syncStarted = CompletableDeferred<Unit>()
+            val syncFinished = CompletableDeferred<CollectionSyncResult>()
+            val startup =
+                async {
+                    viewModel.finishStartup(
+                        syncMedia = { error("Unexpected media-only sync") },
+                        syncCollection = {
+                            syncStarted.complete(Unit)
+                            syncFinished.await()
+                        },
+                    )
+                }
+            syncStarted.await()
+            assertFalse(startup.isCompleted)
+
+            syncFinished.complete(CollectionSyncResult.SUCCESS)
+
+            assertEquals(StartupAction.NONE, startup.await())
+        }
+
+    @Test
+    fun `conflict cancellation and recoverable failure do not prompt for backup`() =
+        runTest {
+            for (result in listOf(CollectionSyncResult.CONFLICT, CollectionSyncResult.CANCELLED, CollectionSyncResult.FAILED)) {
+                assertEquals(
+                    StartupAction.NONE,
+                    viewModel.finishStartup(
+                        syncMedia = { error("Unexpected media-only sync") },
+                        syncCollection = { result },
+                    ),
+                )
             }
         }
 }

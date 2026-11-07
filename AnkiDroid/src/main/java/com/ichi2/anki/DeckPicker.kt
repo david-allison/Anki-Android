@@ -129,6 +129,7 @@ import com.ichi2.anki.deckpicker.DeckPickerViewModel
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.AnkiDroidEnvironment
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.AutomaticSyncAction
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.FlattenedDeckList
+import com.ichi2.anki.deckpicker.DeckPickerViewModel.StartupAction
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.StartupResponse
 import com.ichi2.anki.deckpicker.EmptyCardsResult
 import com.ichi2.anki.deckpicker.OptionsMenuState
@@ -420,7 +421,7 @@ open class DeckPicker :
                 // would need to be shown in the UI
                 lifecycleScope
                     .launch {
-                        automaticSync(runInBackground = true)
+                        automaticSyncOnExit()
                     }.invokeOnCompletion {
                         finish()
                     }
@@ -1643,35 +1644,34 @@ open class DeckPicker :
         super.onPause()
     }
 
-    /**
-     * Performs a sync if the conditions are met, e.g. user is logged in, there are changes,
-     * and auto sync is enabled.
-     * @param runInBackground whether the sync should be performed in the background or not
-     * @return whether a sync was performed or not.
-     */
-    private suspend fun automaticSync(runInBackground: Boolean = false): Boolean {
-        when (viewModel.automaticSyncAction(runInBackground)) {
-            AutomaticSyncAction.NONE -> return false
-            AutomaticSyncAction.MEDIA_ONLY -> {
-                if (shouldFetchMedia()) {
-                    val auth = syncAuth() ?: return false
-                    SyncMediaWorker.start(this, auth)
-                }
-                setLastSyncTimeToNow()
-            }
+    /** Schedules any automatic sync needed when leaving the deck picker. */
+    private suspend fun automaticSyncOnExit() {
+        when (viewModel.automaticSyncAction(runInBackground = true)) {
+            AutomaticSyncAction.NONE -> Unit
+            AutomaticSyncAction.MEDIA_ONLY -> syncMediaAutomatically()
             AutomaticSyncAction.COLLECTION -> {
-                if (runInBackground) {
-                    Timber.i("autoSync: starting background")
-                    val auth = syncAuth() ?: return false
-                    SyncWorker.start(this, auth, shouldFetchMedia())
-                } else {
-                    Timber.i("autoSync: starting foreground")
-                    sync()
-                }
-                return true
+                Timber.i("autoSync: starting background")
+                val auth = syncAuth() ?: return
+                SyncWorker.start(this, auth, shouldFetchMedia())
             }
         }
-        return false
+    }
+
+    private suspend fun syncMediaAutomatically() {
+        if (shouldFetchMedia()) {
+            val auth = syncAuth() ?: return
+            SyncMediaWorker.start(this, auth)
+        }
+        setLastSyncTimeToNow()
+    }
+
+    private suspend fun syncCollectionAutomatically(): CollectionSyncResult {
+        Timber.i("autoSync: starting foreground")
+        if (!checkSyncAccount()) return CollectionSyncResult.FAILED
+        val permission = MeteredSyncPolicy.awaitPermission(onDialogShown = ::refreshState) ?: return CollectionSyncResult.CANCELLED
+        val auth = syncAuth() ?: return CollectionSyncResult.FAILED
+        val mediaNetworkType = MeteredSyncPolicy.getNetworkTypeRequiredForSync(forMedia = true, permission = permission)
+        return syncAndRefresh(auth, conflict = null, shouldFetchMedia(), mediaNetworkType)
     }
 
     /** Where the current downward drag started: reset whenever the finger moves up */
@@ -1866,16 +1866,12 @@ open class DeckPicker :
         showDialogFragment(confirmDeleteDeckDialog)
     }
 
-    /**
-     * Perform the following tasks:
-     * Automatic backup
-     * loadStudyOptionsFragment() if tablet
-     * Automatic sync
-     */
+    /** Completes startup while keeping foreground sync in the activity's coroutine scope. */
     private fun onFinishedStartup() {
         launchCatchingTask {
-            if (!automaticSync()) {
-                BackupPromptDialog.showIfAvailable(this@DeckPicker)
+            when (viewModel.finishStartup(::syncMediaAutomatically, ::syncCollectionAutomatically)) {
+                StartupAction.SHOW_BACKUP_PROMPT -> BackupPromptDialog.showIfAvailable(this@DeckPicker)
+                StartupAction.NONE -> Unit
             }
         }
     }
@@ -2089,13 +2085,7 @@ open class DeckPicker :
      * from the mSyncConflictResolutionListener if the first attempt determines that a full-sync is required.
      */
     override fun sync(conflict: ConflictResolution?) {
-        val hkey = Prefs.hkey
-        if (hkey.isNullOrEmpty()) {
-            Timber.w("User not logged in")
-            pullToSyncWrapper.isRefreshing = false
-            showSyncErrorDialog(SyncErrorDialog.Type.DIALOG_USER_NOT_LOGGED_IN_SYNC)
-            return
-        }
+        if (!checkSyncAccount()) return
 
         MeteredSyncPolicy.confirmThen(
             // After selecting 'upload/download', the user has already accepted the metered warning.
@@ -2105,6 +2095,17 @@ open class DeckPicker :
         ) { permission ->
             handleNewSync(conflict, shouldFetchMedia(), meteredSyncPermission = permission)
         }
+    }
+
+    private fun checkSyncAccount(): Boolean {
+        val hkey = Prefs.hkey
+        if (hkey.isNullOrEmpty()) {
+            Timber.w("User not logged in")
+            pullToSyncWrapper.isRefreshing = false
+            showSyncErrorDialog(SyncErrorDialog.Type.DIALOG_USER_NOT_LOGGED_IN_SYNC)
+            return false
+        }
+        return true
     }
 
     override fun loginToSyncServer() {

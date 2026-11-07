@@ -17,6 +17,7 @@ import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CollectionManager.withOpenColOrNull
+import com.ichi2.anki.CollectionSyncResult
 import com.ichi2.anki.DeckPicker
 import com.ichi2.anki.InitialActivity
 import com.ichi2.anki.OnErrorListener
@@ -587,6 +588,28 @@ class DeckPickerViewModel :
         MEDIA_ONLY,
         COLLECTION,
     }
+
+    enum class StartupAction {
+        SHOW_BACKUP_PROMPT,
+        NONE,
+    }
+
+    /** Coordinates startup in the caller's scope; UI operations are supplied by the activity. */
+    suspend fun finishStartup(
+        syncMedia: suspend () -> Unit,
+        syncCollection: suspend () -> CollectionSyncResult,
+    ): StartupAction =
+        when (automaticSyncAction()) {
+            AutomaticSyncAction.NONE -> StartupAction.SHOW_BACKUP_PROMPT
+            AutomaticSyncAction.MEDIA_ONLY -> {
+                syncMedia()
+                StartupAction.SHOW_BACKUP_PROMPT
+            }
+            AutomaticSyncAction.COLLECTION -> {
+                syncCollection()
+                StartupAction.NONE
+            }
+        }
 
     /** Decides whether automatic sync should run, without starting any work or changing the last sync time. */
     suspend fun automaticSyncAction(runInBackground: Boolean = false): AutomaticSyncAction {
