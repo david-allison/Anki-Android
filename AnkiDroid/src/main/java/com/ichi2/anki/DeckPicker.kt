@@ -74,7 +74,6 @@ import androidx.work.NetworkType
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import anki.collection.OpChanges
-import anki.sync.SyncStatusResponse
 import com.google.android.material.behavior.HideViewOnScrollBehavior
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.BaseTransientBottomBar
@@ -114,7 +113,6 @@ import com.ichi2.anki.common.destinations.navigate
 import com.ichi2.anki.common.destinations.toIntent
 import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.storage.CollectionHelper
-import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.common.utils.android.showThemedToast
 import com.ichi2.anki.common.utils.annotation.KotlinCleanup
 import com.ichi2.anki.common.utils.dp
@@ -129,6 +127,7 @@ import com.ichi2.anki.deckpicker.DeckDeletionResult
 import com.ichi2.anki.deckpicker.DeckPickerProgress
 import com.ichi2.anki.deckpicker.DeckPickerViewModel
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.AnkiDroidEnvironment
+import com.ichi2.anki.deckpicker.DeckPickerViewModel.AutomaticSyncAction
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.FlattenedDeckList
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.StartupResponse
 import com.ichi2.anki.deckpicker.EmptyCardsResult
@@ -192,7 +191,6 @@ import com.ichi2.anki.study.StudyCompletionUi
 import com.ichi2.anki.study.currentDeckStudyState
 import com.ichi2.anki.sync.MeteredSyncPolicy
 import com.ichi2.anki.sync.launchCatchingRequiringOneWaySyncDiscardUndo
-import com.ichi2.anki.sync.syncStatus
 import com.ichi2.anki.ui.BottomFadeFrameLayout
 import com.ichi2.anki.ui.ResizablePaneManager
 import com.ichi2.anki.ui.animations.fadeIn
@@ -229,19 +227,14 @@ import com.ichi2.utils.positiveButton
 import com.ichi2.utils.show
 import com.ichi2.utils.showDialogIfWebViewOutdated
 import com.ichi2.utils.title
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.ankiweb.rsdroid.Translations
-import net.ankiweb.rsdroid.exceptions.BackendInvalidInputException.BackendCollectionNotOpenException
 import timber.log.Timber
 import java.io.File
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -1657,68 +1650,25 @@ open class DeckPicker :
      * @return whether a sync was performed or not.
      */
     private suspend fun automaticSync(runInBackground: Boolean = false): Boolean {
-        /**
-         * @return whether there are collection changes to sync, or null if the collection is closed.
-         *
-         * It DOES NOT include if there are media to be synced.
-         */
-        suspend fun areThereChangesToSync(): Boolean? {
-            val auth = syncAuth() ?: return false
-            val status =
-                withContext(Dispatchers.IO) {
-                    // The status check may wait for the network. Do not hold the collection queue.
-                    try {
-                        CollectionManager.getBackend().syncStatus(auth)
-                    } catch (_: BackendCollectionNotOpenException) {
-                        null
-                    }
-                } ?: return null
-
-            return when (status.required) {
-                SyncStatusResponse.Required.NO_CHANGES,
-                SyncStatusResponse.Required.UNRECOGNIZED,
-                null,
-                -> false
-                SyncStatusResponse.Required.FULL_SYNC,
-                SyncStatusResponse.Required.NORMAL_SYNC,
-                -> true
+        when (viewModel.automaticSyncAction(runInBackground)) {
+            AutomaticSyncAction.NONE -> return false
+            AutomaticSyncAction.MEDIA_ONLY -> {
+                if (shouldFetchMedia()) {
+                    val auth = syncAuth() ?: return false
+                    SyncMediaWorker.start(this, auth)
+                }
+                setLastSyncTimeToNow()
             }
-        }
-
-        fun syncIntervalPassed(): Boolean =
-            (TimeManager.time.intTimeMS() - Prefs.lastSyncTime) > AUTOMATIC_SYNC_MINIMAL_INTERVAL.inWholeMilliseconds
-
-        when {
-            !Prefs.isAutoSyncEnabled -> Timber.d("autoSync: not enabled")
-            MeteredSyncPolicy.shouldBlock() -> Timber.d("autoSync: blocked by metered connection")
-            !NetworkUtils.isOnline -> Timber.d("autoSync: offline")
-            !runInBackground && !syncIntervalPassed() -> Timber.d("autoSync: interval not passed")
-            !isLoggedIn() -> Timber.d("autoSync: not logged in")
-            else -> {
-                // Startup may have failed to open the collection. Do not sync on exit in that case.
-                val hasChanges = areThereChangesToSync()
-                if (hasChanges == null) {
-                    Timber.d("autoSync: collection not open")
-                    return false
-                }
-                if (!hasChanges) {
-                    Timber.d("autoSync: no collection changes to sync. Syncing media if set")
-                    if (shouldFetchMedia()) {
-                        val auth = syncAuth() ?: return false
-                        SyncMediaWorker.start(this, auth)
-                    }
-                    setLastSyncTimeToNow()
+            AutomaticSyncAction.COLLECTION -> {
+                if (runInBackground) {
+                    Timber.i("autoSync: starting background")
+                    val auth = syncAuth() ?: return false
+                    SyncWorker.start(this, auth, shouldFetchMedia())
                 } else {
-                    if (runInBackground) {
-                        Timber.i("autoSync: starting background")
-                        val auth = syncAuth() ?: return false
-                        SyncWorker.start(this, auth, shouldFetchMedia())
-                    } else {
-                        Timber.i("autoSync: starting foreground")
-                        sync()
-                    }
-                    return true
+                    Timber.i("autoSync: starting foreground")
+                    sync()
                 }
+                return true
             }
         }
         return false
@@ -2564,12 +2514,6 @@ open class DeckPicker :
         @VisibleForTesting
         const val REQUEST_STORAGE_PERMISSION = 0
 
-        /**
-         * Minimum delay between automatic syncs.
-         *
-         * Skips the automatic sync if this time has not elapsed.
-         */
-        private val AUTOMATIC_SYNC_MINIMAL_INTERVAL: Duration = 10.minutes
         private const val SWIPE_TO_SYNC_TRIGGER_DISTANCE = 400
 
         private const val PREF_DECK_PICKER_PANE_WEIGHT = "deckPickerPaneWeight"
