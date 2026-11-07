@@ -11,6 +11,7 @@ dependencies {
     compileOnly(libs.json)
     testImplementation(libs.json)
     implementation(libs.androidx.annotation)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.slf4j.api)
     api(libs.commons.collections4) // UniqueArrayList exposes SetUniqueList in its API.
 

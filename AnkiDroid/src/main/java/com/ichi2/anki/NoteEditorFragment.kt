@@ -101,7 +101,9 @@ import com.ichi2.anki.common.utils.ext.addingDefaultsMode
 import com.ichi2.anki.common.utils.ext.getParcelableExtraCompat
 import com.ichi2.anki.common.utils.ext.ifZero
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
+import com.ichi2.anki.common.utils.ext.joinAll
 import com.ichi2.anki.common.utils.ext.pasteImagesAsPng
+import com.ichi2.anki.common.utils.ext.registerJob
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
 import com.ichi2.anki.compat.setTooltipTextCompat
 import com.ichi2.anki.databinding.FragmentNoteEditorBinding
@@ -194,7 +196,6 @@ import com.ichi2.utils.show
 import com.ichi2.utils.title
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import net.ankiweb.rsdroid.Backend
 import org.json.JSONArray
@@ -461,8 +462,7 @@ class NoteEditorFragment :
                             CrashReportService.sendExceptionReport(e, "NoteEditor::onReceiveContent")
                         }
                     }
-                pendingPasteJobs += pasteJob
-                pasteJob.invokeOnCompletion { pendingPasteJobs -= pasteJob }
+                pendingPasteJobs.registerJob(pasteJob)
             }
 
             return@OnReceiveContentListener remaining
@@ -1330,7 +1330,7 @@ class NoteEditorFragment :
     @KotlinCleanup("fix !! on oldNoteType/newNoteType")
     suspend fun saveNote() {
         // A paste may still be loading preferences. Insert its media before reading the fields.
-        pendingPasteJobs.toList().joinAll()
+        pendingPasteJobs.joinAll()
 
         if (selectedTags == null) {
             selectedTags = ArrayList(0)
