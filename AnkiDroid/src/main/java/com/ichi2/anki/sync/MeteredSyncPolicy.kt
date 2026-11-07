@@ -14,6 +14,8 @@ import com.ichi2.utils.message
 import com.ichi2.utils.negativeButton
 import com.ichi2.utils.positiveButton
 import com.ichi2.utils.show
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Single source of truth for the "warn the user before syncing on a metered connection"
@@ -51,12 +53,14 @@ object MeteredSyncPolicy {
      * @param skipPrompt `true` if the user has already accepted a metered sync earlier in this
      *   attempt (e.g. retry after conflict resolution); skips the warning.
      * @param onDialogShown invoked only if the warning dialog is displayed
+     * @param onCancel invoked if the user cancels or dismisses the warning
      * @param onConfirm receives the metered-network permission for this attempt
      */
     context(context: Context)
     fun confirmThen(
         skipPrompt: Boolean = false,
         onDialogShown: () -> Unit,
+        onCancel: () -> Unit = {},
         onConfirm: (permission: MeteredSyncPermission) -> Unit,
     ) {
         if (skipPrompt) {
@@ -70,11 +74,24 @@ object MeteredSyncPolicy {
         AlertDialog.Builder(context).show {
             message(CommonString.metered_sync_data_warning)
             positiveButton(CommonString.dialog_continue) { onConfirm(MeteredSyncPermission.ALLOW_METERED_SYNC_THIS_TIME) }
-            negativeButton(CommonString.dialog_cancel)
+            negativeButton(CommonString.dialog_cancel) { onCancel() }
+            setOnCancelListener { onCancel() }
             checkBoxPrompt(CommonString.button_do_not_show_again) { checked ->
                 setAlwaysAllow(checked)
             }
         }
         onDialogShown()
     }
+
+    /** Waits for the metered-network decision, returning null if the user cancels. */
+    context(context: Context)
+    suspend fun awaitPermission(onDialogShown: () -> Unit): MeteredSyncPermission? =
+        suspendCancellableCoroutine { continuation ->
+            confirmThen(
+                onDialogShown = onDialogShown,
+                onCancel = { if (continuation.isActive) continuation.resume(null) },
+            ) { permission ->
+                if (continuation.isActive) continuation.resume(permission)
+            }
+        }
 }
