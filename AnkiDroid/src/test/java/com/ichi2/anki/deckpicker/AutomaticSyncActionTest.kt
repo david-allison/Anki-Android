@@ -12,6 +12,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.AutomaticSyncAction
 import com.ichi2.anki.deckpicker.DeckPickerViewModel.StartupAction
+import com.ichi2.anki.libanki.Consts.DEFAULT_DECK_ID
 import com.ichi2.anki.setLastSyncTimeToNow
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.utils.NetworkUtils
@@ -160,5 +161,71 @@ class AutomaticSyncActionTest : RobolectricTest() {
                     ),
                 )
             }
+        }
+
+    @Test
+    fun `shortcut review waits for sync before selecting its deck`() =
+        runTest {
+            val deckId = addDeck("Shortcut")
+            col.decks.select(DEFAULT_DECK_ID)
+            val syncStarted = CompletableDeferred<Unit>()
+            val syncFinished = CompletableDeferred<CollectionSyncResult>()
+            val startup =
+                async {
+                    viewModel.finishStartup(
+                        syncMedia = { error("Unexpected media-only sync") },
+                        syncCollection = {
+                            syncStarted.complete(Unit)
+                            syncFinished.await()
+                        },
+                        shortcutDeckId = deckId,
+                    )
+                }
+            syncStarted.await()
+            assertFalse(startup.isCompleted)
+            assertEquals(DEFAULT_DECK_ID, col.decks.selected())
+
+            syncFinished.complete(CollectionSyncResult.SUCCESS)
+
+            assertEquals(StartupAction.REVIEW, startup.await())
+            assertEquals(deckId, col.decks.selected())
+        }
+
+    @Test
+    fun `shortcut review is blocked by conflicts cancellation and failure`() =
+        runTest {
+            val deckId = addDeck("Shortcut")
+            col.decks.select(DEFAULT_DECK_ID)
+            for (result in listOf(CollectionSyncResult.CONFLICT, CollectionSyncResult.CANCELLED, CollectionSyncResult.FAILED)) {
+                assertEquals(
+                    StartupAction.NONE,
+                    viewModel.finishStartup(
+                        syncMedia = { error("Unexpected media-only sync") },
+                        syncCollection = { result },
+                        shortcutDeckId = deckId,
+                    ),
+                )
+                assertEquals(DEFAULT_DECK_ID, col.decks.selected())
+            }
+        }
+
+    @Test
+    fun `shortcut reports a missing deck if sync removed it`() =
+        runTest {
+            val deckId = addDeck("Shortcut")
+            col.decks.select(DEFAULT_DECK_ID)
+
+            val action =
+                viewModel.finishStartup(
+                    syncMedia = { error("Unexpected media-only sync") },
+                    syncCollection = {
+                        col.decks.remove(listOf(deckId))
+                        CollectionSyncResult.SUCCESS
+                    },
+                    shortcutDeckId = deckId,
+                )
+
+            assertEquals(StartupAction.DECK_NOT_FOUND, action)
+            assertEquals(DEFAULT_DECK_ID, col.decks.selected())
         }
 }

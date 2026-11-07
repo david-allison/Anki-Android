@@ -33,7 +33,6 @@ import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.shareddeck.SharedDecksDownloadFragment
 import com.ichi2.anki.sync.MeteredSyncPolicy
-import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.worker.SyncWorker
 import com.ichi2.anki.worker.UniqueWorkNames
 import com.ichi2.utils.FileUtil
@@ -110,7 +109,7 @@ class IntentHandler : AbstractIntentHandler() {
                     finish()
                 }
             LaunchType.SYNC -> runIfStoragePermissions { handleSyncIntent(reloadIntent, action) }
-            LaunchType.REVIEW -> runIfStoragePermissions { handleReviewIntent(reloadIntent, intent) }
+            LaunchType.REVIEW -> runIfStoragePermissions { handleReviewIntent(reloadIntent) }
             LaunchType.OPEN_BROWSER -> runIfStoragePermissions { handleBrowserIntent(intent) }
             LaunchType.DEFAULT_START_APP_IF_NEW -> {
                 Timber.d("onCreate() performing default action")
@@ -190,28 +189,15 @@ class IntentHandler : AbstractIntentHandler() {
         finish()
     }
 
-    private fun handleReviewIntent(
-        reloadIntent: Intent,
-        reviewerIntent: Intent,
-    ) {
+    private fun handleReviewIntent(reloadIntent: Intent) {
         val deckId = intent.getLongExtra(EXTRA_DECK_ID, 0)
         Timber.i("Handling intent to review deck '%d'", deckId)
 
-        val reviewIntent =
-            if (Prefs.isNewStudyScreenEnabled) {
-                ReviewerFragment.getIntent(this)
-            } else {
-                Intent(this, Reviewer::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-            }
-        CollectionManager.getColUnsafe().decks.select(deckId)
-        // Clean the stack out under the reviewer to avoid any incorrect activities / dialogs /
-        // data state from prior app usage showing after reviewer exits if going to reviewer directly
+        // DeckPicker must finish startup and automatic collection sync before opening the reviewer.
+        // Keep a clean back stack, so prior activities and dialogs cannot reappear after review.
         TaskStackBuilder
             .create(applicationContext)
-            .addNextIntent(reloadIntent)
-            .addNextIntent(reviewIntent)
+            .addNextIntent(reloadIntent.putExtra(EXTRA_DECK_ID, deckId))
             .startActivities()
         finish()
     }

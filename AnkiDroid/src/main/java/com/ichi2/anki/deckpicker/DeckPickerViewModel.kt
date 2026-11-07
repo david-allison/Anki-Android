@@ -591,6 +591,8 @@ class DeckPickerViewModel :
 
     enum class StartupAction {
         SHOW_BACKUP_PROMPT,
+        REVIEW,
+        DECK_NOT_FOUND,
         NONE,
     }
 
@@ -598,18 +600,32 @@ class DeckPickerViewModel :
     suspend fun finishStartup(
         syncMedia: suspend () -> Unit,
         syncCollection: suspend () -> CollectionSyncResult,
-    ): StartupAction =
-        when (automaticSyncAction()) {
-            AutomaticSyncAction.NONE -> StartupAction.SHOW_BACKUP_PROMPT
-            AutomaticSyncAction.MEDIA_ONLY -> {
-                syncMedia()
-                StartupAction.SHOW_BACKUP_PROMPT
+        shortcutDeckId: DeckId? = null,
+    ): StartupAction {
+        val action =
+            when (automaticSyncAction()) {
+                AutomaticSyncAction.NONE -> StartupAction.SHOW_BACKUP_PROMPT
+                AutomaticSyncAction.MEDIA_ONLY -> {
+                    syncMedia()
+                    StartupAction.SHOW_BACKUP_PROMPT
+                }
+                AutomaticSyncAction.COLLECTION -> {
+                    if (syncCollection() != CollectionSyncResult.SUCCESS) return StartupAction.NONE
+                    StartupAction.NONE
+                }
             }
-            AutomaticSyncAction.COLLECTION -> {
-                syncCollection()
-                StartupAction.NONE
+        if (shortcutDeckId == null) return action
+
+        return withCol {
+            // A full download may have removed the deck the shortcut points to.
+            if (decks.get(shortcutDeckId, default = false) == null) {
+                StartupAction.DECK_NOT_FOUND
+            } else {
+                decks.select(shortcutDeckId)
+                StartupAction.REVIEW
             }
         }
+    }
 
     /** Decides whether automatic sync should run, without starting any work or changing the last sync time. */
     suspend fun automaticSyncAction(runInBackground: Boolean = false): AutomaticSyncAction {

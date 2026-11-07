@@ -91,6 +91,7 @@ import com.ichi2.anki.InitialActivity.StartupFailure.DiskFull
 import com.ichi2.anki.InitialActivity.StartupFailure.FutureAnkidroidVersion
 import com.ichi2.anki.InitialActivity.StartupFailure.SDCardNotMounted
 import com.ichi2.anki.InitialActivity.StartupFailure.StorageUndecided
+import com.ichi2.anki.IntentHandler.Companion.EXTRA_DECK_ID
 import com.ichi2.anki.StudyOptionsFragment.Companion.registerStudyOptionsAddEditReminderHandler
 import com.ichi2.anki.StudyOptionsFragment.Companion.registerStudyOptionsStudyHandler
 import com.ichi2.anki.account.AccountActivity
@@ -1869,11 +1870,26 @@ open class DeckPicker :
     /** Completes startup while keeping foreground sync in the activity's coroutine scope. */
     private fun onFinishedStartup() {
         launchCatchingTask {
-            when (viewModel.finishStartup(::syncMediaAutomatically, ::syncCollectionAutomatically)) {
+            val action =
+                viewModel.finishStartup(
+                    syncMedia = ::syncMediaAutomatically,
+                    syncCollection = ::syncCollectionAutomatically,
+                    shortcutDeckId = consumeShortcutDeckId(),
+                )
+            when (action) {
                 StartupAction.SHOW_BACKUP_PROMPT -> BackupPromptDialog.showIfAvailable(this@DeckPicker)
+                StartupAction.REVIEW -> openReviewer()
+                StartupAction.DECK_NOT_FOUND -> showThemedToast(this@DeckPicker, getString(CommonString.deck_shortcut_doesnt_exist), false)
                 StartupAction.NONE -> Unit
             }
         }
+    }
+
+    private fun consumeShortcutDeckId(): DeckId? {
+        if (!intent.hasExtra(EXTRA_DECK_ID)) return null
+        val deckId = intent.getLongExtra(EXTRA_DECK_ID, 0)
+        intent.removeExtra(EXTRA_DECK_ID)
+        return deckId
     }
 
     private fun showProfileLoadFailureIfAny(): Boolean {
