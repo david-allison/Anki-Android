@@ -14,7 +14,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
-import androidx.fragment.app.commit
+import androidx.fragment.app.commitNow
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.behavior.HideViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -159,6 +159,7 @@ fun selectedBottomNavItem(): NavigationItem? {
     return NavigationItem.fromId(bottomNav.selectedItemId)
 }
 
+/** Apply fragment visibility during selection so pending page requests see the selected tab immediately. */
 context(deckPicker: DeckPicker)
 private fun handleNavigationItemSelected(
     item: NavigationItem,
@@ -169,7 +170,7 @@ private fun handleNavigationItemSelected(
     when (item) {
         NavigationItem.HOME -> {
             fragmentContainer.isVisible = false
-            deckPicker.supportFragmentManager.commit { hideBottomNavFragments() }
+            deckPicker.supportFragmentManager.commitNow { hideBottomNavFragments() }
             contentWrapper.isVisible = true
             deckPicker.floatingActionMenu.showFloatingActionButton()
             backCallback.isEnabled = false
@@ -227,7 +228,7 @@ private fun showBottomNavFragment(
 ) {
     contentWrapper.isVisible = false
     deckPicker.floatingActionMenu.hideFloatingActionButton()
-    deckPicker.supportFragmentManager.commit {
+    deckPicker.supportFragmentManager.commitNow {
         hideBottomNavFragments()
         val existing = deckPicker.supportFragmentManager.findFragmentByTag(tag)
         if (existing != null) {
