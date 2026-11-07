@@ -159,7 +159,6 @@ fun selectedBottomNavItem(): NavigationItem? {
     return NavigationItem.fromId(bottomNav.selectedItemId)
 }
 
-/** Apply fragment visibility during selection so pending page requests see the selected tab immediately. */
 context(deckPicker: DeckPicker)
 private fun handleNavigationItemSelected(
     item: NavigationItem,
@@ -170,6 +169,7 @@ private fun handleNavigationItemSelected(
     when (item) {
         NavigationItem.HOME -> {
             fragmentContainer.isVisible = false
+            // Ensure pending page requests see the selected tab immediately.
             deckPicker.supportFragmentManager.commitNow { hideBottomNavFragments() }
             contentWrapper.isVisible = true
             deckPicker.floatingActionMenu.showFloatingActionButton()
