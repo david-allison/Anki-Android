@@ -193,6 +193,8 @@ import com.ichi2.utils.positiveButton
 import com.ichi2.utils.show
 import com.ichi2.utils.title
 import dev.androidbroadcast.vbpd.viewBinding
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import net.ankiweb.rsdroid.Backend
 import org.json.JSONArray
@@ -427,6 +429,8 @@ class NoteEditorFragment :
             },
         )
 
+    private val pendingPasteJobs = mutableSetOf<Job>()
+
     /**
      * Listener for handling content received via drag and drop or copy and paste.
      * This listener processes URIs contained in the payload and attempts to paste the content into the target EditText view.
@@ -447,15 +451,18 @@ class NoteEditorFragment :
             }
 
             for (uri in clip.items().map { it.uri }) {
-                lifecycleScope.launch {
-                    try {
-                        val pasteAsPng = shouldPasteAsPng()
-                        multimediaController.onPaste(view as EditText, uri, description, pasteAsPng)
-                    } catch (e: Exception) {
-                        Timber.w(e)
-                        CrashReportService.sendExceptionReport(e, "NoteEditor::onReceiveContent")
+                val pasteJob =
+                    lifecycleScope.launch {
+                        try {
+                            val pasteAsPng = shouldPasteAsPng()
+                            multimediaController.onPaste(view as EditText, uri, description, pasteAsPng)
+                        } catch (e: Exception) {
+                            Timber.w(e)
+                            CrashReportService.sendExceptionReport(e, "NoteEditor::onReceiveContent")
+                        }
                     }
-                }
+                pendingPasteJobs += pasteJob
+                pasteJob.invokeOnCompletion { pendingPasteJobs -= pasteJob }
             }
 
             return@OnReceiveContentListener remaining
@@ -1322,6 +1329,9 @@ class NoteEditorFragment :
     @NeedsTest("14664: 'first field must not be empty' no longer applies after saving the note")
     @KotlinCleanup("fix !! on oldNoteType/newNoteType")
     suspend fun saveNote() {
+        // A paste may still be loading preferences. Insert its media before reading the fields.
+        pendingPasteJobs.toList().joinAll()
+
         if (selectedTags == null) {
             selectedTags = ArrayList(0)
         }
