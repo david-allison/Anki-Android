@@ -54,6 +54,13 @@ enum class ConflictResolution {
     FULL_UPLOAD,
 }
 
+enum class CollectionSyncResult {
+    SUCCESS,
+    CONFLICT,
+    CANCELLED,
+    FAILED,
+}
+
 fun syncAuth(): SyncAuth? {
     // Grab custom sync certificate from preferences (default is the empty string) and set it in CollectionManager
     val currentSyncCertificate = Prefs.customSyncCertificate ?: ""
@@ -99,19 +106,36 @@ fun DeckPicker.handleNewSync(
 ) {
     val auth = syncAuth() ?: return
     val mediaNetworkType = MeteredSyncPolicy.getNetworkTypeRequiredForSync(forMedia = true, permission = meteredSyncPermission)
-    val deckPicker = this
     launchCatchingTask {
-        try {
+        syncAndRefresh(auth, conflict, syncMedia, mediaNetworkType)
+    }
+}
+
+/** Runs foreground sync in the caller's coroutine. Unexpected errors and lifecycle cancellation propagate to the caller. */
+suspend fun DeckPicker.syncAndRefresh(
+    auth: SyncAuth,
+    conflict: ConflictResolution?,
+    syncMedia: Boolean,
+    mediaNetworkType: NetworkType,
+): CollectionSyncResult {
+    val deckPicker = this
+    try {
+        val result =
             try {
                 when (conflict) {
-                    ConflictResolution.FULL_DOWNLOAD ->
+                    ConflictResolution.FULL_DOWNLOAD -> {
                         handleDownload(deckPicker, auth, deckPicker.mediaUsnOnConflict, deckPicker.mediaNetworkTypeOnConflict)
-                    ConflictResolution.FULL_UPLOAD ->
-                        handleUpload(deckPicker, auth, deckPicker.mediaUsnOnConflict, deckPicker.mediaNetworkTypeOnConflict)
-                    null -> {
-                        handleNormalSync(deckPicker, auth, syncMedia, mediaNetworkType)
+                        CollectionSyncResult.SUCCESS
                     }
+                    ConflictResolution.FULL_UPLOAD -> {
+                        handleUpload(deckPicker, auth, deckPicker.mediaUsnOnConflict, deckPicker.mediaNetworkTypeOnConflict)
+                        CollectionSyncResult.SUCCESS
+                    }
+                    null -> handleNormalSync(deckPicker, auth, syncMedia, mediaNetworkType)
                 }
+            } catch (exc: BackendInterruptedException) {
+                showException(exc)
+                return CollectionSyncResult.CANCELLED
             } catch (exc: BackendSyncException.BackendSyncAuthFailedException) {
                 // auth failed; log out
                 updateLogin("", "")
@@ -122,7 +146,7 @@ fun DeckPicker.handleNewSync(
                         SyncErrorDialog.Type.DIALOG_SYNC_CLOCK_OFF,
                         exc.localizedMessage,
                     )
-                    return@launchCatchingTask
+                    return CollectionSyncResult.FAILED
                 }
 
                 if (exc.isCollectionTooLargeException()) {
@@ -130,17 +154,17 @@ fun DeckPicker.handleNewSync(
                         SyncErrorDialog.Type.DIALOG_COLLECTION_TOO_LARGE,
                         exc.localizedMessage,
                     )
-                    return@launchCatchingTask
+                    return CollectionSyncResult.FAILED
                 }
 
                 throw exc
             }
-            withCol { notetypes.clearCache() }
-            notifySubscribersAllValuesChanged(deckPicker)
-            refreshState()
-        } finally {
-            setLastSyncTimeToNow()
-        }
+        withCol { notetypes.clearCache() }
+        notifySubscribersAllValuesChanged(deckPicker)
+        refreshState()
+        return result
+    } finally {
+        setLastSyncTimeToNow()
     }
 }
 
@@ -176,7 +200,7 @@ private suspend fun handleNormalSync(
     auth: SyncAuth,
     syncMedia: Boolean,
     mediaNetworkType: NetworkType,
-) {
+): CollectionSyncResult {
     Timber.i("Sync: Normal collection sync")
     var auth2 = auth
     val output =
@@ -210,7 +234,7 @@ private suspend fun handleNormalSync(
         }
 
     Timber.i("sync result: ${output.required}")
-    when (output.required) {
+    return when (output.required) {
         // a successful sync returns this value
         SyncCollectionResponse.ChangesRequired.NO_CHANGES -> {
             // scheduler version may have changed
@@ -221,20 +245,24 @@ private suspend fun handleNormalSync(
             if (syncMedia) {
                 SyncMediaWorker.start(deckPicker, auth2, mediaNetworkType)
             }
+            CollectionSyncResult.SUCCESS
         }
 
         SyncCollectionResponse.ChangesRequired.FULL_DOWNLOAD -> {
             handleDownload(deckPicker, auth2, mediaUsn, mediaNetworkType)
+            CollectionSyncResult.SUCCESS
         }
 
         SyncCollectionResponse.ChangesRequired.FULL_UPLOAD -> {
             handleUpload(deckPicker, auth2, mediaUsn, mediaNetworkType)
+            CollectionSyncResult.SUCCESS
         }
 
         SyncCollectionResponse.ChangesRequired.FULL_SYNC -> {
             deckPicker.mediaUsnOnConflict = mediaUsn
             deckPicker.mediaNetworkTypeOnConflict = mediaNetworkType
             deckPicker.showSyncErrorDialog(SyncErrorDialog.Type.DIALOG_SYNC_CONFLICT_RESOLUTION)
+            CollectionSyncResult.CONFLICT
         }
 
         SyncCollectionResponse.ChangesRequired.NORMAL_SYNC,
