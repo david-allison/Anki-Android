@@ -17,6 +17,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import anki.scheduler.CongratsInfoResponse
+import com.google.android.material.appbar.MaterialToolbar
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.R
@@ -32,6 +33,7 @@ import com.ichi2.testutils.EmptyAnkiActivity
 import com.ichi2.testutils.launchFragmentInContainer
 import com.ichi2.testutils.saveState
 import com.ichi2.testutils.uninitializeField
+import com.ichi2.testutils.webView
 import com.ichi2.testutils.withFragment
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -48,6 +50,81 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class CongratsPageTest : RobolectricTest() {
+    @Test
+    fun `filtered deck actions are hidden for regular decks`() =
+        runTest {
+            launchFragmentInContainer<CongratsPage>().use { scenario ->
+                advanceUntilIdle()
+                scenario.onFragment { page ->
+                    val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
+                    assertFalse(menu.findItem(R.id.action_rebuild)?.isVisible ?: false)
+                }
+            }
+        }
+
+    @Test
+    fun `filtered deck actions are shown for finished filtered decks`() =
+        runTest {
+            addDynamicDeck("Filtered", "deck:NonExistentDeck")
+
+            launchFragmentInContainer<CongratsPage>().use { scenario ->
+                advanceUntilIdle()
+                scenario.onFragment { page ->
+                    val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
+                    assertTrue(assertNotNull(menu.findItem(R.id.action_rebuild)).isVisible)
+                    assertEquals(TR.actionsRebuild(), menu.findItem(R.id.action_rebuild).title)
+                }
+            }
+        }
+
+    @Test
+    fun `rebuild refills the filtered deck and opens study options once`() =
+        runTest {
+            val note = addBasicNote()
+            val deckId = addDynamicDeck("Filtered", "")
+            withCol { sched.emptyFilteredDeck(deckId) }
+
+            launchFragmentInContainer<CongratsPage>().use { scenario ->
+                val activity = scenario.withFragment { requireActivity() }
+                advanceUntilIdle()
+
+                scenario.onFragment { page ->
+                    val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
+                    assertTrue(menu.performIdentifierAction(R.id.action_rebuild, 0))
+                }
+                advanceUntilIdle()
+
+                assertEquals(deckId, note.firstCard().did)
+                assertOpenedStudyOptionsAndFinished(activity)
+                withCol { undo() }
+                assertEquals(Consts.DEFAULT_DECK_ID, note.firstCard().did)
+            }
+        }
+
+    @Test
+    fun `rebuild with no matching cards reloads the congrats page`() =
+        runTest {
+            addDynamicDeck("Filtered", "deck:NonExistentDeck")
+
+            launchFragmentInContainer<CongratsPage>().use { scenario ->
+                advanceUntilIdle()
+                val activity = scenario.withFragment { requireActivity() }
+                val webView = scenario.withFragment { shadowOf(webViewLayout.webView) }
+                val reloads = webView.reloadInvocations
+
+                scenario.onFragment { page ->
+                    val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
+                    assertTrue(menu.performIdentifierAction(R.id.action_rebuild, 0))
+                }
+                advanceUntilIdle()
+                shadowOf(Looper.getMainLooper()).idle()
+
+                assertEquals(reloads + 1, webView.reloadInvocations)
+                assertNull(shadowOf(activity).nextStartedActivity)
+                assertFalse(activity.isFinishing)
+            }
+        }
+
     @Test
     fun `congrats polling does not require an attached activity`() =
         runTest {

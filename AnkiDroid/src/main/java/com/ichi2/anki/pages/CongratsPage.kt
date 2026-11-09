@@ -35,6 +35,7 @@ import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.progress.HasProgress
 import com.ichi2.anki.progress.ProgressManager
+import com.ichi2.anki.progress.observeProgress
 import com.ichi2.anki.study.StudyAvailability
 import com.ichi2.anki.study.currentDeckStudyState
 import com.ichi2.anki.ui.internationalization.sentenceCase
@@ -58,6 +59,11 @@ class CongratsPage : PageFragment() {
     override val pagePath: String = "congrats"
 
     private val viewModel by viewModels<CongratsViewModel>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        observeProgress(viewModel) { progress -> progressMessage(progress) }
+    }
 
     override fun onViewCreated(
         view: View,
@@ -138,10 +144,18 @@ class CongratsPage : PageFragment() {
 
         with(view.findViewById<MaterialToolbar>(R.id.toolbar)) {
             inflateMenu(R.menu.congrats)
+            menu.findItem(R.id.action_rebuild).title = TR.actionsRebuild()
             menu.findItem(R.id.action_open_deck_options)?.title = TR.sentenceCase.deckOptions
+            viewModel.isFilteredDeck
+                .flowWithLifecycle(viewLifecycleOwner.lifecycle)
+                .onEach { isFilteredDeck ->
+                    menu.findItem(R.id.action_rebuild).isVisible = isFilteredDeck
+                }.launchIn(viewLifecycleOwner.lifecycleScope)
             setOnMenuItemClickListener { item ->
-                if (item.itemId == R.id.action_open_deck_options) {
-                    viewModel.onDeckOptions()
+                when (item.itemId) {
+                    R.id.action_open_deck_options -> viewModel.onDeckOptions()
+                    R.id.action_rebuild -> viewModel.onRebuild()
+                    else -> return@setOnMenuItemClickListener false
                 }
                 true
             }
@@ -160,6 +174,14 @@ class CongratsPage : PageFragment() {
         mapOf(
             "unbury" to { viewModel.onUnbury() },
             "customStudy" to { onStudyMore() },
+        )
+
+    private fun progressMessage(progress: CongratsProgress): String =
+        getString(
+            when (progress) {
+                CongratsProgress.REBUILDING_FILTERED_DECK -> CommonString.rebuild_filtered_deck
+                CongratsProgress.EMPTYING_FILTERED_DECK -> CommonString.empty_filtered_deck
+            },
         )
 
     private fun onStudyMore() {
