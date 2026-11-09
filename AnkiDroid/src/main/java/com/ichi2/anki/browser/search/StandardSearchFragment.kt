@@ -44,6 +44,7 @@ import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.hasCheckedBackground
 import com.ichi2.anki.utils.ext.launchCollectionInLifecycleScope
+import com.ichi2.anki.utils.ext.launchCollectionInViewLifecycleScope
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -196,17 +197,9 @@ class StandardSearchFragment :
 
                 val item = getItem(position)!!
 
-                fun openSavedSearchNamePrompt() {
-                    Timber.i("opening 'save search' name input dialog")
-                    val dialog =
-                        SaveBrowserSearchDialogFragment.newInstance(searchQuery = item.entry.query)
-
-                    dialog.show(childFragmentManager, "savedSearchName")
-                }
-
                 binding.title.text = item.toSpannable()
                 binding.root.setOnClickListener { viewModel.selectSearchHistoryEntry(item.entry) }
-                binding.favorite.setOnClickListener { openSavedSearchNamePrompt() }
+                binding.favorite.setOnClickListener { viewModel.saveSearchHistoryEntry(item.entry) }
                 return binding.root
             }
         }
@@ -225,6 +218,12 @@ class StandardSearchFragment :
 
         binding.toggleSearchHistory.setOnClickListener {
             viewModel.toggleHistoryExpanded()
+        }
+
+        viewModel.saveSearchNamePromptFlow.launchCollectionInViewLifecycleScope { searchQuery ->
+            Timber.i("opening 'save search' name input dialog")
+            val dialog = SaveBrowserSearchDialogFragment.newInstance(searchQuery = searchQuery)
+            dialog.show(childFragmentManager, "savedSearchName")
         }
 
         // replace the data when the displayed search history is updated
