@@ -30,8 +30,11 @@ import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyAction
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.launchCatchingTask
+import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
+import com.ichi2.anki.progress.HasProgress
+import com.ichi2.anki.progress.ProgressManager
 import com.ichi2.anki.study.StudyAvailability
 import com.ichi2.anki.study.currentDeckStudyState
 import com.ichi2.anki.ui.internationalization.sentenceCase
@@ -41,8 +44,12 @@ import com.ichi2.utils.negativeButton
 import com.ichi2.utils.show
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -170,7 +177,9 @@ class CongratsPage : PageFragment() {
 class CongratsViewModel :
     ViewModel(),
     OnErrorListener,
-    ChangeManager.Subscriber {
+    ChangeManager.Subscriber,
+    HasProgress<CongratsProgress> {
+    override val progressManager = ProgressManager<CongratsProgress>()
     override val onError = MutableSharedFlow<String>()
     val unburyState = MutableSharedFlow<UnburyState>()
     val deckOptionsDestination = MutableSharedFlow<DeckOptionsDestination>()
@@ -206,6 +215,29 @@ class CongratsViewModel :
 
     private suspend fun openStudyOptions() {
         studyOptionsDestination.emit(StudyOptionsDestination)
+    }
+
+    private val filteredDeckId = MutableStateFlow<DeckId?>(null)
+    val isFilteredDeck: Flow<Boolean> = filteredDeckId.map { it != null }.distinctUntilChanged()
+
+    fun onRebuild() {
+        val deckId = filteredDeckId.value ?: return
+        launchCatchingIO {
+            progressManager.withProgress(message = CongratsProgress.REBUILDING_FILTERED_DECK) {
+                undoableOp(handler = this@CongratsViewModel) { sched.rebuildFilteredDeck(deckId) }
+            }
+            onStudyQueuesChanged()
+        }
+    }
+
+    fun onEmpty() {
+        val deckId = filteredDeckId.value ?: return
+        launchCatchingIO {
+            progressManager.withProgress(message = CongratsProgress.EMPTYING_FILTERED_DECK) {
+                undoableOp(handler = this@CongratsViewModel) { sched.emptyFilteredDeck(deckId) }
+            }
+            onStudyQueuesChanged()
+        }
     }
 
     fun onUnbury() {
@@ -262,6 +294,7 @@ class CongratsViewModel :
      * but reload/navigation only happens if something was actually
      * missed while unwatched, or the deck no longer needs the congrats page. */
     suspend fun refreshIfNeeded() {
+        filteredDeckId.value = withCol { decks.current().takeIf { it.isFiltered }?.id }
         // desktop's Overview re-checks sched._is_finished() on every refresh instead of
         // assuming the deck is still done - do the same before reloading the congrats page
         val stillFinished = isDeckFinished()
@@ -284,6 +317,11 @@ class CongratsViewModel :
     }
 
     private suspend fun isDeckFinished(): Boolean = withCol { currentDeckStudyState().availability == StudyAvailability.NoCardsAvailable }
+}
+
+enum class CongratsProgress {
+    REBUILDING_FILTERED_DECK,
+    EMPTYING_FILTERED_DECK,
 }
 
 sealed class UnburyState {
