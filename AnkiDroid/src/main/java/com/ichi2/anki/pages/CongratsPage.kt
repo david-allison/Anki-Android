@@ -44,13 +44,13 @@ import com.ichi2.utils.listItems
 import com.ichi2.utils.negativeButton
 import com.ichi2.utils.show
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -208,12 +208,15 @@ class CongratsViewModel :
     val unburyState = MutableSharedFlow<UnburyState>()
     val deckOptionsDestination = MutableSharedFlow<DeckOptionsDestination>()
 
-    // Keep the request until the fragment has performed navigation.
-    val studyOptionsDestination = MutableSharedFlow<StudyOptionsDestination>(replay = 1)
+    // Retain a pending request across collector restarts, and remember when this screen has exited.
+    private val studyOptionsNavigation = MutableStateFlow(StudyOptionsNavigation.NOT_REQUESTED)
+    val studyOptionsDestination: Flow<StudyOptionsDestination> =
+        studyOptionsNavigation.mapNotNull { state ->
+            StudyOptionsDestination.takeIf { state == StudyOptionsNavigation.PENDING }
+        }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun onStudyOptionsOpened() {
-        studyOptionsDestination.resetReplayCache()
+        studyOptionsNavigation.compareAndSet(StudyOptionsNavigation.PENDING, StudyOptionsNavigation.OPENED)
     }
 
     init {
@@ -237,8 +240,8 @@ class CongratsViewModel :
 
     fun onCustomStudyCompleted() = launchCatchingIO { openStudyOptions() }
 
-    private suspend fun openStudyOptions() {
-        studyOptionsDestination.emit(StudyOptionsDestination)
+    private fun openStudyOptions() {
+        studyOptionsNavigation.compareAndSet(StudyOptionsNavigation.NOT_REQUESTED, StudyOptionsNavigation.PENDING)
     }
 
     private val filteredDeckId = MutableStateFlow<DeckId?>(null)
@@ -306,7 +309,7 @@ class CongratsViewModel :
 
     fun onStudyQueuesChanged() {
         launchCatchingIO {
-            if (congratsRefreshState.subscriptionCount.value == 0 && studyOptionsDestination.subscriptionCount.value == 0) {
+            if (congratsRefreshState.subscriptionCount.value == 0 && studyOptionsNavigation.subscriptionCount.value == 0) {
                 missedRefresh = true
                 return@launchCatchingIO
             }
@@ -341,6 +344,12 @@ class CongratsViewModel :
     }
 
     private suspend fun isDeckFinished(): Boolean = withCol { currentDeckStudyState().availability == StudyAvailability.NoCardsAvailable }
+
+    private enum class StudyOptionsNavigation {
+        NOT_REQUESTED,
+        PENDING,
+        OPENED,
+    }
 }
 
 enum class CongratsProgress {

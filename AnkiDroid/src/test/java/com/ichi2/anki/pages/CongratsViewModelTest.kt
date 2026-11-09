@@ -2,6 +2,7 @@
 package com.ichi2.anki.pages
 
 import androidx.lifecycle.ViewModelStore
+import anki.collection.OpChanges
 import app.cash.turbine.test
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.common.destinations.StudyOptionsDestination
@@ -11,6 +12,9 @@ import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.testutils.JvmTest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,6 +23,97 @@ import kotlin.test.assertTrue
 // https://github.com/ankidroid/Anki-Android/issues/21393
 class CongratsViewModelTest : JvmTest() {
     private val viewModel by lazy { CongratsViewModel() }
+
+    @Test
+    fun `resume and rebuild completion request study options only once`() =
+        runTest {
+            addBasicNote()
+            val deckId = addDynamicDeck("Filtered", "")
+            withCol { sched.emptyFilteredDeck(deckId) }
+            viewModel.refreshIfNeeded()
+
+            val resumeAfterRebuild =
+                object : ChangeManager.Subscriber {
+                    override fun opExecuted(
+                        changes: OpChanges,
+                        handler: Any?,
+                    ) {
+                        if (handler !== viewModel) return
+                        // Model STARTED after the backend changes, before onRebuild requests its refresh.
+                        launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.refreshIfNeeded() }
+                    }
+                }
+            ChangeManager.subscribe(resumeAfterRebuild)
+            try {
+                viewModel.studyOptionsDestination.test {
+                    viewModel.onRebuild()
+                    advanceUntilIdle()
+
+                    assertEquals(StudyOptionsDestination, awaitItem())
+                    expectNoEvents()
+                }
+            } finally {
+                ChangeManager.unsubscribe(resumeAfterRebuild)
+            }
+        }
+
+    @Test
+    fun `refresh does not repeat navigation after study options opened`() =
+        runTest {
+            addBasicNote()
+            viewModel.studyOptionsDestination.test {
+                viewModel.refreshIfNeeded()
+                assertEquals(StudyOptionsDestination, awaitItem())
+                viewModel.onStudyOptionsOpened()
+
+                viewModel.refreshIfNeeded()
+                viewModel.onStudyQueuesChanged()
+                expectNoEvents()
+            }
+        }
+
+    @Test
+    fun `unbury and custom study share one navigation request`() =
+        runTest {
+            val card = addBasicNote().firstCard()
+            withCol { sched.buryCards(listOf(card.id), manual = true) }
+
+            viewModel.studyOptionsDestination.test {
+                viewModel.onCustomStudyCompleted().join()
+                assertEquals(StudyOptionsDestination, awaitItem())
+                viewModel.onStudyOptionsOpened()
+
+                viewModel.onUnbury()
+                expectNoEvents()
+            }
+        }
+
+    @Test
+    fun `unacknowledged navigation survives collector restart`() =
+        runTest {
+            viewModel.studyOptionsDestination.test {
+                viewModel.onCustomStudyCompleted().join()
+                assertEquals(StudyOptionsDestination, awaitItem())
+            }
+
+            viewModel.studyOptionsDestination.test {
+                assertEquals(StudyOptionsDestination, awaitItem())
+                viewModel.onStudyOptionsOpened()
+            }
+            viewModel.studyOptionsDestination.test { expectNoEvents() }
+        }
+
+    @Test
+    fun `successive queue changes still reload a finished deck`() =
+        runTest {
+            addDynamicDeck("Filtered", "deck:NonExistentDeck")
+            viewModel.congratsRefreshState.test {
+                repeat(2) {
+                    viewModel.onStudyQueuesChanged()
+                    assertEquals(CongratsRefreshState.ReloadPage, awaitItem())
+                }
+            }
+        }
 
     @Test
     fun `isFilteredDeck tracks the selected deck type after refresh`() =
