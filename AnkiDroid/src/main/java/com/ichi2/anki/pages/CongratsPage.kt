@@ -150,11 +150,13 @@ class CongratsPage : PageFragment() {
                 .flowWithLifecycle(viewLifecycleOwner.lifecycle)
                 .onEach { isFilteredDeck ->
                     menu.findItem(R.id.action_rebuild).isVisible = isFilteredDeck
+                    menu.findItem(R.id.action_empty).isVisible = isFilteredDeck
                 }.launchIn(viewLifecycleOwner.lifecycleScope)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.action_open_deck_options -> viewModel.onDeckOptions()
                     R.id.action_rebuild -> viewModel.onRebuild()
+                    R.id.action_empty -> viewModel.onEmpty()
                     else -> return@setOnMenuItemClickListener false
                 }
                 true

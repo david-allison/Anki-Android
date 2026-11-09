@@ -14,6 +14,12 @@
         android:icon="@drawable/ic_refresh_white"
         app:showAsAction="ifRoom"/>
     <item
+        android:id="@+id/action_empty"
+        android:title="@string/empty_cram_label"
+        android:visible="false"
+        android:icon="@drawable/ic_clear_white"
+        app:showAsAction="ifRoom"/>
+    <item
         android:id="@+id/action_open_deck_options"
         tools:title="Deck options"
         android:icon="@drawable/ic_tune_white"

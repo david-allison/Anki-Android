@@ -26,7 +26,9 @@ import com.ichi2.anki.StudyOptionsActivity
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog
 import com.ichi2.anki.dialogs.customstudy.CustomStudyDialog.CustomStudyAction
 import com.ichi2.anki.ioDispatcher
+import com.ichi2.anki.libanki.CardType
 import com.ichi2.anki.libanki.Consts
+import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.testutils.AnkiFragmentScenario
 import com.ichi2.testutils.EmptyAnkiActivity
@@ -58,6 +60,7 @@ class CongratsPageTest : RobolectricTest() {
                 scenario.onFragment { page ->
                     val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
                     assertFalse(menu.findItem(R.id.action_rebuild)?.isVisible ?: false)
+                    assertFalse(menu.findItem(R.id.action_empty)?.isVisible ?: false)
                 }
             }
         }
@@ -73,6 +76,7 @@ class CongratsPageTest : RobolectricTest() {
                     val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
                     assertTrue(assertNotNull(menu.findItem(R.id.action_rebuild)).isVisible)
                     assertEquals(TR.actionsRebuild(), menu.findItem(R.id.action_rebuild).title)
+                    assertTrue(assertNotNull(menu.findItem(R.id.action_empty)).isVisible)
                 }
             }
         }
@@ -122,6 +126,40 @@ class CongratsPageTest : RobolectricTest() {
                 assertEquals(reloads + 1, webView.reloadInvocations)
                 assertNull(shadowOf(activity).nextStartedActivity)
                 assertFalse(activity.isFinishing)
+            }
+        }
+
+    @Test
+    fun `empty returns cards to their original deck and reloads the page`() =
+        runTest {
+            val note = addBasicNote()
+            val deckId = addDynamicDeck("Filtered", "")
+            // A filtered deck can retain cards that are not due yet.
+            note.firstCard().update {
+                type = CardType.Rev
+                queue = QueueType.Rev
+                due = col.sched.today + 1
+            }
+
+            launchFragmentInContainer<CongratsPage>().use { scenario ->
+                advanceUntilIdle()
+                val activity = scenario.withFragment { requireActivity() }
+                val webView = scenario.withFragment { shadowOf(webViewLayout.webView) }
+                val reloads = webView.reloadInvocations
+
+                scenario.onFragment { page ->
+                    val menu = page.requireView().findViewById<MaterialToolbar>(R.id.toolbar).menu
+                    assertTrue(menu.performIdentifierAction(R.id.action_empty, 0))
+                }
+                advanceUntilIdle()
+                shadowOf(Looper.getMainLooper()).idle()
+
+                assertEquals(Consts.DEFAULT_DECK_ID, note.firstCard().did)
+                assertEquals(reloads + 1, webView.reloadInvocations)
+                assertNull(shadowOf(activity).nextStartedActivity)
+                assertFalse(activity.isFinishing)
+                withCol { undo() }
+                assertEquals(deckId, note.firstCard().did)
             }
         }
 
