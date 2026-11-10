@@ -405,50 +405,33 @@ private fun preferenceCardContentColor(): Color =
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-@Preview
+@Preview(widthDp = 360)
 @Composable
-private fun PreferenceSwitchCardPreview(
+private fun PreferenceCardsPreview(
     @PreviewParameter(AnkiDroidThemeProvider::class) theme: Theme,
 ) {
     AnkiDroidPreview(theme = theme) {
         Surface {
-            PreferenceSwitchCard(
-                title = "Use timebox",
-                isChecked = true,
-                onCheckedChange = {},
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun PreferenceStepperCardPreview(
-    @PreviewParameter(AnkiDroidThemeProvider::class) theme: Theme,
-) {
-    AnkiDroidPreview(theme = theme) {
-        Surface {
-            PreferenceStepperCard(
-                title = "Time limit",
-                value = 20,
-                onValueChange = {},
-                validRange = 1..999,
-                unitSuffix = { "mins" },
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun PreferenceHelpSectionPreview(
-    @PreviewParameter(AnkiDroidThemeProvider::class) theme: Theme,
-) {
-    AnkiDroidPreview(theme = theme) {
-        Surface {
-            PreferenceHelpSection(
-                text = "When no other cards are due, study learning cards early.",
-            )
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                PreferenceSwitchCard(
+                    title = "Use timebox",
+                    isChecked = true,
+                    onCheckedChange = {},
+                )
+                PreferenceStepperCard(
+                    title = "Time limit",
+                    value = 20,
+                    onValueChange = {},
+                    validRange = 1..999,
+                    unitSuffix = { "mins" },
+                )
+                PreferenceHelpSection(
+                    text = "When no other cards are due, study learning cards early.",
+                )
+            }
         }
     }
 }
