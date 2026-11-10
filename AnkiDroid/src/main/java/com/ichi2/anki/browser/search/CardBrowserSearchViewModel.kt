@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -96,13 +97,26 @@ class CardBrowserSearchViewModel(
 
     val savedSearchesFlow = MutableStateFlow<List<SavedSearch>>(emptyList())
 
-    val saveSearchNamePromptFlow = MutableSharedFlow<String>()
-
     val canManageSavedSearchesFlow = savedSearchesFlow.map { it.isNotEmpty() }
 
     val userMessageFlow = MutableSharedFlow<UserMessage?>()
 
     val isScreenOpenFlow = MutableStateFlow(false)
+
+    // An open search panel can belong to a hidden Browser tab.
+    val isBrowserVisibleFlow = MutableStateFlow(false)
+
+    // Keep IDs until the view can show the dialog, so deferred requests use current names.
+    private val pendingSaveSearchNamePromptFlow = MutableStateFlow<SearchHistoryEntry?>(null)
+    val saveSearchNamePromptFlow =
+        combine(pendingSaveSearchNamePromptFlow, isBrowserVisibleFlow) { entry, browserVisible ->
+            entry.takeIf { browserVisible }
+        }.mapLatest { entry ->
+            // Null also cancels an in-flight resolution when search closes or the Browser is hidden.
+            if (entry == null) return@mapLatest null
+            val filters = SearchFilters.from(entry) ?: return@mapLatest null
+            withCol { SearchRequest(entry.query, filters).toSearchString().getOrNull() }
+        }.filterNotNull()
 
     private val filterStateUpdateFlow = MutableStateFlow<FilterUpdate>(FilterUpdate.System(SearchFilters.EMPTY))
     val filtersFlow =
@@ -261,11 +275,14 @@ class CardBrowserSearchViewModel(
             submitCurrentSearch()
         }
 
-    fun saveSearchHistoryEntry(entry: SearchHistoryEntry) =
-        viewModelScope.launch {
-            Timber.i("saving search history entry")
-            saveSearchNamePromptFlow.emit(entry.query)
-        }
+    fun requestSaveSearch(entry: SearchHistoryEntry) {
+        Timber.i("requesting saved search name")
+        pendingSaveSearchNamePromptFlow.value = entry
+    }
+
+    fun onSaveSearchNamePromptShown() {
+        pendingSaveSearchNamePromptFlow.value = null
+    }
 
     fun addSavedSearch(savedSearch: SavedSearch) =
         viewModelScope.launch {
@@ -319,6 +336,7 @@ class CardBrowserSearchViewModel(
     fun resetSearchState(submittedSearch: SearchRequest) =
         viewModelScope.launch {
             Timber.i("clearing temp search state")
+            pendingSaveSearchNamePromptFlow.value = null
             advancedSearchFlow.value = false
             basicSearchTextFlow.value = submittedSearch.query
             advancedSearchTextFlow.value = submittedSearch.query

@@ -199,7 +199,9 @@ class StandardSearchFragment :
 
                 binding.title.text = item.toSpannable()
                 binding.root.setOnClickListener { viewModel.selectSearchHistoryEntry(item.entry) }
-                binding.favorite.setOnClickListener { viewModel.saveSearchHistoryEntry(item.entry) }
+                binding.favorite.setOnClickListener {
+                    viewModel.requestSaveSearch(item.entry)
+                }
                 return binding.root
             }
         }
@@ -222,8 +224,9 @@ class StandardSearchFragment :
 
         viewModel.saveSearchNamePromptFlow.launchCollectionInViewLifecycleScope { searchQuery ->
             Timber.i("opening 'save search' name input dialog")
-            val dialog = SaveBrowserSearchDialogFragment.newInstance(searchQuery = searchQuery)
+            val dialog = SaveBrowserSearchDialogFragment.newInstance(searchQuery = searchQuery.value)
             dialog.show(childFragmentManager, "savedSearchName")
+            viewModel.onSaveSearchNamePromptShown()
         }
 
         // replace the data when the displayed search history is updated
