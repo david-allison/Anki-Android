@@ -41,12 +41,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.compose.ui.preview.AnkiDroidPreview
 import com.ichi2.compose.ui.preview.DialogPreviews
 
 /**
- * Dialog asking the user for a single line of text. Compose counterpart of
+ * Dialog asking the user for text. Compose counterpart of
  * the View based `AlertDialog.input(...)` helper.
  *
  * @param onConfirm called with the text, but only while it is valid
@@ -58,6 +59,9 @@ import com.ichi2.compose.ui.preview.DialogPreviews
  * @param transformInput applied to text edits, not cursor-only changes
  * @param validateOnInput when false, validate on confirmation instead of while editing
  * @param enabled whether confirmation is allowed from the button or keyboard
+ * @param singleLine whether to use a single line or a multiline editor
+ * @param keyboardOptions input method configuration, overriding [capitalization] when supplied
+ * @param properties configuration of the dialog window
  */
 @Composable
 fun TextInputDialog(
@@ -78,6 +82,9 @@ fun TextInputDialog(
     transformInput: (TextFieldValue) -> TextFieldValue = { it },
     validateOnInput: Boolean = true,
     enabled: Boolean = true,
+    singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(capitalization = capitalization, imeAction = ImeAction.Done),
+    properties: DialogProperties = DialogProperties(),
 ) {
     var input by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(initialText, selection = initialSelection))
@@ -95,7 +102,7 @@ fun TextInputDialog(
         submissionAttempted = true
         if (errorMessageFor(input.text) == null) onConfirm(input.text)
     }
-    AnkiDroidDialog(onDismissRequest = onDismissRequest) {
+    AnkiDroidDialog(onDismissRequest = onDismissRequest, properties = properties) {
         Surface(
             modifier = Modifier.widthIn(min = 280.dp, max = 560.dp),
             shape = AlertDialogDefaults.shape,
@@ -149,8 +156,10 @@ fun TextInputDialog(
                                     }
                                 }
                             },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = capitalization, imeAction = ImeAction.Done),
+                        singleLine = singleLine,
+                        minLines = if (singleLine) 1 else 4,
+                        maxLines = if (singleLine) 1 else 8,
+                        keyboardOptions = keyboardOptions,
                         keyboardActions = KeyboardActions(onDone = { confirmIfValid() }),
                     )
                 }
