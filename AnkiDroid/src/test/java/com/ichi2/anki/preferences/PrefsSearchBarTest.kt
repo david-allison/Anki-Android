@@ -80,6 +80,7 @@ class PrefsSearchBarTest : RobolectricTest() {
             val resName = targetContext.resources.getResourceName(resId)
 
             assertNotNull(fragment, message = "Could not resolve fragment for resource: $resName")
+            val source = assertIs<PreferenceXmlSource>(fragment)
 
             // Special handling for ControlsSettingsFragment which handles multiple XML resources
             val expectedResourceId =
@@ -90,9 +91,26 @@ class PrefsSearchBarTest : RobolectricTest() {
 
             assertThat(
                 "${targetContext.resources.getResourceName(resId)} should be handled by ${fragment::class.simpleName}",
-                fragment.preferenceResource,
+                source.preferenceResource,
                 equalTo(expectedResourceId),
             )
+        }
+    }
+
+    @Test
+    fun `custom sync search results open the Compose screen`() {
+        val activity = getPreferencesActivity()
+        for (keyRes in listOf(R.string.custom_sync_server_collection_url_key, R.string.custom_sync_certificate_key)) {
+            val result =
+                mock<SearchPreferenceResult> {
+                    on { resourceFile } doReturn R.xml.preferences_custom_sync_server
+                    on { key } doReturn activity.getString(keyRes)
+                }
+            activity.onSearchResultClicked(result)
+            advanceRobolectricLooper()
+
+            val preferences = activity.fragment as PreferencesFragment
+            assertIs<CustomSyncServerSettingsFragment>(preferences.childFragmentManager.findFragmentById(R.id.settings_container))
         }
     }
 
