@@ -1626,7 +1626,7 @@ class CardBrowserFragment :
     @VisibleForTesting
     fun toggleMark() =
         launchCatchingTask {
-            activityViewModel.toggleMark()
+            activityViewModel.onEvent(BrowserEvent.ToggleMarkRequested)
         }
 
     fun toggleSuspendCards() = launchCatchingTask { activityViewModel.toggleSuspendCards().join() }
