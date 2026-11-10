@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -122,6 +124,64 @@ fun PreferenceSwitchCard(
                     },
             )
         }
+    }
+}
+
+/** A preference whose text opens an editor and whose switch can be toggled independently. */
+@Composable
+fun PreferenceTextWithSwitchCard(
+    title: String,
+    summary: String,
+    isChecked: Boolean,
+    onClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = preferenceCardContentColor(),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clickable(onClick = onClick)
+                        .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(summary, style = MaterialTheme.typography.bodyMedium)
+            }
+            Switch(
+                checked = isChecked,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.padding(end = 24.dp).semantics { contentDescription = title },
+            )
+        }
+    }
+}
+
+/** A preference card that opens an editor or another settings screen. */
+@Composable
+fun PreferenceActionCard(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+    ) {
+        Text(
+            title,
+            modifier = Modifier.padding(24.dp),
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
 }
 
@@ -370,6 +430,13 @@ private fun RowScope.StepperInputField(
 @Composable
 fun PreferenceHelpSection(
     text: String,
+    modifier: Modifier = Modifier,
+) = PreferenceHelpSection(AnnotatedString(text), modifier)
+
+/** Explanatory help that can include links and other text annotations. */
+@Composable
+fun PreferenceHelpSection(
+    text: AnnotatedString,
     modifier: Modifier = Modifier,
 ) {
     Column(
