@@ -277,9 +277,9 @@ open class PrefsRepository protected constructor(
 
     //region Custom sync server
 
-    val customSyncCertificate by stringPref(R.string.custom_sync_certificate_key)
-    val customSyncUri by stringPref(R.string.custom_sync_server_collection_url_key)
-    val isCustomSyncEnabled by booleanPref(R.string.custom_sync_server_enabled_key, defaultValue = false)
+    var customSyncCertificate by stringPref(R.string.custom_sync_certificate_key)
+    var customSyncUri by stringPref(R.string.custom_sync_server_collection_url_key)
+    var isCustomSyncEnabled by booleanPref(R.string.custom_sync_server_enabled_key, defaultValue = false)
     var isBackgroundEnabled by booleanPref(R.string.pref_deck_picker_background_key, defaultValue = false)
 
     //endregion
