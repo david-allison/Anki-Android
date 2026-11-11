@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,7 +65,6 @@ import com.ichi2.anki.preferences.components.PreferenceHelpSection
 import com.ichi2.anki.preferences.components.PreferenceSwitchCard
 import com.ichi2.anki.settings.enums.Theme
 import com.ichi2.compose.theme.widgetBorder
-import com.ichi2.compose.ui.components.HeroToolbarActionButton
 import com.ichi2.compose.ui.dialogs.TextInputDialog
 import com.ichi2.compose.ui.preview.AnkiDroidPreview
 import com.ichi2.compose.ui.preview.AnkiDroidThemeProvider
@@ -120,15 +120,17 @@ fun CustomSyncServerSettingsScreen(
                     }
                 },
                 actions = {
-                    HeroToolbarActionButton(
-                        label = stringResource(CommonString.save),
+                    Button(
+                        modifier = Modifier.padding(horizontal = 8.dp),
                         onClick = {
                             focusManager.clearFocus()
                             keyboard?.hide()
                             onSaveServer(enabled, url)
                         },
                         enabled = hasChanges && !invalidUrl,
-                    )
+                    ) {
+                        Text(stringResource(CommonString.save))
+                    }
                 },
             )
         },
