@@ -786,6 +786,93 @@ class ManageTagsViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `renaming an expanded branch preserves expansion through refresh and reopening`() =
+        runTest {
+            val note = addTags("parent::of::open::leaf", "parent::of::closed::leaf")
+            val renamed = listOf("parent", "parent::ofh", "parent::ofh::closed", "parent::ofh::open", "parent::ofh::open::leaf")
+            withViewModel {
+                toggleCollapsed("parent").join()
+                toggleCollapsed("parent::of").join()
+                toggleCollapsed("parent::of::open").join()
+                ensureOpsExecuted(1) { renameTag("parent::of", "parent::ofh").join() }
+                assertEquals(renamed, loadedState.visibleTagNames)
+                refreshTags().join()
+                assertEquals(renamed, loadedState.visibleTagNames)
+                col.undo()
+                assertEquals(setOf("parent::of::open::leaf", "parent::of::closed::leaf"), col.getNote(note.id).tags.toSet())
+                col.redo()
+                assertEquals(setOf("parent::ofh::open::leaf", "parent::ofh::closed::leaf"), col.getNote(note.id).tags.toSet())
+            }
+            withViewModel { assertEquals(renamed, loadedState.visibleTagNames) }
+        }
+
+    @Test
+    fun `rename expansion follows canonical names without recreating unused descendants`() =
+        runTest {
+            addTags("Straße::open::leaf")
+            addUnusedTags("Straße::unused::leaf")
+            withViewModel {
+                toggleCollapsed("Straße").join()
+                toggleCollapsed("Straße::open").join()
+                toggleCollapsed("Straße::unused").join()
+                renameTag("Straße", "cafe\u0301").join()
+                assertNull(loadedState.error)
+                assertEquals(listOf("café", "café::open", "café::open::leaf"), loadedState.visibleTagNames)
+                assertFalse(tagExists(TagName.asValid("café::unused")))
+            }
+        }
+
+    @Test
+    fun `renaming a branch retains explicit collapses within search results`() =
+        runTest {
+            addTags("parent::of::open::leaf", "parent::of::closed::leaf")
+            withViewModel {
+                filter("leaf")
+                toggleCollapsed("parent::of::closed").join()
+                renameTag("parent::of", "parent::ofh").join()
+                assertEquals(
+                    listOf("parent", "parent::ofh", "parent::ofh::closed", "parent::ofh::open", "parent::ofh::open::leaf"),
+                    loadedState.visibleTagNames,
+                )
+            }
+        }
+
+    @Test
+    fun `merging an expanded source preserves a collapsed destination`() =
+        runTest {
+            addTags("source::child", "destination::existing")
+            withViewModel {
+                toggleCollapsed("source").join()
+                renameTag("source", "destination").join()
+                assertEquals(listOf("destination"), loadedState.visibleTagNames)
+                assertTrue(loadedState.visibleNodes.single().collapsed)
+            }
+        }
+
+    @Test
+    fun `rename preserves expansion changed since the screen was loaded`() =
+        runTest {
+            addTags("source::leaf")
+            withViewModel {
+                col.tags.setCollapsed("source", false)
+                renameTag("source", "renamed").join()
+                assertEquals(listOf("renamed", "renamed::leaf"), loadedState.visibleTagNames)
+            }
+        }
+
+    @Test
+    fun `merging a collapsed search result preserves an expanded destination`() =
+        runTest {
+            addTags("source::leaf", "target::leaf")
+            withViewModel {
+                filter("leaf")
+                toggleCollapsed("source").join()
+                renameTag("source", "target").join()
+                assertEquals(listOf("target", "target::leaf"), loadedState.visibleTagNames)
+            }
+        }
+
+    @Test
     fun `merge removes duplicates according to backend identity`() =
         runTest {
             val note =

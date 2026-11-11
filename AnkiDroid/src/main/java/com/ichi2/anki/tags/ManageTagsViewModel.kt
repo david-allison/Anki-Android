@@ -175,6 +175,14 @@ class ManageTagsViewModel : ViewModel() {
         newName: TagName,
     ) = launchTagOpAndRefresh {
         val result = undoableOp { renameTagTree(oldName, newName) }
+        if (result.count > 0) {
+            val renamedCollapses =
+                tagList
+                    .associate { it.fullTag to (it.fullTag in searchCollapsedTags) }
+                    .withRenamedTag(oldName, newName)
+            searchCollapsedTags.clear()
+            searchCollapsedTags.addAll(renamedCollapses.filterValues { it }.keys)
+        }
         messageQueue.enqueue(TagRenamed(result.count))
     }
 
