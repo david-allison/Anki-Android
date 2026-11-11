@@ -43,6 +43,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -179,6 +181,12 @@ fun CustomSyncServerSettingsScreen(
                         }),
                 )
             }
+            Text(
+                stringResource(CommonString.pref_cat_advanced),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 24.dp, top = 8.dp).semantics { heading() },
+            )
             Surface(
                 onClick = { editCertificate = true },
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
@@ -215,11 +223,6 @@ fun CustomSyncServerSettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Text(
-                            stringResource(CommonString.custom_sync_certificate_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }
@@ -247,6 +250,7 @@ fun CustomSyncServerSettingsScreen(
         TextInputDialog(
             title = stringResource(CommonString.custom_sync_certificate_title),
             label = stringResource(CommonString.dialog_hint_certificate),
+            helperText = stringResource(CommonString.custom_sync_certificate_summary),
             confirmText = stringResource(CommonString.save),
             initialText = configuration.certificate,
             capitalization = KeyboardCapitalization.None,
