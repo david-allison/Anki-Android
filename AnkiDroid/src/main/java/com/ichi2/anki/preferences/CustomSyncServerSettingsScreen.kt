@@ -59,6 +59,7 @@ import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
 import com.ichi2.anki.preferences.components.PreferenceSwitchCard
 import com.ichi2.anki.settings.enums.Theme
+import com.ichi2.compose.ui.components.HeroToolbarActionButton
 import com.ichi2.compose.ui.dialogs.TextInputDialog
 import com.ichi2.compose.ui.preview.AnkiDroidPreview
 import com.ichi2.compose.ui.preview.AnkiDroidThemeProvider
@@ -115,16 +116,15 @@ fun CustomSyncServerSettingsScreen(
                     }
                 },
                 actions = {
-                    TextButton(
+                    HeroToolbarActionButton(
+                        label = stringResource(CommonString.save),
                         onClick = {
                             focusManager.clearFocus()
                             keyboard?.hide()
                             onSaveServer(enabled, url)
                         },
                         enabled = hasChanges && !invalidUrl,
-                    ) {
-                        Text(stringResource(CommonString.save))
-                    }
+                    )
                 },
             )
         },
