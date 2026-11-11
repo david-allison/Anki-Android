@@ -52,8 +52,13 @@ class CustomSyncServerSettingsFragment :
                         onSaveCertificate = viewModel::saveCertificate,
                         onNavigateUp = { requireActivity().onBackPressedDispatcher.onBackPressed() },
                         showNavigateUp = resources.isWindowCompact(),
+                        enableOnOpen = arguments?.getBoolean(ARG_ENABLE_ON_OPEN) == true,
                     )
                 }
             }
         }
+
+    companion object {
+        internal const val ARG_ENABLE_ON_OPEN = "enable_on_open"
+    }
 }

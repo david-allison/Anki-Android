@@ -34,6 +34,20 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 class PreferencesScreenshotTest : ScreenshotTest() {
+    @Test
+    fun customSyncServerEntry(
+        @TestParameter enabled: Boolean,
+    ) {
+        Prefs.customSyncUri = "https://sync.example.com/"
+        Prefs.isCustomSyncEnabled = enabled
+        withPreferencesActivity(SyncSettingsFragment::class) { activity ->
+            val settings = activity.settingsFragment as SyncSettingsFragment
+            settings.listView.scrollToEnd()
+            advanceRobolectricLooper()
+            captureScreen("SyncSettings_custom_server_${if (enabled) "on" else "off"}")
+        }
+    }
+
     @After
     override fun tearDown() {
         super.tearDown()

@@ -50,6 +50,9 @@ class CustomSyncServerSettingsViewModel(
         )
     val server = _server.asStateFlow()
 
+    /** Toggle the latest saved URL, including changes made in another settings screen. */
+    fun setEnabled(enabled: Boolean): Boolean = saveServer(enabled, prefs.customSyncUri.orEmpty())
+
     /** Apply the URL and selection together, after the user saves the form. */
     fun saveServer(
         enabled: Boolean,

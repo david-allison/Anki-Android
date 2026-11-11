@@ -56,8 +56,9 @@
             android:title="@string/one_way_sync_title"
             tools:summary="On next sync, force changes in one direction" />
         <!-- This is ignored in the search as it opens a submenu. The submenu content is what should actually appear in search result. -->
-        <Preference
+        <com.ichi2.preferences.SwitchScreenPreference
             android:key="@string/custom_sync_server_key"
+            android:persistent="false"
             android:title="@string/custom_sync_server_title"
             android:fragment="com.ichi2.anki.preferences.CustomSyncServerSettingsFragment"
             search:ignore="true"/>

@@ -3,6 +3,7 @@
 package com.ichi2.anki.preferences
 
 import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.viewModels
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import com.google.android.material.snackbar.Snackbar
@@ -18,12 +19,15 @@ import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.ifNullOrEmpty
 import com.ichi2.preferences.NumberRangePreferenceCompat
+import com.ichi2.preferences.SwitchScreenPreference
 import com.ichi2.utils.show
 
 /**
  * Fragment with preferences related to syncing
  */
 class SyncSettingsFragment : SettingsFragment() {
+    private val customSyncServer: CustomSyncServerSettingsViewModel by viewModels()
+
     override val preferenceResource: Int
         get() = R.xml.preferences_sync
     override val analyticsScreenNameConstant: String
@@ -77,9 +81,17 @@ class SyncSettingsFragment : SettingsFragment() {
         }
 
         // Custom sync server
-        requirePreference<Preference>(R.string.custom_sync_server_key).setSummaryProvider {
-            customSyncBase() ?: getString(CommonString.custom_sync_server_summary_none_of_the_two_servers_used)
+        requirePreference<SwitchScreenPreference>(R.string.custom_sync_server_key).setOnPreferenceChangeListener { preference, value ->
+            if (customSyncServer.setEnabled(value as Boolean)) {
+                true
+            } else {
+                // First-time setup is a draft; enabling requires a valid URL and Save.
+                preference.extras.putBoolean(CustomSyncServerSettingsFragment.ARG_ENABLE_ON_OPEN, true)
+                preference.performClick()
+                false
+            }
         }
+        updateCustomSyncServerState()
     }
 
     private fun updateSyncAccountSummary() {
@@ -98,7 +110,18 @@ class SyncSettingsFragment : SettingsFragment() {
         // Trigger a summary update in case the user logged in/out on MyAccount activity
         updateSyncAccountSummary()
         updateOneWaySyncEnabledState()
+        updateCustomSyncServerState()
         super.onResume()
+    }
+
+    private fun updateCustomSyncServerState() {
+        requirePreference<SwitchScreenPreference>(R.string.custom_sync_server_key).apply {
+            extras.remove(CustomSyncServerSettingsFragment.ARG_ENABLE_ON_OPEN)
+            isChecked = Prefs.isCustomSyncEnabled
+            setSummaryProvider {
+                customSyncBase() ?: getString(CommonString.custom_sync_server_summary_none_of_the_two_servers_used)
+            }
+        }
     }
 
     private fun customSyncBase(): String? {

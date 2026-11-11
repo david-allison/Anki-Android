@@ -78,9 +78,10 @@ fun CustomSyncServerSettingsScreen(
     onNavigateUp: () -> Unit,
     modifier: Modifier = Modifier,
     showNavigateUp: Boolean = true,
+    enableOnOpen: Boolean = false,
 ) {
     val savedEnabled = server is CustomSyncServerState.Enabled
-    var enabled by rememberSaveable(server, configuration.url) { mutableStateOf(savedEnabled) }
+    var enabled by rememberSaveable(server, configuration.url, enableOnOpen) { mutableStateOf(savedEnabled || enableOnOpen) }
     var url by rememberSaveable(server, configuration.url) { mutableStateOf(configuration.url) }
     var editCertificate by rememberSaveable { mutableStateOf(false) }
     var certificateError by rememberSaveable { mutableStateOf(false) }

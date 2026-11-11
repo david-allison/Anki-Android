@@ -105,6 +105,18 @@ class CustomSyncServerSettingsViewModelTest : RobolectricTest() {
     }
 
     @Test
+    fun `toggling reads the URL most recently saved by another screen`() {
+        Prefs.customSyncUri = "https://old.example.com/"
+        val model = CustomSyncServerSettingsViewModel()
+        Prefs.customSyncUri = "https://new.example.com/"
+
+        assertTrue(model.setEnabled(true))
+
+        assertEquals("https://new.example.com/", Prefs.customSyncUri)
+        assertEquals("https://new.example.com/".toHttpUrl(), assertIs<CustomSyncServerState.Enabled>(model.server.value).endpoint)
+    }
+
+    @Test
     fun `a rejected certificate does not replace the saved value`() {
         Prefs.customSyncCertificate = "saved certificate"
         var attempted: String? = null
