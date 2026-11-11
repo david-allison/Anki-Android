@@ -20,7 +20,6 @@ import android.view.SubMenu
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -47,7 +46,6 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
@@ -89,7 +87,6 @@ import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_N
 import com.ichi2.anki.browser.RepositionCardFragment.Companion.REQUEST_REPOSITION_NEW_CARDS
 import com.ichi2.anki.browser.RepositionCardsRequest.NoRepositionableCardsError
 import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
-import com.ichi2.anki.browser.search.AdvancedSearchFragment
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.UserMessage
 import com.ichi2.anki.browser.search.CardStateBottomSheetFragment
@@ -149,6 +146,7 @@ import com.ichi2.anki.utils.ext.addPrepareMenuProvider
 import com.ichi2.anki.utils.ext.getParcelableCompat
 import com.ichi2.anki.utils.ext.hasCheckedBackground
 import com.ichi2.anki.utils.ext.launchCollectionInLifecycleScope
+import com.ichi2.anki.utils.ext.removeFragmentByTag
 import com.ichi2.anki.utils.ext.setFragmentResultListener
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.anki.utils.ext.visibleItemPositions
@@ -270,8 +268,6 @@ class CardBrowserFragment :
     private var legacyDeckName: TextView? = null
     private var legacySubtitle: TextView? = null
     // endregion
-
-    private var toggleAdvancedSearch: Button? = null
 
     // region Fragment-owned menu hosts
     override val menuInflater: MenuInflater? get() = activity?.menuInflater
@@ -440,13 +436,9 @@ class CardBrowserFragment :
                 }
             }
 
-        fun FragmentTransaction.removeByTag(tag: String): FragmentTransaction {
-            val fragment = childFragmentManager.findFragmentByTag(tag) ?: return this
-            return remove(fragment)
-        }
-
         searchView =
             view.findViewById<SearchView>(R.id.search_view)?.apply {
+                getOrCreateSearchFragment(StandardSearchFragment.TAG, ::StandardSearchFragment)
                 editText.doAfterTextChanged { searchViewModel.onSearchTextChanged(it.toString()) }
                 addTransitionListener { _, _, state ->
                     if (state == SearchView.TransitionState.SHOWING) {
@@ -462,11 +454,7 @@ class CardBrowserFragment :
 
                     if (state != SearchView.TransitionState.HIDDEN) return@addTransitionListener
                     // clear state on hide
-                    childFragmentManager
-                        .commit {
-                            removeByTag(StandardSearchFragment.TAG)
-                            removeByTag(AdvancedSearchFragment.TAG)
-                        }
+                    childFragmentManager.removeFragmentByTag(StandardSearchFragment.TAG)
 
                     // Exiting out the SearchView should reset the state
                     // The ViewModel remains active as it's tied to the host fragment.
@@ -481,13 +469,6 @@ class CardBrowserFragment :
                     }
                 }
             }
-        toggleAdvancedSearch =
-            view.findViewById<Button>(R.id.toggle_advanced_search)?.apply {
-                setOnClickListener {
-                    searchViewModel.toggleAdvancedSearch()
-                }
-            }
-
         if (activity !is CardBrowser) {
             embeddedMultiSelectOnBackPressedCallback.isEnabled = activityViewModel.isInMultiSelectMode
             requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, embeddedMultiSelectOnBackPressedCallback)
@@ -1141,20 +1122,6 @@ class CardBrowserFragment :
             startDeckSelection(title = getString(CommonString.search_deck), asChild = true, skipEmptyDefault = true)
         }
 
-        fun advancedSearchChanged(inAdvancedSearch: Boolean) {
-            toggleAdvancedSearch?.text = if (inAdvancedSearch) "Basic search" else "Advanced search"
-
-            if (searchView == null) return
-
-            val standard = getOrCreateSearchFragment(StandardSearchFragment.TAG, ::StandardSearchFragment)
-            val advanced = getOrCreateSearchFragment(AdvancedSearchFragment.TAG, ::AdvancedSearchFragment)
-
-            childFragmentManager.commit {
-                hide(if (inAdvancedSearch) standard else advanced)
-                show(if (inAdvancedSearch) advanced else standard)
-            }
-        }
-
         fun onSearchViewTextChanged(text: String) {
             searchView?.editText?.replaceText(text)
         }
@@ -1302,7 +1269,6 @@ class CardBrowserFragment :
         viewModel.flowOfSearchForDecks.launchCollectionInLifecycleScope(::onSearchForDecks)
         activityViewModel.flowOfScrollRequest.launchCollectionInLifecycleScope(::autoScrollTo)
         activityViewModel.flowOfCanSearch.launchCollectionInLifecycleScope(::onCanSaveChanged)
-        searchViewModel.advancedSearchFlow.launchCollectionInLifecycleScope(::advancedSearchChanged)
         searchViewModel.searchTextFlow.launchCollectionInLifecycleScope(::onSearchViewTextChanged)
         searchViewModel.closeSearchViewFlow.launchCollectionInLifecycleScope(::onSearchViewClosed)
         searchViewModel.submittedSearchFlow.filterNotNull().launchCollectionInLifecycleScope(::onSearchSubmitted)

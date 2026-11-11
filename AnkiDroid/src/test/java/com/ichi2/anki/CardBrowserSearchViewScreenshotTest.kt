@@ -2,6 +2,7 @@
 
 package com.ichi2.anki
 
+import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.search.SearchView
@@ -39,12 +40,17 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
     @Test
     fun search(
         @TestParameter landscape: Boolean,
+        @TestParameter searchTools: Boolean,
     ) {
         val orientation = setOrientation(landscape)
         withCardBrowserFragment(useSearchView = true) {
             val browser = requireActivity() as CardBrowser
             requireView().findViewById<SearchView>(R.id.search_view).show()
             advanceRobolectricLooper()
+            if (searchTools) {
+                requireView().findViewById<View>(R.id.toggle_advanced_search).performClick()
+                advanceRobolectricLooper()
+            }
             browser.simulateKeyboard(keyboardHeight = 200.dp)
             with(browser) {
                 window.simulateSystemBars(
@@ -55,7 +61,8 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
                     ),
                 )
             }
-            captureScreen("${orientation}_search_keyboard")
+            val mode = if (searchTools) "search_tools" else "search"
+            captureScreen("${orientation}_${mode}_keyboard")
         }
     }
 }

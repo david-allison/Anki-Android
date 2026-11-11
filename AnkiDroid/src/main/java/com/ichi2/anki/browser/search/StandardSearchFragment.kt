@@ -44,11 +44,13 @@ import com.ichi2.anki.model.SelectableDeck
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.hasCheckedBackground
 import com.ichi2.anki.utils.ext.launchCollectionInLifecycleScope
+import com.ichi2.anki.utils.ext.launchCollectionInViewLifecycleScope
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+/** Search overlay with shared filter chips above the Basic search or Search tools content. */
 class StandardSearchFragment :
     Fragment(R.layout.fragment_standard_search),
     TagsDialogListener {
@@ -93,6 +95,11 @@ class StandardSearchFragment :
         setupChips()
         setupSearchHistory()
         setupSavedSearches()
+
+        viewModel.advancedSearchFlow.launchCollectionInViewLifecycleScope { advanced ->
+            binding.basicSearchContent.isVisible = !advanced
+            binding.advancedSearchContent.isVisible = advanced
+        }
     }
 
     // TODO: multi-selection handling for all chips
