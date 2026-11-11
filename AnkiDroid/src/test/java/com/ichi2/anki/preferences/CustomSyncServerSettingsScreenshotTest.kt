@@ -4,6 +4,7 @@ package com.ichi2.anki.preferences
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import com.google.testing.junit.testparameterinjector.TestParameter
@@ -45,10 +47,28 @@ class CustomSyncServerSettingsScreenshotTest : ComposeScreenshotTest() {
 
     @Test
     fun screen(
-        @TestParameter enabled: Boolean,
         @TestParameter(valuesProvider = ThemeProvider::class) theme: Theme,
     ) {
-        capture(name = if (enabled) "enabled" else "disabled", theme = theme) { Screen(enabled) }
+        capture(name = "enabled", theme = theme, beforeCapture = ::editServerUrl) { Screen() }
+    }
+
+    @Test
+    fun disabled() {
+        capture(name = "disabled") { Screen(enabled = false) }
+    }
+
+    @Test
+    fun unchanged() {
+        capture(
+            name = "unchanged",
+            beforeCapture = { composeRule.onNodeWithText("Save").assertIsNotEnabled() },
+        ) { Screen() }
+    }
+
+    private fun editServerUrl() {
+        composeRule.onNodeWithTag("custom_sync_url").performTextReplacement("https://sync.example.org/")
+        composeRule.onNodeWithTag("custom_sync_url").performImeAction()
+        composeRule.onNodeWithText("Save").assertIsEnabled()
     }
 
     @Test
@@ -60,10 +80,23 @@ class CustomSyncServerSettingsScreenshotTest : ComposeScreenshotTest() {
             name = if (bottom) "large_text_bottom" else "large_text_top",
             fontScale = 2f,
             beforeCapture = {
+                editServerUrl()
                 composeRule.onNodeWithText("Save").assertIsDisplayed()
                 if (bottom) {
                     composeRule.onNodeWithText("Sync with your own server", substring = true).performScrollTo().assertIsDisplayed()
                 }
+            },
+        ) { Screen() }
+    }
+
+    @Test
+    fun certificateEditorPortrait() {
+        capture(
+            name = "certificate_editor_portrait",
+            node = isDialog(),
+            beforeCapture = {
+                composeRule.onNodeWithText("Custom root certificate").performClick()
+                composeRule.onNodeWithText("Only needed if Android", substring = true).assertIsDisplayed()
             },
         ) { Screen() }
     }
@@ -103,6 +136,6 @@ class CustomSyncServerSettingsScreenshotTest : ComposeScreenshotTest() {
     @Test
     @Config(qualifiers = "w800dp-h600dp-land-mdpi")
     fun tablet() {
-        capture(name = "tablet") { Screen(showNavigateUp = false) }
+        capture(name = "tablet", beforeCapture = ::editServerUrl) { Screen(showNavigateUp = false) }
     }
 }
