@@ -192,7 +192,7 @@ fun CustomSyncServerSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        painterResource(R.drawable.ic_baseline_lock_24),
+                        painterResource(R.drawable.ic_certificate_outline),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                     )
