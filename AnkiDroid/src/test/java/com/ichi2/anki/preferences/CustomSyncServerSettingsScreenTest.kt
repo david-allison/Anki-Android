@@ -211,7 +211,7 @@ class CustomSyncServerSettingsScreenTest : RobolectricTest() {
             }
         }
 
-        compose.onNodeWithText("Sync with your own server", substring = true).performFirstLinkClick()
+        compose.onNodeWithText("Sync with your own server", substring = true).performScrollTo().performFirstLinkClick()
 
         assertEquals(listOf(targetContext.getString(R.string.link_custom_sync_server_help_learn_more_en)), opened)
     }

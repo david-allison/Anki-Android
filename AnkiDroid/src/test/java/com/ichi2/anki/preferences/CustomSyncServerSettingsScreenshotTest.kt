@@ -62,7 +62,7 @@ class CustomSyncServerSettingsScreenshotTest : ComposeScreenshotTest() {
             beforeCapture = {
                 composeRule.onNodeWithText("Save").assertIsDisplayed()
                 if (bottom) {
-                    composeRule.onNodeWithText("Custom root certificate").performScrollTo().assertIsDisplayed()
+                    composeRule.onNodeWithText("Sync with your own server", substring = true).performScrollTo().assertIsDisplayed()
                 }
             },
         ) { Screen() }

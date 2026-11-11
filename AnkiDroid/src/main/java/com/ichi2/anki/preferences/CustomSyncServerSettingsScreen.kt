@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.R
+import com.ichi2.anki.preferences.components.PreferenceHelpSection
 import com.ichi2.anki.preferences.components.PreferenceSwitchCard
 import com.ichi2.anki.settings.enums.Theme
 import com.ichi2.compose.ui.components.HeroToolbarActionButton
@@ -176,25 +177,6 @@ fun CustomSyncServerSettingsScreen(
                             keyboard?.hide()
                         }),
                 )
-                Text(
-                    text =
-                        AnnotatedString.fromHtml(
-                            stringResource(
-                                CommonString.custom_sync_server_help2,
-                                stringResource(R.string.link_custom_sync_server_help_learn_more_en),
-                            ),
-                            linkStyles =
-                                TextLinkStyles(
-                                    SpanStyle(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        textDecoration = TextDecoration.Underline,
-                                    ),
-                                ),
-                        ),
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             HorizontalDivider()
             ListItem(
@@ -215,6 +197,23 @@ fun CustomSyncServerSettingsScreen(
                 },
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
                 modifier = Modifier.clickable { editCertificate = true },
+            )
+            PreferenceHelpSection(
+                text =
+                    AnnotatedString.fromHtml(
+                        stringResource(
+                            CommonString.custom_sync_server_help2,
+                            stringResource(R.string.link_custom_sync_server_help_learn_more_en),
+                        ),
+                        linkStyles =
+                            TextLinkStyles(
+                                SpanStyle(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textDecoration = TextDecoration.Underline,
+                                ),
+                            ),
+                    ),
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
     }

@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -370,6 +371,15 @@ private fun RowScope.StepperInputField(
 @Composable
 fun PreferenceHelpSection(
     text: String,
+    modifier: Modifier = Modifier,
+) {
+    PreferenceHelpSection(text = AnnotatedString(text), modifier = modifier)
+}
+
+/** Help footer supporting styled text and inline links. */
+@Composable
+fun PreferenceHelpSection(
+    text: AnnotatedString,
     modifier: Modifier = Modifier,
 ) {
     Column(
