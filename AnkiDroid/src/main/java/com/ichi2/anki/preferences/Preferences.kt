@@ -131,8 +131,8 @@ class PreferencesFragment :
 
         if (fragment is ControlsSettingsFragment) {
             fragment.highlightPreference(result)
-        } else {
-            result.highlight(fragment as PreferenceFragmentCompat)
+        } else if (fragment is PreferenceFragmentCompat) {
+            result.highlight(fragment)
         }
     }
 
@@ -304,12 +304,12 @@ const val PENDING_NOTIFICATIONS_ONLY = 1000000
 const val EXTRA_INITIAL_FRAGMENT = "initial_fragment"
 
 /**
- * @return the [SettingsFragment] which uses the given [screen] resource.
- * i.e. [SettingsFragment.preferenceResource] value is the same of [screen]
+ * @return the fragment which uses the given [screen] resource, including Compose screens
+ * with [PreferenceXmlSource] search metadata.
  */
 fun getFragmentFromXmlRes(
     @XmlRes screen: Int,
-): SettingsFragment? =
+): Fragment? =
     when (screen) {
         R.xml.preferences_general -> GeneralSettingsFragment()
         R.xml.preferences_reviewing -> ReviewingSettingsFragment()

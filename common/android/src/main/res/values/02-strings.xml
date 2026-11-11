@@ -280,7 +280,7 @@
     <string name="note_editor_capitalize" comment="This is for a switch with a checkbox - on: enabled" maxLength="28">Capitalize sentences</string>
 
     <!-- Dialog hints -->
-    <string name="dialog_hint_url">URL</string>
+    <string name="dialog_hint_url">Server URL</string>
     <string name="dialog_hint_certificate">Certificate</string>
 
     <!-- IncrementNumberRangePreference -->

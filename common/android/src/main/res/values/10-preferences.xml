@@ -208,13 +208,15 @@
         comment="This summary is shown when neither of the two custom sync servers are used,
         which is the default.">Not used</string>
     <string name="custom_sync_server_help2"><![CDATA[
-        As an alternative to synchronizing with AnkiWeb,
-        you may use your own server for synchronization.
-        If not set, the default AnkiWeb server will be used instead.
-        <a href="%s">Learn more</a>
+        Sync with your own server instead of AnkiWeb.
+        See the <a href="%s">setup instructions</a> for hosting your own sync server.
         ]]></string>
+    <string name="custom_sync_server_enabled_title" maxLength="41">Use custom sync server</string>
     <string name="custom_sync_server_base_url_title" maxLength="41">Sync URL</string>
-    <string name="custom_sync_certificate_title" maxLength="41">Custom root certificate (PEM)</string>
+    <string name="custom_sync_server_invalid_url">Enter a valid server URL.</string>
+    <string name="custom_sync_certificate_title" maxLength="41">Custom root certificate</string>
+    <string name="custom_sync_certificate_not_configured">Not configured · Optional</string>
+    <string name="custom_sync_certificate_configured">Configured</string>
     <!-- Key Bindings -->
     <string name="keyboard">Keyboard</string>
     <string name="bluetooth">Bluetooth</string>
