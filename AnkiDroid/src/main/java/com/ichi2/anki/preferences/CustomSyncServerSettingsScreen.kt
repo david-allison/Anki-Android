@@ -2,30 +2,30 @@
 
 package com.ichi2.anki.preferences
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -60,6 +61,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.preferences.components.PreferenceHelpSection
 import com.ichi2.anki.preferences.components.PreferenceSwitchCard
 import com.ichi2.anki.settings.enums.Theme
+import com.ichi2.compose.theme.widgetBorder
 import com.ichi2.compose.ui.components.HeroToolbarActionButton
 import com.ichi2.compose.ui.dialogs.TextInputDialog
 import com.ichi2.compose.ui.preview.AnkiDroidPreview
@@ -68,7 +70,6 @@ import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import androidx.appcompat.R as AppCompatR
-import com.ichi2.anki.common.android.R as CommonR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,26 +179,50 @@ fun CustomSyncServerSettingsScreen(
                         }),
                 )
             }
-            HorizontalDivider()
-            ListItem(
-                headlineContent = { Text(stringResource(CommonString.custom_sync_certificate_title)) },
-                supportingContent = {
-                    Text(
-                        stringResource(
-                            if (configuration.certificate.isEmpty()) {
-                                CommonString.custom_sync_certificate_not_configured
-                            } else {
-                                CommonString.custom_sync_certificate_configured
-                            },
-                        ),
+            Surface(
+                onClick = { editCertificate = true },
+                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = MaterialTheme.widgetBorder,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_baseline_lock_24),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
                     )
-                },
-                trailingContent = {
-                    Icon(painterResource(CommonR.drawable.ic_baseline_chevron_right_24), contentDescription = null)
-                },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.clickable { editCertificate = true },
-            )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            stringResource(CommonString.custom_sync_certificate_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            stringResource(
+                                if (configuration.certificate.isEmpty()) {
+                                    CommonString.custom_sync_certificate_not_configured
+                                } else {
+                                    CommonString.custom_sync_certificate_configured
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            stringResource(CommonString.custom_sync_certificate_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             PreferenceHelpSection(
                 text =
                     AnnotatedString.fromHtml(
