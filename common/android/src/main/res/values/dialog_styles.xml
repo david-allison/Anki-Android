@@ -5,4 +5,7 @@
         <item name="android:windowEnterAnimation">@anim/dialog_fade_in</item>
         <item name="android:windowExitAnimation">@anim/dialog_fade_out</item>
     </style>
+    <style name="Animation.AnkiDroidDialog.KeyboardVisible" parent="Animation.AnkiDroidDialog">
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
 </resources>

@@ -3,6 +3,9 @@
 package com.ichi2.compose.ui.dialogs
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.BasicAlertDialog
@@ -24,7 +27,7 @@ import com.ichi2.anki.common.android.R
  * [modifier] applies to the content container; [properties] and [onDismissRequest] configure
  * the dialog window at runtime.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AnkiDroidDialog(
     onDismissRequest: () -> Unit,
@@ -48,10 +51,17 @@ fun AnkiDroidDialog(
             properties = properties,
         ) {
             val window = (LocalView.current.parent as DialogWindowProvider).window
+            // A window exit animation can briefly show an offset snapshot of the keyboard.
+            val animations =
+                if (WindowInsets.isImeVisible) {
+                    R.style.Animation_AnkiDroidDialog_KeyboardVisible
+                } else {
+                    R.style.Animation_AnkiDroidDialog
+                }
             // A slide here competes with initial field focus and keyboard positioning.
             SideEffect {
-                if (window.attributes.windowAnimations != R.style.Animation_AnkiDroidDialog) {
-                    window.setWindowAnimations(R.style.Animation_AnkiDroidDialog)
+                if (window.attributes.windowAnimations != animations) {
+                    window.setWindowAnimations(animations)
                 }
             }
             content()
