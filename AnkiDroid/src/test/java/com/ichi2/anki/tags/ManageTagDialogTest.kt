@@ -179,6 +179,9 @@ class ManageTagDialogTest : RobolectricTest() {
             "::Merge",
             "Merge::::Child",
             "Merge::\t::Child",
+            "Merge::\u007f",
+            "Merge::\u0000::Child",
+            "Merge::\u0085",
             "::",
         )) {
             input.performTextReplacement(name)
