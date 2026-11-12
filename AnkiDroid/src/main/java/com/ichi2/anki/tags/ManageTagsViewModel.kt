@@ -254,7 +254,7 @@ class ManageTagsViewModel :
      */
     fun removeTag(tag: TagName) =
         launchTagOpAndRefresh {
-            val result = tagUndoableOp { tags.remove(tag) }
+            val result = tagUndoableOp { removeTagTree(tag) }
             messageQueue.enqueue(TagRemoved(result.count))
         }
 

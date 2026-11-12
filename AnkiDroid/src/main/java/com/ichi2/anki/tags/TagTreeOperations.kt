@@ -7,9 +7,16 @@ import anki.collection.copy
 import anki.collection.opChangesWithCount
 import anki.tags.TagTreeNode
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.NoteId
 
 /** The backend can only rename a subtree referenced by at least one note. */
-internal fun Collection.canRenameTagTree(tag: TagName): Boolean = findNotes(tag.value.literalSubtreeSearch()).isNotEmpty()
+internal fun Collection.canRenameTagTree(tag: TagName): Boolean = notesWithTagPrefixes(storedTagPrefixes(tag)).isNotEmpty()
+
+/** Delete every spelling grouped under the selected tree node, including unused descendants. */
+internal fun Collection.removeTagTree(tag: TagName): OpChangesWithCount {
+    val prefixes = storedTagPrefixes(tag)
+    return if (prefixes.isEmpty()) opChangesWithCount { } else tags.remove(prefixes.joinToString(" "))
+}
 
 /**
  * Renames tags on notes, preserving expansion and repairing duplicates when subtrees merge.
@@ -24,10 +31,14 @@ internal fun Collection.renameTagTree(
     oldName: TagName,
     newName: TagName,
 ): OpChangesWithCount {
+    val prefixes = storedTagPrefixes(oldName)
+    if (prefixes.isEmpty()) return opChangesWithCount { }
     // TODO: Preserve expansion in the backend rename transaction and remove this workaround.
     val expansion = renamedTagState(tags.tree().expansionState(), oldName, newName)
-    val affectedNotes = findNotes(oldName.value.literalSubtreeSearch())
-    val result = tags.rename(oldName, newName)
+    val affectedNotes = notesWithTagPrefixes(prefixes)
+    // The backend accepts multiple source prefixes. Replace them together so a note is
+    // counted once and renaming into a descendant cannot rewrite newly renamed tags.
+    val result = tags.rename(prefixes.joinToString(" "), newName.value)
     if (result.count == 0) return result
 
     // Renaming into an existing tag can leave duplicate tags on a note. Use the backend's
@@ -46,6 +57,19 @@ internal fun Collection.renameTagTree(
     }
     return result.copy { changes = mergeUndoEntries(undoStep) }
 }
+
+/**
+ * The tree groups parents with unicase, while backend mutations use narrower regex case folding.
+ * Preserve every stored spelling: a displayed Straße parent can contain STRASSE::child.
+ */
+private fun Collection.storedTagPrefixes(tag: TagName): List<String> {
+    val depth = tag.value.split("::").size
+    val prefixes = tags.all().mapNotNull { TagName.build(it)?.prefix(depth) }
+    return TagNameLookup(prefixes).matching(this, tag).map { it.value }
+}
+
+private fun Collection.notesWithTagPrefixes(prefixes: List<String>): List<NoteId> =
+    if (prefixes.isEmpty()) emptyList() else findNotes(prefixes.joinToString(" or ") { it.literalSubtreeSearch() })
 
 /** Move tags on notes, merging overlapping subtrees with the same semantics as [renameTagTree]. */
 internal fun Collection.moveTagTree(
