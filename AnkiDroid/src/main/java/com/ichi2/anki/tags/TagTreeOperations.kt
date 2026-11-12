@@ -8,6 +8,9 @@ import anki.collection.opChangesWithCount
 import anki.tags.TagTreeNode
 import com.ichi2.anki.libanki.Collection
 
+/** The backend can only rename a subtree referenced by at least one note. */
+internal fun Collection.canRenameTagTree(tag: TagName): Boolean = findNotes(tag.literalSubtreeSearch()).isNotEmpty()
+
 /**
  * Renames tags on notes, preserving expansion and repairing duplicates when subtrees merge.
  *
