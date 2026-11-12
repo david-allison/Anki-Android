@@ -33,6 +33,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.preferences.profiles.RenameProfileDialog
 import com.ichi2.compose.theme.AnkiDroidTheme
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,6 +49,74 @@ import kotlin.test.assertTrue
 class TextInputDialogTest : RobolectricTest(loadBackend = false) {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun `async validation ignores older text and rechecks before keyboard submission`() {
+        val slowResult = CompletableDeferred<CharSequence?>()
+        val submitted = mutableListOf<String>()
+        var taken = false
+        compose.setContent {
+            AnkiDroidTheme {
+                TextInputDialog(
+                    title = "Rename",
+                    label = "Name",
+                    confirmText = "Confirm",
+                    onConfirm = { submitted.add(it) },
+                    onDismissRequest = {},
+                    asyncErrorMessageFor = { text ->
+                        if (text == "slow") {
+                            slowResult.await()
+                        } else if (taken) {
+                            "Already exists"
+                        } else {
+                            null
+                        }
+                    },
+                )
+            }
+        }
+        val field = compose.onNode(hasSetTextAction())
+        field.performTextReplacement("slow")
+        compose.onNodeWithText("Confirm").assertIsNotEnabled()
+        field.performTextReplacement("current")
+        compose.onNodeWithText("Confirm").assertIsEnabled()
+        compose.runOnIdle { slowResult.complete("Old error") }
+        compose.onNodeWithText("Old error").assertDoesNotExist()
+        compose.runOnIdle { taken = true }
+        field.performImeAction()
+        compose.onNodeWithText("Already exists").assertIsDisplayed()
+        assertTrue(submitted.isEmpty())
+    }
+
+    @Test
+    fun `editing while async submission is pending does not submit the new text`() {
+        val confirmation = CompletableDeferred<CharSequence?>()
+        var validateSubmission = false
+        val submitted = mutableListOf<String>()
+        compose.setContent {
+            AnkiDroidTheme {
+                TextInputDialog(
+                    title = "Rename",
+                    label = "Name",
+                    confirmText = "Confirm",
+                    onConfirm = { submitted.add(it) },
+                    onDismissRequest = {},
+                    asyncErrorMessageFor = { text -> if (validateSubmission && text == "first") confirmation.await() else null },
+                )
+            }
+        }
+        val field = compose.onNode(hasSetTextAction())
+        field.performTextReplacement("first")
+        compose.runOnIdle { validateSubmission = true }
+        field.performImeAction()
+        compose.onNodeWithText("Confirm").assertIsNotEnabled()
+        field.performTextReplacement("second")
+        compose.runOnIdle { confirmation.complete(null) }
+        compose.onNodeWithText("Confirm").assertIsEnabled()
+        assertTrue(submitted.isEmpty())
+        field.performImeAction()
+        assertEquals(listOf("second"), submitted)
+    }
 
     @Test
     fun `field semantics retain the label and editable value`() {

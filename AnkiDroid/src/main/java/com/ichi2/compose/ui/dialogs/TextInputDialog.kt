@@ -26,6 +26,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,6 +48,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.ichi2.anki.CommonString
 import com.ichi2.compose.ui.preview.AnkiDroidPreview
 import com.ichi2.compose.ui.preview.DialogPreviews
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 
 /**
  * Dialog asking the user for a single line of text. Compose counterpart of
@@ -60,6 +64,8 @@ import com.ichi2.compose.ui.preview.DialogPreviews
  * @param transformInput applied to text edits, not cursor-only changes
  * @param validateOnInput when false, validate on confirmation instead of while editing
  * @param enabled whether confirmation is allowed from the button or keyboard
+ * @param asyncErrorMessageFor optional background validation, also rechecked before confirming
+ * @param validationKey invalidates background validation when external data changes
  */
 @Composable
 fun TextInputDialog(
@@ -80,13 +86,35 @@ fun TextInputDialog(
     transformInput: (TextFieldValue) -> TextFieldValue = { it },
     validateOnInput: Boolean = true,
     enabled: Boolean = true,
+    asyncErrorMessageFor: (suspend (String) -> CharSequence?)? = null,
+    validationKey: Any? = null,
 ) {
     var input by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(initialText, selection = initialSelection))
     }
     var hasUserEdited by rememberSaveable { mutableStateOf(false) }
     var submissionAttempted by rememberSaveable { mutableStateOf(false) }
-    val errorMessage = if (validateOnInput || submissionAttempted) errorMessageFor(input.text) else null
+    val scope = rememberCoroutineScope()
+    val currentEnabled by rememberUpdatedState(enabled)
+    val currentOnConfirm by rememberUpdatedState(onConfirm)
+    val currentAsyncValidator by rememberUpdatedState(asyncErrorMessageFor)
+    var validatedInput by remember { mutableStateOf<String?>(null) }
+    var asyncError by remember { mutableStateOf<CharSequence?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+    val syncError = if (validateOnInput || submissionAttempted) errorMessageFor(input.text) else null
+    val pendingValidation = asyncErrorMessageFor != null && syncError == null && validatedInput != input.text
+    val errorMessage = syncError ?: asyncError.takeIf { validatedInput == input.text }
+    if (asyncErrorMessageFor != null) {
+        LaunchedEffect(input.text, syncError, validationKey) {
+            validatedInput = null
+            asyncError = null
+            if (syncError == null) {
+                val text = input.text
+                asyncError = currentAsyncValidator?.invoke(text)
+                validatedInput = text
+            }
+        }
+    }
     val displayedError = errorMessage?.takeIf { hasUserEdited || submissionAttempted }
     val supportingMessage =
         (displayedError ?: helperText)?.let { it as? AnnotatedString ?: AnnotatedString(it.toString()) }
@@ -94,9 +122,28 @@ fun TextInputDialog(
     val focusRequester = remember { FocusRequester() }
 
     fun confirmIfValid() {
-        if (!enabled) return
+        if (!enabled || submitting) return
         submissionAttempted = true
-        if (errorMessageFor(input.text) == null) onConfirm(input.text)
+        val text = input.text
+        if (errorMessageFor(text) != null) return
+        val validate = currentAsyncValidator
+        if (validate == null) {
+            onConfirm(text)
+        } else {
+            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                submitting = true
+                try {
+                    val error = validate(text)
+                    if (input.text == text) {
+                        asyncError = error
+                        validatedInput = text
+                        if (error == null && currentEnabled) currentOnConfirm(text)
+                    }
+                } finally {
+                    submitting = false
+                }
+            }
+        }
     }
     AnkiDroidDialog(
         onDismissRequest = onDismissRequest,
@@ -169,7 +216,7 @@ fun TextInputDialog(
                     TextButton(onClick = onDismissRequest) { Text(dismissText) }
                     TextButton(
                         onClick = ::confirmIfValid,
-                        enabled = enabled && (!validateOnInput || errorMessage == null),
+                        enabled = enabled && !submitting && !pendingValidation && (!validateOnInput || errorMessage == null),
                     ) { Text(confirmText) }
                 }
             }) { children, constraints ->
