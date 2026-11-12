@@ -62,6 +62,9 @@ class ManageTagsViewModel : ViewModel() {
     /** Explicit collapses override search expansion until the query changes. */
     private val searchCollapsedTags = mutableSetOf<TagName>()
 
+    /** Reveal new rename ancestors without registering implicit parents outside the backend's undo history. */
+    private var renameExpandedTags: Set<TagName> = emptySet()
+
     private var tagOperation: Job? = null
     private var expansionSave: Job? = null
 
@@ -130,6 +133,7 @@ class ManageTagsViewModel : ViewModel() {
                         return@launch
                     }
                 val newCollapsed = !node.collapsed
+                renameExpandedTags -= node.fullTag
                 if (searchQuery.value.isNotBlank()) {
                     if (newCollapsed) searchCollapsedTags.add(node.fullTag) else searchCollapsedTags.remove(node.fullTag)
                 }
@@ -182,6 +186,13 @@ class ManageTagsViewModel : ViewModel() {
                     .withRenamedTag(oldName, newName)
             searchCollapsedTags.clear()
             searchCollapsedTags.addAll(renamedCollapses.filterValues { it }.keys)
+            val renamedExpansion =
+                tagList
+                    .associate { it.fullTag to (it.fullTag in renameExpandedTags) }
+                    .withRenamedTag(oldName, newName)
+            renameExpandedTags =
+                renamedExpansion.filterValues { it }.keys +
+                newName.ancestors.map { requireNotNull(TagName.build(it)) }.filterNot { it in renamedExpansion }
         }
         messageQueue.enqueue(TagRenamed(result.count))
     }
@@ -220,7 +231,10 @@ class ManageTagsViewModel : ViewModel() {
 
     private suspend fun loadTags() {
         Timber.i("Loading tags from collection")
-        tagList = flattenTree(withCol { tags.tree() })
+        tagList =
+            flattenTree(withCol { tags.tree() }).map {
+                if (it.fullTag in renameExpandedTags) it.copy(collapsed = false) else it
+            }
         state.value =
             ManageTagsState.Content(
                 visibleNodes = computeVisibleNodes(searchQuery.value),

@@ -786,6 +786,72 @@ class ManageTagsViewModelTest : JvmTest() {
         }
 
     @Test
+    fun `appending a child to a leaf reveals the renamed tag through refresh and undo`() =
+        runTest {
+            val note = addTags("parent::source")
+            val renamed = listOf("parent", "parent::source", "parent::source::of")
+            withViewModel {
+                toggleCollapsed("parent").join()
+                ensureOpsExecuted(1) { renameTag("parent::source", "parent::source::of").join() }
+                assertNull(loadedState.error)
+                assertEquals(renamed, loadedState.visibleTagNames)
+                refreshTags().join()
+                assertEquals(renamed, loadedState.visibleTagNames)
+                col.undo()
+                assertEquals(listOf("parent::source"), col.getNote(note.id).tags)
+                refreshTags().join()
+                assertEquals(listOf("parent", "parent::source"), loadedState.visibleTagNames)
+                col.redo()
+                assertEquals(listOf("parent::source::of"), col.getNote(note.id).tags)
+                refreshTags().join()
+                assertEquals(renamed, loadedState.visibleTagNames)
+            }
+        }
+
+    @Test
+    fun `new rename ancestors can be collapsed without reopening on refresh`() =
+        runTest {
+            addTags("source")
+            withViewModel {
+                renameTag("source", "source::of").join()
+                assertEquals(listOf("source", "source::of"), loadedState.visibleTagNames)
+                toggleCollapsed("source").join()
+                assertEquals(listOf("source"), loadedState.visibleTagNames)
+                refreshTags().join()
+                assertEquals(listOf("source"), loadedState.visibleTagNames)
+            }
+            withViewModel {
+                assertEquals(listOf("source"), loadedState.visibleTagNames)
+                assertTrue(loadedState.visibleNodes.single().collapsed)
+            }
+        }
+
+    @Test
+    fun `renaming an expanded branch beneath new ancestors keeps its children visible`() =
+        runTest {
+            addTags("parent::source::open::leaf", "parent::source::closed::leaf")
+            withViewModel {
+                toggleCollapsed("parent").join()
+                toggleCollapsed("parent::source").join()
+                toggleCollapsed("parent::source::open").join()
+                renameTag("parent::source", "parent::source::of::topic").join()
+                assertNull(loadedState.error)
+                assertEquals(
+                    listOf(
+                        "parent",
+                        "parent::source",
+                        "parent::source::of",
+                        "parent::source::of::topic",
+                        "parent::source::of::topic::closed",
+                        "parent::source::of::topic::open",
+                        "parent::source::of::topic::open::leaf",
+                    ),
+                    loadedState.visibleTagNames,
+                )
+            }
+        }
+
+    @Test
     fun `renaming an expanded branch preserves expansion through refresh and reopening`() =
         runTest {
             val note = addTags("parent::of::open::leaf", "parent::of::closed::leaf")
