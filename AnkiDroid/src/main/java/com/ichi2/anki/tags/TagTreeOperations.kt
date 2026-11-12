@@ -33,8 +33,11 @@ internal fun Collection.renameTagTree(
 ): OpChangesWithCount {
     val prefixes = storedTagPrefixes(oldName)
     if (prefixes.isEmpty()) return opChangesWithCount { }
-    // TODO: Preserve expansion in the backend rename transaction and remove this workaround.
+    // TODO (Issue 23221): Remove expansion capture/restoration once backend rename preserves
+    // expansion and destination-parent creation together in its undoable transaction.
     val expansion = renamedTagState(tags.tree().expansionState(), oldName, newName)
+    // TODO (Anki Issue 5857): Remove affected-note collection and afterNoteUpdates once
+    // backend rename deduplicates tags when subtrees merge.
     val affectedNotes = notesWithTagPrefixes(prefixes)
     // The backend accepts multiple source prefixes. Replace them together so a note is
     // counted once and renaming into a descendant cannot rewrite newly renamed tags.
@@ -55,12 +58,16 @@ internal fun Collection.renameTagTree(
     for ((tag, expanded) in currentExpansion) {
         if (!expanded && restored[tag] == true) tags.setCollapsed(tag, false)
     }
+    // TODO: Return the backend result directly once both rename workarounds above are removed.
     return result.copy { changes = mergeUndoEntries(undoStep) }
 }
 
 /**
  * The tree groups parents with unicase, while backend mutations use narrower regex case folding.
  * Preserve every stored spelling: a displayed Straße parent can contain STRASSE::child.
+ *
+ * TODO: Remove prefix enumeration once backend rename/remove match subtrees using the same
+ * tag identity as the tree; keep TagTreeUnicodeOperationsTest as regression coverage.
  */
 private fun Collection.storedTagPrefixes(tag: TagName): List<String> {
     val depth = tag.value.split("::").size

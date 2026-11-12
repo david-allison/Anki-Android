@@ -52,6 +52,8 @@ class TagName private constructor(
         }
 
         // Normalize before sending names to the backend collation; preserve display spelling.
+        // TODO: Use a non-mutating backend normalization API when one is exposed, including
+        // component validation before the "blank" fallback, then remove this Kotlin mirror.
         internal fun normalize(spelling: String): String =
             spelling.split("::").joinToString("::") { component ->
                 normalizeComponent(component).ifEmpty { "blank" }

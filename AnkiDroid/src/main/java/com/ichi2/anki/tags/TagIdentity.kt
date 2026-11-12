@@ -6,7 +6,13 @@ import com.ichi2.anki.libanki.Collection
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 
-/** A reusable batch of names. Comparisons run in the backend; constructing this does no database work. */
+/**
+ * A reusable batch of names. Comparisons run in the backend; constructing this does no database work.
+ *
+ * TODO: Replace the SQL/JSON batches when the backend exposes canonical tag identity keys
+ * or batch comparisons that also handle implicit parents. Updating its Unicode tables alone
+ * is insufficient: Android's ICU version can still disagree with the backend.
+ */
 internal class TagNameLookup(
     names: Iterable<TagName>,
 ) {
