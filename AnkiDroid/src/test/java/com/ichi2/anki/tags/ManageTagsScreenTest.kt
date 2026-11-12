@@ -276,7 +276,7 @@ class ManageTagsScreenTest : RobolectricTest() {
                 searchQuery = searchQuery,
                 onSearch = onSearch,
                 onToggleCollapsed = {},
-                tagExists = { false },
+                validateRename = { _, _ -> TagInputValidation.VALID },
                 canRenameTag = { true },
                 prepareRename = prepareRename,
                 onAction = { _, _, _ -> },

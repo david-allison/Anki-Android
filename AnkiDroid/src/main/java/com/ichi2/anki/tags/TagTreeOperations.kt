@@ -9,7 +9,7 @@ import anki.tags.TagTreeNode
 import com.ichi2.anki.libanki.Collection
 
 /** The backend can only rename a subtree referenced by at least one note. */
-internal fun Collection.canRenameTagTree(tag: TagName): Boolean = findNotes(tag.literalSubtreeSearch()).isNotEmpty()
+internal fun Collection.canRenameTagTree(tag: TagName): Boolean = findNotes(tag.value.literalSubtreeSearch()).isNotEmpty()
 
 /**
  * Renames tags on notes, preserving expansion and repairing duplicates when subtrees merge.
@@ -25,8 +25,8 @@ internal fun Collection.renameTagTree(
     newName: TagName,
 ): OpChangesWithCount {
     // TODO: Preserve expansion in the backend rename transaction and remove this workaround.
-    val expansion = tags.tree().expansionState().withRenamedTag(oldName, newName)
-    val affectedNotes = findNotes(oldName.literalSubtreeSearch())
+    val expansion = renamedTagState(tags.tree().expansionState(), oldName, newName)
+    val affectedNotes = findNotes(oldName.value.literalSubtreeSearch())
     val result = tags.rename(oldName, newName)
     if (result.count == 0) return result
 
@@ -38,8 +38,11 @@ internal fun Collection.renameTagTree(
     val undoStep = undoStatus().lastStep
     afterNoteUpdates(affectedNotes, markModified = false, generateCards = false)
     // Only restore surviving paths, using their canonical spelling. Unused descendants stay removed.
-    for ((tag, expanded) in tags.tree().expansionState()) {
-        if (!expanded && expansion[tag] == true) tags.setCollapsed(tag, false)
+    val currentExpansion = tags.tree().expansionState()
+    val canonical = TagNameLookup(currentExpansion.keys + expansion.keys).canonicalNames(this)
+    val restored = expansion.mapKeys { canonical.getValue(it.key) }
+    for ((tag, expanded) in currentExpansion) {
+        if (!expanded && restored[tag] == true) tags.setCollapsed(tag, false)
     }
     return result.copy { changes = mergeUndoEntries(undoStep) }
 }
@@ -49,25 +52,30 @@ internal fun Collection.moveTagTree(
     tag: TagName,
     newParent: TagName?,
 ): OpChangesWithCount {
-    require(newParent == null || !newParent.isSameOrDescendantOf(tag)) { "A tag cannot be moved under itself" }
+    require(newParent == null || !tagIsInSubtree(newParent, tag)) { "A tag cannot be moved under itself" }
     val destination = tag.withParent(newParent)
-    if (destination == tag) return opChangesWithCount { }
+    if (sameTag(destination, tag)) return opChangesWithCount { }
     // Moving one subtree is a prefix rename. The backend reparent operation also rejects
     // valid sibling prefixes (e.g. parent::a beneath parent::ab).
     return renameTagTree(tag, destination)
 }
 
 /** Renames state keys in a subtree. Existing destinations keep their state when subtrees merge. */
-internal fun <T> Map<TagName, T>.withRenamedTag(
+internal fun <T> Collection.renamedTagState(
+    state: Map<TagName, T>,
     oldName: TagName,
     newName: TagName,
 ): Map<TagName, T> {
-    val (renamed, unchanged) = entries.partition { it.key.isSameOrDescendantOf(oldName) }
-    val sourceDepth = oldName.value.split("::").size
-    return renamed.associate { (tag, state) ->
-        val suffix = tag.value.split("::").drop(sourceDepth)
-        requireNotNull(TagName.build((listOf(newName.value) + suffix).joinToString("::"))) to state
-    } + unchanged.associate { it.toPair() }
+    val depth = oldName.value.split("::").size
+    val prefixes = TagNameLookup(state.keys.mapNotNull { it.prefix(depth) }).matching(this, oldName).toSet()
+    val (renamed, unchanged) = state.entries.partition { it.key.prefix(depth) in prefixes }
+    val rewritten =
+        renamed.associate { (tag, value) ->
+            val suffix = tag.value.split("::").drop(depth)
+            requireNotNull(TagName.build((listOf(newName.value) + suffix).joinToString("::"))) to value
+        }
+    val canonical = TagNameLookup(unchanged.map { it.key } + rewritten.keys).canonicalNames(this)
+    return rewritten.mapKeys { canonical.getValue(it.key) } + unchanged.associate { it.toPair() }
 }
 
 /** Includes implicit parents, which can be merge destinations without a tag record of their own. */
@@ -87,10 +95,10 @@ private fun TagTreeNode.expansionState(): Map<TagName, Boolean> =
     }
 
 /** A literal regex avoids tag-search wildcards and reserved names such as "none". */
-private fun TagName.literalSubtreeSearch(): String {
+private fun String.literalSubtreeSearch(): String {
     val escaped =
         buildString {
-            for (char in value) {
+            for (char in this@literalSubtreeSearch) {
                 if (char in "\\.^$|?*+()[]{}") append('\\')
                 append(char)
             }

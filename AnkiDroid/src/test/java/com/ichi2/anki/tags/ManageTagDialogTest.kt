@@ -32,6 +32,16 @@ import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class ManageTagDialogTest : RobolectricTest() {
+    private fun validateAgainst(existing: Set<TagName>): suspend (TagName, String) -> TagInputValidation =
+        { source, text ->
+            val candidate = TagName.asValid(text)
+            if (col.sameTag(source, candidate) || existing.none { col.sameTag(it, candidate) }) {
+                TagInputValidation.VALID
+            } else {
+                TagInputValidation.ALREADY_EXISTS
+            }
+        }
+
     @get:Rule
     val compose = createComposeRule()
 
@@ -46,7 +56,7 @@ class ManageTagDialogTest : RobolectricTest() {
                     action = TagAction.RENAME,
                     tag = requireNotNull(TagName.build("source")),
                     enabled = true,
-                    tagExists = { false },
+                    validateRename = { _, _ -> TagInputValidation.VALID },
                     onConfirm = {},
                     onDismissRequest = {},
                 )
@@ -81,7 +91,7 @@ class ManageTagDialogTest : RobolectricTest() {
                     action = TagAction.RENAME,
                     tag = source,
                     enabled = enabled.value,
-                    tagExists = existing::contains,
+                    validateRename = validateAgainst(existing),
                     onConfirm = { confirmed.add(it) },
                     onDismissRequest = {},
                 )
@@ -117,7 +127,7 @@ class ManageTagDialogTest : RobolectricTest() {
                     action = TagAction.RENAME,
                     tag = requireNotNull(TagName.build("source")),
                     enabled = true,
-                    tagExists = { false },
+                    validateRename = { _, _ -> TagInputValidation.VALID },
                     onConfirm = { confirmed.add(it) },
                     onDismissRequest = {},
                 )
@@ -153,7 +163,7 @@ class ManageTagDialogTest : RobolectricTest() {
                     action = TagAction.RENAME,
                     tag = requireNotNull(TagName.build("source")),
                     enabled = true,
-                    tagExists = { false },
+                    validateRename = { _, _ -> TagInputValidation.VALID },
                     onConfirm = { confirmed.add(it) },
                     onDismissRequest = {},
                 )
@@ -164,7 +174,13 @@ class ManageTagDialogTest : RobolectricTest() {
         input.performTextReplacement("Merge")
         input.performTextInput(" ")
         input.assertTextContains("Merge::")
-        for (name in listOf("Merge::", "::Merge", "Merge::::Child", "Merge::\t::Child", "::")) {
+        for (name in listOf(
+            "Merge::",
+            "::Merge",
+            "Merge::::Child",
+            "Merge::\t::Child",
+            "::",
+        )) {
             input.performTextReplacement(name)
             compose.onNodeWithText(targetContext.getString(CommonString.manage_tags_rename_empty_component, "::")).assertIsDisplayed()
             compose.onNodeWithText(targetContext.getString(CommonString.manage_tags_rename_invalid)).assertDoesNotExist()
@@ -189,7 +205,7 @@ class ManageTagDialogTest : RobolectricTest() {
                     action = TagAction.RENAME,
                     tag = requireNotNull(TagName.build("source")),
                     enabled = true,
-                    tagExists = { it == existing },
+                    validateRename = validateAgainst(setOf(existing)),
                     onConfirm = {},
                     onDismissRequest = {},
                 )

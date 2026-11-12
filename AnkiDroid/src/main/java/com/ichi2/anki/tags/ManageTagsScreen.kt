@@ -106,7 +106,7 @@ internal fun ManageTagsScreen(
     searchQuery: String,
     onSearch: (String) -> Unit,
     onToggleCollapsed: (TagName) -> Unit,
-    tagExists: (TagName) -> Boolean,
+    validateRename: suspend (TagName, String) -> TagInputValidation,
     canRenameTag: suspend (TagName) -> Boolean?,
     prepareRename: suspend (TagName) -> Boolean?,
     onAction: (TagAction, TagName?, String) -> Unit,
@@ -332,7 +332,8 @@ internal fun ManageTagsScreen(
             action = action,
             tag = tag,
             enabled = actionsEnabled,
-            tagExists = tagExists,
+            validateRename = validateRename,
+            validationKey = content?.tagRevision,
             onConfirm = { input ->
                 if (actionsEnabled) {
                     onAction(action, tag, input)
@@ -458,7 +459,7 @@ private fun ManageTagsScreenPreview(
             searchQuery = "",
             onSearch = {},
             onToggleCollapsed = {},
-            tagExists = { false },
+            validateRename = { _, _ -> TagInputValidation.VALID },
             canRenameTag = { true },
             prepareRename = { true },
             onAction = { _, _, _ -> },

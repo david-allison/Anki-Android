@@ -52,6 +52,24 @@ class ManageTagsViewModelTest : JvmTest() {
     val caseFolding = IcuCaseFoldingRule()
 
     @Test
+    fun `rename validation uses backend identity without changing undo and fails closed`() =
+        runTest {
+            addTags("source", "Straße::child", "\ua7d0")
+            val source = TagName.asValid("source")
+            val before = col.undoStatus()
+            withViewModel {
+                assertEquals(TagInputValidation.ALREADY_EXISTS, validateRename(source, "STRASSE"))
+                assertEquals(TagInputValidation.VALID, validateRename(source, "\ua7d1"))
+                assertEquals(TagInputValidation.VALID, validateRename(TagName.asValid("Straße::child"), "STRASSE::child"))
+                assertEquals(before, col.undoStatus())
+                withLockedCollection { assertEquals(TagInputValidation.ERROR, validateRename(source, "available")) }
+                assertIs<CollectionLockedException>(loadedState.error)
+                refreshTags().join()
+                assertEquals(TagInputValidation.VALID, validateRename(source, "available"))
+            }
+        }
+
+    @Test
     fun `rename availability includes used descendants and does not change the collection`() =
         runTest {
             addTags("parent::used", "abc", "a1", "a.b")
@@ -418,11 +436,11 @@ class ManageTagsViewModelTest : JvmTest() {
         }
 
     @Test
-    fun `row equality preserves parent spelling while tag identity ignores case`() {
+    fun `row equality includes parent spelling`() {
         val original = tagListItem("parent::child", "child", 1, hasChildren = false, collapsed = false)
         val renamed = original.copy(fullTagName = "PARENT::child")
 
-        assertEquals(original.fullTag, renamed.fullTag)
+        assertNotEquals(original.fullTag, renamed.fullTag)
         assertEquals(original.displayName, renamed.displayName)
         assertNotEquals(original, renamed)
         assertEquals("PARENT::child", renamed.fullTag.value)

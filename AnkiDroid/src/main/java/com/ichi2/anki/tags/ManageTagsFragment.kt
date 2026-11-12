@@ -114,7 +114,7 @@ private fun ManageTagsScreen(
         searchQuery = query,
         onSearch = viewModel::filter,
         onToggleCollapsed = { viewModel.toggleCollapsed(it) },
-        tagExists = viewModel::tagExists,
+        validateRename = viewModel::validateRename,
         canRenameTag = viewModel::canRenameTag,
         prepareRename = viewModel::prepareRename,
         onAction = { action, tag, input ->

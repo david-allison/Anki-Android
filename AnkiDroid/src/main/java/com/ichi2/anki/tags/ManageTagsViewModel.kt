@@ -64,6 +64,7 @@ class ManageTagsViewModel :
 
     /** Cached flat list of all tags, rebuilt when the backend tree changes */
     private var tagList: List<TagListItemState> = emptyList()
+    private var tagNames = TagNameLookup(emptyList())
 
     /** Explicit collapses override search expansion until the query changes. */
     private val searchCollapsedTags = mutableSetOf<TagName>()
@@ -125,7 +126,31 @@ class ManageTagsViewModel :
     }
 
     /** Checks the complete tag tree, including tags hidden by search or collapsed ancestors. */
-    fun tagExists(tag: TagName): Boolean = tagList.any { it.fullTag == tag }
+    suspend fun tagExists(tag: TagName): Boolean = withCol { tagNames.matching(this, tag).isNotEmpty() }
+
+    internal suspend fun validateRename(
+        source: TagName,
+        text: String,
+    ): TagInputValidation {
+        val syntax = validateTagRenameInput(source, text)
+        if (syntax != TagInputValidation.VALID) return syntax
+        val candidate = requireNotNull(TagName.build(text.trim()))
+        return try {
+            withCol {
+                if (sameTag(source, candidate) || tagNames.matching(this, candidate).isEmpty()) {
+                    TagInputValidation.VALID
+                } else {
+                    TagInputValidation.ALREADY_EXISTS
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Validating a tag rename failed")
+            updateState { it.copy(error = e) }
+            TagInputValidation.ERROR
+        }
+    }
 
     /** Checks only the selected subtree, rather than searching notes for every row in the tree. */
     suspend fun canRenameTag(tag: TagName): Boolean? =
@@ -151,13 +176,16 @@ class ManageTagsViewModel :
     }
 
     /** Finds a tag using its displayed expansion state when visible. */
-    private fun findTagNode(tag: TagName): TagListItemState? {
+    private suspend fun findTagNode(tag: TagName): TagListItemState? {
         val loaded = state.value as? ManageTagsState.Content
         if (loaded == null) {
             Timber.w("findTagNode called while not loaded")
             return null
         }
-        return (loaded.visibleNodes.firstOrNull { it.fullTag == tag } ?: tagList.firstOrNull { it.fullTag == tag }).also {
+        val canonical =
+            tagList.firstOrNull { it.fullTag == tag }?.fullTag
+                ?: withCol { tagNames.matching(this, tag).firstOrNull() }
+        return (loaded.visibleNodes.firstOrNull { it.fullTag == canonical } ?: tagList.firstOrNull { it.fullTag == canonical }).also {
             if (it == null) {
                 Timber.w("Tag not found in hierarchy")
                 Timber.d("Tag: %s", tag)
@@ -189,7 +217,7 @@ class ManageTagsViewModel :
                 }
                 tagList =
                     tagList.map {
-                        if (it.fullTag == tag) it.copy(collapsed = newCollapsed) else it
+                        if (it.fullTag == node.fullTag) it.copy(collapsed = newCollapsed) else it
                     }
                 updateState { it.copy(visibleNodes = computeVisibleNodes(searchQuery.value), error = null) }
                 try {
@@ -238,21 +266,26 @@ class ManageTagsViewModel :
         oldName: TagName,
         newName: TagName,
     ) = launchTagOpAndRefresh {
-        val result = tagUndoableOp { renameTagTree(oldName, newName) }
+        val localState = tagList.associate { it.fullTag to ((it.fullTag in searchCollapsedTags) to (it.fullTag in renameExpandedTags)) }
+        var renamedState = emptyMap<TagName, Pair<Boolean, Boolean>>()
+        var revealedAncestors = emptySet<TagName>()
+        val result =
+            tagUndoableOp {
+                val result = renameTagTree(oldName, newName)
+                if (result.count > 0) {
+                    val remapped = renamedTagState(localState, oldName, newName)
+                    val currentNames = flattenTree(tags.tree()).map { it.fullTag }
+                    val ancestors = newName.ancestors.map { requireNotNull(TagName.build(it)) }
+                    val canonical = TagNameLookup(currentNames + remapped.keys + ancestors).canonicalNames(this)
+                    renamedState = remapped.mapKeys { canonical.getValue(it.key) }
+                    revealedAncestors = ancestors.map { canonical.getValue(it) }.filterNot { it in renamedState }.toSet()
+                }
+                result
+            }
         if (result.count > 0) {
-            val renamedCollapses =
-                tagList
-                    .associate { it.fullTag to (it.fullTag in searchCollapsedTags) }
-                    .withRenamedTag(oldName, newName)
             searchCollapsedTags.clear()
-            searchCollapsedTags.addAll(renamedCollapses.filterValues { it }.keys)
-            val renamedExpansion =
-                tagList
-                    .associate { it.fullTag to (it.fullTag in renameExpandedTags) }
-                    .withRenamedTag(oldName, newName)
-            renameExpandedTags =
-                renamedExpansion.filterValues { it }.keys +
-                newName.ancestors.map { requireNotNull(TagName.build(it)) }.filterNot { it in renamedExpansion }
+            searchCollapsedTags.addAll(renamedState.filterValues { it.first }.keys)
+            renameExpandedTags = renamedState.filterValues { it.second }.keys + revealedAncestors
         }
         messageQueue.enqueue(TagRenamed(result.count))
     }
@@ -278,10 +311,14 @@ class ManageTagsViewModel :
         newParent: TagName?,
     ) = launchTagOpAndRefresh {
         Timber.i("Moving tag")
-        val result = tagUndoableOp { moveTagTree(tag, newParent) }
-        val currentParent = TagName.build(tag.value.substringBeforeLast("::", ""))
+        var unchangedParent = false
+        val result =
+            tagUndoableOp {
+                unchangedParent = sameTag(tag, tag.withParent(newParent))
+                moveTagTree(tag, newParent)
+            }
         messageQueue.enqueue(
-            if (result.count == 0 && currentParent != newParent) {
+            if (result.count == 0 && !unchangedParent) {
                 UserMessage.UnusedTagNotMoved
             } else {
                 UnusedTagMoved(result.count)
@@ -317,15 +354,17 @@ class ManageTagsViewModel :
 
     private suspend fun loadTags() {
         Timber.i("Loading tags from collection")
-        val (tree, undoLabels) =
+        val (nodes, lookup, undoLabels) =
             withCol {
                 val undoLabels = undoHistory.labels(this)
-                tags.tree() to undoLabels
+                val nodes = flattenTree(tags.tree())
+                Triple(nodes, TagNameLookup(nodes.map { it.fullTag }), undoLabels)
             }
         tagList =
-            flattenTree(tree).map {
+            nodes.map {
                 if (it.fullTag in renameExpandedTags) it.copy(collapsed = false) else it
             }
+        tagNames = lookup
         state.value =
             ManageTagsState.Content(
                 visibleNodes = computeVisibleNodes(searchQuery.value),

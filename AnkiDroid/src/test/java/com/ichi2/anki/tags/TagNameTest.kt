@@ -44,6 +44,11 @@ class TagNameTest : JvmTest() {
                 "i" to "İ",
                 "café" to "cafe\u0301",
                 "\uD801\uDC00" to "\uD801\uDC28",
+                // Backend unicase 2.6.0 predates these Unicode case pairs.
+                "\ua7d0" to "\ua7d1",
+                "\u1c89" to "\u1c8a",
+                // Supported by the backend, but absent from older Android ICU tables.
+                "\u1c90" to "\u10d0",
             )
         for ((left, right) in pairs) {
             val note =
@@ -54,17 +59,17 @@ class TagNameTest : JvmTest() {
             val backendEqual = col.getNote(note.id).tags.size == 1
             val leftTag = TagName.asValid(left)
             val rightTag = TagName.asValid(right)
-            assertEquals(backendEqual, leftTag == rightTag, "$left / $right")
-            assertEquals(if (backendEqual) 1 else 2, setOf(leftTag, rightTag).size, "$left / $right")
+            assertEquals(backendEqual, col.sameTag(leftTag, rightTag), "$left / $right")
         }
     }
 
     @Test
-    fun `identity preserves spelling for display and case-only renames`() {
+    fun `value equality preserves exact spelling without consulting the collection`() {
         val lower = TagName.asValid("science::Straße")
         val upper = TagName.asValid("SCIENCE::STRASSE")
-        assertEquals(lower, upper)
-        assertEquals(lower.hashCode(), upper.hashCode())
+        assertNotEquals(lower, upper)
+        assertEquals(lower, TagName.asValid(lower.value))
+        assertEquals(lower.hashCode(), TagName.asValid(lower.value).hashCode())
         assertNotEquals(lower.value, upper.value)
         assertEquals("science::Straße", lower.value)
         assertEquals(lower.value, lower.toString())
@@ -74,11 +79,11 @@ class TagNameTest : JvmTest() {
     @Test
     fun `ancestry uses identity and complete components`() {
         val root = TagName.asValid("Straße::café")
-        assertTrue(TagName.asValid("STRASSE::cafe\u0301").isSameOrDescendantOf(root))
-        assertTrue(TagName.asValid("STRASSE::cafe\u0301::child").isSameOrDescendantOf(root))
-        assertFalse(TagName.asValid("Straße::caféteria").isSameOrDescendantOf(root))
-        assertFalse(root.isSameOrDescendantOf(TagName.asValid("Straße::café::child")))
-        assertFalse(TagName.asValid("ı::child").isSameOrDescendantOf(TagName.asValid("i")))
+        assertTrue(col.tagIsInSubtree(TagName.asValid("STRASSE::cafe\u0301"), root))
+        assertTrue(col.tagIsInSubtree(TagName.asValid("STRASSE::cafe\u0301::child"), root))
+        assertFalse(col.tagIsInSubtree(TagName.asValid("Straße::caféteria"), root))
+        assertFalse(col.tagIsInSubtree(root, TagName.asValid("Straße::café::child")))
+        assertFalse(col.tagIsInSubtree(TagName.asValid("ı::child"), TagName.asValid("i")))
     }
 
     @Test
@@ -86,7 +91,7 @@ class TagNameTest : JvmTest() {
         for (input in listOf("cafe\u0301", "a\tb", "a\u007fb", "::a::", "\u0085a\u00a0::\u2003b\u2003")) {
             val note = addBasicNote().update { addTag("source") }
             col.tags.rename("source", input)
-            assertEquals(TagName.asValid(col.getNote(note.id).tags.single()), TagName.asValid(input), input)
+            assertTrue(col.sameTag(TagName.asValid(col.getNote(note.id).tags.single()), TagName.asValid(input)), input)
         }
         // Preserve the tag manager's existing UI policy for ASCII spaces.
         assertEquals("two_words", TagName.asValid("two words").value)
@@ -94,12 +99,14 @@ class TagNameTest : JvmTest() {
     }
 
     @Test
-    fun `three character folds preserve backend expansion order`() {
-        assertEquals(TagName.asValid("iff"), TagName.asValid("ﬃ"))
-        assertEquals(TagName.asValid("lff"), TagName.asValid("ﬄ"))
-        assertNotEquals(TagName.asValid("ffi"), TagName.asValid("ﬃ"))
-        assertNotEquals(TagName.asValid("ffl"), TagName.asValid("ﬄ"))
-        assertEquals(TagName.asValid("prefix::iff::suffix"), TagName.asValid("prefix::ﬃ::suffix"))
-        assertEquals(TagName.asValid("iffiff"), TagName.asValid("ﬃﬃ"))
+    fun `batch lookup uses backend identity and prefers existing spellings`() {
+        val names = listOf("Straße", "STRASSE", "ﬃ", "iff", "ffi", "\ua7d0", "\ua7d1").map(TagName::asValid)
+        val lookup = TagNameLookup(names)
+        assertEquals(names.take(2), lookup.matching(col, TagName.asValid("strasse")))
+        val canonical = lookup.canonicalNames(col)
+        assertEquals(names[0], canonical[names[1]])
+        assertEquals(names[2], canonical[names[3]])
+        assertEquals(names[4], canonical[names[4]])
+        assertNotEquals(canonical[names[5]], canonical[names[6]])
     }
 }

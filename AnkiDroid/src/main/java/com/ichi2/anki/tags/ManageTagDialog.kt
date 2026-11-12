@@ -23,9 +23,10 @@ internal fun ManageTagDialog(
     action: TagAction,
     tag: TagName?,
     enabled: Boolean,
-    tagExists: (TagName) -> Boolean,
+    validateRename: suspend (TagName, String) -> TagInputValidation,
     onConfirm: (String) -> Unit,
     onDismissRequest: () -> Unit,
+    validationKey: Any? = null,
 ) {
     val title = action.dialogTitle()
     if (action == TagAction.DELETE || action == TagAction.CLEAR_UNUSED) {
@@ -57,6 +58,17 @@ internal fun ManageTagDialog(
             if (start >= 0) addStyle(SpanStyle(fontFamily = FontFamily.Monospace), start, start + separator.length)
         }
     val unchanged = stringResource(CommonString.manage_tags_rename_invalid)
+    val validationError = stringResource(CommonString.vague_error)
+
+    fun errorMessage(validation: TagInputValidation): CharSequence? =
+        when (validation) {
+            TagInputValidation.VALID -> null
+            TagInputValidation.EMPTY -> emptyName
+            TagInputValidation.EMPTY_COMPONENT -> emptyComponent
+            TagInputValidation.ALREADY_EXISTS -> alreadyExists
+            TagInputValidation.UNCHANGED -> unchanged
+            TagInputValidation.ERROR -> validationError
+        }
     TextInputDialog(
         title = title,
         label = tr().actionsNewName().dropLastWhile { it == ':' },
@@ -66,15 +78,9 @@ internal fun ManageTagDialog(
         transformInput = { it.filterTagInput() },
         helperText = "",
         enabled = enabled,
-        errorMessageFor = { text ->
-            when (validateTagRename(source, text, tagExists)) {
-                TagInputValidation.VALID -> null
-                TagInputValidation.EMPTY -> emptyName
-                TagInputValidation.EMPTY_COMPONENT -> emptyComponent
-                TagInputValidation.ALREADY_EXISTS -> alreadyExists
-                TagInputValidation.UNCHANGED -> unchanged
-            }
-        },
+        errorMessageFor = { text -> errorMessage(validateTagRenameInput(source, text)) },
+        asyncErrorMessageFor = { text -> errorMessage(validateRename(source, text)) },
+        validationKey = validationKey,
         onConfirm = { if (enabled) onConfirm(it.trim()) },
         onDismissRequest = onDismissRequest,
     )
@@ -94,6 +100,6 @@ private fun ManageTagDialogPreview(
     @PreviewParameter(TagActionPreviewProvider::class) action: TagAction,
 ) {
     AnkiDroidPreview {
-        ManageTagDialog(action, TagName.build("Science"), true, { it == TagName.build("History") }, {}, {})
+        ManageTagDialog(action, TagName.build("Science"), true, { _, _ -> TagInputValidation.VALID }, {}, {})
     }
 }
