@@ -37,6 +37,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import net.ankiweb.rsdroid.BuildConfig as BackendBuildConfig
 
 class AboutFragment : Fragment(R.layout.fragment_about) {
@@ -165,7 +166,7 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
         fun showEnableDeveloperOptionsDialog(context: Context) {
             AlertDialog.Builder(context).show {
                 setTitle(CommonString.dev_options_enabled_pref)
-                setIcon(R.drawable.ic_warning)
+                setIcon(AnkiCommonR.drawable.ic_warning)
                 setMessage(CommonString.dev_options_warning)
                 setPositiveButton(CommonString.dialog_ok) { _, _ -> enableDeveloperOptions(context) }
                 setNegativeButton(CommonString.dialog_cancel) { _, _ -> clickCount = 0 }

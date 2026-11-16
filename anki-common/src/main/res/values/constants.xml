@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="link_help_searching">https://docs.ankiweb.net/searching.html#simple-searches</string>
+    <string name="link_manual_browser_find_replace">https://docs.ankiweb.net/browsing.html#find-and-replace</string>
+</resources>

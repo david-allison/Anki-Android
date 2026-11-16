@@ -8,12 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
+import com.ichi2.anki.browser.BrowserPreferences
 import com.ichi2.anki.browser.SearchHistory
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.libanki.DeckNameId
 import com.ichi2.anki.libanki.NoteTypeNameID
-import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.ViewModelSavedStateHandle
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * A ViewModel for logic relating to creating/selecting a search in the [com.ichi2.anki.CardBrowser]
+ * A ViewModel for logic relating to creating/selecting a search in the the Card Browser
  *
  * Responsible for:
  *
@@ -51,7 +51,7 @@ class CardBrowserSearchViewModel(
 
     val advancedSearchFlow =
         savedStateHandle.getMutableStateFlow(STATE_ADVANCED_SEARCH_ENABLED, false).apply {
-            if (!Prefs.devUsingCardBrowserSearchTools) value = false
+            if (!BrowserPreferences.devUsingCardBrowserSearchTools) value = false
         }
 
     val searchTextFlow: StateFlow<String>
@@ -185,7 +185,7 @@ class CardBrowserSearchViewModel(
      * Toggles between Basic and Advanced search mode
      */
     fun toggleAdvancedSearch() {
-        if (!Prefs.devUsingCardBrowserSearchTools) return
+        if (!BrowserPreferences.devUsingCardBrowserSearchTools) return
 
         Timber.i("Toggling advanced search to %s", !advancedSearchFlow.value)
         advancedSearchFlow.value = !advancedSearchFlow.value

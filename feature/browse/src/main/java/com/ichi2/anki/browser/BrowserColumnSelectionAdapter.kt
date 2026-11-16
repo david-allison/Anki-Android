@@ -9,14 +9,14 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.ItemBrowserColumnsEntryBinding
+import com.ichi2.anki.browse.databinding.ItemBrowserColumnsHeadingBinding
 import com.ichi2.anki.browser.BrowserColumnSelectionRecyclerItem.ColumnItem
 import com.ichi2.anki.browser.BrowserColumnSelectionRecyclerItem.UsageItem
 import com.ichi2.anki.browser.ColumnUsage.AVAILABLE
-import com.ichi2.anki.databinding.ItemBrowserColumnsEntryBinding
-import com.ichi2.anki.databinding.ItemBrowserColumnsHeadingBinding
 import com.ichi2.anki.utils.ext.runWhenNotComputingLayout
 import com.ichi2.anki.utils.ext.swapPositions
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 class BrowserColumnSelectionAdapter(
@@ -113,7 +113,7 @@ class BrowserColumnSelectionAdapter(
     }
 
     /**
-     * @see R.layout.item_browser_columns_entry
+     * @see BrowseR.layout.item_browser_columns_entry
      */
     private inner class ColumnViewHolder(
         private val binding: ItemBrowserColumnsEntryBinding,
@@ -146,7 +146,7 @@ class BrowserColumnSelectionAdapter(
         }
     }
 
-    /** @see [R.layout.item_browser_columns_heading] */
+    /** @see [BrowseR.layout.item_browser_columns_heading] */
     private class UsageViewHolder(
         private val binding: ItemBrowserColumnsHeadingBinding,
     ) : RecyclerView.ViewHolder(binding.root) {

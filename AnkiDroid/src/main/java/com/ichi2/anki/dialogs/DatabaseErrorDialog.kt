@@ -84,6 +84,7 @@ import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 class DatabaseErrorDialog : AsyncDialogFragment() {
     private lateinit var backups: Array<File>
@@ -115,7 +116,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
                 alertDialog.show {
                     title(CommonString.open_collection_failed_title)
                     message(text = message)
-                    setIcon(R.drawable.ic_warning)
+                    setIcon(AnkiCommonR.drawable.ic_warning)
                     positiveButton(CommonString.error_handling_options) {
                         showDatabaseErrorDialog(DIALOG_ERROR_HANDLING)
                     }
@@ -132,7 +133,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
                     .create {
                         title(CommonString.answering_error_title)
                         message(text = message)
-                        setIcon(R.drawable.ic_warning)
+                        setIcon(AnkiCommonR.drawable.ic_warning)
                         positiveButton(CommonString.error_handling_options) {
                             showDatabaseErrorDialog(DIALOG_ERROR_HANDLING)
                         }
@@ -197,7 +198,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
 
                 alertDialog.show {
                     title(CommonString.error_handling_title)
-                    setIcon(R.drawable.ic_warning)
+                    setIcon(AnkiCommonR.drawable.ic_warning)
                     negativeButton(CommonString.dialog_cancel)
                     listItems(items = options) { _, index ->
                         when (values[index]) {
@@ -252,7 +253,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
                 alertDialog.show {
                     title(CommonString.dialog_positive_repair)
                     message(text = message)
-                    setIcon(R.drawable.ic_warning)
+                    setIcon(AnkiCommonR.drawable.ic_warning)
                     positiveButton(CommonString.dialog_positive_repair) {
                         requireDeckPicker().repairCollection()
                         requireActivity().dismissAllDialogFragments()
@@ -387,7 +388,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
                 }
                 alertDialog.show {
                     title(CommonString.incompatible_database_version_title)
-                    setIcon(R.drawable.ic_warning)
+                    setIcon(AnkiCommonR.drawable.ic_warning)
                     positiveButton(CommonString.close) {
                         closeCollectionAndFinish()
                     }
@@ -533,7 +534,7 @@ class DatabaseErrorDialog : AsyncDialogFragment() {
                     }
                 AlertDialog.Builder(context).show {
                     title(CommonString.backup_new_collection)
-                    setIcon(R.drawable.ic_warning)
+                    setIcon(AnkiCommonR.drawable.ic_warning)
                     message(CommonString.new_unsafe_collection)
                     positiveButton(CommonString.dialog_positive_create) {
                         Timber.w("Creating new collection")

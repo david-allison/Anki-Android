@@ -10,11 +10,11 @@ import androidx.core.text.HtmlCompat
 import com.ichi2.anki.CommonPlurals
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.DeckPicker
-import com.ichi2.anki.R
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.utils.ext.dismissAllDialogFragments
 import com.ichi2.anki.utils.ext.requireLong
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 class DeckPickerConfirmDeleteDeckDialog : AnalyticsDialogFragment() {
     private val deckId get() = requireArguments().requireLong("deckId")
@@ -43,7 +43,7 @@ class DeckPickerConfirmDeleteDeckDialog : AnalyticsDialogFragment() {
                     message,
                     HtmlCompat.FROM_HTML_MODE_LEGACY,
                 ),
-            ).setIcon(R.drawable.ic_warning)
+            ).setIcon(AnkiCommonR.drawable.ic_warning)
             .setPositiveButton(CommonString.dialog_positive_delete) { _, _ ->
                 (activity as DeckPicker).deleteDeck(deckId)
                 activity?.dismissAllDialogFragments()

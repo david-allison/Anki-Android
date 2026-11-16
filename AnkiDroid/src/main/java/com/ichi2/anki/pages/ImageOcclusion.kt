@@ -27,6 +27,7 @@ import com.ichi2.anki.pages.viewmodel.ImageOcclusionViewModel
 import com.ichi2.anki.pages.viewmodel.ImageOcclusionViewModel.Companion.ARG_IMAGE_OCCLUSION
 import com.ichi2.anki.utils.ext.collectInLifecycle
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Page provided by the backend, for a user to add or edit an image occlusion (IO) note
@@ -73,11 +74,11 @@ class ImageOcclusion : PageFragment(R.layout.page_image_occlusion) {
             }
         }
 
-        deckNameView = view.findViewById(R.id.deck_name)
+        deckNameView = view.findViewById(BrowseR.id.deck_name)
         deckNameView.setOnClickListener { startDeckSelection(allowAll = false, allowFiltered = false) }
 
         @NeedsTest("#17393 verify that the added image occlusion cards are put in the correct deck")
-        view.findViewById<MaterialToolbar>(R.id.toolbar).setOnMenuItemClickListener {
+        view.findViewById<MaterialToolbar>(BrowseR.id.toolbar).setOnMenuItemClickListener {
             if (it.itemId == R.id.action_save) {
                 Timber.i("save item selected")
                 webViewLayout.evaluateJavascript("anki.imageOcclusion.save()")

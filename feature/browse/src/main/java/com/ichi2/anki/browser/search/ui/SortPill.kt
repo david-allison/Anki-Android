@@ -21,10 +21,11 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.shape.AbsoluteCornerSize
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
 import com.ichi2.anki.browser.ColumnType
 import com.ichi2.anki.common.utils.dp
 import com.ichi2.utils.updatePaddingRelative
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Direction expressed by a [SortPill] half — which side is the "active" sort. */
 enum class SortDirection {
@@ -100,8 +101,8 @@ class SortPill
                 field = value
                 when (value) {
                     null -> clearChecked()
-                    SortDirection.Ascending -> check(R.id.sort_pill_standard)
-                    SortDirection.Descending -> check(R.id.sort_pill_reverse)
+                    SortDirection.Ascending -> check(BrowseR.id.sort_pill_standard)
+                    SortDirection.Descending -> check(BrowseR.id.sort_pill_reverse)
                 }
                 updateA11yState()
             }
@@ -131,10 +132,10 @@ class SortPill
             setInnerCornerSize(AbsoluteCornerSize(0f))
             background = null
 
-            LayoutInflater.from(context).inflate(R.layout.view_sort_pill, this, true)
+            LayoutInflater.from(context).inflate(BrowseR.layout.view_sort_pill, this, true)
 
-            standardButton = findViewById(R.id.sort_pill_standard)
-            reverseButton = findViewById(R.id.sort_pill_reverse)
+            standardButton = findViewById(BrowseR.id.sort_pill_standard)
+            reverseButton = findViewById(BrowseR.id.sort_pill_reverse)
 
             setupShadow()
             setupClickListeners()
@@ -215,30 +216,30 @@ class SortPill
                 ColumnType.TEXT -> {
                     setIconAndLabel(
                         standardButton,
-                        R.drawable.ic_sort_pill_arrow_down_label,
+                        AnkiCommonR.drawable.ic_sort_pill_arrow_down_label,
                         context.getString(CommonString.sort_pill_label_text_ascending),
                     )
                     setIconAndLabel(
                         reverseButton,
-                        R.drawable.ic_sort_pill_arrow_down_label,
+                        AnkiCommonR.drawable.ic_sort_pill_arrow_down_label,
                         context.getString(CommonString.sort_pill_label_text_descending),
                     )
                 }
                 ColumnType.NUMERIC -> {
                     setIconAndLabel(
                         standardButton,
-                        R.drawable.ic_sort_pill_arrow_down_label,
+                        AnkiCommonR.drawable.ic_sort_pill_arrow_down_label,
                         context.getString(CommonString.sort_pill_label_numeric_ascending),
                     )
                     setIconAndLabel(
                         reverseButton,
-                        R.drawable.ic_sort_pill_arrow_down_label,
+                        AnkiCommonR.drawable.ic_sort_pill_arrow_down_label,
                         context.getString(CommonString.sort_pill_label_numeric_descending),
                     )
                 }
                 ColumnType.DATE, ColumnType.UNSPECIFIED -> {
-                    setIconAndLabel(standardButton, R.drawable.outline_arrow_downward_alt_24, label = null)
-                    setIconAndLabel(reverseButton, R.drawable.outline_arrow_upward_alt_24, label = null)
+                    setIconAndLabel(standardButton, AnkiCommonR.drawable.outline_arrow_downward_alt_24, label = null)
+                    setIconAndLabel(reverseButton, AnkiCommonR.drawable.outline_arrow_upward_alt_24, label = null)
                 }
             }
         }

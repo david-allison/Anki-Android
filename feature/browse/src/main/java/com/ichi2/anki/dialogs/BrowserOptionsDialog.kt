@@ -12,19 +12,20 @@ import androidx.fragment.app.activityViewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.DialogBrowserOptionsBinding
 import com.ichi2.anki.browser.BrowserColumnSelectionFragment
+import com.ichi2.anki.browser.BrowserIntegration
+import com.ichi2.anki.browser.BrowserPreferences
 import com.ichi2.anki.browser.CardBrowserViewModel
-import com.ichi2.anki.databinding.DialogBrowserOptionsBinding
 import com.ichi2.anki.model.CardsOrNotes
-import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.utils.create
 import com.ichi2.utils.negativeButton
 import com.ichi2.utils.positiveButton
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
-class BrowserOptionsDialog : AppCompatDialogFragment(R.layout.dialog_browser_options) {
+class BrowserOptionsDialog : AppCompatDialogFragment(BrowseR.layout.dialog_browser_options) {
     private val viewModel: CardBrowserViewModel by activityViewModels()
 
     private lateinit var binding: DialogBrowserOptionsBinding
@@ -33,7 +34,7 @@ class BrowserOptionsDialog : AppCompatDialogFragment(R.layout.dialog_browser_opt
     private val dialogCardsOrNotes: CardsOrNotes
         get() {
             return when (binding.selectBrowserMode.checkedRadioButtonId) {
-                R.id.select_cards_mode -> CardsOrNotes.CARDS
+                BrowseR.id.select_cards_mode -> CardsOrNotes.CARDS
                 else -> CardsOrNotes.NOTES
             }
         }
@@ -80,7 +81,7 @@ class BrowserOptionsDialog : AppCompatDialogFragment(R.layout.dialog_browser_opt
 
         binding.renameFlag.setOnClickListener {
             Timber.d("Rename flag clicked")
-            val flagRenameDialog = FlagRenameDialog()
+            val flagRenameDialog = BrowserIntegration.current.renameFlagsDialog()
             flagRenameDialog.show(parentFragmentManager, "FlagRenameDialog")
             dismiss()
         }
@@ -94,7 +95,7 @@ class BrowserOptionsDialog : AppCompatDialogFragment(R.layout.dialog_browser_opt
             isChecked = viewModel.shouldIgnoreAccents
         }
 
-        if (Prefs.devUsingCardBrowserSearchView) {
+        if (BrowserPreferences.devUsingCardBrowserSearchView) {
             binding.defaultSearchInputLayout.apply {
                 isVisible = true
                 hint = TR.preferencesDefaultSearchText()

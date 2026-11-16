@@ -20,6 +20,7 @@ import com.ichi2.anki.utils.ext.removeSubMenu
 import com.ichi2.utils.setPaddedIcon
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 fun ReviewerMenuView.setup(
     lifecycle: Lifecycle,
@@ -46,7 +47,7 @@ fun ReviewerMenuView.setup(
                     markItem.setPaddedIcon(context, R.drawable.ic_star)
                     markItem.setTitle(CommonString.menu_unmark_note)
                 } else {
-                    markItem.setPaddedIcon(context, R.drawable.ic_star_border_white)
+                    markItem.setPaddedIcon(context, AnkiCommonR.drawable.ic_star_border_white)
                     markItem.title = with(context) { TR.sentenceCase.markNote }
                 }
             }.launchIn(lifecycle.coroutineScope)

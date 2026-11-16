@@ -25,6 +25,8 @@ import com.ichi2.anki.reviewer.CardSide
 import com.ichi2.anki.reviewer.MappableAction
 import com.ichi2.anki.reviewer.ReviewerBinding
 import com.ichi2.anki.ui.internationalization.sentenceCase
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -41,28 +43,28 @@ enum class ViewerAction(
     val parentMenu: ViewerAction? = null,
 ) : MappableAction<ReviewerBinding> {
     // Always
-    UNDO(R.id.action_undo, R.drawable.ic_undo_white, ALWAYS),
+    UNDO(BrowseR.id.action_undo, AnkiCommonR.drawable.ic_undo_white, ALWAYS),
 
     // Menu only
     REDO(R.id.action_redo, R.drawable.ic_redo, MENU_ONLY),
-    FLAG_MENU(R.id.action_flag, R.drawable.ic_flag_transparent, MENU_ONLY),
+    FLAG_MENU(BrowseR.id.action_flag, AnkiCommonR.drawable.ic_flag_transparent, MENU_ONLY),
     MARK(R.id.action_mark, R.drawable.ic_star, MENU_ONLY),
-    EDIT(R.id.action_edit_note, R.drawable.ic_mode_edit_white, MENU_ONLY),
-    BURY_MENU(R.id.action_bury, R.drawable.ic_flip_to_back_white, MENU_ONLY),
-    SUSPEND_MENU(R.id.action_suspend, R.drawable.ic_suspend, MENU_ONLY),
+    EDIT(BrowseR.id.action_edit_note, AnkiCommonR.drawable.ic_mode_edit_white, MENU_ONLY),
+    BURY_MENU(R.id.action_bury, AnkiCommonR.drawable.ic_flip_to_back_white, MENU_ONLY),
+    SUSPEND_MENU(R.id.action_suspend, AnkiCommonR.drawable.ic_suspend, MENU_ONLY),
     DELETE(R.id.action_delete, CommonR.drawable.ic_delete_white, MENU_ONLY),
     TOGGLE_WHITEBOARD(R.id.action_toggle_whiteboard, R.drawable.ic_enable_whiteboard, MENU_ONLY),
 
     // Disabled
     BROWSE(R.id.action_browse, R.drawable.ic_flashcard_black, DISABLED),
     STATISTICS(R.id.action_statistics, R.drawable.ic_bar_chart_black, DISABLED),
-    DECK_OPTIONS(R.id.action_deck_options, R.drawable.ic_tune_white, DISABLED),
-    CARD_INFO(R.id.action_card_info, R.drawable.ic_dialog_info, DISABLED),
+    DECK_OPTIONS(R.id.action_deck_options, AnkiCommonR.drawable.ic_tune_white, DISABLED),
+    CARD_INFO(R.id.action_card_info, AnkiCommonR.drawable.ic_dialog_info, DISABLED),
     PREVIOUS_CARD_INFO(R.id.action_previous_card_info, R.drawable.ic_outline_info_24, DISABLED),
     ADD_NOTE(R.id.action_add_note, CommonR.drawable.ic_add, DISABLED),
-    TAG(R.id.action_edit_tags, R.drawable.ic_tag, DISABLED),
-    RESCHEDULE_NOTE(R.id.action_set_due_date, R.drawable.ic_reschedule, DISABLED),
-    RESET_PROGRESS(R.id.action_reset_progress, R.drawable.ic_backup_restore, DISABLED),
+    TAG(BrowseR.id.action_edit_tags, AnkiCommonR.drawable.ic_tag, DISABLED),
+    RESCHEDULE_NOTE(R.id.action_set_due_date, AnkiCommonR.drawable.ic_reschedule, DISABLED),
+    RESET_PROGRESS(R.id.action_reset_progress, AnkiCommonR.drawable.ic_backup_restore, DISABLED),
     TOGGLE_AUTO_ADVANCE(R.id.action_toggle_auto_advance, R.drawable.ic_fast_forward_outlined, DISABLED),
     RECORD_VOICE(R.id.action_record_voice, R.drawable.ic_mic_outlined, DISABLED),
     PLAY_MEDIA(R.id.action_replay_media, R.drawable.ic_play_circle_white, DISABLED),
@@ -80,7 +82,7 @@ enum class ViewerAction(
     BURY_NOTE(R.id.action_bury_note, drawableRes = null, parentMenu = BURY_MENU),
     BURY_CARD(R.id.action_bury_card, drawableRes = null, parentMenu = BURY_MENU),
     SUSPEND_NOTE(R.id.action_suspend_note, drawableRes = null, parentMenu = SUSPEND_MENU),
-    SUSPEND_CARD(R.id.action_suspend_card, drawableRes = null, parentMenu = SUSPEND_MENU),
+    SUSPEND_CARD(BrowseR.id.action_suspend_card, drawableRes = null, parentMenu = SUSPEND_MENU),
     UNSET_FLAG(Flag.NONE.id, Flag.NONE.drawableRes, parentMenu = FLAG_MENU),
     FLAG_RED(Flag.RED.id, Flag.RED.drawableRes, parentMenu = FLAG_MENU),
     FLAG_ORANGE(Flag.ORANGE.id, Flag.ORANGE.drawableRes, parentMenu = FLAG_MENU),

@@ -31,6 +31,7 @@ import com.ichi2.anki.utils.ext.isCompactWidth
 import com.ichi2.anki.utils.ext.removeFragmentFromContainer
 import com.ichi2.anki.utils.ext.showDialogFragment
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 class LoggedInFragment : Fragment(R.layout.fragment_my_account_logged_in) {
     // if the 'remove account' fragment is open, close it first
@@ -52,7 +53,7 @@ class LoggedInFragment : Fragment(R.layout.fragment_my_account_logged_in) {
         super.onViewCreated(view, savedInstanceState)
         setupEdgeToEdge(view)
 
-        val toolbar: MaterialToolbar = view.findViewById(R.id.toolbar)
+        val toolbar: MaterialToolbar = view.findViewById(BrowseR.id.toolbar)
         val activity = requireActivity() as AppCompatActivity
         activity.setSupportActionBar(toolbar)
 
@@ -79,7 +80,7 @@ class LoggedInFragment : Fragment(R.layout.fragment_my_account_logged_in) {
 
     /** Applies edge-to-edge insets for the screen */
     private fun setupEdgeToEdge(view: View) {
-        val toolbarContainer = view.findViewById<View>(R.id.toolbar_container)
+        val toolbarContainer = view.findViewById<View>(BrowseR.id.toolbar_container)
         val content = view.findViewById<View>(R.id.account_content)
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
             val bars =

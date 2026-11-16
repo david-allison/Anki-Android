@@ -29,6 +29,7 @@ import com.ichi2.utils.FragmentFactoryUtils
 import timber.log.Timber
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Activity aimed to host a fragment on the entire screen.
@@ -62,7 +63,7 @@ open class SingleFragmentActivity :
             return
         }
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { Themes.isNightTheme })
-        val root = findViewById<CoordinatorLayout>(R.id.root_layout)
+        val root = findViewById<CoordinatorLayout>(BrowseR.id.root_layout)
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val constraints = insets.getInsets(systemBars() or displayCutout())
             // apply the insets only for content/fragments defined by SingleFragmentActivity

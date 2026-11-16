@@ -11,10 +11,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.databinding.FragmentRepositionCardBinding
+import com.ichi2.anki.browse.databinding.FragmentRepositionCardBinding
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.utils.create
 import com.ichi2.utils.customView
@@ -25,7 +24,7 @@ import com.ichi2.utils.title
 
 /**
  * Follows desktop implementation to show the same ui with all the options to reposition new
- * (currently selected) cards in [CardBrowser].
+ * (currently selected) cards in the Card Browser.
  * See https://github.com/ankitects/anki/blob/44e01ea063e6d1b812ace9c001f7ba4a8ccf4479/qt/aqt/forms/reposition.ui#L14
  * See https://github.com/ankitects/anki/blob/1fb1cbbf85c48a54c05cb4442b1b424a529cac60/qt/aqt/operations/scheduling.py#L107
  */

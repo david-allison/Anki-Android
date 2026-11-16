@@ -134,6 +134,7 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import com.ichi2.anki.browse.R as BrowseR
 
 private typealias BackendCardTemplate = com.ichi2.anki.libanki.CardTemplate
 
@@ -1172,7 +1173,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
 
         fun saveNoteType(): Boolean {
             if (noteTypeHasChanged()) {
-                val confirmButton = templateEditor.findViewById<View>(R.id.action_confirm)
+                val confirmButton = templateEditor.findViewById<View>(BrowseR.id.action_confirm)
                 if (confirmButton != null) {
                     if (!confirmButton.isEnabled) {
                         Timber.d("CardTemplateEditor::discarding extra click after button disabled")
@@ -1301,7 +1302,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
                     performPreview()
                     return true
                 }
-                R.id.action_confirm -> {
+                BrowseR.id.action_confirm -> {
                     Timber.i("CardTemplateEditor:: Save note type button pressed")
                     saveNoteType()
                 }
@@ -1387,7 +1388,7 @@ open class CardTemplateEditor : AnkiActivity(R.layout.activity_card_template_edi
 
         private fun onModelSaved() {
             Timber.d("saveModelAndExitHandler::postExecute called")
-            val button = templateEditor.findViewById<View>(R.id.action_confirm)
+            val button = templateEditor.findViewById<View>(BrowseR.id.action_confirm)
             if (button != null) {
                 button.isEnabled = true
             }

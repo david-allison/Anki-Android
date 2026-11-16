@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 /**
  * Single instance Activity for instantly editing and adding cloze card/s without actually opening the app,
@@ -300,7 +301,7 @@ class InstantNoteEditorActivity : AnkiActivity(R.layout.activity_instant_note_ed
                     clozeEditTextField.hideKeyboard()
                     textBox.setText(clozeFieldText)
                     viewModel.setEditorMode(EditMode.SINGLE_TAP)
-                    dialogBinding.switchEditModeButton.setIconResource(R.drawable.ic_mode_edit_white)
+                    dialogBinding.switchEditModeButton.setIconResource(AnkiCommonR.drawable.ic_mode_edit_white)
 
                     dialogBinding.singleTapLayout.visibility = View.VISIBLE
                     setupChipGroup(viewModel, dialogBinding.clozeTextChipGroup)

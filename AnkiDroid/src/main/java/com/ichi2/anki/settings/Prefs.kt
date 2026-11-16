@@ -30,6 +30,7 @@ import com.ichi2.anki.settings.enums.ShouldFetchMedia
 import com.ichi2.anki.settings.enums.ToolbarPosition
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
+import com.ichi2.anki.browse.R as BrowseR
 
 // TODO move this to `com.ichi2.anki.preferences`
 //  after the UI classes of that package are moved to `com.ichi2.anki.ui.preferences`
@@ -461,7 +462,7 @@ open class PrefsRepository protected constructor(
     var isNewStudyScreenEnabled by booleanPref(R.string.new_reviewer_options_key, false)
 
     @set:VisibleForTesting
-    var devIsCardBrowserFragmented: Boolean by booleanPref(R.string.dev_card_browser_fragmented, false)
+    var devIsCardBrowserFragmented: Boolean by booleanPref(BrowseR.string.dev_card_browser_fragmented, false)
 
     @set:VisibleForTesting
     var devBottomNavEnabled: Boolean by booleanPref(R.string.dev_bottom_nav_key, false)
@@ -470,10 +471,10 @@ open class PrefsRepository protected constructor(
     var devMaterialYouEnabled: Boolean by booleanPref(R.string.dev_material_you_key, false)
 
     @set:VisibleForTesting
-    var devUsingCardBrowserSearchView: Boolean by booleanPref(R.string.dev_card_browser_search_view, false)
+    var devUsingCardBrowserSearchView: Boolean by booleanPref(BrowseR.string.dev_card_browser_search_view, false)
 
     @set:VisibleForTesting
-    var devUsingCardBrowserSearchTools: Boolean by booleanPref(R.string.dev_card_browser_search_tools, false)
+    var devUsingCardBrowserSearchTools: Boolean by booleanPref(BrowseR.string.dev_card_browser_search_tools, false)
 
     private val isWebDebugEnabledByUser by booleanPref(R.string.html_javascript_debugging_key, false)
     val isWebDebugEnabled: Boolean
@@ -495,5 +496,5 @@ open class PrefsRepository protected constructor(
      *
      * TODO: This should differentiate cards & notes mode
      */
-    var cardBrowserNoSorting by booleanPref(R.string.pref_browser_no_sorting, false)
+    var cardBrowserNoSorting by booleanPref(BrowseR.string.pref_browser_no_sorting, false)
 }

@@ -15,13 +15,13 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.ItemColumnSelectionBinding
 import com.ichi2.anki.common.utils.dp
-import com.ichi2.anki.databinding.ItemColumnSelectionBinding
 import com.ichi2.anki.utils.ext.requireParcelable
 import com.ichi2.utils.setPaddingRelative
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 class ColumnSelectionDialogFragment : DialogFragment() {
     private val viewModel: CardBrowserViewModel by activityViewModels()
@@ -52,7 +52,7 @@ class ColumnSelectionDialogFragment : DialogFragment() {
         val adapter =
             object : ArrayAdapter<ColumnWithSample>(
                 requireContext(),
-                R.layout.item_column_selection,
+                BrowseR.layout.item_column_selection,
                 mutableListOf(),
             ) {
                 override fun getView(

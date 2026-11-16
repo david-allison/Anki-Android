@@ -40,6 +40,7 @@ import com.ichi2.anki.utils.ext.setFragmentResultListener
 import com.ichi2.ui.RtlCompliantActionProvider
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Hosts [StudyOptionsFragment] when non-fragmented
@@ -111,13 +112,13 @@ class StudyOptionsActivity :
                 menuInflater: MenuInflater,
             ) {
                 menuInflater.inflate(R.menu.activity_study_options, menu)
-                val undoMenuItem = menu.findItem(R.id.action_undo)
+                val undoMenuItem = menu.findItem(BrowseR.id.action_undo)
                 val undoActionProvider = MenuItemCompat.getActionProvider(undoMenuItem) as? RtlCompliantActionProvider
                 undoActionProvider?.clickHandler = { _, menuItem -> onMenuItemSelected(menuItem) }
             }
 
             override fun onPrepareMenu(menu: Menu) {
-                val undoMenuItem = menu.findItem(R.id.action_undo)
+                val undoMenuItem = menu.findItem(BrowseR.id.action_undo)
                 // TODO: Ideally, the undo button should be owned by StudyOptionsFragment or be provided by a unified UndoMenuProvider
                 // Checking the current fragment from the activity to decide whether the button should be visible is hacky; see #21339
                 undoMenuItem.isVisible = undoState.hasAction && (currentFragment is StudyOptionsFragment)
@@ -126,7 +127,7 @@ class StudyOptionsActivity :
 
             override fun onMenuItemSelected(item: MenuItem): Boolean =
                 when (item.itemId) {
-                    R.id.action_undo -> {
+                    BrowseR.id.action_undo -> {
                         Timber.i("Undoing last action from study options screen")
                         launchCatchingTask {
                             undoAndShowSnackbar()

@@ -112,6 +112,7 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.browser.customtabs.CustomTabsIntent.Builder as CustomTabsIntentBuilder
 import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 @UiThread
@@ -608,7 +609,7 @@ open class AnkiActivity(
      */
     protected fun enableToolbar(): ActionBar {
         val toolbar =
-            findViewById<Toolbar>(R.id.toolbar)
+            findViewById<Toolbar>(BrowseR.id.toolbar)
                 ?: // likely missing "<include layout="@layout/toolbar" />"
                 throw IllegalStateException("Unable to find toolbar")
         setSupportActionBar(toolbar)

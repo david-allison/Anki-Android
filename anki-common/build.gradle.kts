@@ -7,6 +7,7 @@ plugins {
     id("ankidroid.android.library")
     id("ankidroid.android.compose")
     id("org.jetbrains.kotlin.plugin.parcelize")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 configure<LibraryExtension> {
@@ -26,6 +27,8 @@ dependencies {
 
     addAnkiBackendDependencies(project)
 
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.draganddrop)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.sqlite.framework)

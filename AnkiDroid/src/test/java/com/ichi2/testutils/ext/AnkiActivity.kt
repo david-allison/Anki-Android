@@ -5,7 +5,7 @@ package com.ichi2.testutils.ext
 import android.view.Menu
 import androidx.appcompat.widget.Toolbar
 import com.ichi2.anki.AnkiActivity
-import com.ichi2.anki.R
 import kotlin.test.assertNotNull
+import com.ichi2.anki.browse.R as BrowseR
 
-fun AnkiActivity.menu(): Menu = assertNotNull(findViewById<Toolbar>(R.id.toolbar)?.menu)
+fun AnkiActivity.menu(): Menu = assertNotNull(findViewById<Toolbar>(BrowseR.id.toolbar)?.menu)

@@ -5,7 +5,6 @@ package com.ichi2.anki.dialogs
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.viewpager2.widget.ViewPager2
-import com.ichi2.anki.R
 import com.ichi2.anki.ScreenshotTest
 import com.ichi2.anki.common.utils.dp
 import com.ichi2.anki.dialogs.InsertFieldDialog.SelectSpecialFieldFragment
@@ -16,6 +15,7 @@ import com.ichi2.testutils.simulateSystemBars
 import com.ichi2.testutils.windowInsetsOf
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import com.ichi2.anki.browse.R as BrowseR
 
 class InsertFieldDialogScreenshotTest : ScreenshotTest() {
     @Test
@@ -60,7 +60,7 @@ class InsertFieldDialogScreenshotTest : ScreenshotTest() {
             window.simulateSystemBars(insets)
             captureScreen(name)
 
-            dialog.requireView().findViewById<ViewPager2>(R.id.view_pager).setCurrentItem(Tab.SPECIAL.position, false)
+            dialog.requireView().findViewById<ViewPager2>(BrowseR.id.view_pager).setCurrentItem(Tab.SPECIAL.position, false)
             advanceRobolectricLooper()
             ViewCompat.dispatchApplyWindowInsets(window.decorView, insets)
             dialog.childFragmentManager.fragments

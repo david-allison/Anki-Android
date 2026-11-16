@@ -8,6 +8,7 @@ import android.view.MenuItem
 import androidx.annotation.IdRes
 import com.ichi2.anki.R
 import com.ichi2.anki.common.utils.HashUtil.hashMapInit
+import com.ichi2.anki.browse.R as BrowseR
 
 // loads of unboxing issues, which are safe
 class ActionButtonStatus {
@@ -18,10 +19,10 @@ class ActionButtonStatus {
 
     fun setup(preferences: SharedPreferences) {
         // NOTE: the default values below should be in sync with preferences_custom_buttons.xml and reviewer.xml
-        setupButton(preferences, R.id.action_undo, "customButtonUndo", SHOW_AS_ACTION_ALWAYS)
+        setupButton(preferences, BrowseR.id.action_undo, "customButtonUndo", SHOW_AS_ACTION_ALWAYS)
         setupButton(preferences, R.id.action_redo, "customButtonRedo", SHOW_AS_ACTION_IF_ROOM)
         setupButton(preferences, R.id.action_schedule, "customButtonScheduleCard", SHOW_AS_ACTION_NEVER)
-        setupButton(preferences, R.id.action_flag, "customButtonFlag", SHOW_AS_ACTION_ALWAYS)
+        setupButton(preferences, BrowseR.id.action_flag, "customButtonFlag", SHOW_AS_ACTION_ALWAYS)
         setupButton(preferences, R.id.action_tag, "customButtonTags", SHOW_AS_ACTION_NEVER)
         setupButton(preferences, R.id.action_edit, "customButtonEditCard", SHOW_AS_ACTION_IF_ROOM)
         setupButton(preferences, R.id.action_add_note_reviewer, "customButtonAddCard", MENU_DISABLED)
@@ -35,8 +36,8 @@ class ActionButtonStatus {
         setupButton(preferences, R.id.action_bury, "customButtonBury", SHOW_AS_ACTION_NEVER)
         setupButton(preferences, R.id.action_bury_card, "customButtonBury", SHOW_AS_ACTION_NEVER)
         setupButton(preferences, R.id.action_suspend, "customButtonSuspend", SHOW_AS_ACTION_NEVER)
-        setupButton(preferences, R.id.action_suspend_card, "customButtonSuspend", SHOW_AS_ACTION_NEVER)
-        setupButton(preferences, R.id.action_mark_card, "customButtonMarkCard", SHOW_AS_ACTION_IF_ROOM)
+        setupButton(preferences, BrowseR.id.action_suspend_card, "customButtonSuspend", SHOW_AS_ACTION_NEVER)
+        setupButton(preferences, BrowseR.id.action_mark_card, "customButtonMarkCard", SHOW_AS_ACTION_IF_ROOM)
         setupButton(preferences, R.id.action_delete, "customButtonDelete", SHOW_AS_ACTION_NEVER)
         setupButton(preferences, R.id.action_toggle_mic_tool_bar, "customButtonToggleMicToolBar", SHOW_AS_ACTION_NEVER)
         setupButton(preferences, R.id.action_toggle_whiteboard, "customButtonEnableWhiteboard", SHOW_AS_ACTION_NEVER)
@@ -100,7 +101,7 @@ class ActionButtonStatus {
 
     fun buryIsDisabled(): Boolean = customButtons[R.id.action_bury] == MENU_DISABLED
 
-    fun flagsIsOverflown(): Boolean = customButtons[R.id.action_flag] == SHOW_AS_ACTION_NEVER
+    fun flagsIsOverflown(): Boolean = customButtons[BrowseR.id.action_flag] == SHOW_AS_ACTION_NEVER
 
     fun autoAdvanceMenuIsNeverShown(): Boolean = customButtons[R.id.action_toggle_auto_advance] == MENU_DISABLED
 

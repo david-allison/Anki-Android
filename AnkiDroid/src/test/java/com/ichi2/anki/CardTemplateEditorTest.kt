@@ -51,6 +51,7 @@ import kotlin.test.junit5.JUnit5Asserter.assertNotNull
 import kotlin.test.junit5.JUnit5Asserter.assertNull
 import kotlin.test.junit5.JUnit5Asserter.assertTrue
 import kotlin.time.Duration
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 class CardTemplateEditorTest : RobolectricTest() {
@@ -227,7 +228,7 @@ class CardTemplateEditorTest : RobolectricTest() {
         // Save the template then fetch it from the collection to see if it was saved correctly
         var testEditorNoteTypeEdited = testEditor.tempNoteType?.notetype
         advanceRobolectricLooper()
-        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
         advanceRobolectricLooper()
         val collectionBasicNoteTypeCopyEdited = getCurrentDatabaseNoteTypeCopy(noteTypeName)
         testEditorNoteTypeEdited = col.notetypes.get(testEditorNoteTypeEdited!!.id)
@@ -286,7 +287,7 @@ class CardTemplateEditorTest : RobolectricTest() {
 
         // Save the change to the database and make sure there's only one template after
         var testEditorNoteTypeEdited = testEditor.tempNoteType?.notetype
-        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
         advanceRobolectricLooper()
         val collectionBasicNoteTypeCopyEdited = getCurrentDatabaseNoteTypeCopy(noteTypeName)
         testEditorNoteTypeEdited = col.notetypes.get(testEditorNoteTypeEdited!!.id)
@@ -342,7 +343,7 @@ class CardTemplateEditorTest : RobolectricTest() {
 
         // Save the change to the database and make sure there are two templates after
         var testEditorNoteTypeEdited = col.notetypes.get(testEditor.tempNoteType!!.notetype.id)
-        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+        assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
         advanceRobolectricLooper()
         val collectionBasicNoteTypeCopyEdited = getCurrentDatabaseNoteTypeCopy(noteTypeName)
         assertNotEquals("Note type is unchanged?", collectionBasicNoteTypeOriginal, collectionBasicNoteTypeCopyEdited)
@@ -533,7 +534,7 @@ class CardTemplateEditorTest : RobolectricTest() {
             assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(0))
             assertFalse("Ordinal pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(1))
             assertTrue("Ordinal not pending add?", testEditor.tempNoteType.isOrdinalPendingAdd(2))
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             assertFalse("Note type should now be unchanged", testEditor.noteTypeHasChanged())
             assertEquals("card generation should result in three cards", 3, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
@@ -610,7 +611,7 @@ class CardTemplateEditorTest : RobolectricTest() {
             assertNull("New templates have no database ordinal", testEditor.tempNoteType!!.getOriginalOrdinal(1))
 
             // Now confirm everything to persist it to the database
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             advanceRobolectricLooper()
             assertNotEquals(
@@ -712,7 +713,7 @@ class CardTemplateEditorTest : RobolectricTest() {
             assertEquals("Note type should have 1 template", 1, testEditor.tempNoteType?.templateCount)
 
             // Save it out and make some assertions
-            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to click?", shadowTestEditor.clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             assertFalse("Note type should now be unchanged", testEditor.noteTypeHasChanged())
             assertEquals("card generation should result in 1 card", 1, getNoteTypeCardCount(collectionBasicNoteTypeOriginal))
@@ -1210,7 +1211,7 @@ class CardTemplateEditorTest : RobolectricTest() {
             advanceRobolectricLooper()
             templateFragment(2).binding.editText.setText("{{#Add Reverse}}{{Front}} {{Back}}{{/Add Reverse}}")
 
-            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             val savedNoteType = col.notetypes.get(noteType.id)!!
             assertEquals("The duplicate template should be saved", 3, savedNoteType.templates.length())
@@ -1254,7 +1255,7 @@ class CardTemplateEditorTest : RobolectricTest() {
             assertEquals("The second duplicate should be selected", 3, selectedTabPosition)
             templateFragment(3).binding.editText.setText("{{#Add Reverse}}{{Back}} {{Front}}{{/Add Reverse}}")
 
-            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             assertEquals(
                 "Both new templates should be saved",
@@ -1307,7 +1308,7 @@ class CardTemplateEditorTest : RobolectricTest() {
 
             // Avoid identical fronts without changing the condition or field requirements.
             templateFragment(2).binding.editText.setText("{{#c3}}{{Front}} extra{{/c3}}")
-            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(R.id.action_confirm))
+            assertTrue("Unable to save the templates", shadowOf(this).clickMenuItem(BrowseR.id.action_confirm))
             advanceRobolectricLooper()
             assertEquals(
                 "The new template should be saved",
@@ -1402,7 +1403,7 @@ class CardTemplateEditorTest : RobolectricTest() {
     }
 
     private fun CardTemplateEditor.saveChanges() {
-        assertTrue("Unable to save", shadowOf(this).clickMenuItem(R.id.action_confirm))
+        assertTrue("Unable to save", shadowOf(this).clickMenuItem(BrowseR.id.action_confirm))
         advanceRobolectricLooper()
     }
 
@@ -1507,4 +1508,4 @@ val TemplatePreviewerFragment.ord: CardOrdinal
     get() = this.viewModel.ordFlow.value
 
 val CardTemplateEditor.confirmButton: View
-    get() = findViewById(R.id.action_confirm)
+    get() = findViewById(BrowseR.id.action_confirm)

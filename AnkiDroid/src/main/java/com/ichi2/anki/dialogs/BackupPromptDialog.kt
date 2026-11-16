@@ -32,6 +32,7 @@ import com.ichi2.utils.show
 import com.ichi2.utils.title
 import timber.log.Timber
 import java.io.File
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 /**
  * Prompts a user to backup via either sync or 'export collection'
@@ -119,7 +120,7 @@ class BackupPromptDialog private constructor(
     ) {
         this.alertDialog =
             AlertDialog.Builder(windowContext).create {
-                setIcon(if (isLoggedIn) R.drawable.ic_baseline_backup_24 else R.drawable.ic_backup_restore)
+                setIcon(if (isLoggedIn) R.drawable.ic_baseline_backup_24 else AnkiCommonR.drawable.ic_backup_restore)
                 title(CommonString.backup_your_collection)
                 message(CommonString.backup_collection_message)
                 positiveButton(if (isLoggedIn) CommonString.button_sync else CommonString.button_backup) {
@@ -232,7 +233,7 @@ class BackupPromptDialog private constructor(
             AlertDialog.Builder(context).show {
                 title(CommonString.dismiss_backup_warning_title)
                 message(message)
-                setIcon(R.drawable.ic_warning)
+                setIcon(AnkiCommonR.drawable.ic_warning)
                 positiveButton(CommonString.dialog_cancel) { onCancel() }
                 negativeButton(CommonString.button_disable_reminder) { onDisableReminder() }
             }

@@ -40,6 +40,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -60,7 +61,7 @@ class NoteEditorActivity :
     lateinit var noteEditorFragment: NoteEditorFragment
 
     private val mainToolbar: androidx.appcompat.widget.Toolbar
-        get() = findViewById(R.id.toolbar)
+        get() = findViewById(BrowseR.id.toolbar)
 
     /**
      * Reference to the previewer container that exists only on larger screens.

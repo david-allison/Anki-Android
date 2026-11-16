@@ -15,14 +15,13 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.FragmentAdvancedSearchBinding
+import com.ichi2.anki.browse.databinding.ItemAdvancedSearchBinding
 import com.ichi2.anki.browser.search.AdvancedSearchFieldsTab.FieldSearch
 import com.ichi2.anki.browser.search.AdvancedSearchFragment.OptionData
 import com.ichi2.anki.browser.search.AdvancedSearchFragment.OptionType
 import com.ichi2.anki.browser.search.AdvancedSearchFragment.OptionType.InsertExample
 import com.ichi2.anki.common.android.databinding.DialogGenericRecyclerViewBinding
-import com.ichi2.anki.databinding.FragmentAdvancedSearchBinding
-import com.ichi2.anki.databinding.ItemAdvancedSearchBinding
 import com.ichi2.anki.dialogs.FieldSelectionDialog
 import com.ichi2.anki.dialogs.FieldSelectionDialog.Companion.registerFieldSelectionHandler
 import com.ichi2.anki.launchCatchingTask
@@ -32,6 +31,8 @@ import com.ichi2.anki.utils.openUrl
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -44,7 +45,7 @@ import com.ichi2.anki.common.android.R as CommonR
  * * **regex**: `"re:(some|another).*thing"`
  * * **properties**: `prop:ivl>=10`
  */
-class AdvancedSearchFragment : Fragment(R.layout.fragment_advanced_search) {
+class AdvancedSearchFragment : Fragment(BrowseR.layout.fragment_advanced_search) {
     private val binding by viewBinding(FragmentAdvancedSearchBinding::bind)
 
     @Suppress("unused")
@@ -246,7 +247,7 @@ class AdvancedSearchFragment : Fragment(R.layout.fragment_advanced_search) {
         binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0))
         binding.advancedHelp.setOnClickListener {
             Timber.i("opening advanced help")
-            openUrl(R.string.link_help_searching)
+            openUrl(AnkiCommonR.string.link_help_searching)
         }
     }
 

@@ -5,7 +5,6 @@ package com.ichi2.utils
 import android.app.Activity
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.children
 import com.ichi2.anki.settings.Prefs
 import timber.log.Timber
 import java.util.ArrayList
@@ -60,17 +59,5 @@ object ViewGroupUtils {
             )
             v.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         }
-    }
-}
-
-/**
- * Removes all children which satisfy [predicate].
- * Errors or runtime exceptions thrown during iteration or by [predicate] are relayed to the caller.
-
- * @param predicate a predicate which returns `true` for children to be removed.
- */
-fun ViewGroup.removeChildren(predicate: (View) -> Boolean) {
-    children.filter(predicate).toList().forEach {
-        removeView(it)
     }
 }

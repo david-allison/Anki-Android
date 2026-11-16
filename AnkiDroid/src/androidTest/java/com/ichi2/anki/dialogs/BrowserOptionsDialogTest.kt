@@ -10,12 +10,12 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CardBrowser
-import com.ichi2.anki.R
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.tests.InstrumentedTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Tests [BrowserOptionsDialog] */
 @RunWith(AndroidJUnit4::class)
@@ -32,7 +32,7 @@ class BrowserOptionsDialogTest : InstrumentedTest() {
                     isTruncated = true,
                 ).show(activity.supportFragmentManager, "BrowserOptionsDialog")
         }
-        onView(withId(R.id.toggle_cards_notes_title))
+        onView(withId(BrowseR.id.toggle_cards_notes_title))
             .inRoot(isDialog())
             .check(matches(isDisplayed()))
     }

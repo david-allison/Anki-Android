@@ -12,7 +12,7 @@
 
     <!-- Material design dialogs -->
     <dimen name="dialog_frame_margin">24dp</dimen>
-    <dimen name="title_frame_margin_bottom">16dp</dimen>
+
     <dimen name="input_layout_padding">8dp</dimen>
     <dimen name="icon_margin">16dp</dimen>
 

@@ -18,6 +18,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Edge-to-edge inset handling for [MultimediaActivity], applied by [MultimediaFragment]. */
 @RunWith(AndroidJUnit4::class)
@@ -85,7 +86,7 @@ class MultimediaInsetsTest : RobolectricTest() {
         }
 
     private val MultimediaActivity.binding: ActivityMultimediaBinding
-        get() = ActivityMultimediaBinding.bind(findViewById(R.id.root_layout))
+        get() = ActivityMultimediaBinding.bind(findViewById(BrowseR.id.root_layout))
 
     /** The hosted fragment's own root, which [MultimediaFragment] insets */
     private val MultimediaActivity.fragmentRoot: View

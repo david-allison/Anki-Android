@@ -17,6 +17,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.TestUtils.clickChildViewWithId
 import com.ichi2.anki.tests.checkWithTimeout
 import com.ichi2.anki.testutil.ThreadUtils.sleep
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -56,7 +57,7 @@ fun createDeckWithUniqueName(): String {
 }
 
 fun tapOnCountLayouts(deckName: String) {
-    onView(withId(R.id.decks)).perform(
+    onView(withId(AnkiCommonR.id.decks)).perform(
         RecyclerViewActions.actionOnItem<RecyclerView.ViewHolder>(
             hasDescendant(withText(deckName)),
             clickChildViewWithId(R.id.counts_layout),
@@ -72,8 +73,8 @@ fun tapOnCountLayouts(deckName: String) {
  * This must be called on a clean deck picker.
  */
 fun clickOnDeckWithName(deckName: String) {
-    onView(withId(R.id.decks)).checkWithTimeout(matches(hasDescendant(withText(deckName))))
-    onView(withId(R.id.decks)).perform(
+    onView(withId(AnkiCommonR.id.decks)).checkWithTimeout(matches(hasDescendant(withText(deckName))))
+    onView(withId(AnkiCommonR.id.decks)).perform(
         RecyclerViewActions.actionOnItem<RecyclerView.ViewHolder>(
             hasDescendant(withText(deckName)),
             click(),

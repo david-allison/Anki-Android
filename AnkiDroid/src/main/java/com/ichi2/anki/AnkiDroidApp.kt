@@ -342,6 +342,7 @@ open class AnkiDroidApp :
             initializeWidgetRepository()
             initializeDatabaseErrorDialogs()
             initializeActivitySetup()
+            com.ichi2.anki.browser.BrowserIntegration.current = com.ichi2.anki.browser.AnkiDroidBrowserIntegration
             WidgetNotificationScheduler.register { scheduleNotification() }
             WidgetStatus.register(Prefs) { context -> AnkiDroidWidgetSmall.UpdateService().doUpdate(context) }
             Animations.setPreferencesProvider { context -> PrefsRepository(context) }

@@ -19,6 +19,7 @@ import com.ichi2.testutils.windowInsetsOf
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
 import kotlin.test.assertTrue
+import com.ichi2.anki.browse.R as BrowseR
 
 class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
     @Test
@@ -33,7 +34,7 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
             val direction = if (rtl) "rtl" else "ltr"
 
             fun capturePreview(state: String) {
-                val preview = requireNotNull(searchBar).findViewById<View>(R.id.action_preview_many)
+                val preview = requireNotNull(searchBar).findViewById<View>(BrowseR.id.action_preview_many)
                 assertTrue(preview?.isShown == true, "Preview must be visible in the new search bar")
                 captureScreen("${direction}_preview_$state")
             }
@@ -58,7 +59,7 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
         if (rtl) RuntimeEnvironment.setQualifiers("+ldrtl")
         withCardBrowserFragment(useSearchView = true) {
             advanceRobolectricLooper()
-            val scroller = requireView().findViewById<HorizontalScrollView>(R.id.chip_group)
+            val scroller = requireView().findViewById<HorizontalScrollView>(BrowseR.id.chip_group)
             val direction = if (rtl) "rtl" else "ltr"
             captureScreen("${direction}_chips_start")
 
@@ -79,10 +80,10 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
             browser.waitForSearchResults()
             browser.simulateSystemBars(navBarBottom = 24.dp, bottomCornerRadius = 34.dp)
             // Match a user scrolling down: the app bar collapses before the list reaches its end.
-            requireView().findViewById<AppBarLayout>(R.id.browser_app_bar).setExpanded(false, false)
+            requireView().findViewById<AppBarLayout>(BrowseR.id.browser_app_bar).setExpanded(false, false)
             advanceRobolectricLooper()
-            requireView().findViewById<RecyclerView>(R.id.card_browser_list).scrollToEnd()
-            requireView().findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            requireView().findViewById<RecyclerView>(BrowseR.id.card_browser_list).scrollToEnd()
+            requireView().findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
             captureScreen("${orientation}_scrolled_to_bottom")
         }
@@ -95,7 +96,7 @@ class CardBrowserSearchViewScreenshotTest : ScreenshotTest() {
         val orientation = setOrientation(landscape)
         withCardBrowserFragment(useSearchView = true) {
             val browser = requireActivity() as CardBrowser
-            requireView().findViewById<SearchView>(R.id.search_view).show()
+            requireView().findViewById<SearchView>(BrowseR.id.search_view).show()
             advanceRobolectricLooper()
             browser.simulateKeyboard(keyboardHeight = 200.dp)
             with(browser) {

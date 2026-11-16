@@ -23,6 +23,7 @@ import com.ichi2.anki.databinding.ViewReviewerMenuBinding
 import com.ichi2.anki.utils.ext.setIconRes
 import com.ichi2.utils.increaseHorizontalPaddingOfMenuIcons
 import kotlinx.coroutines.launch
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * View for displaying the reviewer menu actions.
@@ -81,7 +82,7 @@ class ReviewerMenuView : LinearLayout {
     }
 
     suspend fun setFlagTitles() {
-        val submenu = findItem(R.id.action_flag)?.subMenu ?: return
+        val submenu = findItem(BrowseR.id.action_flag)?.subMenu ?: return
         for ((flag, name) in Flag.queryDisplayNames(context)) {
             submenu.findItem(flag.id)?.title = name
         }

@@ -19,6 +19,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Edge-to-edge inset handling for [NoteEditorActivity] */
 @RunWith(AndroidJUnit4::class)
@@ -246,7 +247,7 @@ class NoteEditorInsetsTest : RobolectricTest() {
             assertThat(activity.previewerPane.paddingBottom, equalTo(300.dp.toPx(targetContext)))
         }
 
-    private val NoteEditorActivity.toolbarContainer: View get() = findViewById(R.id.toolbar_container)
+    private val NoteEditorActivity.toolbarContainer: View get() = findViewById(BrowseR.id.toolbar_container)
 
     private val NoteEditorActivity.editorFrame: View get() = findViewById(R.id.note_editor_fragment_frame)
 

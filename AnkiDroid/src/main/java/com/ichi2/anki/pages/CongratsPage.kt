@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 class CongratsPage :
     PageFragment(),
@@ -144,7 +145,7 @@ class CongratsPage :
             }
         }
 
-        with(view.findViewById<MaterialToolbar>(R.id.toolbar)) {
+        with(view.findViewById<MaterialToolbar>(BrowseR.id.toolbar)) {
             inflateMenu(R.menu.congrats)
             menu.findItem(R.id.action_open_deck_options)?.title = TR.sentenceCase.deckOptions
             setOnMenuItemClickListener { item ->

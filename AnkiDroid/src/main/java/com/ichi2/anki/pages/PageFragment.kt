@@ -19,6 +19,7 @@ import com.ichi2.anki.workarounds.SafeWebViewLayout
 import com.ichi2.themes.Themes
 import com.ichi2.utils.showDialogIfWebViewOutdated
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Base class for displaying Anki HTML pages
@@ -100,7 +101,7 @@ abstract class PageFragment(
             Timber.w("${this::class.simpleName} requires modern WebView version, aborting load")
             return
         }
-        view.findViewById<MaterialToolbar>(R.id.toolbar)?.setNavigationOnClickListener {
+        view.findViewById<MaterialToolbar>(BrowseR.id.toolbar)?.setNavigationOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
         setupWebView(savedInstanceState)

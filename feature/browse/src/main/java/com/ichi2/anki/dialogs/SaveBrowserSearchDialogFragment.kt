@@ -9,12 +9,10 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResult
 import com.google.android.material.snackbar.Snackbar
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.dialogs.SaveBrowserSearchDialogFragment.Companion.RESULT_SEARCH_QUERY
 import com.ichi2.anki.dialogs.SaveBrowserSearchDialogFragment.Companion.RESULT_SEARCH_QUERY_NAME
-import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.utils.input
 import com.ichi2.utils.negativeButton
@@ -25,10 +23,10 @@ import timber.log.Timber
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
- * Dialog that allows the user to save searches made in [CardBrowser] to make them available for
+ * Dialog that allows the user to save searches made in the Card Browser to make them available for
  * easy access.
  *
- * @see CardBrowser
+ * @see com.ichi2.anki.browser.CardBrowserFragment
  * @see SavedBrowserSearchesDialogFragment
  */
 class SaveBrowserSearchDialogFragment : DialogFragment() {
@@ -83,37 +81,6 @@ class SaveBrowserSearchDialogFragment : DialogFragment() {
                         putString(ARG_SEARCH_QUERY, searchQuery)
                     }
             }
-    }
-}
-
-/**
- * Registers a fragment result listener to update [CardBrowser] after the user successfully saves a
- * previously made search from the toolbar.
- */
-fun CardBrowser.registerSaveSearchHandler() {
-    supportFragmentManager.setFragmentResultListener(
-        SaveBrowserSearchDialogFragment.REQUEST_SAVE_SEARCH,
-        this,
-    ) { _, bundle ->
-        val savedSearchName =
-            bundle.getString(RESULT_SEARCH_QUERY_NAME)
-        if (savedSearchName.isNullOrEmpty()) {
-            showSnackbar(
-                CommonString.card_browser_list_my_searches_new_search_error_empty_name,
-                Snackbar.LENGTH_SHORT,
-            )
-            return@setFragmentResultListener
-        }
-        val toSave =
-            SavedSearch(
-                name = savedSearchName,
-                query = bundle.getString(RESULT_SEARCH_QUERY) ?: return@setFragmentResultListener,
-            )
-
-        launchCatchingTask {
-            val saveStatus = viewModel.saveSearch(toSave)
-            updateAfterUserSearchIsSaved(saveStatus)
-        }
     }
 }
 

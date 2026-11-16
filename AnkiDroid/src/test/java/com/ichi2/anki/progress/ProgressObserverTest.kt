@@ -16,7 +16,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
 import com.ichi2.anki.RobolectricTest
 import com.ichi2.anki.dialogs.LoadingDialogFragment
 import com.ichi2.anki.withProgress
@@ -40,6 +39,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 @RunWith(AndroidJUnit4::class)
 class ProgressObserverTest : RobolectricTest() {
@@ -759,7 +759,7 @@ class ProgressObserverTest : RobolectricTest() {
     private fun EmptyAnkiActivity.loadingDialogText() =
         (loadingDialog() as? DialogFragment)
             ?.dialog
-            ?.findViewById<TextView>(R.id.text)
+            ?.findViewById<TextView>(AnkiCommonR.id.text)
             ?.text
             ?.toString()
 

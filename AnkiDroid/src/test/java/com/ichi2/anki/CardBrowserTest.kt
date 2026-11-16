@@ -147,6 +147,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 class CardBrowserTest : RobolectricTest() {
@@ -209,7 +210,7 @@ class CardBrowserTest : RobolectricTest() {
     fun selectAllIsNotVisibleOnceCalled() =
         runTest {
             val browser = browserWithMultipleNotes
-            selectMenuItem(browser, R.id.action_select_all)
+            selectMenuItem(browser, BrowseR.id.action_select_all)
             assertThat(browser.isShowingSelectAll, equalTo(false))
         }
 
@@ -521,7 +522,7 @@ class CardBrowserTest : RobolectricTest() {
         addBasicNote("dog", "barks")
         addBasicNote("cat", "meows")
 
-        fun CardBrowser.subtitle() = findViewById<TextView>(R.id.subtitle).text.toString()
+        fun CardBrowser.subtitle() = findViewById<TextView>(BrowseR.id.subtitle).text.toString()
 
         ActivityScenario.launch(CardBrowser::class.java).use { scenario ->
             scenario.onActivity { browser ->
@@ -1259,7 +1260,7 @@ class CardBrowserTest : RobolectricTest() {
         val cardBrowser = getBrowserWithNotes(2)
         val toolbarTitle =
             assertNotNull(
-                cardBrowser.findViewById<TextView>(R.id.toolbar_title),
+                cardBrowser.findViewById<TextView>(BrowseR.id.toolbar_title),
                 "toolbar title view should exist",
             )
         val locale = LanguageUtil.getLocaleCompat(cardBrowser.resources)
@@ -1366,11 +1367,11 @@ class CardBrowserTest : RobolectricTest() {
         withBrowser {
             showFindAndReplaceDialog()
             // nothing selected so checkbox 'Only selected notes' is not available
-            onView(withId(R.id.only_selected_notes_check_box)).inRoot(isDialog()).check(matches(isNotEnabled()))
-            onView(withId(R.id.only_selected_notes_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
+            onView(withId(BrowseR.id.only_selected_notes_check_box)).inRoot(isDialog()).check(matches(isNotEnabled()))
+            onView(withId(BrowseR.id.only_selected_notes_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
             val fieldSelectorAdapter = getFindReplaceFieldsAdapter()
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
-            onView(withId(R.id.input_as_regex_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
+            onView(withId(BrowseR.id.input_as_regex_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
             // as nothing is selected the fields selector has only the two default options
             assertNotNull(fieldSelectorAdapter, "Fields adapter was not set")
             assertEquals(2, fieldSelectorAdapter.count)
@@ -1433,14 +1434,14 @@ class CardBrowserTest : RobolectricTest() {
             viewModel.selectRowAtPosition(0)
             // by default 'match case' is set to false
             openFindAndReplace()
-            onView(withId(R.id.input_search)).inRoot(isDialog()).perform(ViewActions.typeText("k"))
-            onView(withId(R.id.input_replace)).inRoot(isDialog()).perform(ViewActions.typeText("X"))
-            onView(withId(R.id.input_as_regex_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
+            onView(withId(BrowseR.id.input_search)).inRoot(isDialog()).perform(ViewActions.typeText("k"))
+            onView(withId(BrowseR.id.input_replace)).inRoot(isDialog()).perform(ViewActions.typeText("X"))
+            onView(withId(BrowseR.id.input_as_regex_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
             onData(allOf(`is`(instanceOf(String::class.java)), `is`("Afield0")))
-                .inAdapterView(withId(R.id.fields_selector))
+                .inAdapterView(withId(BrowseR.id.fields_selector))
                 .perform(click())
-            onView(withId(R.id.fields_selector)).check(matches(withSpinnerText(containsString("Afield0"))))
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
+            onView(withId(BrowseR.id.fields_selector)).check(matches(withSpinnerText(containsString("Afield0"))))
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
             // although the positive button exists, clicking it with Espresso doesn't work
             //     onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
             // so simulate clicking the positive button by running the associated method directly
@@ -1467,16 +1468,16 @@ class CardBrowserTest : RobolectricTest() {
             assertEquals(2, viewModel.rowCount)
             viewModel.selectRowAtPosition(1)
             openFindAndReplace()
-            onView(withId(R.id.input_search)).inRoot(isDialog()).perform(ViewActions.typeText("k"))
-            onView(withId(R.id.input_replace)).inRoot(isDialog()).perform(ViewActions.typeText("X"))
-            onView(withId(R.id.input_as_regex_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
+            onView(withId(BrowseR.id.input_search)).inRoot(isDialog()).perform(ViewActions.typeText("k"))
+            onView(withId(BrowseR.id.input_replace)).inRoot(isDialog()).perform(ViewActions.typeText("X"))
+            onView(withId(BrowseR.id.input_as_regex_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
             onData(allOf(`is`(instanceOf(String::class.java)), `is`("Afield0")))
-                .inAdapterView(withId(R.id.fields_selector))
+                .inAdapterView(withId(BrowseR.id.fields_selector))
                 .perform(click())
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).perform(click())
-            onView(withId(R.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).perform(scrollCompletelyTo())
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isChecked()))
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).perform(click())
+            onView(withId(BrowseR.id.ignore_case_check_box)).inRoot(isDialog()).check(matches(isNotChecked()))
             // although the positive button exists, clicking it with Espresso doesn't work
             //     onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
             // so simulate clicking the positive button by running the associated method directly
@@ -1640,22 +1641,22 @@ class CardBrowserTest : RobolectricTest() {
         ) {
             val expectedMenuItems =
                 listOf(
-                    R.id.action_add_note_from_card_browser to true,
-                    R.id.action_search to true,
-                    R.id.action_save_search to false,
-                    R.id.action_list_my_searches to false,
-                    R.id.action_sort_by_size to true,
-                    R.id.action_show_marked to true,
-                    R.id.action_show_suspended to true,
-                    R.id.action_search_by_tag to true,
-                    R.id.action_search_by_flag to true,
+                    BrowseR.id.action_add_note_from_card_browser to true,
+                    BrowseR.id.action_search to true,
+                    BrowseR.id.action_save_search to false,
+                    BrowseR.id.action_list_my_searches to false,
+                    BrowseR.id.action_sort_by_size to true,
+                    BrowseR.id.action_show_marked to true,
+                    BrowseR.id.action_show_suspended to true,
+                    BrowseR.id.action_search_by_tag to true,
+                    BrowseR.id.action_search_by_flag to true,
                     // true due to 'add note'
-                    R.id.action_undo to true,
-                    R.id.action_preview_many to true,
-                    R.id.action_select_all to true,
-                    R.id.action_open_options to true,
-                    R.id.action_create_filtered_deck to true,
-                    R.id.action_find_replace to true,
+                    BrowseR.id.action_undo to true,
+                    BrowseR.id.action_preview_many to true,
+                    BrowseR.id.action_select_all to true,
+                    BrowseR.id.action_open_options to true,
+                    BrowseR.id.action_create_filtered_deck to true,
+                    BrowseR.id.action_find_replace to true,
                 )
 
             assertMenusEqual(expectedMenuItems, menu)
@@ -1728,22 +1729,22 @@ class CardBrowserTest : RobolectricTest() {
         ) {
             val expectedMenuItems =
                 listOf(
-                    R.id.action_add_note_from_card_browser to true,
-                    R.id.action_search to false,
-                    R.id.action_save_search to false,
-                    R.id.action_list_my_searches to false,
-                    R.id.action_sort_by_size to false,
-                    R.id.action_show_marked to false,
-                    R.id.action_show_suspended to false,
-                    R.id.action_search_by_tag to false,
-                    R.id.action_search_by_flag to false,
+                    BrowseR.id.action_add_note_from_card_browser to true,
+                    BrowseR.id.action_search to false,
+                    BrowseR.id.action_save_search to false,
+                    BrowseR.id.action_list_my_searches to false,
+                    BrowseR.id.action_sort_by_size to false,
+                    BrowseR.id.action_show_marked to false,
+                    BrowseR.id.action_show_suspended to false,
+                    BrowseR.id.action_search_by_tag to false,
+                    BrowseR.id.action_search_by_flag to false,
                     // true due to 'add note'
-                    R.id.action_undo to true,
-                    R.id.action_preview_many to true,
-                    R.id.action_select_all to true,
-                    R.id.action_open_options to true,
-                    R.id.action_create_filtered_deck to true,
-                    R.id.action_find_replace to true,
+                    BrowseR.id.action_undo to true,
+                    BrowseR.id.action_preview_many to true,
+                    BrowseR.id.action_select_all to true,
+                    BrowseR.id.action_open_options to true,
+                    BrowseR.id.action_create_filtered_deck to true,
+                    BrowseR.id.action_find_replace to true,
                 )
 
             assertMenusEqual(expectedMenuItems, menu)
@@ -1759,24 +1760,24 @@ class CardBrowserTest : RobolectricTest() {
         ) {
             val expectedMenuItems =
                 listOf(
-                    R.id.action_edit_note to true,
-                    R.id.action_view_card_info to true,
-                    R.id.action_flag to true,
-                    R.id.action_mark_card to true,
-                    R.id.action_suspend_card to true,
-                    R.id.action_toggle_bury to true,
-                    R.id.action_change_note_type to true,
-                    R.id.action_change_deck to true,
-                    R.id.action_reposition_cards to true,
-                    R.id.action_reschedule_cards to true,
-                    R.id.action_edit_tags to true,
-                    R.id.action_grade_now to true,
-                    R.id.action_reset_cards_progress to true,
-                    R.id.action_preview_many to true,
-                    R.id.action_export_selected to true,
-                    R.id.action_find_replace to true,
-                    R.id.action_delete_card to true,
-                    R.id.action_undo to true,
+                    BrowseR.id.action_edit_note to true,
+                    BrowseR.id.action_view_card_info to true,
+                    BrowseR.id.action_flag to true,
+                    BrowseR.id.action_mark_card to true,
+                    BrowseR.id.action_suspend_card to true,
+                    BrowseR.id.action_toggle_bury to true,
+                    BrowseR.id.action_change_note_type to true,
+                    BrowseR.id.action_change_deck to true,
+                    BrowseR.id.action_reposition_cards to true,
+                    BrowseR.id.action_reschedule_cards to true,
+                    BrowseR.id.action_edit_tags to true,
+                    BrowseR.id.action_grade_now to true,
+                    BrowseR.id.action_reset_cards_progress to true,
+                    BrowseR.id.action_preview_many to true,
+                    BrowseR.id.action_export_selected to true,
+                    BrowseR.id.action_find_replace to true,
+                    BrowseR.id.action_delete_card to true,
+                    BrowseR.id.action_undo to true,
                 )
 
             assertMenusEqual(expectedMenuItems, menu)
@@ -1797,24 +1798,24 @@ class CardBrowserTest : RobolectricTest() {
 
             val expectedMenuItems =
                 listOf(
-                    R.id.action_edit_note to false,
-                    R.id.action_view_card_info to false,
-                    R.id.action_flag to false,
-                    R.id.action_mark_card to false,
-                    R.id.action_suspend_card to false,
-                    R.id.action_toggle_bury to false,
-                    R.id.action_change_note_type to false,
-                    R.id.action_change_deck to false,
-                    R.id.action_reposition_cards to false,
-                    R.id.action_reschedule_cards to false,
-                    R.id.action_edit_tags to false,
-                    R.id.action_grade_now to false,
-                    R.id.action_reset_cards_progress to false,
-                    R.id.action_preview_many to true,
-                    R.id.action_export_selected to false,
-                    R.id.action_find_replace to true,
-                    R.id.action_delete_card to false,
-                    R.id.action_undo to true,
+                    BrowseR.id.action_edit_note to false,
+                    BrowseR.id.action_view_card_info to false,
+                    BrowseR.id.action_flag to false,
+                    BrowseR.id.action_mark_card to false,
+                    BrowseR.id.action_suspend_card to false,
+                    BrowseR.id.action_toggle_bury to false,
+                    BrowseR.id.action_change_note_type to false,
+                    BrowseR.id.action_change_deck to false,
+                    BrowseR.id.action_reposition_cards to false,
+                    BrowseR.id.action_reschedule_cards to false,
+                    BrowseR.id.action_edit_tags to false,
+                    BrowseR.id.action_grade_now to false,
+                    BrowseR.id.action_reset_cards_progress to false,
+                    BrowseR.id.action_preview_many to true,
+                    BrowseR.id.action_export_selected to false,
+                    BrowseR.id.action_find_replace to true,
+                    BrowseR.id.action_delete_card to false,
+                    BrowseR.id.action_undo to true,
                 )
 
             assertMenusEqual(expectedMenuItems, menu)
@@ -1830,23 +1831,23 @@ class CardBrowserTest : RobolectricTest() {
         ) {
             val expectedMenuItems =
                 listOf(
-                    R.id.action_add_note_from_card_browser to true,
-                    R.id.action_search to true,
+                    BrowseR.id.action_add_note_from_card_browser to true,
+                    BrowseR.id.action_search to true,
                     // 'deck:"Default"' may occur
-                    R.id.action_save_search to null,
-                    R.id.action_list_my_searches to false,
-                    R.id.action_sort_by_size to true,
-                    R.id.action_show_marked to true,
-                    R.id.action_show_suspended to true,
-                    R.id.action_search_by_tag to true,
-                    R.id.action_search_by_flag to true,
+                    BrowseR.id.action_save_search to null,
+                    BrowseR.id.action_list_my_searches to false,
+                    BrowseR.id.action_sort_by_size to true,
+                    BrowseR.id.action_show_marked to true,
+                    BrowseR.id.action_show_suspended to true,
+                    BrowseR.id.action_search_by_tag to true,
+                    BrowseR.id.action_search_by_flag to true,
                     // true due to 'add note'
-                    R.id.action_undo to true,
-                    R.id.action_preview_many to false,
-                    R.id.action_select_all to true,
-                    R.id.action_open_options to true,
-                    R.id.action_create_filtered_deck to true,
-                    R.id.action_find_replace to true,
+                    BrowseR.id.action_undo to true,
+                    BrowseR.id.action_preview_many to false,
+                    BrowseR.id.action_select_all to true,
+                    BrowseR.id.action_open_options to true,
+                    BrowseR.id.action_create_filtered_deck to true,
+                    BrowseR.id.action_find_replace to true,
                     // Note Editor
                     R.id.action_save to true,
                     R.id.action_preview to true,
@@ -1872,24 +1873,24 @@ class CardBrowserTest : RobolectricTest() {
             val expectedMenuItems =
                 listOf(
                     // should never be enabled, the fragment handles the editing
-                    R.id.action_edit_note to false,
-                    R.id.action_view_card_info to true,
-                    R.id.action_flag to true,
-                    R.id.action_mark_card to true,
-                    R.id.action_suspend_card to true,
-                    R.id.action_toggle_bury to true,
-                    R.id.action_change_note_type to true,
-                    R.id.action_change_deck to true,
-                    R.id.action_reposition_cards to true,
-                    R.id.action_reschedule_cards to true,
-                    R.id.action_edit_tags to true,
-                    R.id.action_grade_now to true,
-                    R.id.action_reset_cards_progress to true,
-                    R.id.action_preview_many to false,
-                    R.id.action_export_selected to true,
-                    R.id.action_find_replace to true,
-                    R.id.action_delete_card to true,
-                    R.id.action_undo to true,
+                    BrowseR.id.action_edit_note to false,
+                    BrowseR.id.action_view_card_info to true,
+                    BrowseR.id.action_flag to true,
+                    BrowseR.id.action_mark_card to true,
+                    BrowseR.id.action_suspend_card to true,
+                    BrowseR.id.action_toggle_bury to true,
+                    BrowseR.id.action_change_note_type to true,
+                    BrowseR.id.action_change_deck to true,
+                    BrowseR.id.action_reposition_cards to true,
+                    BrowseR.id.action_reschedule_cards to true,
+                    BrowseR.id.action_edit_tags to true,
+                    BrowseR.id.action_grade_now to true,
+                    BrowseR.id.action_reset_cards_progress to true,
+                    BrowseR.id.action_preview_many to false,
+                    BrowseR.id.action_export_selected to true,
+                    BrowseR.id.action_find_replace to true,
+                    BrowseR.id.action_delete_card to true,
+                    BrowseR.id.action_undo to true,
                     // Note Editor
                     R.id.action_save to true,
                     R.id.action_preview to true,
@@ -1955,7 +1956,7 @@ class CardBrowserTest : RobolectricTest() {
         }
 
         withBrowser(noteCount = 1, fragmented = true) {
-            val editorPane = findViewById<View>(R.id.note_editor_frame)
+            val editorPane = findViewById<View>(BrowseR.id.note_editor_frame)
             assertThat(
                 "the browser's editor pane keeps its default weight",
                 (editorPane.layoutParams as LinearLayout.LayoutParams).weight,
@@ -1995,21 +1996,21 @@ class CardBrowserTest : RobolectricTest() {
         ) {
             val expectedMenuItems =
                 listOf(
-                    R.id.action_add_note_from_card_browser to true,
-                    R.id.action_search to false,
-                    R.id.action_save_search to false,
-                    R.id.action_list_my_searches to false,
-                    R.id.action_sort_by_size to false,
-                    R.id.action_show_marked to false,
-                    R.id.action_show_suspended to false,
-                    R.id.action_search_by_tag to false,
-                    R.id.action_search_by_flag to false,
-                    R.id.action_undo to false,
-                    R.id.action_preview_many to false,
-                    R.id.action_select_all to false,
-                    R.id.action_open_options to true,
-                    R.id.action_create_filtered_deck to true,
-                    R.id.action_find_replace to true,
+                    BrowseR.id.action_add_note_from_card_browser to true,
+                    BrowseR.id.action_search to false,
+                    BrowseR.id.action_save_search to false,
+                    BrowseR.id.action_list_my_searches to false,
+                    BrowseR.id.action_sort_by_size to false,
+                    BrowseR.id.action_show_marked to false,
+                    BrowseR.id.action_show_suspended to false,
+                    BrowseR.id.action_search_by_tag to false,
+                    BrowseR.id.action_search_by_flag to false,
+                    BrowseR.id.action_undo to false,
+                    BrowseR.id.action_preview_many to false,
+                    BrowseR.id.action_select_all to false,
+                    BrowseR.id.action_open_options to true,
+                    BrowseR.id.action_create_filtered_deck to true,
+                    BrowseR.id.action_find_replace to true,
                 )
 
             assertMenusEqual(expectedMenuItems, menu)
@@ -2028,7 +2029,7 @@ class CardBrowserTest : RobolectricTest() {
             assertEquals(0, viewModel.cards.size, "no cards")
 
             val item = assertNotNull(menu[0])
-            val expectedId = R.id.action_add_note_from_card_browser
+            val expectedId = BrowseR.id.action_add_note_from_card_browser
 
             val name = resources.getResourceName(item.itemId)
             val expectedResourceName = resources.getResourceName(expectedId)
@@ -2057,7 +2058,7 @@ class CardBrowserTest : RobolectricTest() {
             assertEquals(true, isSuspended(), "Unsuspended card should be suspended after toggleSuspend")
 
             // Get the Undo menu item on the action bar and its action view (the Undo button).
-            val undoItem = menu.findItem(R.id.action_undo)
+            val undoItem = menu.findItem(BrowseR.id.action_undo)
             val actionView = undoItem?.actionView
 
             // Simulate user's tapping the Undo button.
@@ -2081,7 +2082,7 @@ class CardBrowserTest : RobolectricTest() {
             assertEquals(1, viewModel.cards.size, "cards exist")
 
             val item = assertNotNull(menu[0])
-            val expectedId = R.id.action_preview_many
+            val expectedId = BrowseR.id.action_preview_many
 
             val name = resources.getResourceName(item.itemId)
             val expectedResourceName = resources.getResourceName(expectedId)
@@ -2165,7 +2166,7 @@ class CardBrowserTest : RobolectricTest() {
     private fun CardBrowser.getFindReplaceFieldsAdapter(): SpinnerAdapter {
         val findReplaceDialog = supportFragmentManager.findFragmentByTag(FindAndReplaceDialogFragment.TAG) as? DialogFragment
         assertNotNull(findReplaceDialog, "Find and replace dialog is not available")
-        val adapter = findReplaceDialog.dialog?.findViewById<Spinner>(R.id.fields_selector)?.adapter
+        val adapter = findReplaceDialog.dialog?.findViewById<Spinner>(BrowseR.id.fields_selector)?.adapter
         assertNotNull(adapter, "Find and replace fields adapter is not available")
         return adapter
     }
@@ -2316,7 +2317,7 @@ fun CardBrowser.getVisibleRows() =
 val CardBrowser.isShowingSelectAll: Boolean
     get() {
         advanceRobolectricLooper()
-        return this.menu().findItem(R.id.action_select_all)?.isVisible == true
+        return this.menu().findItem(BrowseR.id.action_select_all)?.isVisible == true
     }
 
 val CardBrowser.columnHeadingViews

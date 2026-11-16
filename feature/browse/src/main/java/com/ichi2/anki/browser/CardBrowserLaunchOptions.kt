@@ -7,7 +7,7 @@ import androidx.annotation.CheckResult
 import com.ichi2.anki.common.utils.ext.getLongExtra
 import com.ichi2.anki.libanki.CardId
 
-/** How the [com.ichi2.anki.CardBrowser] can be launched */
+/** How the the Card Browser can be launched */
 sealed interface CardBrowserLaunchOptions {
     data class DeepLink(
         val search: String,

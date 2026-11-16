@@ -32,6 +32,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import com.ichi2.anki.browse.R as BrowseR
 
 class PreferencesScreenshotTest : ScreenshotTest() {
     @After
@@ -220,7 +221,7 @@ class PreferencesScreenshotTest : ScreenshotTest() {
                 (activity.settingsFragment as PreferenceFragmentCompat).listView
             }
             isSubclassOf(ReviewerMenuSettingsFragment::class) -> { activity ->
-                activity.settingsFragment!!.requireView().findViewById(R.id.recycler_view)
+                activity.settingsFragment!!.requireView().findViewById(BrowseR.id.recycler_view)
             }
             else -> null
         }

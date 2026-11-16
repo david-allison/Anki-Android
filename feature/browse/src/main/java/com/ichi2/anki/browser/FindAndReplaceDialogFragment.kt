@@ -12,14 +12,14 @@ import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.HtmlCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
+import com.ichi2.anki.browse.databinding.FragmentFindReplaceBinding
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.REQUEST_FIND_AND_REPLACE
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_FIELD
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_MATCH_CASE
@@ -27,9 +27,7 @@ import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_ONLY
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_REGEX
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_REPLACEMENT
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.RESULT_SEARCH
-import com.ichi2.anki.databinding.FragmentFindReplaceBinding
 import com.ichi2.anki.libanki.NoteId
-import com.ichi2.anki.notetype.ManageNotetypes
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.requireParcelable
@@ -43,15 +41,16 @@ import com.ichi2.utils.show
 import com.ichi2.utils.title
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 /**
- * Dialog that shows the options for finding and replacing the text of notes in [CardBrowser].
+ * Dialog that shows the options for finding and replacing the text of notes in the Card Browser.
  *
  * Note for completeness:
  *
  * Desktop also shows the fields of a note in the browser and the user can right-click on one of
  * them to start a find and replace only for that field. We display the fields only in
- * [ManageNotetypes] which doesn't feel like it should have this feature.
+ * the note type manager which doesn't feel like it should have this feature.
  * (see https://github.com/ankitects/anki/blob/64ca90934bc26ddf7125913abc9dd9de8cb30c2b/qt/aqt/browser/sidebar/tree.py#L1074)
  */
 // TODO desktop offers history for inputs
@@ -71,7 +70,7 @@ class FindAndReplaceDialogFragment : AnalyticsDialogFragment() {
             .show {
                 title(text = title)
                 customView(binding.root)
-                neutralButton(CommonString.help) { openUrl(R.string.link_manual_browser_find_replace) }
+                neutralButton(CommonString.help) { openUrl(AnkiCommonR.string.link_manual_browser_find_replace) }
                 negativeButton(CommonString.dialog_cancel) { removeIdsFile() }
                 positiveButton(CommonString.dialog_positive_replace) { startFindReplace() }
             }.also { dialog ->
@@ -200,7 +199,7 @@ class FindAndReplaceDialogFragment : AnalyticsDialogFragment() {
     }
 }
 
-fun CardBrowser.registerFindReplaceHandler(action: (FindReplaceResult) -> Unit) {
+fun FragmentActivity.registerFindReplaceHandler(action: (FindReplaceResult) -> Unit) {
     setFragmentResultListener(REQUEST_FIND_AND_REPLACE) { _, bundle ->
         action(
             FindReplaceResult(

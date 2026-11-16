@@ -5,6 +5,7 @@ package com.ichi2.testutils
 import android.content.SharedPreferences
 import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
 import com.ichi2.anki.AnkiDroidApp
+import com.ichi2.anki.browser.BrowserPreferences
 import com.ichi2.anki.common.preferences.SharedPreferencesTestHook
 import org.junit.rules.TestRule
 import org.junit.runner.Description
@@ -27,13 +28,16 @@ class JvmPreferencesRule : TestRule {
             override fun evaluate() {
                 val previous = SharedPreferencesTestHook.override
                 val previousResources = AnkiDroidApp.resourcesTestingOverride
+                val previousBrowserResources = BrowserPreferences.resourcesTestingOverride
                 try {
                     AnkiDroidApp.resourcesTestingOverride = resources
+                    BrowserPreferences.resourcesTestingOverride = resources
                     SharedPreferencesTestHook.override = preferences
                     base.evaluate()
                 } finally {
                     SharedPreferencesTestHook.override = previous
                     AnkiDroidApp.resourcesTestingOverride = previousResources
+                    BrowserPreferences.resourcesTestingOverride = previousBrowserResources
                 }
             }
         }

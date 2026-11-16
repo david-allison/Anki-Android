@@ -76,6 +76,7 @@ import com.ichi2.utils.boldList
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -102,7 +103,7 @@ class ChangeNoteTypeDialog : AnalyticsDialogFragment(R.layout.dialog_change_note
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, R.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
+        setStyle(STYLE_NO_TITLE, AnkiCommonR.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
         setupFlows()
     }
 
@@ -307,7 +308,7 @@ class ChangeNoteTypeDialog : AnalyticsDialogFragment(R.layout.dialog_change_note
             val binding = ViewTabLayoutIconOnStartBinding.inflate(LayoutInflater.from(tabLayout.context), tabLayout, false)
             when (position) {
                 0 -> {
-                    binding.tabIcon.setImageResource(R.drawable.ic_mode_edit_white)
+                    binding.tabIcon.setImageResource(AnkiCommonR.drawable.ic_mode_edit_white)
                     binding.tabText.text = TR.changeNotetypeFields()
                 }
                 1 -> {

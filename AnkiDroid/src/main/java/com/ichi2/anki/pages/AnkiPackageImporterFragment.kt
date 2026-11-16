@@ -9,9 +9,9 @@ import android.view.View
 import android.webkit.WebView
 import com.google.android.material.appbar.MaterialToolbar
 import com.ichi2.anki.CollectionManager.TR
-import com.ichi2.anki.R
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.hideShowButtonCss
+import com.ichi2.anki.browse.R as BrowseR
 
 class AnkiPackageImporterFragment : PageFragment() {
     override val pagePath: String by lazy {
@@ -33,7 +33,7 @@ class AnkiPackageImporterFragment : PageFragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
-        view.findViewById<MaterialToolbar>(R.id.toolbar)?.title = TR.actionsImport()
+        view.findViewById<MaterialToolbar>(BrowseR.id.toolbar)?.title = TR.actionsImport()
     }
 
     override suspend fun handlePostRequest(

@@ -35,6 +35,7 @@ import timber.log.Timber
 import java.lang.ref.WeakReference
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 object ReadText {
     @get:VisibleForTesting(otherwise = VisibleForTesting.NONE)
@@ -132,7 +133,7 @@ object ReadText {
             Timber.w("ReadText.textToSpeech() no TTS languages available")
             dialog
                 .message(CommonString.no_tts_available_message)
-                .setIcon(R.drawable.ic_warning)
+                .setIcon(AnkiCommonR.drawable.ic_warning)
                 .positiveButton(CommonString.dialog_ok)
         } else {
             val localeMappings: List<Pair<String, CharSequence>> =

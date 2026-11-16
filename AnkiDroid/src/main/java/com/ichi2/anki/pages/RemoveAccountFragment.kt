@@ -21,6 +21,7 @@ import com.ichi2.anki.workarounds.OnWebViewRecreatedListener
 import com.ichi2.anki.workarounds.SafeWebViewClient
 import com.ichi2.anki.workarounds.SafeWebViewLayout
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Displays a WebView to remove an AnkiWeb account
@@ -77,7 +78,7 @@ class RemoveAccountFragment :
         setupEdgeToEdge(view)
         webViewLayout = view.findViewById(R.id.webview_layout)
         setupWebView()
-        view.findViewById<MaterialToolbar?>(R.id.toolbar)?.apply {
+        view.findViewById<MaterialToolbar?>(BrowseR.id.toolbar)?.apply {
             title = getString(CommonString.remove_account)
             setNavigationOnClickListener {
                 requireActivity().onBackPressedDispatcher.onBackPressed()

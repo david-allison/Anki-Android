@@ -12,11 +12,11 @@ import anki.collection.OpChanges
 import anki.collection.OpChangesWithCount
 import anki.search.BrowserColumns
 import anki.search.BrowserRow
-import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionManager
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.Flag
+import com.ichi2.anki.browser.BrowserPreferences
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.MultiSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ChangeMultiSelectMode.SingleSelectCause
 import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_ALL
@@ -24,6 +24,7 @@ import com.ichi2.anki.browser.CardBrowserViewModel.ToggleSelectionState.SELECT_N
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.ALL_FIELDS_AS_FIELD
 import com.ichi2.anki.browser.FindAndReplaceDialogFragment.Companion.TAGS_AS_FIELD
 import com.ichi2.anki.browser.RepositionCardsRequest.RepositionData
+import com.ichi2.anki.browser.browserSharedPrefs
 import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.browser.search.SavedSearches
 import com.ichi2.anki.browser.search.SearchFilters
@@ -37,7 +38,6 @@ import com.ichi2.anki.common.destinations.CardInfoDestination.EntryPoint
 import com.ichi2.anki.common.destinations.NoteEditorDestination
 import com.ichi2.anki.common.ui.TransitionDirection
 import com.ichi2.anki.common.utils.ext.indexOfOrNull
-import com.ichi2.anki.export.ExportDialogFragment.ExportType
 import com.ichi2.anki.launchCatchingIO
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
@@ -59,7 +59,6 @@ import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.preferences.SharedPreferencesProvider
 import com.ichi2.anki.progress.HasProgress
 import com.ichi2.anki.progress.ProgressManager
-import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.utils.ViewModelSavedStateHandle
 import com.ichi2.anki.utils.ext.getCardOrNull
 import com.ichi2.anki.utils.ext.setUserFlagForCards
@@ -106,7 +105,7 @@ typealias ReverseDirection = Boolean
 // TODO: move the tag computation to ViewModel
 
 /**
- * ViewModel for [com.ichi2.anki.CardBrowser]
+ * ViewModel for the Card Browser
  *
  * @param lastDeckIdRepository returns the last selected ID. See [LastDeckIdRepository]
  * @param idsFileDirectory Location to store data too large to pass via intent. See [IdsFile.getDirectory]
@@ -406,7 +405,7 @@ class CardBrowserViewModel(
         }
 
     @VisibleForTesting
-    internal suspend fun queryAllCardIds() = cards.queryCardIds()
+    suspend fun queryAllCardIds() = cards.queryCardIds()
 
     var lastSelectedId: CardOrNoteId? = null
 
@@ -614,7 +613,7 @@ class CardBrowserViewModel(
             browserOptionsRepository.load()
 
             // Apply the default search (if available)
-            if (Prefs.devUsingCardBrowserSearchView) {
+            if (BrowserPreferences.devUsingCardBrowserSearchView) {
                 searchTerms = searchTerms.ifEmpty { defaultBrowserSearch }
             }
 
@@ -664,7 +663,7 @@ class CardBrowserViewModel(
      *
      * Call from [com.ichi2.anki.common.utils.ext.onPermanentDismissal], never from [onCleared].
      */
-    internal fun deleteSavedSelectionFile() {
+    fun deleteSavedSelectionFile() {
         multiselectStateFile?.removeSafely("CardBrowserViewModel")
         multiselectStateFile = null
     }
@@ -873,7 +872,7 @@ class CardBrowserViewModel(
 
     fun setDefaultSearchText(text: String) =
         viewModelScope.launch {
-            if (!Prefs.devUsingCardBrowserSearchView) return@launch
+            if (!BrowserPreferences.devUsingCardBrowserSearchView) return@launch
             browserOptionsRepository.setDefaultBrowserSearch(text)
         }
 
@@ -1167,11 +1166,11 @@ class CardBrowserViewModel(
         }
     }
 
-    fun querySelectionExportData(): Pair<ExportType, List<Long>>? {
+    fun querySelectionExportData(): Pair<CardsOrNotes, List<Long>>? {
         if (!hasSelectedAnyRows()) return null
         return when (this.cardsOrNotes) {
-            CARDS -> Pair(ExportType.Cards, selectedRows.map { it.cardOrNoteId })
-            NOTES -> Pair(ExportType.Notes, selectedRows.map { it.cardOrNoteId })
+            CARDS -> Pair(CARDS, selectedRows.map { it.cardOrNoteId })
+            NOTES -> Pair(NOTES, selectedRows.map { it.cardOrNoteId })
         }
     }
 
@@ -1686,7 +1685,7 @@ class CardBrowserViewModel(
                 lastDeckIdRepository,
                 idsFileDirectory,
                 options,
-                preferencesProvider ?: AnkiDroidApp.sharedPreferencesProvider,
+                preferencesProvider ?: SharedPreferencesProvider { browserSharedPrefs() },
                 isFragmented,
                 initialDeckId,
                 handle,

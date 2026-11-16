@@ -10,7 +10,7 @@ import com.ichi2.anki.libanki.DeckNameId
 import com.ichi2.anki.libanki.SearchJoiner
 
 /**
- * Represents a search in the [com.ichi2.anki.CardBrowser].
+ * Represents a search in the the Card Browser.
  *
  * It is not guaranteed that this request is valid. Validation is performed in [toSearchString].
  */

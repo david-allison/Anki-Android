@@ -46,6 +46,8 @@ import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.IOException
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 class PreviewerFragment :
     CardViewerFragment(R.layout.fragment_previewer),
@@ -122,7 +124,7 @@ class PreviewerFragment :
                     setIcon(R.drawable.ic_star)
                     setTitle(CommonString.menu_unmark_note)
                 } else {
-                    setIcon(R.drawable.ic_star_border_white)
+                    setIcon(AnkiCommonR.drawable.ic_star_border_white)
                     title = TR.sentenceCase.markNote
                 }
             }
@@ -130,7 +132,7 @@ class PreviewerFragment :
 
         // handle selection of a new flag
         viewModel.flag.collectInViewLifecycle { flag ->
-            menu.findItem(R.id.action_flag).setIcon(flag.drawableRes)
+            menu.findItem(BrowseR.id.action_flag).setIcon(flag.drawableRes)
         }
 
         @NeedsTest("webview don't vanish when only one card is in the list")
@@ -202,8 +204,8 @@ class PreviewerFragment :
     }
 
     private fun setupFlagMenu(menu: Menu) {
-        menu.findItem(R.id.action_flag).title = TR.sentenceCase.flagCard
-        val submenu = menu.findItem(R.id.action_flag).subMenu
+        menu.findItem(BrowseR.id.action_flag).title = TR.sentenceCase.flagCard
+        val submenu = menu.findItem(BrowseR.id.action_flag).subMenu
         lifecycleScope.launch {
             for ((flag, name) in Flag.queryDisplayNames(requireContext())) {
                 submenu
@@ -218,14 +220,14 @@ class PreviewerFragment :
             R.id.action_edit -> editCard()
             R.id.action_mark -> viewModel.toggleMark()
             R.id.action_back_side_only -> viewModel.toggleBackSideOnly()
-            R.id.flag_none -> viewModel.setFlag(Flag.NONE)
-            R.id.flag_red -> viewModel.setFlag(Flag.RED)
-            R.id.flag_orange -> viewModel.setFlag(Flag.ORANGE)
-            R.id.flag_green -> viewModel.setFlag(Flag.GREEN)
-            R.id.flag_blue -> viewModel.setFlag(Flag.BLUE)
-            R.id.flag_pink -> viewModel.setFlag(Flag.PINK)
-            R.id.flag_turquoise -> viewModel.setFlag(Flag.TURQUOISE)
-            R.id.flag_purple -> viewModel.setFlag(Flag.PURPLE)
+            AnkiCommonR.id.flag_none -> viewModel.setFlag(Flag.NONE)
+            AnkiCommonR.id.flag_red -> viewModel.setFlag(Flag.RED)
+            AnkiCommonR.id.flag_orange -> viewModel.setFlag(Flag.ORANGE)
+            AnkiCommonR.id.flag_green -> viewModel.setFlag(Flag.GREEN)
+            AnkiCommonR.id.flag_blue -> viewModel.setFlag(Flag.BLUE)
+            AnkiCommonR.id.flag_pink -> viewModel.setFlag(Flag.PINK)
+            AnkiCommonR.id.flag_turquoise -> viewModel.setFlag(Flag.TURQUOISE)
+            AnkiCommonR.id.flag_purple -> viewModel.setFlag(Flag.PURPLE)
         }
         return true
     }

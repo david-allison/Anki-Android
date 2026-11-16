@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowDialog
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 class CardTemplateRepositionTest : RobolectricTest() {
@@ -306,7 +307,7 @@ class CardTemplateRepositionTest : RobolectricTest() {
     }
 
     private fun CardTemplateEditor.saveChanges() {
-        assertTrue(shadowOf(this).clickMenuItem(R.id.action_confirm))
+        assertTrue(shadowOf(this).clickMenuItem(BrowseR.id.action_confirm))
         advanceRobolectricLooper()
     }
 }

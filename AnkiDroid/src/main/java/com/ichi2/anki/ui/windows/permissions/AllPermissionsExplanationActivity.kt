@@ -14,6 +14,7 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.commit
 import com.ichi2.anki.AnkiActivity
 import com.ichi2.anki.R
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * When the user opens the Android settings app and navigates to AnkiDroid's permissions,
@@ -43,7 +44,7 @@ class AllPermissionsExplanationActivity : AnkiActivity() {
     private fun setupEdgeToEdge() {
         // systemBars (not just statusBars) so a landscape 3-button navigation bar,
         // which is a side inset, is also cleared
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root_layout)) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(BrowseR.id.root_layout)) { view, insets ->
             val bars = insets.getInsets(systemBars() or displayCutout())
             view.updatePadding(left = bars.left, top = bars.top, right = bars.right, bottom = bars.bottom)
             insets

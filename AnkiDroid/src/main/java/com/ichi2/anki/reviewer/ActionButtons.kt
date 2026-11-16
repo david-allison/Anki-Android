@@ -6,7 +6,7 @@ import android.content.SharedPreferences
 import android.view.Menu
 import androidx.annotation.IdRes
 import androidx.appcompat.view.menu.MenuItemImpl
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.R as BrowseR
 
 class ActionButtons {
     // DEFECT: This should be private - it breaks the law of demeter, but it'll be a large refactoring to get
@@ -30,9 +30,9 @@ class ActionButtons {
 
     companion object {
         @IdRes
-        val RES_FLAG = R.id.action_flag
+        val RES_FLAG = BrowseR.id.action_flag
 
         @IdRes
-        val RES_MARK = R.id.action_mark_card
+        val RES_MARK = BrowseR.id.action_mark_card
     }
 }

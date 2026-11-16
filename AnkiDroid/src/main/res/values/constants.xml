@@ -105,7 +105,7 @@
     <string name="link_help_ar">https://docs.ankidroid.org/help-ar.html</string>
     <string name="link_manual_ar">https://docs.ankidroid.org/manual-ar.html</string>
     <string name="link_manual_note_format_toolbar">https://docs.ankidroid.org/manual.html#noteFormattingToolbar</string>
-    <string name="link_manual_browser_find_replace">https://docs.ankiweb.net/browsing.html#find-and-replace</string>
+
     <string name="link_sync_conflict_help">https://docs.ankidroid.org/#AnkiWebConflicts</string>
     <string name="link_user_actions_help">https://docs.ankidroid.org/#userActions</string>
     <string name="link_faq_tts">https://github.com/ankidroid/Anki-Android/wiki/FAQ#tts--text-to-speech-is-not-speaking</string>
@@ -141,7 +141,7 @@
     <string name="link_full_storage_access">https://github.com/ankidroid/Anki-Android/wiki/Full-Storage-Access</string>
     <string name="link_help_forget_cards">https://docs.ankiweb.net/studying.html#editing-and-more</string>
     <string name="link_scheduler_upgrade_faq">https://faqs.ankiweb.net/the-anki-2.1-scheduler.html#updating-to-v2-from-v1</string>
-    <string name="link_help_searching">https://docs.ankiweb.net/searching.html#simple-searches</string>
+
     <string name="link_filtered_decks_help">https://docs.ankiweb.net/filtered-decks.html</string>
 
     <string-array name="add_to_cur_values">
@@ -229,7 +229,6 @@
         <item>@string/reviewer_toolbar_value_bottom</item>
         <item>@string/reviewer_toolbar_value_none</item>
     </string-array>
-
 
     <!-- Preferences headers summaries -->
     <string-array name="general_summary_entries">
@@ -329,7 +328,6 @@
     <!-- See LEGACY_POST_NOTIFICATIONS. -->
     <string name="legacy_post_notification_permission">NOTIFICATIONS_BEFORE_API_33_DUMMY_SENTINEL</string>
     <string name="record_audio_permission">android.permission.RECORD_AUDIO</string>
-
 
     <string-array name="import_cache_error_resolutions">
         <item>@string/import_error_resolution_try_again</item>

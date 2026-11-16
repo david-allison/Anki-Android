@@ -18,6 +18,7 @@ import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.lessThan
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Edge-to-edge inset handling for [CardBrowser].
@@ -166,7 +167,7 @@ class CardBrowserInsetsTest : RobolectricTest() {
             browser.dispatchInsets(navBarRight = 48.dp, cutoutLeft = 32.dp)
             browser.layoutForTest()
 
-            val toolbar = browser.findViewById<View>(R.id.toolbar_container)
+            val toolbar = browser.findViewById<View>(BrowseR.id.toolbar_container)
             assertThat(
                 "toolbar is padded past the cutout",
                 toolbar.paddingLeft,
@@ -189,7 +190,7 @@ class CardBrowserInsetsTest : RobolectricTest() {
 
             val fragmentRoot =
                 browser.supportFragmentManager
-                    .findFragmentById(R.id.card_browser_frame)!!
+                    .findFragmentById(BrowseR.id.card_browser_frame)!!
                     .requireView()
             assertThat(
                 "content is padded past the side navigation bar",
@@ -237,10 +238,10 @@ class CardBrowserInsetsTest : RobolectricTest() {
         get() = distanceToParentBottom + paddingBottom
 
     private val CardBrowser.cardList: RecyclerView
-        get() = findViewById(R.id.card_browser_list)
+        get() = findViewById(BrowseR.id.card_browser_list)
 
     private val CardBrowser.fastScroller: RecyclerFastScroller
-        get() = findViewById(R.id.browser_scroller)
+        get() = findViewById(BrowseR.id.browser_scroller)
 
     /** Forces a measure/layout pass so view bounds (not just padding/insets) can be asserted. */
     private fun CardBrowser.layoutForTest() {

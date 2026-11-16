@@ -21,8 +21,8 @@ import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import com.ichi2.anki.CollectionManager.TR
+import com.ichi2.anki.browse.databinding.ActivityCardBrowserAppearanceBinding
 import com.ichi2.anki.common.utils.android.showThemedToast
-import com.ichi2.anki.databinding.ActivityCardBrowserAppearanceBinding
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.libanki.CardTemplate
 import com.ichi2.anki.ui.internationalization.sentenceCase
@@ -33,13 +33,14 @@ import com.ichi2.utils.show
 import dev.androidbroadcast.vbpd.viewBinding
 import org.jetbrains.annotations.Contract
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Allows specification of the Question and Answer format of a card template in the Card Browser
  * This is known as "Browser Appearance" in Anki
  * We do not allow the user to change fonts as Android only has a handful
  * We do not allow the user to change the font size as this can be done in the Appearance settings.
  */
-class CardTemplateBrowserAppearanceEditor : AnkiActivity(R.layout.activity_card_browser_appearance) {
+class CardTemplateBrowserAppearanceEditor : BaseAnkiActivity(BrowseR.layout.activity_card_browser_appearance) {
     private val binding by viewBinding(ActivityCardBrowserAppearanceBinding::bind)
 
     // start with the callback disabled as there aren't any changes yet
@@ -92,18 +93,18 @@ class CardTemplateBrowserAppearanceEditor : AnkiActivity(R.layout.activity_card_
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.card_template_browser_appearance_editor, menu)
+        menuInflater.inflate(BrowseR.menu.card_template_browser_appearance_editor, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_confirm -> {
+            BrowseR.id.action_confirm -> {
                 Timber.i("Save pressed")
                 saveAndExit()
                 return true
             }
-            R.id.action_restore_default -> {
+            BrowseR.id.action_restore_default -> {
                 Timber.i("Restore Default pressed")
                 showRestoreDefaultDialog()
                 return true
@@ -155,7 +156,7 @@ class CardTemplateBrowserAppearanceEditor : AnkiActivity(R.layout.activity_card_
 
         discardChangesCallback.isEnabled = hasChanges()
 
-        enableToolbar()
+        setSupportActionBar(binding.toolbar)
         title = TR.sentenceCase.browserAppearance
     }
 

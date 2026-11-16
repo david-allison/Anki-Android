@@ -42,6 +42,7 @@ import com.ichi2.compose.ui.components.AnkiDroidExtendedFab
 import com.ichi2.compose.ui.dialogs.MessageDialog
 import com.ichi2.compose.ui.preview.ThemePreviews
 import androidx.appcompat.R as AppCompatR
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 /**
  * Stateless screen listing the user's profiles, with a FAB to add a new one.
@@ -220,7 +221,7 @@ private fun ProfileRow(
         }
         IconButton(onClick = onDeleteClick) {
             Icon(
-                painterResource(R.drawable.ic_delete),
+                painterResource(AnkiCommonR.drawable.ic_delete),
                 contentDescription = stringResource(CommonString.delete_profile),
             )
         }

@@ -52,6 +52,7 @@ import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertContentEquals
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 @Config(shadows = [ShadowFileProviderPathStrategy::class, ShadowPreviewTranslations::class])
@@ -120,7 +121,7 @@ class MultimediaImageFragmentExternalEditorTest : RobolectricTest(loadBackend = 
     private fun assertPickedPngCanBeEdited(displayName: String) {
         targetContext.registerExternalImageEditor()
         withImageFragment {
-            requireView().id = R.id.root_layout
+            requireView().id = BrowseR.id.root_layout
             val gallery = shadowOf(requireActivity()).nextStartedActivityForResult.intent
             val source = File(requireContext().cacheDir, "provider-source.png")
             source.outputStream().use {
@@ -386,7 +387,7 @@ class MultimediaImageFragmentExternalEditorTest : RobolectricTest(loadBackend = 
     }
 
     private fun MultimediaImageFragment.launchExternalEditor(): IntentForResult {
-        requireView().id = R.id.root_layout
+        requireView().id = BrowseR.id.root_layout
         val activity = shadowOf(requireActivity())
         // Discard the gallery request made when the empty fragment starts.
         while (activity.nextStartedActivityForResult != null) { /* drain */ }

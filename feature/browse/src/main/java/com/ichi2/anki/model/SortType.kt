@@ -4,9 +4,9 @@ package com.ichi2.anki.model
 
 import android.os.Parcelable
 import anki.search.BrowserColumns.Column
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.browser.BrowserColumnKey
+import com.ichi2.anki.browser.BrowserPreferences
 import com.ichi2.anki.common.utils.ext.browserSortCardsBackwards
 import com.ichi2.anki.common.utils.ext.browserSortCardsColumn
 import com.ichi2.anki.common.utils.ext.browserSortNotesBackwards
@@ -14,17 +14,16 @@ import com.ichi2.anki.common.utils.ext.browserSortNotesColumn
 import com.ichi2.anki.libanki.BrowserConfig
 import com.ichi2.anki.libanki.SortOrder
 import com.ichi2.anki.model.CardsOrNotes.NOTES
-import com.ichi2.anki.settings.Prefs
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 
 /**
- * How to sort the rows in the [CardBrowser]
+ * How to sort the rows in the the Card Browser
  *
  * A parcelable subset of the [SortOrders][SortOrder] which AnkiDroid supports
  *
  * [NoOrdering] is not supported by the upstream browser.
- * See: [Prefs.cardBrowserNoSorting]
+ * See: [BrowserPreferences.cardBrowserNoSorting]
  *
  * Other properties are stored in the collection config and synced:
  * [getBrowserColumnKey], [getSortBackwards]; [BrowserConfig]
@@ -49,7 +48,7 @@ sealed class SortType : Parcelable {
         Timber.i("saving %s", this)
 
         when (this) {
-            is NoOrdering -> Prefs.cardBrowserNoSorting = true
+            is NoOrdering -> BrowserPreferences.cardBrowserNoSorting = true
             is CollectionOrdering -> {
                 withCol {
                     when (cardsOrNotes) {
@@ -64,14 +63,14 @@ sealed class SortType : Parcelable {
                     }
                 }
 
-                Prefs.cardBrowserNoSorting = false
+                BrowserPreferences.cardBrowserNoSorting = false
             }
         }
     }
 
     companion object {
         suspend fun build(cardsOrNotes: CardsOrNotes) =
-            when (Prefs.cardBrowserNoSorting) {
+            when (BrowserPreferences.cardBrowserNoSorting) {
                 true -> NoOrdering
                 false -> {
                     val browserColumnKey = getBrowserColumnKey(cardsOrNotes)
@@ -88,7 +87,7 @@ sealed class SortType : Parcelable {
             }
 
         fun buildSortOrder(): SortOrder =
-            when (Prefs.cardBrowserNoSorting) {
+            when (BrowserPreferences.cardBrowserNoSorting) {
                 true -> SortOrder.NoOrdering
                 false -> SortOrder.UseCollectionOrdering
             }

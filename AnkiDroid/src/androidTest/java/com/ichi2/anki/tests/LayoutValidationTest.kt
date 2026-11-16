@@ -94,7 +94,7 @@ class LayoutValidationTest : InstrumentedTest() {
                     com.ichi2.anki.R.layout.fragment_reviewer,
                     com.ichi2.anki.R.layout.fragment_preferences,
                     com.ichi2.anki.R.layout.fragment_drawing,
-                    com.ichi2.anki.R.layout.fragment_card_browser_searchview,
+                    com.ichi2.anki.browse.R.layout.fragment_card_browser_searchview,
                 ) +
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                         listOf(com.ichi2.anki.widgets.R.layout.widget_small_unthemed)
@@ -102,9 +102,14 @@ class LayoutValidationTest : InstrumentedTest() {
                         emptyList()
                     }
 
-            return layout::class.java.fields
-                .map { arrayOf<Any>(it.getInt(layout), it.name) }
+            return listOf(
+                layout::class.java,
+                com.ichi2.anki.browse.R.layout::class.java,
+                com.ichi2.anki.ankicommon.R.layout::class.java,
+            ).flatMap { it.fields.toList() }
+                .map { arrayOf<Any>(it.getInt(null), it.name) }
                 .filterNot { (id, name) -> name in nonAnkiFieldNames || id in ignoredLayoutIds }
+                .distinctBy { it[0] }
         }
 
         private fun <T> getFieldNames(clazz: Class<T>): HashSet<String> {

@@ -155,6 +155,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import kotlin.coroutines.resume
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 @Suppress("LeakingThis")
@@ -255,7 +257,7 @@ open class Reviewer :
         textBarNew = findViewById(R.id.new_number)
         textBarLearn = findViewById(R.id.learn_number)
         textBarReview = findViewById(R.id.review_number)
-        toolbar = findViewById(R.id.toolbar)
+        toolbar = findViewById(BrowseR.id.toolbar)
         micToolBarLayer = findViewById(R.id.mic_tool_bar_layer)
         processor = BindingMap(sharedPrefs(), ViewerCommand.entries, this)
         setupEdgeToEdge()
@@ -488,7 +490,7 @@ open class Reviewer :
             }
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.toolbar_container)) { container, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(BrowseR.id.toolbar_container)) { container, insets ->
             val bars = insets.bars()
             container.updatePadding(left = bars.left, top = bars.top, right = bars.right)
             if (answerButtonsAtBottom && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -694,7 +696,7 @@ open class Reviewer :
      */
     private fun syncControlsWithSystemBars() {
         if (fullscreenMode == FullScreenMode.BUTTONS_AND_MENU) return
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root_layout)) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(BrowseR.id.root_layout)) { _, insets ->
             val visible = insets.isVisible(navigationBars())
             if (visible == immersiveBarsVisible) return@setOnApplyWindowInsetsListener insets
 
@@ -708,7 +710,7 @@ open class Reviewer :
                 if (visible) showViewWithAnimation(view) else hideViewWithAnimation(view)
             }
 
-            toggleWithAnimation(R.id.toolbar_container)
+            toggleWithAnimation(BrowseR.id.toolbar_container)
             if (fullscreenMode == FullScreenMode.FULLSCREEN_ALL_GONE) {
                 toggleWithAnimation(R.id.top_bar)
                 toggleWithAnimation(R.id.answer_options_layout)
@@ -776,7 +778,7 @@ open class Reviewer :
                 Timber.i("Reviewer:: Home button pressed")
                 closeReviewer(RESULT_OK)
             }
-            R.id.action_undo -> {
+            BrowseR.id.action_undo -> {
                 Timber.i("Reviewer:: Undo button pressed")
                 if (showWhiteboard && whiteboard != null && !whiteboard!!.undoEmpty()) {
                     whiteboard!!.undo()
@@ -792,7 +794,7 @@ open class Reviewer :
                 Timber.i("Reviewer:: Reset progress button pressed")
                 showResetCardDialog()
             }
-            R.id.action_mark_card -> {
+            BrowseR.id.action_mark_card -> {
                 Timber.i("Reviewer:: Mark button pressed")
                 onMark(currentCard)
             }
@@ -815,7 +817,7 @@ open class Reviewer :
             }
             R.id.action_bury_card -> buryCard()
             R.id.action_bury_note -> buryNote()
-            R.id.action_suspend_card -> suspendCard()
+            BrowseR.id.action_suspend_card -> suspendCard()
             R.id.action_suspend_note -> suspendNote()
             R.id.action_reschedule_card -> showDueDateDialog()
             R.id.action_reset_card_progress -> showResetCardDialog()
@@ -1175,19 +1177,19 @@ open class Reviewer :
         Timber.d("onCreateOptionsMenu()")
         // NOTE: This is called every time a new question is shown via invalidate options menu
         menuInflater.inflate(R.menu.reviewer, menu)
-        menu.findItem(R.id.action_flag).subMenu?.let { subMenu -> setupFlags(subMenu) }
+        menu.findItem(BrowseR.id.action_flag).subMenu?.let { subMenu -> setupFlags(subMenu) }
         displayIcons(menu)
         actionButtons.setCustomButtonsStatus(menu)
         val alpha = Themes.ALPHA_ICON_ENABLED_LIGHT
-        val markCardIcon = menu.findItem(R.id.action_mark_card)
+        val markCardIcon = menu.findItem(BrowseR.id.action_mark_card)
         if (currentCard != null && isMarked(getColUnsafe, currentCard!!.note(getColUnsafe))) {
             markCardIcon.setTitle(CommonString.menu_unmark_note).setIcon(R.drawable.ic_star_white)
         } else {
-            markCardIcon.setTitle(TR.sentenceCase.markNote).setIcon(R.drawable.ic_star_border_white)
+            markCardIcon.setTitle(TR.sentenceCase.markNote).setIcon(AnkiCommonR.drawable.ic_star_border_white)
         }
         markCardIcon.iconAlpha = alpha
 
-        val flagIcon = menu.findItem(R.id.action_flag)
+        val flagIcon = menu.findItem(BrowseR.id.action_flag)
         if (flagIcon != null) {
             if (currentCard != null) {
                 val flag = currentCard!!.flag
@@ -1200,7 +1202,7 @@ open class Reviewer :
         }
 
         // Anki Desktop Translations
-        menu.findItem(R.id.action_flag)?.title = TR.sentenceCase.flagCard
+        menu.findItem(BrowseR.id.action_flag)?.title = TR.sentenceCase.flagCard
         menu.findItem(R.id.action_open_deck_options)?.title = TR.sentenceCase.deckOptions
         menu.findItem(R.id.action_reschedule_card).title = TR.sentenceCase.setDueDate
         menu.findItem(R.id.action_card_info)?.title = TR.sentenceCase.cardInfo
@@ -1208,7 +1210,7 @@ open class Reviewer :
         menu.findItem(R.id.action_delete)?.title = TR.sentenceCase.deleteNote
         // top-level (visible=false in XML) items, shown when only the card-level action is available
         menu.findItem(R.id.action_bury_card)?.title = TR.sentenceCase.buryCard
-        menu.findItem(R.id.action_suspend_card)?.title = TR.sentenceCase.suspendCard
+        menu.findItem(BrowseR.id.action_suspend_card)?.title = TR.sentenceCase.suspendCard
         menu.findItem(R.id.action_bury)?.let { buryItem ->
             buryItem.title = TR.studyingBury()
             buryItem.subMenu?.findItem(R.id.action_bury_card)?.title = TR.sentenceCase.buryCard
@@ -1216,7 +1218,7 @@ open class Reviewer :
         }
         menu.findItem(R.id.action_suspend)?.let { suspendItem ->
             suspendItem.title = TR.studyingSuspend()
-            suspendItem.subMenu?.findItem(R.id.action_suspend_card)?.title = TR.sentenceCase.suspendCard
+            suspendItem.subMenu?.findItem(BrowseR.id.action_suspend_card)?.title = TR.sentenceCase.suspendCard
             suspendItem.subMenu?.findItem(R.id.action_suspend_note)?.title = TR.sentenceCase.suspendNote
         }
 
@@ -1229,12 +1231,12 @@ open class Reviewer :
             undoIconId = R.drawable.ic_arrow_u_left_top
             undoEnabled = true
         } else {
-            undoIconId = R.drawable.ic_undo_white
+            undoIconId = AnkiCommonR.drawable.ic_undo_white
             undoEnabled = undoStatus?.undoAvailable == true
             this.isEraserMode = false
         }
         val alphaUndo = Themes.ALPHA_ICON_ENABLED_LIGHT
-        val undoIcon = menu.findItem(R.id.action_undo)
+        val undoIcon = menu.findItem(BrowseR.id.action_undo)
         undoIcon.setIcon(undoIconId)
         undoIcon.setEnabled(undoEnabled).iconAlpha = alphaUndo
         undoIcon.actionView!!.isEnabled = undoEnabled
@@ -1364,7 +1366,7 @@ open class Reviewer :
         }
         if (!suspendNoteAvailable() && !actionButtons.status.suspendIsDisabled()) {
             menu.findItem(R.id.action_suspend).isVisible = false
-            menu.findItem(R.id.action_suspend_card).isVisible = true
+            menu.findItem(BrowseR.id.action_suspend_card).isVisible = true
         }
         if (!buryNoteAvailable() && !actionButtons.status.buryIsDisabled()) {
             menu.findItem(R.id.action_bury).isVisible = false

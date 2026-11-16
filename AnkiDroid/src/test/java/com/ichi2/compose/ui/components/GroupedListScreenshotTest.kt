@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ichi2.anki.ComposeScreenshotTest
 import com.ichi2.anki.R
 import org.junit.Test
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 
 class GroupedListScreenshotTest : ComposeScreenshotTest() {
@@ -40,7 +41,7 @@ private fun GroupedListSample() {
     ) {
         GroupedList {
             item(
-                leadingContent = { RowIcon(R.drawable.ic_settings_black) },
+                leadingContent = { RowIcon(AnkiCommonR.drawable.ic_settings_black) },
                 trailingContent = { RowIcon(CommonR.drawable.ic_chevron_right) },
             ) { Text("Option 1") }
         }

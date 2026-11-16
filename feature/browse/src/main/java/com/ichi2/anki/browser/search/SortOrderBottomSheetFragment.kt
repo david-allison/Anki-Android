@@ -20,7 +20,9 @@ import anki.search.BrowserColumns.Sorting
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.FragmentBottomSheetListBinding
+import com.ichi2.anki.browse.databinding.ViewBrowserSortOrderBottomSheetItemBinding
+import com.ichi2.anki.browse.databinding.ViewBrowserSortOrderSectionHeaderBinding
 import com.ichi2.anki.browser.BrowserColumnKey
 import com.ichi2.anki.browser.CardBrowserColumn
 import com.ichi2.anki.browser.CardBrowserViewModel
@@ -30,9 +32,6 @@ import com.ichi2.anki.browser.humanReadableExplanation
 import com.ichi2.anki.browser.search.SortOrderBottomSheetFragment.ColumnUiModel.AnkiColumn
 import com.ichi2.anki.browser.search.ui.SortDirection
 import com.ichi2.anki.browser.search.ui.toSortDirection
-import com.ichi2.anki.databinding.FragmentBottomSheetListBinding
-import com.ichi2.anki.databinding.ViewBrowserSortOrderBottomSheetItemBinding
-import com.ichi2.anki.databinding.ViewBrowserSortOrderSectionHeaderBinding
 import com.ichi2.anki.model.CardsOrNotes
 import com.ichi2.anki.model.SortType
 import com.ichi2.anki.utils.ext.behavior
@@ -40,6 +39,8 @@ import com.ichi2.anki.utils.ext.requireParcelable
 import com.ichi2.anki.utils.isWindowCompact
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 private typealias Reverse = Boolean?
 
@@ -60,7 +61,7 @@ private typealias Reverse = Boolean?
  */
 class SortOrderBottomSheetFragment(
     private val viewModelProviderFactory: ViewModelProvider.Factory = ViewModelProvider.NewInstanceFactory(),
-) : BottomSheetDialogFragment(R.layout.fragment_bottom_sheet_list) {
+) : BottomSheetDialogFragment(BrowseR.layout.fragment_bottom_sheet_list) {
     @VisibleForTesting
     val viewModel: CardBrowserViewModel by activityViewModels { viewModelProviderFactory }
 
@@ -347,7 +348,7 @@ class SortOrderBottomSheetFragment(
             // highlight the current row
             holder.binding.root.background =
                 if (column.isCurrentSortOrder()) {
-                    ContextCompat.getDrawable(context, R.drawable.background_sort_order_selected_row)
+                    ContextCompat.getDrawable(context, AnkiCommonR.drawable.background_sort_order_selected_row)
                 } else {
                     null
                 }

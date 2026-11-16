@@ -32,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 @RunWith(AndroidJUnit4::class)
@@ -163,7 +164,7 @@ class DeckPickerAnalyticsOptInDialogTest {
         )
         // the checkbox starts unticked, so only opting in needs a click
         if (optIn) {
-            onView(withId(R.id.checkbox)).inRoot(isDialog()).perform(click())
+            onView(withId(BrowseR.id.checkbox)).inRoot(isDialog()).perform(click())
         }
         onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
     }

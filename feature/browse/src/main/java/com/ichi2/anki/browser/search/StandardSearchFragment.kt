@@ -19,14 +19,16 @@ import com.google.android.material.color.MaterialColors
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.Flag
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.FragmentStandardSearchBinding
+import com.ichi2.anki.browse.databinding.ViewSavedSearchItemBinding
+import com.ichi2.anki.browse.databinding.ViewSearchHistoryItemBinding
+import com.ichi2.anki.browser.BrowserIntegration
+import com.ichi2.anki.browser.BrowserPreferences
+import com.ichi2.anki.browser.BrowserTagsDialog
 import com.ichi2.anki.browser.SearchHistory.SearchHistoryEntry
 import com.ichi2.anki.browser.search.CardBrowserSearchViewModel.SearchHistoryItems
 import com.ichi2.anki.browser.toUserSpannable
 import com.ichi2.anki.common.utils.ellipsize
-import com.ichi2.anki.databinding.FragmentStandardSearchBinding
-import com.ichi2.anki.databinding.ViewSavedSearchItemBinding
-import com.ichi2.anki.databinding.ViewSearchHistoryItemBinding
 import com.ichi2.anki.dialogs.ManageSavedSearchAction
 import com.ichi2.anki.dialogs.SaveBrowserSearchDialogFragment
 import com.ichi2.anki.dialogs.SavedBrowserSearchesDialogFragment
@@ -34,14 +36,11 @@ import com.ichi2.anki.dialogs.registerChildDeckSelectedHandler
 import com.ichi2.anki.dialogs.registerSaveSearchHandler
 import com.ichi2.anki.dialogs.registerSavedSearchActionHandler
 import com.ichi2.anki.dialogs.startDeckSelection
-import com.ichi2.anki.dialogs.tags.TagsDialog
-import com.ichi2.anki.dialogs.tags.TagsDialogFactory
 import com.ichi2.anki.dialogs.tags.TagsDialogListener
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.DeckNameId
 import com.ichi2.anki.model.CardStateFilter
 import com.ichi2.anki.model.SelectableDeck
-import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.ui.internationalization.sentenceCase
 import com.ichi2.anki.utils.ext.alignWithFirstLineOf
 import com.ichi2.anki.utils.ext.collectInLifecycle
@@ -50,9 +49,10 @@ import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 
 class StandardSearchFragment :
-    Fragment(R.layout.fragment_standard_search),
+    Fragment(BrowseR.layout.fragment_standard_search),
     TagsDialogListener {
     @VisibleForTesting
     val binding by viewBinding(FragmentStandardSearchBinding::bind)
@@ -60,12 +60,12 @@ class StandardSearchFragment :
     @VisibleForTesting
     val viewModel: CardBrowserSearchViewModel by activityViewModels()
 
-    private lateinit var tagsDialogFactory: TagsDialogFactory
+    private lateinit var tagsDialogFactory: BrowserTagsDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        tagsDialogFactory = TagsDialogFactory(this).attachToActivity<TagsDialogFactory>(requireActivity())
+        tagsDialogFactory = BrowserIntegration.current.attachTagsDialog(this, this)
 
         registerSaveSearchHandler {
             viewModel.addSavedSearch(it)
@@ -89,7 +89,7 @@ class StandardSearchFragment :
         super.onViewCreated(view, savedInstanceState)
 
         binding.toggleAdvancedSearch.apply {
-            isVisible = Prefs.devUsingCardBrowserSearchTools
+            isVisible = BrowserPreferences.devUsingCardBrowserSearchTools
             setOnClickListener { viewModel.toggleAdvancedSearch() }
         }
 
@@ -112,7 +112,7 @@ class StandardSearchFragment :
             launchCatchingTask {
                 tagsDialogFactory.show(
                     requireActivity(),
-                    type = TagsDialog.DialogType.FILTER_BY_TAG,
+                    filterByTag = true,
                     checkedTags = ArrayList(viewModel.filtersFlow.value.tags),
                 )
             }

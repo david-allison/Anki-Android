@@ -31,6 +31,7 @@ import com.ichi2.utils.Permissions.openAppSettingsScreen
 import com.ichi2.utils.show
 import timber.log.Timber
 import java.io.File
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 
 class AdvancedSettingsFragment : SettingsFragment() {
     override val preferenceResource: Int
@@ -94,7 +95,7 @@ class AdvancedSettingsFragment : SettingsFragment() {
         ttsPref.setOnPreferenceChangeListener { _, isChecked ->
             if (!(isChecked as Boolean)) return@setOnPreferenceChangeListener true
             AlertDialog.Builder(requireContext()).show {
-                setIcon(R.drawable.ic_warning)
+                setIcon(AnkiCommonR.drawable.ic_warning)
                 setMessage(CommonString.readtext_deprecation_warn)
                 setNegativeButton(CommonString.dialog_cancel) { _, _ -> ttsPref.isChecked = false }
                 setNeutralButton(CommonString.scoped_storage_learn_more) { _, _ ->
@@ -111,7 +112,7 @@ class AdvancedSettingsFragment : SettingsFragment() {
         requirePreference<Preference>(R.string.pref_reset_languages_key).setOnPreferenceClickListener {
             AlertDialog.Builder(requireContext()).show {
                 setTitle(CommonString.reset_languages)
-                setIcon(R.drawable.ic_warning)
+                setIcon(AnkiCommonR.drawable.ic_warning)
                 setMessage(CommonString.reset_languages_question)
                 setPositiveButton(CommonString.dialog_ok) { _, _ ->
                     if (MetaDB.resetLanguages(requireContext())) {

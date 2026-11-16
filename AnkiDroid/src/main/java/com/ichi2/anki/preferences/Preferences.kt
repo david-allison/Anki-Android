@@ -44,6 +44,7 @@ import com.ichi2.utils.FragmentFactoryUtils
 import timber.log.Timber
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
+import com.ichi2.anki.browse.R as BrowseR
 
 class PreferencesFragment :
     Fragment(R.layout.fragment_preferences),
@@ -176,7 +177,7 @@ class PreferencesFragment :
 
                     // remove `Back` button from the toolbar of other fragments
                     if (fragment !is HeaderFragment) {
-                        view.findViewById<MaterialToolbar>(R.id.toolbar)?.navigationIcon = null
+                        view.findViewById<MaterialToolbar>(BrowseR.id.toolbar)?.navigationIcon = null
                     }
                 }
             },

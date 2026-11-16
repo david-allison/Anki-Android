@@ -23,6 +23,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -606,10 +607,10 @@ class ReviewerInsetsTest : RobolectricTest() {
     }
 
     private val Reviewer.rootLayout: View
-        get() = findViewById(R.id.root_layout)
+        get() = findViewById(BrowseR.id.root_layout)
 
     private val Reviewer.toolbarContainer: View
-        get() = findViewById(R.id.toolbar_container)
+        get() = findViewById(BrowseR.id.toolbar_container)
 
     private val Reviewer.countsBar: View
         get() = findViewById(R.id.top_bar)

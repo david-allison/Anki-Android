@@ -2,13 +2,12 @@
 
 package com.ichi2.anki.browser
 
+import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.ichi2.anki.Flag
-import com.ichi2.anki.R
 import com.ichi2.anki.browser.search.CardState
 import com.ichi2.anki.libanki.DeckId
 import com.ichi2.anki.libanki.NoteTypeId
-import com.ichi2.anki.settings.Prefs
-import com.ichi2.anki.settings.PrefsRepository
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -25,10 +24,14 @@ private typealias Tag = String
  * Displayed in most recently used order.
  */
 class SearchHistory(
-    private val prefs: PrefsRepository = Prefs,
+    private val prefs: SharedPreferences = browserSharedPrefs(),
     private val maxEntries: Int = MAX_ENTRIES,
 ) {
-    private var entriesJson by prefs.stringPref(R.string.pref_browser_search_history, "[]")
+    private var entriesJson: String
+        get() = prefs.getString(BrowserPreferences.key(com.ichi2.anki.browse.R.string.pref_browser_search_history), "[]") ?: "[]"
+        set(value) {
+            prefs.edit { putString(BrowserPreferences.key(com.ichi2.anki.browse.R.string.pref_browser_search_history), value) }
+        }
 
     /**
      * The user's past searches in the Card Browser.

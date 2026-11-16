@@ -11,6 +11,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Edge-to-edge inset handling for [Info].
@@ -110,13 +111,13 @@ class InfoInsetsTest : RobolectricTest() {
         }
 
     private val Info.rootLayout: View
-        get() = findViewById(R.id.root_layout)
+        get() = findViewById(BrowseR.id.root_layout)
 
     private val Info.toolbarContainer: View
-        get() = findViewById(R.id.toolbar_container)
+        get() = findViewById(BrowseR.id.toolbar_container)
 
     private val Info.content: View
-        get() = findViewById(R.id.content)
+        get() = findViewById(BrowseR.id.content)
 
     private fun withInfo(block: (Info) -> Unit) =
         block(

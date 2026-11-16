@@ -143,6 +143,7 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 typealias ContextMenuOption = DeckPickerContextMenuOption
@@ -1388,7 +1389,7 @@ class DeckPickerTest : RobolectricTest() {
     @Test
     fun `undo menu item is updated after undoableOp call`() =
         deckPicker {
-            fun DeckPicker.getUndoTitle() = menu().findItem(R.id.action_undo).title.toString()
+            fun DeckPicker.getUndoTitle() = menu().findItem(BrowseR.id.action_undo).title.toString()
 
             fun waitForMenu() = ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
 
@@ -1678,7 +1679,7 @@ class DeckPickerTest : RobolectricTest() {
                 assertThat(Prefs.devBottomNavEnabled, equalTo(true))
                 assertThat(bottomNavigationEnabled, equalTo(false))
                 assertThat(resources.getBoolean(R.bool.bottom_navigation_available), equalTo(false))
-                val bottomNavigation = ActivityHomescreenBinding.bind(findViewById(R.id.root_layout)).bottomNavigation
+                val bottomNavigation = ActivityHomescreenBinding.bind(findViewById(BrowseR.id.root_layout)).bottomNavigation
                 assertThat(bottomNavigation, nullValue())
                 assertThat(deckPickerBinding.decks.itemDecorationCount, equalTo(0))
             }
@@ -1705,7 +1706,7 @@ class DeckPickerTest : RobolectricTest() {
         withBottomNavigationEnabled {
             assumeTrue("Not running on tablet", qualifiers != "xlarge")
             deckPicker {
-                val menu = ActivityHomescreenBinding.bind(findViewById(R.id.root_layout)).bottomNavigation!!.menu
+                val menu = ActivityHomescreenBinding.bind(findViewById(BrowseR.id.root_layout)).bottomNavigation!!.menu
                 assertThat(menu.findItem(R.id.nav_home)?.title.toString(), equalTo("Decks"))
                 assertThat(menu.findItem(R.id.nav_browser)?.title.toString(), equalTo("Browse"))
                 assertThat(menu.findItem(R.id.nav_stats)?.title.toString(), equalTo("Statistics"))
@@ -1718,7 +1719,7 @@ class DeckPickerTest : RobolectricTest() {
         withBottomNavigationEnabled {
             assumeTrue("Not running on tablet", qualifiers != "xlarge")
             deckPicker {
-                val bottomNav = ActivityHomescreenBinding.bind(findViewById(R.id.root_layout)).bottomNavigation!!
+                val bottomNav = ActivityHomescreenBinding.bind(findViewById(BrowseR.id.root_layout)).bottomNavigation!!
                 val shortcuts =
                     listOf(
                         KeyEvent.KEYCODE_1 to BottomNavController.NavigationItem.HOME,
@@ -1742,7 +1743,7 @@ class DeckPickerTest : RobolectricTest() {
         withBottomNavigationEnabled {
             assumeTrue("Not running on tablet", qualifiers != "xlarge")
             deckPicker {
-                val bottomNav = ActivityHomescreenBinding.bind(findViewById(R.id.root_layout)).bottomNavigation!!
+                val bottomNav = ActivityHomescreenBinding.bind(findViewById(BrowseR.id.root_layout)).bottomNavigation!!
                 val longTitle = "Statistikenübersicht"
 
                 bottomNav.menu.findItem(R.id.nav_stats).title = longTitle
@@ -1759,9 +1760,9 @@ class DeckPickerTest : RobolectricTest() {
                 deckPicker {
                     val browser = openEmbeddedCardBrowser()
                     val browserView = browser.requireView()
-                    val browserToolbar = browserView.findViewById<Toolbar>(R.id.toolbar)
+                    val browserToolbar = browserView.findViewById<Toolbar>(BrowseR.id.toolbar)
                     assertThat(browser.legacySearchView, notNullValue())
-                    assertThat(browserToolbar.menu.findItem(R.id.action_search), notNullValue())
+                    assertThat(browserToolbar.menu.findItem(BrowseR.id.action_search), notNullValue())
                 }
             }
         }
@@ -1806,8 +1807,8 @@ class DeckPickerTest : RobolectricTest() {
                             .build()
                     ViewCompat.dispatchApplyWindowInsets(browserView, insets)
 
-                    assertThat(browserView.findViewById<View>(R.id.toolbar_container).paddingTop, equalTo(statusBarHeight))
-                    assertThat(browserView.findViewById<RecyclerFastScroller>(R.id.browser_scroller).handleBottomInset, equalTo(0))
+                    assertThat(browserView.findViewById<View>(BrowseR.id.toolbar_container).paddingTop, equalTo(statusBarHeight))
+                    assertThat(browserView.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).handleBottomInset, equalTo(0))
                 }
             }
         }
@@ -1823,7 +1824,7 @@ class DeckPickerTest : RobolectricTest() {
                     val browser = openEmbeddedCardBrowser()
                     advanceRobolectricLooper()
                     val viewModel = browser.activityViewModel
-                    val toolbarTitle = browser.requireView().findViewById<TextView>(R.id.toolbar_title)
+                    val toolbarTitle = browser.requireView().findViewById<TextView>(BrowseR.id.toolbar_title)
                     val firstRow = RowSelection(viewModel.getRowAtPosition(0), topOffset = 0)
                     val secondRow = RowSelection(viewModel.getRowAtPosition(1), topOffset = 0)
 
@@ -1952,7 +1953,7 @@ class DeckPickerTest : RobolectricTest() {
             createMenuJob?.join()
             assertNotNull(viewModel.optionsMenuState)
             val menu = menu()
-            assertNotNull(menu.findItem(R.id.action_undo))
+            assertNotNull(menu.findItem(BrowseR.id.action_undo))
             menu.removeItem(R.id.action_sync)
 
             updateMenuFromState(menu)

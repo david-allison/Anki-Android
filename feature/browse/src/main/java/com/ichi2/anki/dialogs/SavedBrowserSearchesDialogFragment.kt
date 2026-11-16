@@ -8,14 +8,13 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.analytics.AnalyticsDialogFragment
+import com.ichi2.anki.browse.databinding.ItemSavedSearchBinding
 import com.ichi2.anki.browser.search.SavedSearch
 import com.ichi2.anki.browser.search.SavedSearches
 import com.ichi2.anki.browser.search.toMap
 import com.ichi2.anki.compat.CompatHelper.Companion.getSerializableCompat
-import com.ichi2.anki.databinding.ItemSavedSearchBinding
 import com.ichi2.anki.dialogs.SavedBrowserSearchesDialogFragment.Companion.RESULT_SAVED_SEARCH
 import com.ichi2.anki.dialogs.SavedBrowserSearchesDialogFragment.Companion.TYPE_SEARCH_REMOVED
 import com.ichi2.anki.dialogs.SavedBrowserSearchesDialogFragment.Companion.TYPE_SEARCH_SELECTED
@@ -148,23 +147,7 @@ class SavedBrowserSearchesDialogFragment : AnalyticsDialogFragment() {
 }
 
 /**
- * Registers a fragment result listener to notify [CardBrowser] about user actions on a saved search.
- * @param action a lambda with the type of action and the name of the target saved search
- */
-fun CardBrowser.registerSavedSearchActionHandler(action: (Int, String?) -> Unit) {
-    supportFragmentManager.setFragmentResultListener(
-        SavedBrowserSearchesDialogFragment.REQUEST_SAVED_SEARCH_ACTION,
-        this,
-    ) { _, bundle ->
-        val type = bundle.getInt(SavedBrowserSearchesDialogFragment.RESULT_SAVED_SEARCH_ACTION)
-        val searchName = bundle.getString(RESULT_SAVED_SEARCH)
-        Timber.d("On user saved search selection named: %s", searchName)
-        action(type, searchName)
-    }
-}
-
-/**
- * Registers a fragment result listener to notify [CardBrowser] about user actions on a saved search.
+ * Registers a fragment result listener to notify the Card Browser about user actions on a saved search.
  * @param action a lambda with the type of action and the name of the target saved search
  */
 fun Fragment.registerSavedSearchActionHandler(action: (ManageSavedSearchAction) -> Unit) {

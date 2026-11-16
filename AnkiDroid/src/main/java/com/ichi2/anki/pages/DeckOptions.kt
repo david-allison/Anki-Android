@@ -21,7 +21,6 @@ import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.CommonString
 import com.ichi2.anki.ProgressContext
-import com.ichi2.anki.R
 import com.ichi2.anki.SingleFragmentActivity
 import com.ichi2.anki.common.annotations.NeedsTest
 import com.ichi2.anki.common.crashreporting.CrashReportService
@@ -37,6 +36,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicInteger
+import com.ichi2.anki.browse.R as BrowseR
 
 @NeedsTest("15130: pressing back: icon + button should return to options if the manual is open")
 @NeedsTest("17905: pressing back before the webpage is ready closes the screen")
@@ -163,7 +163,7 @@ class DeckOptions : PageFragment() {
         super.onViewCreated(view, savedInstanceState)
         launchCatchingTask {
             val deckName = withCol { decks.name(deckId, default = true) }
-            view.findViewById<MaterialToolbar>(R.id.toolbar).title = deckName
+            view.findViewById<MaterialToolbar>(BrowseR.id.toolbar).title = deckName
         }
     }
 

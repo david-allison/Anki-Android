@@ -205,6 +205,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import com.google.android.material.R as MaterialR
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 import com.ichi2.anki.noteeditor.R as NoteEditorR
 
@@ -2033,7 +2034,7 @@ class NoteEditorFragment :
 
         MaterialAlertDialogBuilder(context).show {
             title(CommonString.media_file_size_warning_title)
-            iconAttr(R.drawable.ic_warning)
+            iconAttr(AnkiCommonR.drawable.ic_warning)
             message(text = getString(CommonString.media_file_size_warning_message, fileName, fileSizeStr, limitStr))
             positiveButton(CommonString.dialog_cancel)
             negativeButton(CommonString.media_file_size_add_anyway) {

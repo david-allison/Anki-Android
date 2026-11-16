@@ -61,6 +61,7 @@ import com.ichi2.utils.title
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
@@ -217,7 +218,7 @@ class ManageNotetypes : AnkiActivity(R.layout.activity_manage_note_types) {
         notetypesAdapter.isInMultiSelectMode = state.isInMultiSelectMode
         if (state.searchQuery.isNotEmpty()) {
             val searchMenuItem =
-                findViewById<Toolbar>(R.id.toolbar).menu?.findItem(R.id.search_item)
+                findViewById<Toolbar>(BrowseR.id.toolbar).menu?.findItem(R.id.search_item)
             val searchView = searchMenuItem?.actionView as? AccessibleSearchView
             // Avoid resetting cursor position if query hasn't changed
             if (searchView?.query.toString() != state.searchQuery) {

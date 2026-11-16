@@ -19,16 +19,14 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.ichi2.anki.CardBrowser
 import com.ichi2.anki.CollectionManager.TR
 import com.ichi2.anki.CommonString
-import com.ichi2.anki.R
+import com.ichi2.anki.browse.databinding.DialogBrowserColumnsSelectionBinding
 import com.ichi2.anki.browser.BrowserColumnSelectionRecyclerItem.ColumnItem
 import com.ichi2.anki.browser.BrowserColumnSelectionRecyclerItem.UsageItem
 import com.ichi2.anki.browser.ColumnUsage.ACTIVE
 import com.ichi2.anki.browser.ColumnUsage.AVAILABLE
 import com.ichi2.anki.common.annotations.NeedsTest
-import com.ichi2.anki.databinding.DialogBrowserColumnsSelectionBinding
 import com.ichi2.anki.dialogs.DiscardChangesDialog
 import com.ichi2.anki.launchCatchingViewTask
 import com.ichi2.anki.model.CardsOrNotes
@@ -36,9 +34,11 @@ import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.utils.ext.requireParcelable
 import dev.androidbroadcast.vbpd.viewBinding
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
- * Allows a user to select and reorder the visible columns for the [CardBrowser]
+ * Allows a user to select and reorder the visible columns for the the Card Browser
  *
  * A user may drag columns between 2 [sections][ColumnUsage]: 'Active' and 'Available'
  * A user may use the + or - buttons to quickly move an item between sections
@@ -49,13 +49,13 @@ import timber.log.Timber
  *
  * A user may not save if there are 0 columns
  *
- * This class must be hosted inside a [CardBrowser]
+ * This class must be hosted inside a the Card Browser
  */
 @NeedsTest("saving")
 @NeedsTest("dismissing: save changes dialog")
 @NeedsTest("dismissing via 'save_columns'")
 @NeedsTest("instance state restoration")
-class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_columns_selection) {
+class BrowserColumnSelectionFragment : DialogFragment(BrowseR.layout.dialog_browser_columns_selection) {
     private val viewModel: CardBrowserViewModel by activityViewModels()
 
     private val binding by viewBinding(DialogBrowserColumnsSelectionBinding::bind)
@@ -86,7 +86,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_co
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, R.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
+        setStyle(STYLE_NO_TITLE, AnkiCommonR.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -115,7 +115,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_co
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             Timber.d("menu item click: %s", menuItem.title)
             when (menuItem.itemId) {
-                R.id.action_save_columns -> {
+                BrowseR.id.action_save_columns -> {
                     if (!hasUnsavedChanges) {
                         Timber.d("no changes to save")
                         dismiss()
@@ -242,7 +242,7 @@ class BrowserColumnSelectionFragment : DialogFragment(R.layout.dialog_browser_co
 }
 
 /**
- * Whether a [CardBrowserColumn] is being used in the [CardBrowser]
+ * Whether a [CardBrowserColumn] is being used in the the Card Browser
  */
 enum class ColumnUsage(
     @StringRes val titleRes: Int,

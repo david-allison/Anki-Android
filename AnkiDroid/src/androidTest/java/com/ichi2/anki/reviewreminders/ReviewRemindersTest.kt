@@ -53,6 +53,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import com.google.android.material.R as MaterialR
 import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Exercises the reminder dialogs through the UI and checks their persisted results. */
 @RunWith(AndroidJUnit4::class)
@@ -405,7 +406,7 @@ class ReviewRemindersTest : InstrumentedTest() {
     }
 
     private fun assertReminderCount(count: Int) {
-        onView(withId(R.id.recycler_view)).checkWithTimeout(
+        onView(withId(BrowseR.id.recycler_view)).checkWithTimeout(
             { view, exception ->
                 if (exception != null) throw exception
                 assertThat((view as RecyclerView).adapter!!.itemCount, equalTo(count))

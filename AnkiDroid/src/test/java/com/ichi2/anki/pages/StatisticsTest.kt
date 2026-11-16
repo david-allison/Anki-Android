@@ -23,6 +23,7 @@ import org.junit.jupiter.api.assertNotNull
 import org.junit.runner.RunWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 class StatisticsTest : RobolectricTest() {
@@ -45,13 +46,13 @@ class StatisticsTest : RobolectricTest() {
             addDeck(testDeckName2)
             launchActivity<SingleFragmentActivity>(StatisticsDestination).use {
                 advanceUntilIdle()
-                onView(withId(R.id.deck_name)).check(matches(withText(testDeckName1)))
-                onView(withId(R.id.deck_name)).perform(click())
+                onView(withId(BrowseR.id.deck_name)).check(matches(withText(testDeckName1)))
+                onView(withId(BrowseR.id.deck_name)).perform(click())
                 advanceUntilIdle()
                 // select test deck 2
                 onView(withText(testDeckName2)).inRoot(isDialog()).perform(click())
                 // check the activity that it has the new deck name
-                onView(withId(R.id.deck_name)).check(matches(withText(testDeckName2)))
+                onView(withId(BrowseR.id.deck_name)).check(matches(withText(testDeckName2)))
             }
         }
 
@@ -65,7 +66,7 @@ class StatisticsTest : RobolectricTest() {
                     val statisticsFragment =
                         activity.supportFragmentManager.findFragmentById(R.id.fragment_container)
                     assertNotNull(statisticsFragment)
-                    onView(withId(R.id.deck_name)).perform(click())
+                    onView(withId(BrowseR.id.deck_name)).perform(click())
                     advanceRobolectricLooper()
                     val deckSelectionDialog =
                         activity.supportFragmentManager.findFragmentByTag(DeckSelectionDialog.TAG)

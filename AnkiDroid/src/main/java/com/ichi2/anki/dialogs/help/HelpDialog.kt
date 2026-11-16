@@ -34,6 +34,7 @@ import com.ichi2.utils.createAndApply
 import com.ichi2.utils.customView
 import com.ichi2.utils.title
 import dev.androidbroadcast.vbpd.viewBinding
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -247,7 +248,7 @@ internal val supportMenuItems =
     arrayOf(
         HelpItem(
             titleResId = CommonString.help_item_support_opencollective_donate,
-            iconResId = R.drawable.ic_round_favorite_24,
+            iconResId = AnkiCommonR.drawable.ic_round_favorite_24,
             analyticsId = LinkAction.OPENED_DONATE,
             id = 5,
             action = OpenUrlResource(R.string.link_opencollective_donate),

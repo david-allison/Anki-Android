@@ -238,6 +238,7 @@ import kotlinx.coroutines.launch
 import net.ankiweb.rsdroid.Translations
 import timber.log.Timber
 import java.io.File
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -924,7 +925,7 @@ open class DeckPicker :
 
             supportActionBar?.apply {
                 subtitle = if (dueCount == 0) null else resources.getQuantityString(CommonPlurals.widget_cards_due, dueCount, dueCount)
-                val toolbar = findViewById<Toolbar>(R.id.toolbar)
+                val toolbar = findViewById<Toolbar>(BrowseR.id.toolbar)
                 TooltipCompat.setTooltipText(toolbar, toolbar.subtitle)
             }
         }
@@ -1416,7 +1417,7 @@ open class DeckPicker :
     fun updateMenuFromState(menu: Menu) {
         viewModel.optionsMenuState?.run {
             // The menu may have been cleared while refreshMenuState was suspended.
-            menu.findItem(R.id.action_undo)?.let { updateUndoLabelFromState(it, undoLabel, undoAvailable) }
+            menu.findItem(BrowseR.id.action_undo)?.let { updateUndoLabelFromState(it, undoLabel, undoAvailable) }
             menu.findItem(R.id.action_sync)?.let { updateSyncIconFromState(it, this) }
         }
         updateDeckRelatedMenuItems(menu)
@@ -1492,7 +1493,7 @@ open class DeckPicker :
             return true
         }
         when (item.itemId) {
-            R.id.action_undo -> {
+            BrowseR.id.action_undo -> {
                 Timber.i("DeckPicker:: Undo button pressed")
                 undo()
                 return true

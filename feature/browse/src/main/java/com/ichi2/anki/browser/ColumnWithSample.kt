@@ -4,8 +4,8 @@ package com.ichi2.anki.browser
 
 import android.os.Parcelable
 import anki.search.BrowserRow
-import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.CollectionManager
+import com.ichi2.anki.browser.browserSharedPrefs
 import com.ichi2.anki.model.CardsOrNotes
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
@@ -50,7 +50,7 @@ class ColumnWithSample(
 
             val originalKeys =
                 BrowserColumnCollection
-                    .load(AnkiDroidApp.sharedPrefs(), cardsOrNotes)
+                    .load(browserSharedPrefs(), cardsOrNotes)
                     .backendKeys
                     .toList()
 

@@ -16,18 +16,19 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.ichi2.anki.Flag
-import com.ichi2.anki.R
-import com.ichi2.anki.databinding.FragmentBottomSheetListBinding
-import com.ichi2.anki.databinding.ItemBrowserFilterBottomSheetBinding
+import com.ichi2.anki.browse.databinding.FragmentBottomSheetListBinding
+import com.ichi2.anki.browse.databinding.ItemBrowserFilterBottomSheetBinding
 import com.ichi2.anki.utils.ext.behavior
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * A [BottomSheetDialogFragment] allowing selection of 0-many [Flags][Flag]
  */
-class FlagsBottomSheetFragment : BottomSheetDialogFragment(R.layout.fragment_bottom_sheet_list) {
+class FlagsBottomSheetFragment : BottomSheetDialogFragment(BrowseR.layout.fragment_bottom_sheet_list) {
     private val viewModel: CardBrowserSearchViewModel by activityViewModels()
     private val binding by viewBinding(FragmentBottomSheetListBinding::bind)
 
@@ -172,6 +173,6 @@ class FlagsBottomSheetFragment : BottomSheetDialogFragment(R.layout.fragment_bot
 val Flag?.iconRes
     get() =
         when (this) {
-            null -> R.drawable.ic_flag_transparent
+            null -> AnkiCommonR.drawable.ic_flag_transparent
             else -> this.drawableRes
         }

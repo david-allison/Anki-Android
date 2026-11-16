@@ -8,7 +8,7 @@ import com.ichi2.anki.libanki.NoteTypeNameID
 import com.ichi2.anki.libanki.NotetypeJson
 
 /**
- * All user-selectable search filters for the [com.ichi2.anki.CardBrowser]
+ * All user-selectable search filters for the the Card Browser
  *
  * As a UI model: the display names of the filters are provided, as well as IDs
  */

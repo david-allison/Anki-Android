@@ -100,6 +100,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 @RunWith(AndroidJUnit4::class)
@@ -1296,7 +1297,7 @@ class CustomStudyDialogTest : RobolectricTest() {
     private fun createHostActivity() =
         Robolectric.buildActivity(EmptyAnkiActivity::class.java).setup().apply {
             val activity = get()
-            activity.setContentView(CoordinatorLayout(activity).apply { id = R.id.root_layout })
+            activity.setContentView(CoordinatorLayout(activity).apply { id = BrowseR.id.root_layout })
         }
 
     private fun assertUnavailableMenu(fragment: CustomStudyDialog) {

@@ -46,6 +46,7 @@ import com.ichi2.anki.utils.ext.requireString
 import com.ichi2.themes.Themes
 import dev.androidbroadcast.vbpd.viewBinding
 import org.jetbrains.annotations.VisibleForTesting
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
@@ -62,7 +63,7 @@ class InsertFieldDialog : DialogFragment(R.layout.dialog_insert_field) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, R.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
+        setStyle(STYLE_NO_TITLE, AnkiCommonR.style.ThemeOverlay_AnkiDroid_AlertDialog_FullScreen)
     }
 
     override fun onViewCreated(

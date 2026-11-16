@@ -15,6 +15,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 /** Edge-to-edge inset handling for [AccountActivity], applied by its hosted fragments. */
 @RunWith(AndroidJUnit4::class)
@@ -139,9 +140,9 @@ class AccountInsetsTest : RobolectricTest() {
         }
 
     /** The activity's own root, outside the fragment. Note the fragment root shares this id. */
-    private val AccountActivity.rootLayout: View get() = findViewById(R.id.root_layout)
+    private val AccountActivity.rootLayout: View get() = findViewById(BrowseR.id.root_layout)
 
-    private val AccountActivity.toolbarContainer: View get() = findViewById(R.id.toolbar_container)
+    private val AccountActivity.toolbarContainer: View get() = findViewById(BrowseR.id.toolbar_container)
 
     private val AccountActivity.content: View get() = findViewById(R.id.account_content)
 

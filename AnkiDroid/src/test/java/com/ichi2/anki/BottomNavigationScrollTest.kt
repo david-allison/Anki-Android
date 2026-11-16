@@ -29,6 +29,7 @@ import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.lessThanOrEqualTo
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.ichi2.anki.browse.R as BrowseR
 
 @RunWith(AndroidJUnit4::class)
 class BottomNavigationScrollTest : RobolectricTest() {
@@ -66,7 +67,7 @@ class BottomNavigationScrollTest : RobolectricTest() {
             val nav = deckPicker.bottomNav
             nav.selectedItemId = NavigationItem.BROWSER.id
             advanceRobolectricLooper()
-            val list = deckPicker.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = deckPicker.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.adapter =
                 object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     override fun getItemCount() = 80

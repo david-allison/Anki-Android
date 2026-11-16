@@ -24,6 +24,7 @@ import com.ichi2.testutils.simulateKeyboard
 import com.ichi2.testutils.simulateSystemBars
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import com.ichi2.anki.browse.R as BrowseR
 
 /**
  * Screenshot tests for [CardBrowser]
@@ -68,11 +69,11 @@ class CardBrowserScreenshotTest : ScreenshotTest() {
         withCardBrowser(noteCount = 50) { browser ->
             browser.simulateNavigationBar()
 
-            val list = browser.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = browser.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.scrollToEnd()
 
             // keep the auto-hiding fast scroller visible for the capture
-            browser.findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            browser.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
 
             captureScreen("scrolled_to_bottom")
@@ -90,11 +91,11 @@ class CardBrowserScreenshotTest : ScreenshotTest() {
         withCardBrowser(noteCount = 50) { browser ->
             browser.simulateSideNavigationBar()
 
-            val list = browser.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = browser.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.scrollToEnd()
 
             // keep the auto-hiding fast scroller visible for the capture
-            browser.findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            browser.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
 
             captureScreen("landscape_scrolled_to_bottom")
@@ -114,11 +115,11 @@ class CardBrowserScreenshotTest : ScreenshotTest() {
         withCardBrowser(noteCount = 50) { browser ->
             browser.simulateGestureNavigationBar()
 
-            val list = browser.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = browser.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.scrollToEnd()
 
             // keep the auto-hiding fast scroller visible for the capture
-            browser.findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            browser.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
 
             captureScreen("landscape_gesture_scrolled_to_bottom")
@@ -130,11 +131,11 @@ class CardBrowserScreenshotTest : ScreenshotTest() {
         withCardBrowser(noteCount = 50) { browser ->
             browser.simulateSystemBars(navBarBottom = HIDDEN_GESTURE_BAR, bottomCornerRadius = 34.dp)
 
-            val list = browser.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = browser.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.scrollToEnd()
 
             // keep the auto-hiding fast scroller visible for the capture
-            browser.findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            browser.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
 
             captureScreen("gesture_bar_hidden_scrolled_to_bottom")
@@ -147,11 +148,11 @@ class CardBrowserScreenshotTest : ScreenshotTest() {
             advanceRobolectricLooper()
             browser.simulateKeyboard()
 
-            val list = browser.findViewById<RecyclerView>(R.id.card_browser_list)
+            val list = browser.findViewById<RecyclerView>(BrowseR.id.card_browser_list)
             list.scrollToEnd()
 
             // keep the auto-hiding fast scroller visible for the capture
-            browser.findViewById<RecyclerFastScroller>(R.id.browser_scroller).show(animate = false)
+            browser.findViewById<RecyclerFastScroller>(BrowseR.id.browser_scroller).show(animate = false)
             advanceRobolectricLooper()
 
             captureScreen("keyboard_scrolled_to_bottom")

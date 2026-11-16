@@ -15,17 +15,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.color.MaterialColors
-import com.ichi2.anki.R
-import com.ichi2.anki.databinding.FragmentBottomSheetListBinding
-import com.ichi2.anki.databinding.ItemBrowserFilterBottomSheetBinding
+import com.ichi2.anki.browse.databinding.FragmentBottomSheetListBinding
+import com.ichi2.anki.browse.databinding.ItemBrowserFilterBottomSheetBinding
 import com.ichi2.anki.utils.ext.behavior
 import dev.androidbroadcast.vbpd.viewBinding
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 /**
  * A [BottomSheetDialogFragment] allowing selection of 0-many [CardState]s
  */
-class CardStateBottomSheetFragment : BottomSheetDialogFragment(R.layout.fragment_bottom_sheet_list) {
+class CardStateBottomSheetFragment : BottomSheetDialogFragment(BrowseR.layout.fragment_bottom_sheet_list) {
     private val viewModel: CardBrowserSearchViewModel by activityViewModels()
     private val binding by viewBinding(FragmentBottomSheetListBinding::bind)
 
@@ -128,7 +129,7 @@ class CardStateBottomSheetFragment : BottomSheetDialogFragment(R.layout.fragment
 
 /** Returns the card-state icon tinted with the current theme's state color. */
 fun CardState?.getIcon(context: Context): Drawable? {
-    val iconRes = if (this == null) R.drawable.ic_card_state_default else R.drawable.ic_card_state
+    val iconRes = if (this == null) AnkiCommonR.drawable.ic_card_state_default else AnkiCommonR.drawable.ic_card_state
     val colorAttr =
         when (this) {
             null -> androidx.appcompat.R.attr.colorPrimary

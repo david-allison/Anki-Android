@@ -179,6 +179,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.function.Consumer
 import java.util.function.Function
 import kotlin.math.abs
+import com.ichi2.anki.ankicommon.R as AnkiCommonR
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 abstract class AbstractFlashcardViewer :
@@ -538,7 +540,7 @@ abstract class AbstractFlashcardViewer :
     }
 
     private fun focusDefaultLayout() {
-        findViewById<View>(R.id.root_layout).requestFocus()
+        findViewById<View>(BrowseR.id.root_layout).requestFocus()
     }
 
     // ----------------------------------------------------------------------------
@@ -811,7 +813,7 @@ abstract class AbstractFlashcardViewer :
         Timber.i("Displaying 'delete note' dialog")
         AlertDialog.Builder(this).show {
             title(CommonString.delete_card_title)
-            setIcon(R.drawable.ic_warning)
+            setIcon(AnkiCommonR.drawable.ic_warning)
             message(
                 text =
                     resources.getString(

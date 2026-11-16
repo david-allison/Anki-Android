@@ -120,7 +120,7 @@ class IdsFile(
         }
 
         @VisibleForTesting
-        internal fun deleteStaleFiles(directory: File) {
+        fun deleteStaleFiles(directory: File) {
             val cutoff = TimeManager.time.intTimeMS() - FILE_RETENTION.inWholeMilliseconds
             val deleteCount =
                 FileUtil.listFilesOrEmpty(directory).count { file ->

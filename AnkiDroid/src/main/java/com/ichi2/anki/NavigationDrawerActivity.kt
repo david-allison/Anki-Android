@@ -54,6 +54,7 @@ import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.anki.workarounds.FullDraggableContainerFix
 import com.ichi2.utils.IntentUtil
 import timber.log.Timber
+import com.ichi2.anki.browse.R as BrowseR
 import com.ichi2.anki.common.android.R as CommonR
 
 abstract class NavigationDrawerActivity(
@@ -172,7 +173,7 @@ abstract class NavigationDrawerActivity(
                 menu.findItem(R.id.nav_stats)?.title = TR.statisticsTitle()
                 setupDrawerInsets(this)
             }
-        val toolbar: Toolbar? = mainView.findViewById(R.id.toolbar)
+        val toolbar: Toolbar? = mainView.findViewById(BrowseR.id.toolbar)
         if (toolbar != null) {
             setSupportActionBar(toolbar)
             // enable ActionBar app icon to behave as action to toggle nav drawer
