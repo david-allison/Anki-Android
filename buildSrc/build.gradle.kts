@@ -39,6 +39,8 @@ tasks.test {
     inputs.file("../gradle/libs.versions.toml")
     // The coverage fixture uses the app's real include list.
     inputs.file("../gradle/jacoco-includes.txt")
+    // The workflow retry test checks the first Gradle invocation in CI.
+    inputs.file("../.github/workflows/tests_unit.yml")
 }
 
 // Run from the repository root: ./gradlew -p buildSrc downloadTestKitDependencies

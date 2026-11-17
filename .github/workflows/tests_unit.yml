@@ -159,7 +159,7 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 50
+          fetch-depth: 0
 
       - name: Configure JDK
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -180,7 +180,25 @@ jobs:
           # Comment this and the with: above out for performance testing on a branch
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      - name: Select affected modules
+        # The first Gradle invocation can need to download build dependencies.
+        # Select modules first so changes with no unit tests can skip the Robolectric SDK download.
+        id: affected
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          ORG_GRADLE_PROJECT_ciTestBase: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        with:
+          timeout_minutes: 10
+          retry_wait_seconds: 60
+          max_attempts: 3
+          shell: bash
+          command: |
+            ./gradlew selectAffectedTestModules --daemon &&
+            cat build/ci/affected-test-modules.properties >> "$GITHUB_OUTPUT"
+
       - name: Gradle Dependency Download
+        # Retry Robolectric SDK downloads separately so a failure here does not rerun selection.
+        if: steps.affected.outputs.modules != ''
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
@@ -190,6 +208,9 @@ jobs:
 
         # update workflows/README.md when modifying this step
       - name: Run Unit Tests
+        env:
+          ORG_GRADLE_PROJECT_ciTestModules: ${{ steps.affected.outputs.modules }}
+        if: steps.affected.outputs.modules != ''
         run: ./gradlew jacocoUnitTestReport --daemon
 
 
@@ -239,7 +260,9 @@ jobs:
         if: contains(matrix.os, 'windows')
         run: ./gradlew --stop
 
-      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+      # Selected modules can have no tests or no coverage instrumentation, so JaCoCo may produce no report.
+      - if: steps.affected.outputs.modules != '' && hashFiles('AnkiDroid/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml') != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           verbose: true
           fail_ci_if_error: ${{ github.repository == 'ankidroid/Anki-Android' }} # optional (default = false)
