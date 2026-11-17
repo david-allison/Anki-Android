@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 import java.util.Properties
 import javax.xml.parsers.DocumentBuilderFactory
@@ -193,6 +194,41 @@ class JacocoPluginTest {
         assertThat(output, containsString(":nested:core:test SKIPPED"))
         assertThat(output, not(containsString(":empty:testDebugUnitTest")))
         assertThat(output, not(containsString(":tooling:test")))
+    }
+
+    @Test
+    fun `full CI selection retains all module tests and coverage sources`() {
+        val output = runCoverage("--dry-run", "-PciTestModules=*").output
+        assertThat(output, containsString(":app:testPlayDebugUnitTest SKIPPED"))
+        assertThat(output, containsString(":library:testDebugUnitTest SKIPPED"))
+        assertThat(output, containsString(":nested:core:test SKIPPED"))
+        assertThat(output, containsString("empty/src/main/kotlin"))
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [":app", ":library", ":nested:core", ":app,:library", ""])
+    fun `unit report only schedules selected modules`(selection: String) {
+        val output = runCoverage("--dry-run", "-PciTestModules=$selection").output
+        val selected = selection.split(',').toSet()
+        for ((module, task) in listOf("app" to "testPlayDebugUnitTest", "library" to "testDebugUnitTest", "nested:core" to "test")) {
+            val expectedTask = containsString(":$module:$task SKIPPED")
+            val expectedSources = containsString("${module.replace(':', '/')}/src/main/kotlin")
+            assertThat(output, if (":$module" in selected) expectedTask else not(expectedTask))
+            assertThat(output, if (":$module" in selected) expectedSources else not(expectedSources))
+        }
+        assertThat(output, not(containsString("empty/src/main/kotlin")))
+    }
+
+    @Test
+    fun `changing selected modules invalidates configuration cache`() {
+        runCoverage("--dry-run", "-PciTestModules=:library")
+        val cached = runCoverage("--dry-run", "-PciTestModules=:library")
+        assertThat(cached.output, containsString("Reusing configuration cache."))
+
+        val changed = runCoverage("--dry-run", "-PciTestModules=:nested:core")
+        assertThat(changed.output, containsString(":nested:core:test SKIPPED"))
+        assertThat(changed.output, not(containsString(":library:testDebugUnitTest")))
+        assertThat(changed.output, not(containsString(":app:testPlayDebugUnitTest")))
     }
 
     @Test

@@ -47,6 +47,16 @@ fun Project.registerJacocoCoverageReports(
     openReportRequested: Boolean,
     linuxHtmlCmd: String?,
 ) {
+    // CI supplies the changed modules and their dependents. Local, scheduled and
+    // manual runs retain full coverage unless a selection is explicitly passed.
+    val testModules =
+        providers
+            .gradleProperty("ciTestModules")
+            .orNull
+            ?.takeUnless { it == "*" }
+            ?.split(',')
+            ?.toSet()
+
     // Our merge report task
     val mergedReport =
         tasks.register<JacocoReport>("jacocoTestReport") {
@@ -83,12 +93,15 @@ fun Project.registerJacocoCoverageReports(
         mergedReport = mergedReport,
         androidTestVariantName = rootProject.androidTestVariantName,
         classExcludes = fileFilter,
+        includeAppUnitTests = testModules == null || path in testModules,
     )
 
     // Libraries may already be configured. Subscribe to the captured variants,
     // then select runtime dependencies when the report's graph is available.
     for (module in rootProject.allprojects.filter { it != project }) {
-        val includeModule = { module in runtimeProjectDependencies("playDebugRuntimeClasspath") }
+        val includeModule = {
+            (testModules == null || module.path in testModules) && module in runtimeProjectDependencies("playDebugRuntimeClasspath")
+        }
         module.configureAndroidLibraryCoverage(
             report = unitTestReport,
             classExcludes = fileFilter,
@@ -112,6 +125,7 @@ private fun Project.configureAndroidAppCoverage(
     mergedReport: TaskProvider<JacocoReport>,
     androidTestVariantName: String,
     classExcludes: List<String>,
+    includeAppUnitTests: Boolean,
 ) {
     extensions.configure<ApplicationAndroidComponentsExtension> {
         // AGP enables unit tests only for testBuildType by default. These reports
@@ -124,11 +138,13 @@ private fun Project.configureAndroidAppCoverage(
                 report = unitTestReport,
                 variant = debugVariant,
                 classExcludes = classExcludes,
+                includeModule = { includeAppUnitTests },
             )
             includeTestExecutionData(
                 report = unitTestReport,
                 taskName = "testPlayDebugUnitTest",
                 pattern = "**/*.exec",
+                includeModule = { includeAppUnitTests },
             )
             includeTestExecutionData(
                 report = mergedReport,
