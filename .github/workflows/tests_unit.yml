@@ -211,7 +211,7 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_ciTestModules: ${{ steps.affected.outputs.modules }}
         if: steps.affected.outputs.modules != ''
-        run: ./gradlew jacocoUnitTestReport --daemon
+        run: ./gradlew :AnkiDroid:jacocoCiUnitTestReports --daemon
 
 
       # Only runs:
@@ -260,9 +260,20 @@ jobs:
         if: contains(matrix.os, 'windows')
         run: ./gradlew --stop
 
-      # Selected modules can have no tests or no coverage instrumentation, so JaCoCo may produce no report.
-      - if: steps.affected.outputs.modules != '' && hashFiles('AnkiDroid/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml') != ''
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          verbose: true
-          fail_ci_if_error: ${{ github.repository == 'ankidroid/Anki-Android' }} # optional (default = false)
+      - name: Upload unit coverage by suite
+        # Flake runs repeat the same suites. Upload once per OS when the selection produced reports.
+        if: matrix.iteration == 1 && steps.affected.outputs.modules != '' && hashFiles('AnkiDroid/build/reports/codecov/unit-*.xml') != ''
+        continue-on-error: ${{ github.repository != 'ankidroid/Anki-Android' }}
+        shell: bash
+        env:
+          FORK_BRANCH: ${{ github.event.pull_request.head.repo.full_name != github.repository && github.event.pull_request.head.label || '' }}
+        run: |
+          args=()
+          if [[ -n "$FORK_BRANCH" && -z "$CODECOV_TOKEN" ]]; then
+            args+=(--branch "$FORK_BRANCH")
+          fi
+          for report in AnkiDroid/build/reports/codecov/unit-*.xml; do
+            flag=$(basename "$report" .xml)
+            pipx run --spec codecov-cli==11.3.2 codecovcli upload-coverage --fail-on-error \
+              --disable-search --plugin noop --file "$report" --flag "$flag" "${args[@]}"
+          done

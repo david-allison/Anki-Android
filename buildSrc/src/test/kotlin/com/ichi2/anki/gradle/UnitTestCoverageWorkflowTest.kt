@@ -11,9 +11,9 @@ class UnitTestCoverageWorkflowTest {
     fun `coverage upload requires a unit test report`() {
         val workflow = File("../.github/workflows/tests_unit.yml").readText()
         val steps = workflow.split(Regex("(?m)^      - "))
-        val upload = steps.first { "uses: codecov/codecov-action@" in it }
+        val upload = steps.first { "codecovcli upload-coverage" in it }
         assertTrue(
-            "hashFiles('AnkiDroid/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml') != ''" in upload,
+            "hashFiles('AnkiDroid/build/reports/codecov/unit-*.xml') != ''" in upload,
             "Coverage upload must be skipped when no unit-test report was generated",
         )
     }

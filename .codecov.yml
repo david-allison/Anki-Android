@@ -6,11 +6,21 @@ comment: false
 github_checks:
   annotations: false
 
+# A skipped unit suite keeps its last report. Emulator coverage is measured on every PR.
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: emulator
+      carryforward: false
+
 coverage:
   range: "36...100"
   status:
-    # PRs can test only a subset of modules. Full runs on main provide project coverage.
-    project: false
+    project:
+      default:
+        threshold: 0.15
+        informational: true
     patch:
       default:
         # BUG: our coverage fluctuates, so codecov marks this as a build failure (#12227)
