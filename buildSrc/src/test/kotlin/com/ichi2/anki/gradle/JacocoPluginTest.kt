@@ -181,6 +181,79 @@ class JacocoPluginTest {
     }
 
     @Test
+    fun `CI reports attribute dependency hits to the suite that ran`() {
+        writeFile(
+            "library/src/main/java/com/ichi2/Library.java",
+            "package com.ichi2; public class Library { public static int value() { return 7; } }",
+        )
+        writeFile(
+            "app/src/test/java/regression/AppTest.java",
+            """
+            package regression;
+            public class AppTest {
+                @org.junit.Test public void exercisesLibrary() {
+                    org.junit.Assert.assertEquals(7, com.ichi2.Library.value());
+                }
+            }
+            """.trimIndent(),
+        )
+        File(projectDir, "app/build.gradle").appendText(
+            "\ndependencies { testImplementation libs.junit.vintage.engine }\ntasks.withType(Test).configureEach { useJUnit() }\n",
+        )
+        val task = ":app:jacocoCiUnitTestReports"
+        val reports = File(projectDir, "app/build/reports/codecov")
+        val selected = runGradle(task, "-PciTestModules=:app")
+        assertThat(selected.task(":library:testDebugUnitTest"), equalTo(null))
+        assertThat(reports.list()?.toSet(), equalTo(setOf("unit-app.xml")))
+        assertThat(coveredLines(reports.resolve("unit-app.xml"), "com/ichi2/Library"), greaterThan(0))
+        assertThat(runGradle(task, "-PciTestModules=:app").output, containsString("Reusing configuration cache."))
+
+        // A suite that loses its final test must replace its previous hits in Codecov.
+        val appTest = File(projectDir, "app/src/test/java/regression/AppTest.java")
+        val appTestSource = appTest.readText()
+        assertThat(appTest.delete(), equalTo(true))
+        runGradle(task, "-PciTestModules=:app,:empty")
+        assertThat(reports.list()?.toSet(), equalTo(setOf("unit-app.xml", "unit-empty.xml")))
+        assertThat(coveredLines(reports.resolve("unit-app.xml"), "com/ichi2/Library"), equalTo(0))
+
+        // Reusing a checkout must never upload a skipped suite's old XML.
+        runGradle(task, "-PciTestModules=:empty")
+        assertThat(reports.list()?.toSet(), equalTo(setOf("unit-empty.xml")))
+        assertThat(coveredLines(reports.resolve("unit-empty.xml"), "regression/Uncovered"), equalTo(0))
+
+        appTest.writeText(appTestSource)
+        val disabled = runGradle(task, "-PciTestModules=:app", "-Penable_coverage=false")
+        assertThat(disabled.task(":app:testPlayDebugUnitTest")?.outcome, equalTo(TaskOutcome.SUCCESS))
+        assertThat(reports.listFiles().orEmpty().isEmpty(), equalTo(true))
+    }
+
+    @Test
+    fun `full CI runs seed a flag for each runtime suite`() {
+        val output = runGradle(":app:jacocoCiUnitTestReports", "-PciTestModules=*", "--dry-run").output
+        for (flag in listOf("unit-app", "unit-library", "unit-nested_core", "unit-empty")) {
+            assertThat(output, containsString(":app:jacocoReport_$flag SKIPPED"))
+        }
+        assertThat(output, not(containsString("unit-tooling")))
+    }
+
+    private fun coveredLines(
+        report: File,
+        className: String,
+    ): Int {
+        val document =
+            DocumentBuilderFactory
+                .newInstance()
+                .apply { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+                .newDocumentBuilder()
+                .parse(report)
+        return XPathFactory
+            .newInstance()
+            .newXPath()
+            .evaluate("/report/package/class[@name='$className']/counter[@type='LINE']/@covered", document)
+            .toInt()
+    }
+
+    @Test
     fun `report covers runtime modules and skips empty library test tasks`() {
         val output = dryRunCoverage()
 
